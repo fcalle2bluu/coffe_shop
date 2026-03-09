@@ -1,27 +1,32 @@
 const { Pool } = require('pg');
+const path = require('path');
+const dotenv = require('dotenv');
 
-// Configuración limpia usando las variables de Render
+// Cargar .env
+const envPath = path.join(__dirname, '../../.env');
+dotenv.config({ path: envPath });
+
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT, 
+  // Prioridad 1: Usar la URL completa (útil para tu local)
+  // Prioridad 2: Usar variables sueltas (útil para Render)
+  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Error inesperado en el pool:', err);
-});
-
-// Prueba de conexión
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error('❌ Error de conexión a Supabase:', err.message);
+    console.error('❌ ERROR DE CONEXIÓN:', err.message);
+    console.log('Intento de conexión con:', {
+      user: process.env.DB_USER,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT
+    });
   } else {
-    console.log('✅ CONEXIÓN EXITOSA: Base de datos vinculada correctamente');
+    console.log('✅ CONEXIÓN EXITOSA A SUPABASE');
   }
 });
 
