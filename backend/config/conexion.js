@@ -1,27 +1,28 @@
 const { Pool } = require('pg');
-const path = require('path');
 
-// Carga el .env si existe (útil para tu local)
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+// En Render, process.env ya tiene los datos del panel, no necesitas cargar el archivo .env
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT || 6543, // Cambiamos a 6543 para mayor estabilidad
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
-const poolConfig = {
-    // Si tienes DATABASE_URL (en local), la usa. 
-    // Si no (en Render), usa las variables separadas.
-    connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-    ssl: {
-        rejectUnauthorized: false
-    }
-};
+pool.on('error', (err) => {
+  console.error('❌ Error en el pool:', err);
+});
 
-const pool = new Pool(poolConfig);
-
-// Prueba de conexión
+// Prueba de conexión inmediata
 pool.query('SELECT NOW()', (err, res) => {
-    if (err) {
-        console.error('❌ Error conectando a Supabase:', err.message);
-    } else {
-        console.log('✅ Conexión exitosa a la base de datos de MokaPOS');
-    }
+  if (err) {
+    console.error('❌ Error crítico de conexión a la BD:', err.message);
+  } else {
+    console.log('✅ Conexión establecida con Supabase desde Render');
+  }
 });
 
 module.exports = pool;
