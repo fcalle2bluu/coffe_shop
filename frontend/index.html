@@ -171,8 +171,7 @@
         async function cargarKPIs() {
             try {
                 // Llama a tu servidor Node.js que debe estar corriendo en la terminal
-                const respuesta = await fetch('http://localhost:3000/api/kpis');
-                
+                const respuesta = await fetch('/api/kpis');                
                 if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
                 
                 const datos = await respuesta.json();
