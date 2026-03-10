@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function cargarInsumos() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/almacen/insumos');
+// CAMBIO: De 'http://localhost:3000/api/almacen/insumos' a:
+        const respuesta = await fetch('/api/almacen/insumos');
         if (!respuesta.ok) throw new Error('Error en el servidor');
         insumosGlobal = await respuesta.json();
         renderizarTabla(insumosGlobal);
@@ -25,7 +26,7 @@ async function cargarInsumos() {
 
 async function cargarMovimientos() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/almacen/movimientos');
+    const respuesta = await fetch('/api/almacen/movimientos');
         if (!respuesta.ok) throw new Error('Error al cargar historial');
         const movimientos = await respuesta.json();
         renderizarHistorial(movimientos);
@@ -102,7 +103,7 @@ async function aplicarAjusteRapido(id, tipo) {
     }
 
     try {
-        const respuesta = await fetch('http://localhost:3000/api/almacen/ajuste', {
+        const respuesta = await fetch('/api/almacen/ajuste', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ insumo_id: id, tipo: tipo, cantidad: cantidadInput })
