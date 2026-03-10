@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-
+const rutasCotizaciones = require('./routes/cotizaciones');
 // 1. Cargar configuración
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -20,7 +20,7 @@ const rutasAlmacen = require('./routes/almacen'); // Ahora sí lo encontrará
 // 4. Usar Rutas
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 
-
+app.use('/api/cotizaciones', rutasCotizaciones);
 // 5. Iniciar Servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
