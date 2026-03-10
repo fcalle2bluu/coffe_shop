@@ -36,12 +36,19 @@ router.post('/', async (req, res) => {
 
         // Paso 1: Registrar la cabecera de la venta
         // Nota: usuario_id y caja_id los dejamos nulos por ahora hasta tener el módulo de Login/Caja
+        // Buscar la caja abierta actualmente
+        const cajaActivaRes = await client.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL ORDER BY id DESC LIMIT 1');
+        if (cajaActivaRes.rows.length === 0) {
+            throw new Error("No hay una caja abierta. Ve al módulo de Caja y abre un turno primero.");
+        }
+        const caja_id = cajaActivaRes.rows[0].id;
+
         const insertVenta = `
-            INSERT INTO ventas (total, metodo_pago) 
-            VALUES ($1, $2) 
+            INSERT INTO ventas (caja_id, total, metodo_pago) 
+            VALUES ($1, $2, $3) 
             RETURNING id, TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
         `;
-        const resultVenta = await client.query(insertVenta, [total, metodo_pago]);
+        const resultVenta = await client.query(insertVenta, [caja_id, total, metodo_pago]);
         const ventaId = resultVenta.rows[0].id;
         const fechaVenta = resultVenta.rows[0].fecha;
 
