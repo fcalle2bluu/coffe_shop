@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const rutasCotizaciones = require('./routes/cotizaciones');
+const rutasVentas = require('./routes/ventas');
 // 1. Cargar configuración
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -16,7 +17,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // 3. Importar Rutas
 const rutasKpis = require('./routes/kpis');
 const rutasAlmacen = require('./routes/almacen'); // Ahora sí lo encontrará
-
+app.use('/api/ventas', rutasVentas);
 // 4. Usar Rutas
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 
