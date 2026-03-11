@@ -7,13 +7,16 @@ const rutasVentas = require('./routes/ventas');
 const rutasCaja = require('./routes/caja');
 const rutasApartados = require('./routes/apartados');
 const rutasInventario = require('./routes/inventario');
+const rutasComprobantes = require('./routes/comprobantes');
 // 1. Cargar configuración
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
+const rutasParametros = require('./routes/parametros');
+app.use('/api/parametros', rutasParametros);
 app.use(cors());
 app.use(express.json());
-
+app.use('/api/comprobantes', rutasComprobantes);
 // 2. Archivos estáticos
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/api/inventario', rutasInventario);
