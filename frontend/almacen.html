@@ -3,25 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Dashboard Cafetería</title>
+    <title>MokaPOS - Almacén</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        sidebar: '#3E2723',
-                        sidebarHover: '#4E342E',
-                        topbar: '#5D4037',
-                        logoBg: '#4E342E',
-                        mainBg: '#F4F1EA',
-                    }
-                }
-            }
+            theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } }
         }
     </script>
 </head>
@@ -31,232 +18,156 @@
         <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723]">
             <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
         </div>
-
         <div class="flex items-center p-4 border-b border-[#5D4037]">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
-                A
-            </div>
-            <div>
-                <p class="text-white text-sm font-semibold">admin</p>
-                <p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[10px] mr-1"></i> CAJERO</p>
-            </div>
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">A</div>
+            <div><p class="text-white text-sm font-semibold">admin</p><p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[10px] mr-1"></i> CAJERO</p></div>
         </div>
-
         <nav class="flex-1 overflow-y-auto py-2 text-sm">
             <ul class="space-y-1">
-                <li><a href="index.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-house w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Inicio</span></a></li>
-                <li><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Almacén</span></a></li>                
+                <li><a href="index.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
+                <li><a href="almacen.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-box w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Almacén</span></a></li>
                 <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
+                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Punto de Venta</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
-                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-dollar w-6 text-center text-[#BCAAA4]"></i> <span>Ventas al Crédito</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-wrench w-6 text-center text-[#BCAAA4]"></i> <span>Taller</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-users w-6 text-center text-[#BCAAA4]"></i> <span>Usuarios</span></a></li>
-                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
             </ul>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen">
-        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10">
+        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors"><i class="fa-solid fa-bars text-xl"></i></button>
-            <div class="flex items-center cursor-pointer hover:bg-logoBg p-2 rounded transition-colors">
-                <span class="mr-2 text-sm">admin</span><i class="fa-solid fa-caret-down text-xs"></i>
-            </div>
+            <h1 class="text-lg font-bold tracking-wide">Control de Almacén e Insumos</h1>
+            <div class="flex items-center"><span class="mr-2 text-sm">admin</span><i class="fa-solid fa-caret-down text-xs"></i></div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-[#5D4037] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#3E2723]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PEN EN CAJA</p>
+        <div class="flex-1 flex flex-col overflow-hidden p-4 md:p-6 gap-6">
+            
+            <div class="h-1/2 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden relative">
+                <div class="p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
+                    <h2 class="font-bold text-[#4E342E] text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Stock Actual</h2>
+                    <div class="flex space-x-3 items-center">
+                        <div class="relative w-56">
+                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-9 pr-3 py-1.5 rounded shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8D6E63] text-sm">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                        </div>
+                        <button onclick="abrirModal()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-4 py-1.5 rounded shadow transition-colors font-medium text-sm flex items-center">
+                            <i class="fa-solid fa-plus mr-2"></i> Nuevo Insumo
+                        </button>
                     </div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-money-bill-1-wave"></i></div>
-                </div>
-
-                <div class="bg-[#795548] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#5D4037]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-compras-mes" class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">COMPRAS DEL MES</p>
-                    </div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-bag-shopping"></i></div>
-                </div>
-
-                <div class="bg-[#6D4C41] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#4E342E]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-ventas-dia" class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">EN VENTAS DEL DÍA</p>
-                    </div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-mug-hot"></i></div>
-                </div>
-
-                <div class="bg-[#8D6E63] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#6D4C41]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">INVERTIDO EN STOCK</p>
-                    </div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-tag"></i></div>
-                </div>
-
-                <div class="bg-[#A1887F] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#8D6E63]">
-                    <div class="p-4 flex-1 z-10"><h3 id="kpi-proveedores" class="text-2xl font-bold">0</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">PROVEEDORES</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-truck-fast"></i></div>
-                </div>
-                <div class="bg-[#8D6E63] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#6D4C41]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">MARCAS</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-regular fa-copyright"></i></div>
-                </div>
-                <div class="bg-[#795548] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#5D4037]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PRESENTACIONES</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-layer-group"></i></div>
-                </div>
-                <div class="bg-[#6D4C41] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#4E342E]">
-                    <div class="p-4 flex-1 z-10"><h3 id="kpi-productos" class="text-2xl font-bold">0</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PRODUCTOS INGRESADOS</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-box-open"></i></div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded shadow-md border-t-4 border-[#E65100]">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-lg font-bold text-[#4E342E]">Resumen Financiero y Movimientos</h2>
-                        <p class="text-xs text-gray-500">Comparativa de Ventas (Ingresos) vs Compras (Inversión en Stock)</p>
-                    </div>
-                    <i class="fa-solid fa-chart-line text-[#E65100] text-xl"></i>
                 </div>
                 
-                <div class="p-4 h-[400px] w-full relative bg-[#FAFAFA]">
-                    <canvas id="ventasComprasChart"></canvas>
+                <div class="flex-1 overflow-y-auto">
+                    <table class="min-w-full w-full">
+                        <thead class="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Unidad</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Stock</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Mínimo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Ajuste Rápido</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
+                    </table>
                 </div>
             </div>
+
+            <div class="h-1/2 flex flex-col bg-white rounded shadow-md border-t-4 border-[#8D6E63] overflow-hidden relative">
+                <div class="p-4 border-b bg-[#FAFAFA] shrink-0">
+                    <h2 class="font-bold text-[#4E342E] text-lg"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Historial de Movimientos</h2>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto">
+                    <table class="min-w-full w-full">
+                        <thead class="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Fecha y Hora</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Tipo</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-movimientos" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </main>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            await cargarKPIs();
-            renderizarGrafico(); // Llamamos a la función que dibuja la gráfica
-        });
 
-        async function cargarKPIs() {
-            try {
-                const respuesta = await fetch('/api/kpis');                
-                if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
-                
-                const datos = await respuesta.json();
-
-                document.getElementById('kpi-ventas-dia').innerText = `S/ ${datos.ventasDia}`;
-                document.getElementById('kpi-compras-mes').innerText = `S/ ${datos.comprasMes}`;
-                document.getElementById('kpi-proveedores').innerText = datos.proveedores;
-                document.getElementById('kpi-productos').innerText = datos.productos;
-
-            } catch (error) {
-                console.error('Hubo un problema cargando los datos del dashboard:', error);
-            }
-        }
-
-        // --- LÓGICA DE LA GRÁFICA ---
-        function renderizarGrafico() {
-            const ctx = document.getElementById('ventasComprasChart').getContext('2d');
-
-            // Datos de prueba (Luego los conectaremos a tu backend)
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
-            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; // Dinero que entró
-            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; // Dinero gastado en stock
+    <div id="modalInsumo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div class="bg-[#5D4037] p-4 flex justify-between items-center text-white">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-box-open mr-2"></i>Registrar Nuevo Insumo</h3>
+                <button onclick="cerrarModal()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
             
-            // Calculamos el beneficio neto para la línea
-            const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
+            <form id="formInsumo" onsubmit="guardarNuevoInsumo(event)" class="p-6">
+                
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Insumo</label>
+                    <input type="text" id="inputNombre" required placeholder="Ej: Leche PIL, Azúcar Blanca..." class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8D6E63] focus:border-[#8D6E63] outline-none transition-shadow">
+                </div>
+                
+                <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-5 shadow-inner">
+                    <h4 class="text-sm font-bold text-[#E65100] mb-3 flex items-center"><i class="fa-solid fa-calculator mr-2"></i> Calculadora de Ingreso (Empaques)</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">¿Cuántos compraste?</label>
+                            <div class="flex rounded-md shadow-sm">
+                                <input type="number" id="cantEmpaques" value="1" min="1" step="1" required class="w-16 border border-gray-300 rounded-l-md px-2 py-1.5 text-sm focus:ring-[#8D6E63] outline-none text-center font-bold text-gray-700">
+                                <select id="tipoEmpaque" class="flex-1 border-y border-r border-gray-300 rounded-r-md px-2 py-1.5 text-sm bg-white focus:ring-[#8D6E63] outline-none">
+                                    <option value="Bolsa(s)">Bolsa(s)</option>
+                                    <option value="Caja(s)">Caja(s)</option>
+                                    <option value="Quintal(es)">Quintal(es)</option>
+                                    <option value="Paquete(s)">Paquete(s)</option>
+                                    <option value="Botella(s)">Botella(s)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Contenido por cada uno</label>
+                            <div class="flex rounded-md shadow-sm">
+                                <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" required class="w-20 border border-gray-300 rounded-l-md px-2 py-1.5 text-sm focus:ring-[#8D6E63] outline-none text-center font-bold text-gray-700">
+                                <select id="selectUnidad" class="flex-1 border-y border-r border-gray-300 rounded-r-md px-2 py-1.5 text-sm bg-white focus:ring-[#8D6E63] outline-none font-bold text-[#5D4037]">
+                                    <option value="ml">ml</option>
+                                    <option value="gr">gr</option>
+                                    <option value="unidad">unid.</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: meses,
-                    datasets: [
-                        {
-                            type: 'line',
-                            label: 'Beneficio Neto',
-                            data: dataBeneficio,
-                            borderColor: '#22c55e', // Verde éxito
-                            backgroundColor: '#22c55e',
-                            borderWidth: 3,
-                            tension: 0.4, // Curva suave
-                            yAxisID: 'y',
-                            fill: false,
-                            pointBackgroundColor: '#fff',
-                            pointBorderWidth: 2,
-                            pointRadius: 4
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Ventas (Ingresos)',
-                            data: dataVentas,
-                            backgroundColor: '#E65100', // Naranja MokaPOS
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.8
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Compras (Inversión Stock)',
-                            data: dataCompras,
-                            backgroundColor: '#8D6E63', // Café claro MokaPOS
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.8
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { font: { family: 'Inter, sans-serif', weight: 'bold' }, color: '#4E342E' }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(62, 39, 35, 0.9)', // Color café oscuro
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.y !== null) { label += 'S/ ' + context.parsed.y; }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { family: 'Inter, sans-serif', weight: '500' }, color: '#795548' }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { borderDash: [5, 5], color: '#EFEBE9' },
-                            ticks: {
-                                callback: function(value) { return 'S/ ' + value; },
-                                font: { family: 'Inter, sans-serif' },
-                                color: '#795548'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    </script>
+                    <div class="bg-white p-3 rounded-md border border-orange-100 flex items-center justify-between shadow-sm">
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">El sistema registrará:</span>
+                        <div>
+                            <strong id="totalCalculado" class="text-xl text-[#E65100] font-black tracking-tight">1000</strong> 
+                            <span id="lblUnidad" class="font-bold text-gray-600 ml-1">ml</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Stock Mínimo de Alerta</label>
+                    <div class="relative">
+                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="1000" class="w-full border border-gray-300 rounded-lg pl-3 pr-12 py-2 focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none transition-shadow font-bold text-gray-700">
+                        <span id="lblMinimoUnidad" class="absolute right-3 top-2.5 text-sm font-bold text-gray-400">ml</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-circle-info mr-1"></i>Avisaremos cuando el inventario baje de este monto.</p>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="cerrarModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <button type="submit" class="px-5 py-2.5 bg-[#E65100] text-white font-bold rounded-lg shadow-md hover:bg-[#EF6C00] transition-colors flex items-center">
+                        <i class="fa-solid fa-save mr-2"></i>Guardar Insumo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/almacen.js"></script>
 </body>
 </html>

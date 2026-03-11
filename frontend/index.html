@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -46,8 +48,9 @@
                 <li><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Almacén</span></a></li>                
                 <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
                 <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
-<li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
-<li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>
+                <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
+                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
+                <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>
                 <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-dollar w-6 text-center text-[#BCAAA4]"></i> <span>Ventas al Crédito</span></a></li>
                 <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
                 <li><a href="#" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-wrench w-6 text-center text-[#BCAAA4]"></i> <span>Taller</span></a></li>
@@ -101,61 +104,34 @@
                 </div>
 
                 <div class="bg-[#A1887F] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#8D6E63]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-proveedores" class="text-2xl font-bold">0</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">PROVEEDORES</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 id="kpi-proveedores" class="text-2xl font-bold">0</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">PROVEEDORES</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-truck-fast"></i></div>
                 </div>
-
                 <div class="bg-[#8D6E63] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#6D4C41]">
                     <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">MARCAS</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-regular fa-copyright"></i></div>
                 </div>
-
                 <div class="bg-[#795548] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#5D4037]">
                     <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PRESENTACIONES</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-layer-group"></i></div>
                 </div>
-
                 <div class="bg-[#6D4C41] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#4E342E]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-productos" class="text-2xl font-bold">0</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PRODUCTOS INGRESADOS</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 id="kpi-productos" class="text-2xl font-bold">0</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PRODUCTOS INGRESADOS</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-box-open"></i></div>
-                </div>
-
-                <div class="bg-[#D84315] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#BF360C]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#FBE9E7]">PERECEDEROS</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-calendar-xmark"></i></div>
-                </div>
-
-                <div class="bg-[#EF6C00] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#E65100]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#FFF3E0]">VENCERÁN EN 30 DÍAS</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                </div>
-
-                <div class="bg-[#5D4037] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#3E2723]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">CLIENTES</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-user-group"></i></div>
-                </div>
-
-                <div class="bg-[#4E342E] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#3E2723]">
-                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">CRÉDITOS PENDIENTES</p></div>
-                    <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-wallet"></i></div>
                 </div>
             </div>
 
-            <div class="bg-white rounded shadow-md border-t-4 border-[#5D4037]">
+            <div class="bg-white rounded shadow-md border-t-4 border-[#E65100]">
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-                    <h2 class="text-sm font-bold text-[#4E342E] uppercase">Comparativa Ventas y Compras del Año</h2>
-                    <i class="fa-solid fa-chart-line text-[#8D6E63]"></i>
+                    <div>
+                        <h2 class="text-lg font-bold text-[#4E342E]">Resumen Financiero y Movimientos</h2>
+                        <p class="text-xs text-gray-500">Comparativa de Ventas (Ingresos) vs Compras (Inversión en Stock)</p>
+                    </div>
+                    <i class="fa-solid fa-chart-line text-[#E65100] text-xl"></i>
                 </div>
-                <div class="p-4 h-80 flex items-end relative bg-[#FAFAFA]">
-                    <div class="absolute left-10 top-4 bottom-10 w-px bg-gray-200"></div>
-                    <div class="absolute left-10 bottom-10 right-4 h-px bg-gray-200"></div>
-                    <p class="absolute inset-0 flex items-center justify-center text-[#A1887F] font-medium">Espacio para la gráfica (Ej: Chart.js)</p>
+                
+                <div class="p-4 h-[400px] w-full relative bg-[#FAFAFA]">
+                    <canvas id="ventasComprasChart"></canvas>
                 </div>
             </div>
         </div>
@@ -164,11 +140,11 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             await cargarKPIs();
+            renderizarGrafico(); // Llamamos a la función que dibuja la gráfica
         });
 
         async function cargarKPIs() {
             try {
-                // Ruta relativa corregida para Render
                 const respuesta = await fetch('/api/kpis');                
                 if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
                 
@@ -181,8 +157,105 @@
 
             } catch (error) {
                 console.error('Hubo un problema cargando los datos del dashboard:', error);
-                document.getElementById('kpi-ventas-dia').innerText = 'Error';
             }
+        }
+
+        // --- LÓGICA DE LA GRÁFICA ---
+        function renderizarGrafico() {
+            const ctx = document.getElementById('ventasComprasChart').getContext('2d');
+
+            // Datos de prueba (Luego los conectaremos a tu backend)
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
+            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; // Dinero que entró
+            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; // Dinero gastado en stock
+            
+            // Calculamos el beneficio neto para la línea
+            const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Beneficio Neto',
+                            data: dataBeneficio,
+                            borderColor: '#22c55e', // Verde éxito
+                            backgroundColor: '#22c55e',
+                            borderWidth: 3,
+                            tension: 0.4, // Curva suave
+                            yAxisID: 'y',
+                            fill: false,
+                            pointBackgroundColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Ventas (Ingresos)',
+                            data: dataVentas,
+                            backgroundColor: '#E65100', // Naranja MokaPOS
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Compras (Inversión Stock)',
+                            data: dataCompras,
+                            backgroundColor: '#8D6E63', // Café claro MokaPOS
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { family: 'Inter, sans-serif', weight: 'bold' }, color: '#4E342E' }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(62, 39, 35, 0.9)', // Color café oscuro
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) { label += 'S/ ' + context.parsed.y; }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter, sans-serif', weight: '500' }, color: '#795548' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [5, 5], color: '#EFEBE9' },
+                            ticks: {
+                                callback: function(value) { return 'S/ ' + value; },
+                                font: { family: 'Inter, sans-serif' },
+                                color: '#795548'
+                            }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
