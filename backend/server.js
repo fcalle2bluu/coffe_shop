@@ -6,6 +6,7 @@ const rutasCotizaciones = require('./routes/cotizaciones');
 const rutasVentas = require('./routes/ventas');
 const rutasCaja = require('./routes/caja');
 const rutasApartados = require('./routes/apartados');
+const rutasInventario = require('./routes/inventario');
 // 1. Cargar configuración
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -15,7 +16,7 @@ app.use(express.json());
 
 // 2. Archivos estáticos
 app.use(express.static(path.join(__dirname, '../frontend')));
-
+app.use('/api/inventario', rutasInventario);
 // 3. Importar Rutas
 const rutasKpis = require('./routes/kpis');
 const rutasAlmacen = require('./routes/almacen'); // Ahora sí lo encontrará
