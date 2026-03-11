@@ -15,7 +15,8 @@ router.get('/', async (req, res) => {
         `);
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: 'Error al cargar compras' });
+        console.error('Error al cargar historial:', error);
+        res.status(500).json({ error: 'Error BD: ' + error.message });
     }
 });
 
@@ -30,13 +31,20 @@ router.get('/datos-formulario', async (req, res) => {
             insumos: insumosRes.rows
         });
     } catch (error) {
-        res.status(500).json({ error: 'Error al cargar datos' });
+        console.error('Error al cargar datos:', error);
+        res.status(500).json({ error: 'Error BD: ' + error.message });
     }
 });
 
 // 3. Registrar una nueva Compra (Transacción Completa)
 router.post('/', async (req, res) => {
     const { proveedor_id, total, detalles } = req.body;
+    
+    // Validación de seguridad para que no intente guardar si no hay items
+    if (!detalles || detalles.length === 0) {
+        return res.status(400).json({ error: 'El carrito de compras está vacío.' });
+    }
+
     const client = await pool.connect();
 
     try {
@@ -58,11 +66,12 @@ router.post('/', async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5)
             `, [compraId, item.insumo_id, item.cantidad_base, item.costo_unitario, item.subtotal]);
 
-            // B) Registrar Lote (con fecha de vencimiento)
+            // B) Registrar Lote (Si el usuario no pone fecha, mandamos null)
+            const fechaVencimiento = item.fecha_vencimiento ? item.fecha_vencimiento : null;
             await client.query(`
                 INSERT INTO lotes_insumos (insumo_id, compra_id, cantidad_comprada, costo_total, fecha_vencimiento)
                 VALUES ($1, $2, $3, $4, $5)
-            `, [item.insumo_id, compraId, item.cantidad_base, item.subtotal, item.fecha_vencimiento || null]);
+            `, [item.insumo_id, compraId, item.cantidad_base, item.subtotal, fechaVencimiento]);
 
             // C) Sumar al Stock Actual del Almacén
             await client.query(`
@@ -76,14 +85,16 @@ router.post('/', async (req, res) => {
             `, [item.insumo_id, item.cantidad_base, compraId]);
         }
 
-        await client.query('COMMIT'); // ✅ Confirmar todo
+        await client.query('COMMIT'); // ✅ Confirmar todo si nada falló
         res.status(201).json({ message: 'Compra registrada y stock actualizado', id: compraId });
+        
     } catch (error) {
-        await client.query('ROLLBACK'); // ❌ Revertir si hay error
+        await client.query('ROLLBACK'); // ❌ Revertir absolutamente todo si hay error
         console.error('Error en compra:', error);
-        res.status(500).json({ error: 'Error interno al registrar la compra' });
+        // AQUÍ ESTÁ LA MAGIA: Mandamos el mensaje de error exacto de Supabase
+        res.status(500).json({ error: 'Error de Base de Datos: ' + error.message });
     } finally {
-        client.release();
+        client.release(); // Libera la conexión
     }
 });
 
@@ -96,8 +107,9 @@ router.post('/proveedores', async (req, res) => {
             VALUES ($1, $2, $3, $4) RETURNING id, nombre
         `, [nombre, telefono, email, direccion]);
         res.json(result.rows[0]);
-    } catch (error) {
-        res.status(500).json({ error: 'Error al crear proveedor' });
+    }  catch (error) {
+        console.error('Error al crear proveedor:', error);
+        res.status(500).json({ error: 'Error BD: ' + error.message });
     }
 });
 
