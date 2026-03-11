@@ -26,6 +26,9 @@
             <ul class="space-y-1">
                 <li><a href="index.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
                 <li><a href="almacen.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-box w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Almacén</span></a></li>
+                <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
+                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Punto de Venta</span></a></li>
+                <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
             </ul>
         </nav>
     </aside>
@@ -40,7 +43,6 @@
         <div class="flex-1 flex flex-col overflow-hidden p-4 md:p-6 gap-6">
             
             <div class="h-1/2 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden relative">
-                
                 <div class="p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
                     <h2 class="font-bold text-[#4E342E] text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Stock Actual</h2>
                     <div class="flex space-x-3 items-center">
@@ -58,16 +60,15 @@
                     <table class="min-w-full w-full">
                         <thead class="bg-gray-100 sticky top-0 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase tracking-wider">Insumo</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase tracking-wider">Unidad</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase tracking-wider">Stock</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase tracking-wider">Mínimo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase tracking-wider">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase tracking-wider">Ajuste Rápido</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Unidad</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Stock</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Mínimo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Ajuste Rápido</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-insumos" class="divide-y divide-gray-200">
-                            </tbody>
+                        <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -81,14 +82,13 @@
                     <table class="min-w-full w-full">
                         <thead class="bg-gray-100 sticky top-0 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase tracking-wider">Fecha y Hora</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase tracking-wider">Insumo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase tracking-wider">Tipo</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase tracking-wider">Cantidad</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Fecha y Hora</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Tipo</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase">Cantidad</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-movimientos" class="divide-y divide-gray-200">
-                            </tbody>
+                        <tbody id="tabla-movimientos" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -96,43 +96,73 @@
         </div>
     </main>
 
-    <div id="modalInsumo" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-96 p-6 border-t-4 border-[#E65100]">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-[#3E2723]">Registrar Nuevo Insumo</h3>
-                <button onclick="cerrarModal()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <div id="modalInsumo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div class="bg-[#5D4037] p-4 flex justify-between items-center text-white">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-box-open mr-2"></i>Registrar Nuevo Insumo</h3>
+                <button onclick="cerrarModal()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
-            <form id="formInsumo" onsubmit="guardarNuevoInsumo(event)">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Insumo</label>
-                    <input type="text" id="inputNombre" required placeholder="Ej: Vasos de 8oz, Canela..." class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-[#8D6E63] focus:border-[#8D6E63]">
+            <form id="formInsumo" onsubmit="guardarNuevoInsumo(event)" class="p-6">
+                
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Insumo</label>
+                    <input type="text" id="inputNombre" required placeholder="Ej: Leche PIL, Azúcar Blanca..." class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8D6E63] focus:border-[#8D6E63] outline-none transition-shadow">
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida</label>
-                    <select id="selectUnidad" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-[#8D6E63]">
-                        <option value="gr">Gramos (gr)</option>
-                        <option value="ml">Mililitros (ml)</option>
-                        <option value="unidad">Unidad / Pieza</option>
-                        <option value="bolsa">Bolsa</option>
-                    </select>
+                <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-5 shadow-inner">
+                    <h4 class="text-sm font-bold text-[#E65100] mb-3 flex items-center"><i class="fa-solid fa-calculator mr-2"></i> Calculadora de Ingreso (Empaques)</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">¿Cuántos compraste?</label>
+                            <div class="flex rounded-md shadow-sm">
+                                <input type="number" id="cantEmpaques" value="1" min="1" step="1" required class="w-16 border border-gray-300 rounded-l-md px-2 py-1.5 text-sm focus:ring-[#8D6E63] outline-none text-center font-bold text-gray-700">
+                                <select id="tipoEmpaque" class="flex-1 border-y border-r border-gray-300 rounded-r-md px-2 py-1.5 text-sm bg-white focus:ring-[#8D6E63] outline-none">
+                                    <option value="Bolsa(s)">Bolsa(s)</option>
+                                    <option value="Caja(s)">Caja(s)</option>
+                                    <option value="Quintal(es)">Quintal(es)</option>
+                                    <option value="Paquete(s)">Paquete(s)</option>
+                                    <option value="Botella(s)">Botella(s)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Contenido por cada uno</label>
+                            <div class="flex rounded-md shadow-sm">
+                                <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" required class="w-20 border border-gray-300 rounded-l-md px-2 py-1.5 text-sm focus:ring-[#8D6E63] outline-none text-center font-bold text-gray-700">
+                                <select id="selectUnidad" class="flex-1 border-y border-r border-gray-300 rounded-r-md px-2 py-1.5 text-sm bg-white focus:ring-[#8D6E63] outline-none font-bold text-[#5D4037]">
+                                    <option value="ml">ml</option>
+                                    <option value="gr">gr</option>
+                                    <option value="unidad">unid.</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-md border border-orange-100 flex items-center justify-between shadow-sm">
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">El sistema registrará:</span>
+                        <div>
+                            <strong id="totalCalculado" class="text-xl text-[#E65100] font-black tracking-tight">1000</strong> 
+                            <span id="lblUnidad" class="font-bold text-gray-600 ml-1">ml</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Stock Inicial</label>
-                        <input type="number" id="inputStock" required min="0" step="0.1" value="0" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-[#8D6E63]">
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Stock Mínimo de Alerta</label>
+                    <div class="relative">
+                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="1000" class="w-full border border-gray-300 rounded-lg pl-3 pr-12 py-2 focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none transition-shadow font-bold text-gray-700">
+                        <span id="lblMinimoUnidad" class="absolute right-3 top-2.5 text-sm font-bold text-gray-400">ml</span>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Stock Mínimo</label>
-                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-[#8D6E63]">
-                    </div>
+                    <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-circle-info mr-1"></i>Avisaremos cuando el inventario baje de este monto.</p>
                 </div>
 
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-[#5D4037] text-white rounded hover:bg-[#4E342E] transition-colors">Guardar Insumo</button>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="cerrarModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <button type="submit" class="px-5 py-2.5 bg-[#E65100] text-white font-bold rounded-lg shadow-md hover:bg-[#EF6C00] transition-colors flex items-center">
+                        <i class="fa-solid fa-save mr-2"></i>Guardar Insumo
+                    </button>
                 </div>
             </form>
         </div>

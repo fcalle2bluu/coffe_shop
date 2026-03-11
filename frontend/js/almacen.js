@@ -3,18 +3,47 @@ let insumosGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarInsumos();
-    cargarMovimientos(); // Carga el historial al iniciar
+    cargarMovimientos(); 
 
+    // Filtro de búsqueda
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const busqueda = e.target.value.toLowerCase();
         const filtrados = insumosGlobal.filter(i => i.nombre.toLowerCase().includes(busqueda));
         renderizarTabla(filtrados);
     });
+
+    // Listeners para la "Calculadora de Ingreso"
+    const inputsCalculo = ['cantEmpaques', 'contenidoPorEmpaque', 'selectUnidad'];
+    inputsCalculo.forEach(id => {
+        document.getElementById(id).addEventListener('input', calcularTotalIngreso);
+    });
+    // Forzar un cálculo inicial
+    calcularTotalIngreso();
 });
 
+// --- LOGICA DE LA CALCULADORA VISUAL ---
+function calcularTotalIngreso() {
+    const cantidad = parseFloat(document.getElementById('cantEmpaques').value) || 0;
+    const contenido = parseFloat(document.getElementById('contenidoPorEmpaque').value) || 0;
+    const unidad = document.getElementById('selectUnidad').value;
+    
+    // Multiplicación (Ej: 3 bolsas x 1000 ml = 3000)
+    const totalReal = (cantidad * contenido).toFixed(2);
+    
+    // Quitar ceros innecesarios (ej. 3000.00 -> 3000)
+    const totalLimpio = parseFloat(totalReal); 
+    
+    // Actualizar etiquetas en la pantalla
+    document.getElementById('totalCalculado').innerText = totalLimpio;
+    document.getElementById('lblUnidad').innerText = unidad;
+    document.getElementById('lblMinimoUnidad').innerText = unidad;
+
+    return totalLimpio;
+}
+
+// --- CONEXIÓN AL BACKEND ---
 async function cargarInsumos() {
     try {
-// CAMBIO: De 'http://localhost:3000/api/almacen/insumos' a:
         const respuesta = await fetch('/api/almacen/insumos');
         if (!respuesta.ok) throw new Error('Error en el servidor');
         insumosGlobal = await respuesta.json();
@@ -26,7 +55,7 @@ async function cargarInsumos() {
 
 async function cargarMovimientos() {
     try {
-    const respuesta = await fetch('/api/almacen/movimientos');
+        const respuesta = await fetch('/api/almacen/movimientos');
         if (!respuesta.ok) throw new Error('Error al cargar historial');
         const movimientos = await respuesta.json();
         renderizarHistorial(movimientos);
@@ -47,8 +76,8 @@ function renderizarTabla(insumos) {
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition-colors">
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${insumo.nombre}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${insumo.unidad_medida}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-gray-700'}">${insumo.stock_actual}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-500">${insumo.unidad_medida}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-[#4E342E]'} text-lg">${insumo.stock_actual}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-400">${insumo.stock_minimo}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold border ${badgeClase}">${badgeTexto}</span>
@@ -56,11 +85,11 @@ function renderizarTabla(insumos) {
                 
                 <td class="px-4 py-3 whitespace-nowrap text-center">
                     <div class="flex items-center justify-center shadow-sm rounded-md w-max mx-auto border border-gray-300 overflow-hidden">
-                        <input type="number" id="qty-${insumo.id}" value="1" min="0.1" step="0.1" class="w-16 text-center text-sm py-1 outline-none bg-gray-50 text-gray-800">
-                        <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 transition-colors" title="Restar (Merma)">
+                        <input type="number" id="qty-${insumo.id}" value="100" min="0.1" step="0.1" class="w-20 text-center text-sm py-1 outline-none bg-gray-50 text-gray-800 font-bold">
+                        <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 transition-colors border-l border-red-600" title="Restar (Merma)">
                             <i class="fa-solid fa-minus"></i>
                         </button>
-                        <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 transition-colors" title="Sumar (Ingreso)">
+                        <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 transition-colors border-l border-green-600" title="Sumar (Ingreso)">
                             <i class="fa-solid fa-plus"></i>
                         </button>
                     </div>
@@ -75,7 +104,6 @@ function renderizarHistorial(movimientos) {
     tbody.innerHTML = '';
 
     movimientos.forEach(mov => {
-        // Asignar colores según si es ingreso o salida
         const esMerma = mov.tipo === 'MERMA';
         const colorBadge = esMerma ? 'bg-red-100 text-red-800 border-red-200' : 'bg-blue-100 text-blue-800 border-blue-200';
         const colorCantidad = esMerma ? 'text-red-600' : 'text-green-600';
@@ -94,7 +122,7 @@ function renderizarHistorial(movimientos) {
     });
 }
 
-// Lógica de los botones rápidos de la tabla
+// --- AJUSTES RÁPIDOS ---
 async function aplicarAjusteRapido(id, tipo) {
     const cantidadInput = document.getElementById(`qty-${id}`).value;
     
@@ -112,7 +140,6 @@ async function aplicarAjusteRapido(id, tipo) {
         const resultado = await respuesta.json();
         if (!respuesta.ok) throw new Error(resultado.error);
         
-        // Efecto visual: Recargar ambas tablas silenciosamente
         cargarInsumos();
         cargarMovimientos();
     } catch (error) {
@@ -120,9 +147,10 @@ async function aplicarAjusteRapido(id, tipo) {
     }
 }
 
-// Modal de Crear Nuevo Insumo
+// --- MODALES Y GUARDADO ---
 function abrirModal() {
     document.getElementById('modalInsumo').classList.remove('hidden');
+    calcularTotalIngreso(); // Resetear cálculo visual
 }
 
 function cerrarModal() {
@@ -133,10 +161,14 @@ function cerrarModal() {
 async function guardarNuevoInsumo(e) {
     e.preventDefault(); 
     
+    // Obtenemos el total calculado usando nuestra función matemática
+    const totalRegistrarBase = calcularTotalIngreso();
+
     const data = {
         nombre: document.getElementById('inputNombre').value,
         unidad_medida: document.getElementById('selectUnidad').value,
-        stock_inicial: document.getElementById('inputStock').value,
+        // Mandamos el total multiplicado, NO la cantidad de bolsas
+        stock_inicial: totalRegistrarBase, 
         stock_minimo: document.getElementById('inputMinimo').value
     };
 
@@ -152,7 +184,7 @@ async function guardarNuevoInsumo(e) {
         
         cerrarModal();
         cargarInsumos(); 
-        cargarMovimientos(); // Refrescar historial también si agregaste stock inicial
+        cargarMovimientos();
     } catch (error) {
         alert('Error al crear: ' + error.message);
     }
