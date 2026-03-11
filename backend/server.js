@@ -5,6 +5,7 @@ const path = require('path');
 const rutasCotizaciones = require('./routes/cotizaciones');
 const rutasVentas = require('./routes/ventas');
 const rutasCaja = require('./routes/caja');
+const rutasApartados = require('./routes/apartados');
 // 1. Cargar configuración
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -20,6 +21,7 @@ const rutasKpis = require('./routes/kpis');
 const rutasAlmacen = require('./routes/almacen'); // Ahora sí lo encontrará
 app.use('/api/ventas', rutasVentas);
 app.use('/api/caja', rutasCaja);
+app.use('/api/apartados', rutasApartados);
 // 4. Usar Rutas
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 

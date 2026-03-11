@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MokaPOS - Apartados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } } }
+    </script>
+</head>
+<body class="bg-mainBg flex h-screen overflow-hidden font-sans">
+
+    <aside class="w-64 bg-sidebar text-gray-300 flex flex-col hidden md:flex shadow-xl z-20">
+        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723]">
+            <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
+        </div>
+        <div class="flex items-center p-4 border-b border-[#5D4037]">
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">A</div>
+            <div><p class="text-white text-sm font-semibold">admin</p><p class="text-xs text-emerald-400">CAJERO</p></div>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-2 text-sm">
+            <ul class="space-y-1">
+                <li><a href="index.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
+                <li><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i><span>Almacén</span></a></li>
+                <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i><span>Cotizaciones</span></a></li>
+                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i><span>Punto de Venta</span></a></li>
+                <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i><span>Caja</span></a></li>
+                <li><a href="apartados.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-tags w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Apartados</span></a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen">
+        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+            <h1 class="text-lg font-bold tracking-wide">Sistema de Reservas y Apartados</h1>
+        </header>
+
+        <div class="flex-1 overflow-hidden p-4 md:p-6 flex flex-col">
+            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
+                    <h2 class="font-bold text-[#4E342E] text-lg"><i class="fa-solid fa-tags mr-2"></i>Apartados Activos</h2>
+                    <button onclick="abrirModalNuevo()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-4 py-2 rounded shadow font-medium text-sm">
+                        <i class="fa-solid fa-plus mr-2"></i> Nuevo Apartado
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto">
+                    <table class="min-w-full w-full">
+                        <thead class="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Folio</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Cliente</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Límite</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase">Total</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase text-red-600">Saldo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-apartados" class="divide-y divide-gray-200 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalNuevo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 border-t-4 border-[#E65100]">
+            <h3 class="text-lg font-bold text-[#3E2723] mb-4">Crear Nuevo Apartado</h3>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div><label class="text-xs font-bold text-gray-600">Cliente</label><input type="text" id="inpCliente" class="w-full border rounded p-2 focus:ring-[#8D6E63]" required></div>
+                <div><label class="text-xs font-bold text-gray-600">Teléfono</label><input type="text" id="inpTel" class="w-full border rounded p-2 focus:ring-[#8D6E63]"></div>
+            </div>
+
+            <div class="flex gap-2 mb-4 bg-gray-50 p-2 border rounded">
+                <select id="selProducto" class="flex-1 border rounded p-2 text-sm"></select>
+                <input type="number" id="inpCant" value="1" class="w-16 border rounded p-2 text-sm text-center">
+                <button onclick="agregarAlApartado()" class="bg-[#5D4037] text-white px-3 py-1 rounded"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <div class="h-32 overflow-y-auto border mb-4 rounded bg-white"><table class="w-full text-sm"><tbody id="lista-productos"></tbody></table></div>
+
+            <div class="grid grid-cols-3 gap-4 mb-4 border-t pt-4">
+                <div><label class="text-xs font-bold text-gray-600">Adelanto (S/)</label><input type="number" id="inpAbono" value="0" class="w-full border rounded p-2 font-bold text-green-600"></div>
+                <div><label class="text-xs font-bold text-gray-600">Método de Pago</label><select id="selPago" class="w-full border rounded p-2"><option value="EFECTIVO">Efectivo</option><option value="QR">QR</option></select></div>
+                <div><label class="text-xs font-bold text-gray-600">Fecha Límite</label><input type="date" id="inpFecha" class="w-full border rounded p-2 text-red-600 font-bold"></div>
+            </div>
+
+            <div class="flex justify-between items-center mt-4">
+                <h4 class="text-xl font-black text-[#4E342E]">Total: S/ <span id="lblTotal">0.00</span></h4>
+                <div>
+                    <button onclick="cerrarModalNuevo()" class="px-4 py-2 bg-gray-200 rounded mr-2">Cancelar</button>
+                    <button onclick="guardarApartado()" class="px-4 py-2 bg-[#E65100] text-white font-bold rounded">Apartar Producto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAbono" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-96 p-6 border-t-4 border-green-500 text-center">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Registrar Abono</h3>
+            <p class="text-sm text-gray-500 mb-4">Saldo pendiente: <strong id="lblSaldoModal" class="text-red-600 text-lg">S/ 0.00</strong></p>
+            
+            <input type="number" id="inpMontoAbono" placeholder="0.00" class="w-full border text-center text-2xl font-bold py-3 rounded mb-4 focus:ring-green-500">
+            <select id="selPagoAbono" class="w-full border rounded p-3 mb-6 font-bold text-gray-700"><option value="EFECTIVO">💵 Efectivo</option><option value="QR">📱 QR</option><option value="TARJETA">💳 Tarjeta</option></select>
+            
+            <div class="flex justify-between gap-2">
+                <button onclick="document.getElementById('modalAbono').classList.add('hidden')" class="w-1/2 py-3 bg-gray-200 rounded font-bold">Cancelar</button>
+                <button onclick="procesarAbono()" class="w-1/2 py-3 bg-green-600 text-white rounded font-bold">Pagar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/apartados.js"></script>
+</body>
+</html>
