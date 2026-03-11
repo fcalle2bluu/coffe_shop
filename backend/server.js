@@ -13,7 +13,10 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const rutasParametros = require('./routes/parametros');
+const rutasCompras = require('./routes/compras');
+app.use('/api/compras', rutasCompras);
 app.use('/api/parametros', rutasParametros);
+
 app.use(cors());
 app.use(express.json());
 app.use('/api/comprobantes', rutasComprobantes);
