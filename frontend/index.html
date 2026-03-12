@@ -25,24 +25,27 @@
         }
     </script>
 </head>
-<body class="bg-mainBg flex h-screen overflow-hidden font-sans">
+<body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
 
-    <aside class="w-64 bg-sidebar text-gray-300 flex flex-col hidden md:flex shadow-xl z-20">
-        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723]">
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
+        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723] shrink-0">
             <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
+            <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
         </div>
 
         <div class="flex items-center p-4 border-b border-[#5D4037]">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
-                A
-            </div>
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">A</div>
             <div>
                 <p class="text-white text-sm font-semibold">admin</p>
                 <p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[10px] mr-1"></i> CAJERO</p>
             </div>
         </div>
 
-        <nav class="flex-1 overflow-y-auto py-2 text-sm">
+        <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
                 <li><a href="index.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-house w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Inicio</span></a></li>
                 <li><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Almacén</span></a></li>                
@@ -50,16 +53,20 @@
                 <li><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
                 <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
-<li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>                
+                <li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>                
                 <li><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
                 <li><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
-<li><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>            </ul>
+                <li><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
+            </ul>
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen">
-        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10">
-            <button class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors"><i class="fa-solid fa-bars text-xl"></i></button>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <div class="hidden md:block font-bold">Dashboard MokaPOS</div>
             <div class="flex items-center cursor-pointer hover:bg-logoBg p-2 rounded transition-colors">
                 <span class="mr-2 text-sm">admin</span><i class="fa-solid fa-caret-down text-xs"></i>
             </div>
@@ -68,37 +75,21 @@
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-[#5D4037] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#3E2723]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PEN EN CAJA</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">S/ 0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">PEN EN CAJA</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-money-bill-1-wave"></i></div>
                 </div>
-
                 <div class="bg-[#795548] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#5D4037]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-compras-mes" class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">COMPRAS DEL MES</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 id="kpi-compras-mes" class="text-2xl font-bold">S/ 0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">COMPRAS DEL MES</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-bag-shopping"></i></div>
                 </div>
-
                 <div class="bg-[#6D4C41] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#4E342E]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 id="kpi-ventas-dia" class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">EN VENTAS DEL DÍA</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 id="kpi-ventas-dia" class="text-2xl font-bold">S/ 0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#D7CCC8]">VENTAS DEL DÍA</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-mug-hot"></i></div>
                 </div>
-
                 <div class="bg-[#8D6E63] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#6D4C41]">
-                    <div class="p-4 flex-1 z-10">
-                        <h3 class="text-2xl font-bold">S/ 0.00</h3>
-                        <p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">INVERTIDO EN STOCK</p>
-                    </div>
+                    <div class="p-4 flex-1 z-10"><h3 class="text-2xl font-bold">S/ 0.00</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">INVERTIDO EN STOCK</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-tag"></i></div>
                 </div>
-
                 <div class="bg-[#A1887F] text-white rounded flex relative overflow-hidden shadow-md border-b-4 border-[#8D6E63]">
                     <div class="p-4 flex-1 z-10"><h3 id="kpi-proveedores" class="text-2xl font-bold">0</h3><p class="text-xs font-semibold tracking-wide uppercase mt-1 text-[#EFEBE9]">PROVEEDORES</p></div>
                     <div class="w-20 flex items-center justify-center text-5xl text-black/10 absolute right-0 top-1/2 transform -translate-y-1/2"><i class="fa-solid fa-truck-fast"></i></div>
@@ -120,13 +111,13 @@
             <div class="bg-white rounded shadow-md border-t-4 border-[#E65100]">
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h2 class="text-lg font-bold text-[#4E342E]">Resumen Financiero y Movimientos</h2>
-                        <p class="text-xs text-gray-500">Comparativa de Ventas (Ingresos) vs Compras (Inversión en Stock)</p>
+                        <h2 class="text-base sm:text-lg font-bold text-[#4E342E]">Resumen Financiero</h2>
+                        <p class="text-xs text-gray-500 hidden sm:block">Comparativa de Ventas (Ingresos) vs Compras (Inversión)</p>
                     </div>
                     <i class="fa-solid fa-chart-line text-[#E65100] text-xl"></i>
                 </div>
                 
-                <div class="p-4 h-[400px] w-full relative bg-[#FAFAFA]">
+                <div class="p-4 h-[300px] sm:h-[400px] w-full relative bg-[#FAFAFA]">
                     <canvas id="ventasComprasChart"></canvas>
                 </div>
             </div>
@@ -134,38 +125,39 @@
     </main>
     
     <script>
+        // Lógica del menú hamburguesa en móvil
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await cargarKPIs();
-            renderizarGrafico(); // Llamamos a la función que dibuja la gráfica
+            renderizarGrafico(); 
         });
 
         async function cargarKPIs() {
             try {
                 const respuesta = await fetch('/api/kpis');                
                 if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
-                
                 const datos = await respuesta.json();
 
                 document.getElementById('kpi-ventas-dia').innerText = `S/ ${datos.ventasDia}`;
                 document.getElementById('kpi-compras-mes').innerText = `S/ ${datos.comprasMes}`;
                 document.getElementById('kpi-proveedores').innerText = datos.proveedores;
                 document.getElementById('kpi-productos').innerText = datos.productos;
-
             } catch (error) {
-                console.error('Hubo un problema cargando los datos del dashboard:', error);
+                console.error('Error cargando KPIs:', error);
             }
         }
 
-        // --- LÓGICA DE LA GRÁFICA ---
         function renderizarGrafico() {
             const ctx = document.getElementById('ventasComprasChart').getContext('2d');
-
-            // Datos de prueba (Luego los conectaremos a tu backend)
             const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
-            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; // Dinero que entró
-            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; // Dinero gastado en stock
-            
-            // Calculamos el beneficio neto para la línea
+            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; 
+            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; 
             const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
 
             new Chart(ctx, {
@@ -173,82 +165,18 @@
                 data: {
                     labels: meses,
                     datasets: [
-                        {
-                            type: 'line',
-                            label: 'Beneficio Neto',
-                            data: dataBeneficio,
-                            borderColor: '#22c55e', // Verde éxito
-                            backgroundColor: '#22c55e',
-                            borderWidth: 3,
-                            tension: 0.4, // Curva suave
-                            yAxisID: 'y',
-                            fill: false,
-                            pointBackgroundColor: '#fff',
-                            pointBorderWidth: 2,
-                            pointRadius: 4
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Ventas (Ingresos)',
-                            data: dataVentas,
-                            backgroundColor: '#E65100', // Naranja MokaPOS
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.8
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Compras (Inversión Stock)',
-                            data: dataCompras,
-                            backgroundColor: '#8D6E63', // Café claro MokaPOS
-                            borderRadius: 4,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.8
-                        }
+                        { type: 'line', label: 'Beneficio', data: dataBeneficio, borderColor: '#22c55e', backgroundColor: '#22c55e', borderWidth: 2, tension: 0.4, yAxisID: 'y', fill: false, pointRadius: 3 },
+                        { type: 'bar', label: 'Ventas', data: dataVentas, backgroundColor: '#E65100', borderRadius: 4, barPercentage: 0.6 },
+                        { type: 'bar', label: 'Compras', data: dataCompras, backgroundColor: '#8D6E63', borderRadius: 4, barPercentage: 0.6 }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { font: { family: 'Inter, sans-serif', weight: 'bold' }, color: '#4E342E' }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(62, 39, 35, 0.9)', // Color café oscuro
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.y !== null) { label += 'S/ ' + context.parsed.y; }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { family: 'Inter, sans-serif', weight: '500' }, color: '#795548' }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { borderDash: [5, 5], color: '#EFEBE9' },
-                            ticks: {
-                                callback: function(value) { return 'S/ ' + value; },
-                                font: { family: 'Inter, sans-serif' },
-                                color: '#795548'
-                            }
-                        }
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { callback: function(value) { return 'S/ ' + value; } } }
                     }
                 }
             });
