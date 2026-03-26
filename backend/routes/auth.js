@@ -3,7 +3,7 @@ const router = express.Router();
 
 // ⚠️ ATENCIÓN AQUÍ: Si en tu archivo conexion.js exportaste supabase entre llaves ( module.exports = { supabase } )
 // entonces aquí también debes importarlo con llaves: const { supabase } = require('../config/conexion');
-const supabase = require('../config/conexion'); 
+const { supabase } = require('../config/conexion');
 
 router.post('/login', async (req, res) => {
     try {
