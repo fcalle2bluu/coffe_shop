@@ -3,259 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #0d1117;
-            color: white;
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 250px;
-            background-color: #010409;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #30363d;
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #c9d1d9;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .profile {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .profile img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 2px solid #8b6b3e; /* Golden brown */
-        }
-
-        .profile div {
-            margin-top: 10px;
-        }
-
-        .profile strong {
-            display: block;
-            font-size: 16px;
-            color: #c9d1d9;
-        }
-
-        .profile span {
-            font-size: 14px;
-            color: #8b6b3e; /* Golden brown */
-        }
-
-        /* ESTILO NUEVO PARA EL ROL VERDE QUE TE GUSTABA */
-        .user-role {
-            color: #8BC34A !important; /* Un verde suave pero visible */
-            font-weight: bold;
-        }
-
-        /* ESTILO NUEVO PARA EL BOTÓN DE CERRAR SESIÓN (Adaptado a tu tema) */
-        .btn-logout {
-            background: transparent;
-            color: #8b6b3e; /* Golden brown */
-            border: 1px solid #8b6b3e;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 12px;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        .btn-logout:hover {
-            background: #8b6b3e;
-            color: white;
-        }
-
-        .menu-item {
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            color: #c9d1d9;
-            text-decoration: none;
-            font-size: 16px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .menu-item:hover {
-            background-color: #30363d;
-        }
-
-        /* Main Content Styles */
-        .main-content {
-            flex-grow: 1;
-            padding: 20px;
-        }
-
-        .header {
-            font-size: 28px;
-            font-weight: bold;
-            color: #c9d1d9;
-            margin-bottom: 20px;
-        }
-
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background-color: #161b22;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-            text-align: center;
-        }
-
-        .card h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #c9d1d9;
-        }
-
-        .card p {
-            margin: 10px 0 0;
-            font-size: 24px;
-            color: #8b6b3e; /* Golden brown */
-            font-weight: bold;
-        }
-
-        /* Footer Styles */
-        footer {
-            margin-top: auto;
-            text-align: center;
-            font-size: 14px;
-            color: #c9d1d9;
-            padding: 10px 0;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="sidebar">
-        <div class="logo">MokaPOS</div>
-        <div class="profile">
-            <img src="https://via.placeholder.com/80" alt="Admin Profile">
-            <div>
-                <strong id="nombre-usuario">Cargando...</strong>
-                <span id="rol-usuario" class="user-role">Rol</span>
-                
-                <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
-            </div>
-        </div>
-        <ul style="list-style: none; padding: 0;">
-            <li><a href="dashboard.html" class="menu-item">Inicio</a></li>
-            <li><a href="ventas.html" class="menu-item">Ventas</a></li>
-            
-            <li class="solo-admin"><a href="almacen.html" class="menu-item">Almacén</a></li>
-            <li class="solo-admin"><a href="compras.html" class="menu-item">Compras</a></li>
-            <li class="solo-admin"><a href="inventario.html" class="menu-item">Inventario</a></li>
-            <li class="solo-admin"><a href="parametros.html" class="menu-item">Parámetros</a></li>
-            
-            <li><a href="reportes.html" class="menu-item">Reportes</a></li>
-        </ul>
-    </div>
-
-    <div class="main-content">
-        <div class="header">Dashboard</div>
-        <div class="card-container">
-            <div class="card">
-                <h3>Ventas Hoy</h3>
-                <p>Bs. 0.00</p>
-            </div>
-            <div class="card">
-                <h3>Ventas Mes</h3>
-                <p>Bs. 0.00</p>
-            </div>
-            <div class="card">
-                <h3>Productos</h3>
-                <p>0</p>
-            </div>
-            <div class="card">
-                <h3>Caja Actual</h3>
-                <p>Bs. 0.00</p>
-            </div>
-        </div>
-        <footer>MokaPOS Cafetería @ 2026</footer>
-    </div>
+    <title>MokaPOS - Dashboard Cafetería</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // 1. EL GUARDIA DE SEGURIDAD
-        // Ejecutar esto ANTES de mostrar nada en la pantalla
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#3E2723',
+                        sidebarHover: '#4E342E',
+                        topbar: '#5D4037',
+                        logoBg: '#4E342E',
+                        mainBg: '#F4F1EA',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out z-50">
+        
+        <div class="h-16 bg-logoBg flex items-center justify-center text-white text-xl font-bold shadow-md">
+            <i class="fa-solid fa-mug-hot mr-2"></i> MokaPOS
+        </div>
+
+        <div class="p-4 border-b border-sidebarHover flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-full bg-gray-500 text-white flex items-center justify-center font-bold text-xl">
+                <span id="avatar-letra">U</span>
+            </div>
+            <div>
+                <strong id="nombre-usuario" class="text-white font-bold block">Cargando...</strong>
+                <div class="flex items-center text-sm mt-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                    <span id="rol-usuario" class="text-green-500 font-bold uppercase">Rol</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-2 text-sm font-medium">
+            <a href="dashboard.html" class="flex items-center px-6 py-3 border-l-4 border-orange-500 bg-sidebarHover text-white">
+                <i class="fa-solid fa-house w-6 text-orange-400"></i> Inicio
+            </a>
+            
+            <a href="almacen.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-box w-6"></i> Almacén
+            </a>
+
+            <a href="cotizaciones.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-file-invoice w-6"></i> Cotizaciones
+            </a>
+
+            <a href="compras.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-truck w-6"></i> Compras
+            </a>
+
+            <a href="caja.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-cash-register w-6"></i> Caja
+            </a>
+
+            <a href="ventas.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-cart-shopping w-6"></i> Ventas
+            </a>
+
+            <a href="apartados.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-tags w-6"></i> Apartados
+            </a>
+
+            <a href="inventario.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-boxes-stacked w-6"></i> Inventario
+            </a>
+
+            <a href="comprobantes.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-receipt w-6"></i> Comprobantes
+            </a>
+
+            <a href="parametros.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
+                <i class="fa-solid fa-gear w-6"></i> Parámetros
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-sidebarHover">
+            <button onclick="cerrarSesion()" class="w-full flex items-center justify-center px-4 py-2 bg-transparent border border-gray-500 text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 rounded transition-colors">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <header class="h-16 bg-topbar shadow flex items-center justify-between px-6 text-white">
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-300 hover:text-white focus:outline-none">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">Panel de Control</h1>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+                    <p class="text-sm text-gray-500 font-semibold">Ventas Hoy</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                    <p class="text-sm text-gray-500 font-semibold">Ventas Mes</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                    <p class="text-sm text-gray-500 font-semibold">Productos</p>
+                    <p class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                    <p class="text-sm text-gray-500 font-semibold">Caja Actual</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual</h2>
+                <div class="relative h-72">
+                    <canvas id="miGrafico"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // === GUARDIA DE SEGURIDAD ===
         if (!localStorage.getItem('usuario_id')) {
-            // Si no hay sesión, rebotar al login inmediatamente
             window.location.href = 'index.html'; 
         }
 
-        // 2. LA LÓGICA DE LA INTERFAZ
-        // Usar window.onload para asegurar que el HTML cargó
+        // === LÓGICA DE INTERFAZ MÓVIL ===
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // === AL CARGAR LA PÁGINA ===
         window.onload = function() {
-            console.log("=== INICIANDO DASHBOARD ===");
             
-            // A) Leer datos de la memoria
+            // 1. CARGAMOS DATOS DEL USUARIO
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
 
-            console.log(`Usuario: ${nombreActual}, Rol: ${rolActual}`);
-
-            // B) Inyectar los datos en el perfil
-            // Usamos una validación por si las dudas
+            // 2. MODIFICAMOS EL PERFIL
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;
-            } else {
-                // Si por alguna razón no hay nombre (sesión vieja), lo mandamos a loguearse
-                cerrarSesion();
-                return;
+                // Ponemos la primera letra del nombre en el circulito
+                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
             }
-
             if (rolActual) {
                 document.getElementById('rol-usuario').innerText = rolActual;
             }
 
-            // C) LA MAGIA DE LOS ROLES (HIDING)
+            // 3. LA MAGIA DE LOS ROLES (HIDING)
             if (rolActual === 'CAJERO') {
-                console.log("Aplicando restricciones de Cajero...");
-                
-                // Buscamos todos los elementos con la clase "solo-admin"
                 const elementosAdmin = document.querySelectorAll('.solo-admin');
-                
-                // Los ocultamos uno por uno cambiando el CSS a "none"
                 elementosAdmin.forEach(elemento => {
                     elemento.style.display = 'none';
                 });
-                
-                console.log(`Se ocultaron ${elementosAdmin.length} menús administrativos.`);
-            } else if (rolActual === 'ADMIN') {
-                console.log("Acceso de Administrador confirmado. Vista total.");
             }
-        };
 
-        // 3. FUNCIÓN DE CERRAR SESIÓN
-        function cerrarSesion() {
-            // Borrar toda la memoria del navegador relacionada a la app
-            localStorage.clear();
-            // Mandar al usuario al Login
-            window.location.href = 'index.html';
-        }
+            // 4. CÓDIGO DEL GRÁFICO ORIGINAL
+            const ctx = document.getElementById('miGrafico').getContext('2d');
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
+            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; 
+            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; 
+            const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        { type: 'line', label: 'Beneficio', data: dataBeneficio, borderColor: '#22c55e', backgroundColor: '#22c55e', borderWidth: 2, tension: 0.4, yAxisID: 'y', fill: false, pointRadius: 3 },
+                        { type: 'bar', label: 'Ventas', data: dataVentas, backgroundColor: '#E65100', borderRadius: 4, barPercentage: 0.6 },
+                        { type: 'bar', label: 'Compras', data: dataCompras, backgroundColor: '#8D6E63', borderRadius: 4, barPercentage: 0.6 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        };
     </script>
 </body>
 </html>
