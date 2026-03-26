@@ -19,23 +19,32 @@
             <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
             <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
-        <div class="flex items-center p-4 border-b border-[#5D4037]">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">A</div>
-            <div><p class="text-white text-sm font-semibold">admin</p><p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[10px] mr-1"></i> CAJERO</p></div>
+        
+        <div class="flex items-center p-4 border-b border-[#5D4037] flex-wrap">
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
+                <span id="avatar-letra">U</span>
+            </div>
+            <div>
+                <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
+                <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
+            </div>
+            <button onclick="cerrarSesion()" class="w-full mt-3 flex items-center justify-center px-2 py-1 bg-transparent border border-gray-500 text-gray-400 hover:bg-red-600 hover:text-white hover:border-red-600 rounded text-xs transition-colors">
+                <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+            </button>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
-                <li><a href="index.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span class="font-medium">Inicio</span></a></li>
-                <li><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Almacén</span></a></li>                
+                <li><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span class="font-medium">Inicio</span></a></li>
+                <li class="solo-admin"><a href="almacen.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Almacén</span></a></li>                
                 <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
-                <li><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
+                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-cash-register w-6 text-center text-[#FFB74D]"></i> <span>Caja</span></a></li>
                 <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
                 <li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>                
-                <li><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
-                <li><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
-                <li><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
+                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
+                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
+                <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
             </ul>
         </nav>
     </aside>
@@ -44,11 +53,10 @@
         <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Control de Turnos y Caja</h1>
-            <div class="flex items-center shrink-0 ml-2"><span class="mr-2 text-sm hidden sm:block">admin</span><i class="fa-solid fa-caret-down text-xs"></i></div>
+            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-6">
-            
             <div id="panel-estado" class="bg-white rounded shadow border-t-4 border-gray-400 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl sm:text-2xl font-black text-gray-800" id="txt-estado">Caja Cerrada</h2>
@@ -94,7 +102,6 @@
                     </table>
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -125,13 +132,45 @@
 
     <script src="js/caja.js"></script>
     <script>
-        // Script para el menú móvil
+        // === 1. GUARDIA DE SEGURIDAD BÁSICA (Ambos pueden entrar) ===
+        if (!localStorage.getItem('usuario_id')) {
+            window.location.href = 'index.html'; 
+        }
+
+        // === 2. LÓGICA DE INTERFAZ ===
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
         }
+
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // === 3. CARGAR ROLES AL INICIAR ===
+        window.addEventListener('DOMContentLoaded', () => {
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
+
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+                document.getElementById('header-nombre-usuario').innerText = nombreActual;
+                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
+            }
+            if (rolActual) {
+                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
+            }
+
+            if (rolActual === 'CAJERO') {
+                const elementosAdmin = document.querySelectorAll('.solo-admin');
+                elementosAdmin.forEach(elemento => {
+                    elemento.style.display = 'none';
+                });
+            }
+        });
     </script>
 </body>
 </html>
