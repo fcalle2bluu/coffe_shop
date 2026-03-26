@@ -3,129 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS</title>
+    <title>MokaPOS - Dashboard</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
-            background-color: #F5F7FA;
+            padding: 0;
+            background-color: #0d1117;
+            color: white;
             display: flex;
-            height: 100vh;
+            min-height: 100vh;
         }
-        /* ESTILOS DEL MENÚ LATERAL */
+
+        /* Sidebar Styles */
         .sidebar {
             width: 250px;
-            background-color: #0D47A1;
-            color: white;
+            background-color: #010409;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            padding-top: 20px;
+            border-right: 1px solid #30363d;
         }
-        .sidebar h2 {
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #c9d1d9;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
-        .sidebar a {
-            color: white;
-            text-decoration: none;
-            padding: 15px 20px;
+
+        .profile {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid #8b6b3e; /* Golden brown */
+        }
+
+        .profile div {
+            margin-top: 10px;
+        }
+
+        .profile strong {
             display: block;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            transition: background 0.3s;
+            font-size: 16px;
+            color: #c9d1d9;
         }
-        .sidebar a:hover {
-            background-color: #1976D2;
+
+        .profile span {
+            font-size: 14px;
+            color: #8b6b3e; /* Golden brown */
         }
-        
-        /* ESTILOS DEL ÁREA PRINCIPAL */
-        .main-content {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-        .user-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: inline-block;
-            margin-bottom: 30px;
-        }
-        .user-card h3 { margin: 0 0 10px 0; color: #1F2937; }
-        .badge-rol {
-            background: #E3F2FD;
-            color: #0D47A1;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
+
+        /* ESTILO NUEVO PARA EL ROL VERDE QUE TE GUSTABA */
+        .user-role {
+            color: #8BC34A !important; /* Un verde suave pero visible */
             font-weight: bold;
         }
+
+        /* ESTILO NUEVO PARA EL BOTÓN DE CERRAR SESIÓN (Adaptado a tu tema) */
         .btn-logout {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 10px 15px;
+            background: transparent;
+            color: #8b6b3e; /* Golden brown */
+            border: 1px solid #8b6b3e;
+            padding: 5px 10px;
             border-radius: 5px;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn-logout:hover {
+            background: #8b6b3e;
+            color: white;
+        }
+
+        .menu-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .menu-item:hover {
+            background-color: #30363d;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .header {
+            font-size: 28px;
+            font-weight: bold;
+            color: #c9d1d9;
+            margin-bottom: 20px;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: #161b22;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #c9d1d9;
+        }
+
+        .card p {
+            margin: 10px 0 0;
+            font-size: 24px;
+            color: #8b6b3e; /* Golden brown */
             font-weight: bold;
         }
-        .btn-logout:hover { background: #dc2626; }
+
+        /* Footer Styles */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            font-size: 14px;
+            color: #c9d1d9;
+            padding: 10px 0;
+        }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>☕ MokaPOS</h2>
-        
-        <a href="ventas.html">🛒 Punto de Venta</a>
-        <a href="caja.html">💰 Control de Caja</a>
-        <a href="apartados.html">📦 Apartados</a>
-        
-        <a href="inventario.html" class="solo-admin">📊 Inventario y Kardex</a>
-        <a href="compras.html" class="solo-admin">🚚 Compras a Proveedores</a>
-        <a href="parametros.html" class="solo-admin">⚙️ Configuración</a>
+        <div class="logo">MokaPOS</div>
+        <div class="profile">
+            <img src="https://via.placeholder.com/80" alt="Admin Profile">
+            <div>
+                <strong id="nombre-usuario">Cargando...</strong>
+                <span id="rol-usuario" class="user-role">Rol</span>
+                
+                <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </div>
+        <ul style="list-style: none; padding: 0;">
+            <li><a href="dashboard.html" class="menu-item">Inicio</a></li>
+            <li><a href="ventas.html" class="menu-item">Ventas</a></li>
+            
+            <li class="solo-admin"><a href="almacen.html" class="menu-item">Almacén</a></li>
+            <li class="solo-admin"><a href="compras.html" class="menu-item">Compras</a></li>
+            <li class="solo-admin"><a href="inventario.html" class="menu-item">Inventario</a></li>
+            <li class="solo-admin"><a href="parametros.html" class="menu-item">Parámetros</a></li>
+            
+            <li><a href="reportes.html" class="menu-item">Reportes</a></li>
+        </ul>
     </div>
 
     <div class="main-content">
-        <div class="user-card">
-            <h3 id="nombre-usuario">Cargando usuario...</h3>
-            <span class="badge-rol" id="rol-usuario">Rol</span><br>
-            <button class="btn-logout" onclick="cerrarSesion()">Salir del Sistema</button>
+        <div class="header">Dashboard</div>
+        <div class="card-container">
+            <div class="card">
+                <h3>Ventas Hoy</h3>
+                <p>Bs. 0.00</p>
+            </div>
+            <div class="card">
+                <h3>Ventas Mes</h3>
+                <p>Bs. 0.00</p>
+            </div>
+            <div class="card">
+                <h3>Productos</h3>
+                <p>0</p>
+            </div>
+            <div class="card">
+                <h3>Caja Actual</h3>
+                <p>Bs. 0.00</p>
+            </div>
         </div>
-
-        <h1>Bienvenido al Panel de Control</h1>
-        <p>Selecciona una opción del menú lateral para comenzar a operar.</p>
+        <footer>MokaPOS Cafetería @ 2026</footer>
     </div>
 
     <script>
-        // 1. Verificar sesión (Guardia de entrada)
+        // 1. EL GUARDIA DE SEGURIDAD
+        // Ejecutar esto ANTES de mostrar nada en la pantalla
         if (!localStorage.getItem('usuario_id')) {
-            window.location.href = 'index.html';
+            // Si no hay sesión, rebotar al login inmediatamente
+            window.location.href = 'index.html'; 
         }
 
-        // 2. Leer datos de la memoria
-        const rolActual = localStorage.getItem('usuario_rol');
-        const nombreActual = localStorage.getItem('usuario_nombre');
+        // 2. LA LÓGICA DE LA INTERFAZ
+        // Usar window.onload para asegurar que el HTML cargó
+        window.onload = function() {
+            console.log("=== INICIANDO DASHBOARD ===");
+            
+            // A) Leer datos de la memoria
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
 
-        // 3. Imprimir datos en la tarjeta
-        document.getElementById('nombre-usuario').innerText = nombreActual;
-        document.getElementById('rol-usuario').innerText = rolActual;
+            console.log(`Usuario: ${nombreActual}, Rol: ${rolActual}`);
 
-        // 4. Lógica de Roles (RBAC)
-        if (rolActual === 'CAJERO') {
-            // Buscamos todos los menús prohibidos
-            const elementosAdmin = document.querySelectorAll('.solo-admin');
-            // Los ocultamos de la vista
-            elementosAdmin.forEach(elemento => {
-                elemento.style.display = 'none';
-            });
-            console.log("Interfaz adaptada para Cajero.");
-        }
+            // B) Inyectar los datos en el perfil
+            // Usamos una validación por si las dudas
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+            } else {
+                // Si por alguna razón no hay nombre (sesión vieja), lo mandamos a loguearse
+                cerrarSesion();
+                return;
+            }
 
-        // 5. Función de cerrar sesión
+            if (rolActual) {
+                document.getElementById('rol-usuario').innerText = rolActual;
+            }
+
+            // C) LA MAGIA DE LOS ROLES (HIDING)
+            if (rolActual === 'CAJERO') {
+                console.log("Aplicando restricciones de Cajero...");
+                
+                // Buscamos todos los elementos con la clase "solo-admin"
+                const elementosAdmin = document.querySelectorAll('.solo-admin');
+                
+                // Los ocultamos uno por uno cambiando el CSS a "none"
+                elementosAdmin.forEach(elemento => {
+                    elemento.style.display = 'none';
+                });
+                
+                console.log(`Se ocultaron ${elementosAdmin.length} menús administrativos.`);
+            } else if (rolActual === 'ADMIN') {
+                console.log("Acceso de Administrador confirmado. Vista total.");
+            }
+        };
+
+        // 3. FUNCIÓN DE CERRAR SESIÓN
         function cerrarSesion() {
+            // Borrar toda la memoria del navegador relacionada a la app
             localStorage.clear();
+            // Mandar al usuario al Login
             window.location.href = 'index.html';
         }
     </script>
