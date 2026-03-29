@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Almacén</title>
+    <title>MokaPOS - Stock de Insumos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -21,9 +21,7 @@
         </div>
         
         <div class="flex items-center p-4 border-b border-[#5D4037] flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
-                <span id="avatar-letra">U</span>
-            </div>
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner"><span id="avatar-letra">U</span></div>
             <div>
                 <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
                 <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
@@ -36,13 +34,16 @@
         <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
                 <li><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
-                <li class="solo-admin"><a href="almacen.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-box w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Almacén</span></a></li>                
+                
+                <li class="solo-admin"><a href="almacen_stock.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-box w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Stock Insumos</span></a></li>                
+                <li class="solo-admin"><a href="almacen_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-[#BCAAA4]"></i> <span>Historial Almacén</span></a></li>                
+                
                 <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
                 <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
                 <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
                 <li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-tags w-6 text-center text-[#BCAAA4]"></i> <span>Apartados</span></a></li>                
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
+                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Auditoría</span></a></li>
                 <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
                 <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
             </ul>
@@ -52,17 +53,17 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Control de Almacén</h1>
-            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span><i class="fa-solid fa-caret-down text-xs"></i></div>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Gestión de Stock</h1>
+            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
-        <div class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 md:p-6 gap-4 md:gap-6">
-            <div class="h-1/2 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden relative">
+        <div class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 md:p-6">
+            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden relative">
                 <div class="p-3 sm:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#FAFAFA] shrink-0 gap-3">
-                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Stock Actual</h2>
+                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
                     <div class="flex w-full sm:w-auto space-x-2 sm:space-x-3 items-center">
                         <div class="relative flex-1 sm:w-56">
-                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8D6E63] text-sm">
+                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8D6E63] text-sm">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
                         </div>
                         <button onclick="abrirModal()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-3 sm:px-4 py-1.5 rounded shadow transition-colors font-medium text-xs sm:text-sm flex items-center shrink-0">
@@ -80,30 +81,10 @@
                                 <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Stock</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Mínimo</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Ajuste Rápido</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Acciones Rápidas</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="h-1/2 flex flex-col bg-white rounded shadow-md border-t-4 border-[#8D6E63] overflow-hidden relative">
-                <div class="p-3 sm:p-4 border-b bg-[#FAFAFA] shrink-0">
-                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Historial de Movimientos</h2>
-                </div>
-                
-                <div class="flex-1 overflow-auto">
-                    <table class="min-w-full w-full whitespace-nowrap">
-                        <thead class="bg-gray-100 sticky top-0 z-10">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Fecha y Hora</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Tipo</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase">Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-movimientos" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -123,100 +104,96 @@
                     <input type="text" id="inputNombre" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-[#8D6E63]">
                 </div>
                 
-                <div class="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200 mb-4 shadow-inner">
-                    <h4 class="text-sm font-bold text-[#E65100] mb-3 flex items-center"><i class="fa-solid fa-calculator mr-2"></i> Calculadora (Empaques)</h4>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">¿Cuántos compraste?</label>
-                            <div class="flex rounded-md shadow-sm">
-                                <input type="number" id="cantEmpaques" value="1" min="1" step="1" required class="w-16 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold">
-                                <select id="tipoEmpaque" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white">
-                                    <option value="Bolsa(s)">Bolsa(s)</option>
-                                    <option value="Caja(s)">Caja(s)</option>
-                                    <option value="Quintal(es)">Quintal(es)</option>
-                                </select>
+                <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <label class="block text-xs font-bold text-gray-600 mb-2">Método de Ingreso de Cantidad Inicial</label>
+                    <div class="flex space-x-4 mb-3 border-b pb-3">
+                        <label class="flex items-center text-sm cursor-pointer"><input type="radio" name="modoIngreso" value="directo" checked class="mr-2" onchange="toggleModoIngreso()"> Cantidad Exacta</label>
+                        <label class="flex items-center text-sm cursor-pointer text-[#E65100] font-bold"><input type="radio" name="modoIngreso" value="calculadora" class="mr-2" onchange="toggleModoIngreso()"> Usar Calculadora</label>
+                    </div>
+
+                    <div id="divIngresoDirecto" class="flex rounded-md shadow-sm">
+                        <input type="number" id="inputCantDirecta" value="0" min="0" step="0.1" class="w-full border border-gray-300 rounded-l-md px-3 py-2 text-sm font-bold text-center" oninput="actualizarResumen()">
+                        <select id="selectUnidadDir" class="border border-l-0 border-gray-300 rounded-r-md px-3 py-2 text-sm bg-white font-bold text-[#5D4037]" onchange="sincronizarUnidades()">
+                            <option value="ml">ml</option>
+                            <option value="gr">gr</option>
+                            <option value="unidad">unid.</option>
+                        </select>
+                    </div>
+
+                    <div id="divCalculadora" class="hidden">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Empaques comprados</label>
+                                <div class="flex shadow-sm">
+                                    <input type="number" id="cantEmpaques" value="1" min="1" step="1" class="w-16 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold" oninput="actualizarResumen()">
+                                    <select id="tipoEmpaque" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white">
+                                        <option value="Bolsa(s)">Bolsa(s)</option>
+                                        <option value="Caja(s)">Caja(s)</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Contenido por cada uno</label>
-                            <div class="flex rounded-md shadow-sm">
-                                <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" required class="w-20 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold">
-                                <select id="selectUnidad" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-[#5D4037]">
-                                    <option value="ml">ml</option>
-                                    <option value="gr">gr</option>
-                                    <option value="unidad">unid.</option>
-                                </select>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Contenido c/u</label>
+                                <div class="flex shadow-sm">
+                                    <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" class="w-20 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold" oninput="actualizarResumen()">
+                                    <select id="selectUnidadCalc" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-[#5D4037]" onchange="sincronizarUnidades(true)">
+                                        <option value="ml">ml</option>
+                                        <option value="gr">gr</option>
+                                        <option value="unidad">unid.</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white p-2 sm:p-3 rounded-md border border-orange-100 flex justify-between shadow-sm items-center">
-                        <span class="text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Se registrará:</span>
-                        <div><strong id="totalCalculado" class="text-lg sm:text-xl text-[#E65100] font-black">1000</strong> <span id="lblUnidad" class="font-bold text-gray-600 text-sm">ml</span></div>
+                    <div class="bg-white p-2 rounded-md border border-gray-200 mt-3 flex justify-between shadow-sm items-center">
+                        <span class="text-xs font-medium text-gray-500 uppercase">Inventario Final:</span>
+                        <div><strong id="totalCalculado" class="text-lg text-[#E65100] font-black">0</strong> <span id="lblUnidad" class="font-bold text-gray-600 text-sm">ml</span></div>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Stock Mínimo de Alerta</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Aviso de Stock Crítico (Mínimo)</label>
                     <div class="relative">
-                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="1000" class="w-full border border-gray-300 rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700">
+                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700 text-center">
                         <span id="lblMinimoUnidad" class="absolute right-3 top-2.5 text-sm font-bold text-gray-400">ml</span>
                     </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-[#E65100] text-white font-bold rounded-lg shadow hover:bg-[#EF6C00]">Guardar</button>
+                    <button type="submit" class="px-4 py-2 bg-[#E65100] text-white font-bold rounded-lg shadow hover:bg-[#EF6C00]">Guardar Insumo</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="js/almacen.js"></script>
+    <script src="js/almacen_stock.js"></script>
     <script>
-        // === 1. GUARDIA DE SEGURIDAD ESTRICTA (Admin Only) ===
         const rolGuardia = localStorage.getItem('usuario_rol');
         if (!localStorage.getItem('usuario_id')) {
             window.location.href = 'index.html'; 
         } else if (rolGuardia === 'CAJERO') {
-            alert('⛔ Acceso denegado: El control de Almacén es exclusivo para Administradores.');
+            alert('⛔ Acceso denegado.');
             window.location.href = 'dashboard.html';
         }
-
-        // === 2. LÓGICA DE INTERFAZ ===
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
         }
-
         function cerrarSesion() {
-            localStorage.clear();
-            window.location.href = 'index.html';
+            localStorage.clear(); window.location.href = 'index.html';
         }
-
-        // === 3. CARGAR ROLES AL INICIAR ===
         window.addEventListener('DOMContentLoaded', () => {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
-
-            if (nombreActual) {
-                document.getElementById('nombre-usuario').innerText = nombreActual;
-                document.getElementById('header-nombre-usuario').innerText = nombreActual;
-                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
+            const n = localStorage.getItem('usuario_nombre');
+            const r = localStorage.getItem('usuario_rol');
+            if (n) {
+                document.getElementById('nombre-usuario').innerText = n;
+                document.getElementById('header-nombre-usuario').innerText = n;
+                document.getElementById('avatar-letra').innerText = n.charAt(0).toUpperCase();
             }
-            if (rolActual) {
-                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
-            }
-
-            if (rolActual === 'CAJERO') {
-                const elementosAdmin = document.querySelectorAll('.solo-admin');
-                elementosAdmin.forEach(elemento => {
-                    elemento.style.display = 'none';
-                });
-            }
+            if (r) document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${r}`;
+            if (r === 'CAJERO') document.querySelectorAll('.solo-admin').forEach(e => e.style.display = 'none');
         });
     </script>
 </body>

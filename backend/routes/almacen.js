@@ -3,12 +3,13 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// 1. Obtener todos los insumos (Tabla superior)
+// 1. Obtener insumos ACTIVOS (Tabla de Stock)
 router.get('/insumos', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo 
             FROM insumos 
+            WHERE activo = TRUE 
             ORDER BY nombre ASC
         `);
         res.json(result.rows);
@@ -57,7 +58,7 @@ router.post('/ajuste', async (req, res) => {
     }
 });
 
-// 3. Crear un NUEVO Insumo (Botón Naranja)
+// 3. Crear un NUEVO Insumo
 router.post('/', async (req, res) => {
     const { nombre, unidad_medida, stock_inicial, stock_minimo } = req.body;
     
@@ -66,11 +67,8 @@ router.post('/', async (req, res) => {
     }
 
     const cliente = await pool.connect();
-
     try {
-        await cliente.query('BEGIN'); // Iniciamos transacción segura
-
-        // Crear el insumo
+        await cliente.query('BEGIN');
         const insertInsumo = await cliente.query(`
             INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo) 
             VALUES ($1, $2, $3, $4) 
@@ -79,7 +77,6 @@ router.post('/', async (req, res) => {
         
         const nuevoInsumo = insertInsumo.rows[0];
 
-        // Si le pusieron stock inicial mayor a 0, registrarlo en el historial
         if (stock_inicial > 0) {
             await cliente.query(`
                 INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, fecha) 
@@ -87,11 +84,10 @@ router.post('/', async (req, res) => {
             `, [nuevoInsumo.id, stock_inicial]);
         }
 
-        await cliente.query('COMMIT'); // Guardamos todo
+        await cliente.query('COMMIT'); 
         res.json({ mensaje: 'Insumo creado con éxito', insumo: nuevoInsumo });
-
     } catch (error) {
-        await cliente.query('ROLLBACK'); // Si algo falla, deshacemos
+        await cliente.query('ROLLBACK'); 
         console.error('Error creando insumo:', error);
         res.status(500).json({ error: 'Error al guardar el insumo' });
     } finally {
@@ -99,7 +95,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// 4. Obtener el historial de movimientos (Tabla inferior)
+// 4. Obtener el historial de movimientos
 router.get('/movimientos', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -108,15 +104,29 @@ router.get('/movimientos', async (req, res) => {
                 i.nombre AS insumo, 
                 m.tipo, 
                 m.cantidad, 
-                TO_CHAR(m.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora            FROM movimientos_inventario m
+                TO_CHAR(m.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora            
+            FROM movimientos_inventario m
             JOIN insumos i ON m.insumo_id = i.id
             ORDER BY m.fecha DESC
-            LIMIT 50
+            LIMIT 100
         `);
         res.json(result.rows);
     } catch (error) {
         console.error('Error obteniendo historial:', error);
         res.status(500).json({ error: 'Error al cargar el historial' });
+    }
+});
+
+// 5. NUEVO: Eliminar Insumo (Soft Delete)
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // En lugar de borrarlo, lo marcamos como inactivo para proteger el historial contable
+        await pool.query('UPDATE insumos SET activo = FALSE WHERE id = $1', [id]);
+        res.json({ success: true, mensaje: 'Insumo eliminado correctamente' });
+    } catch (error) {
+        console.error('Error eliminando insumo:', error);
+        res.status(500).json({ error: 'Error al eliminar el insumo' });
     }
 });
 

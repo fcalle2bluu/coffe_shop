@@ -27,10 +27,12 @@ const rutasInventario = require('./routes/inventario');
 const rutasComprobantes = require('./routes/comprobantes');
 const rutasParametros = require('./routes/parametros');
 const rutasCompras = require('./routes/compras');
+const rutasAuth = require('./routes/auth'); // <-- IMPORTACIÓN ARREGLADA
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
 // ==========================================
+app.use('/api/auth', rutasAuth); // <-- RUTA ARREGLADA (Movida antes del Frontend y del Listen)
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 
 app.use('/api/cotizaciones', rutasCotizaciones);
@@ -54,5 +56,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor backend corriendo en el puerto ${PORT}`);
 });
-
-app.use('/api/auth', require('./routes/auth'));

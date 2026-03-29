@@ -3,206 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Dashboard Cafetería</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        sidebar: '#3E2723',
-                        sidebarHover: '#4E342E',
-                        topbar: '#5D4037',
-                        logoBg: '#4E342E',
-                        mainBg: '#F4F1EA',
-                    }
-                }
-            }
+    <title>Login - MokaPOS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #F5F7FA;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-    </script>
+        .login-card {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+        }
+        .login-card h2 {
+            color: #0D47A1;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #1F2937;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .btn-login {
+            background-color: #1976D2;
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-login:hover {
+            background-color: #0D47A1;
+        }
+        #mensaje-error {
+            color: red;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
 </head>
-<body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
+<body>
 
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
-
-    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out z-50">
-        
-        <div class="h-16 bg-logoBg flex items-center justify-center text-white text-xl font-bold shadow-md">
-            <i class="fa-solid fa-mug-hot mr-2"></i> MokaPOS
-        </div>
-
-        <div class="p-4 border-b border-sidebarHover flex items-center space-x-3">
-            <div class="w-12 h-12 rounded-full bg-gray-500 text-white flex items-center justify-center font-bold text-xl">
-                <span id="avatar-letra">U</span>
+    <div class="login-card">
+        <h2>🔒 MokaPOS</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" placeholder="Ej. admin" required autocomplete="off">
             </div>
-            <div>
-                <strong id="nombre-usuario" class="text-white font-bold block">Cargando...</strong>
-                <div class="flex items-center text-sm mt-1">
-                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                    <span id="rol-usuario" class="text-green-500 font-bold uppercase">Rol</span>
-                </div>
+            <div class="form-group">
+                <label for="pin">PIN de Acceso</label>
+                <input type="password" id="pin" placeholder="****" required inputmode="numeric" maxlength="6">
             </div>
-        </div>
-
-        <nav class="flex-1 overflow-y-auto py-2 text-sm font-medium">
-            <a href="dashboard.html" class="flex items-center px-6 py-3 border-l-4 border-orange-500 bg-sidebarHover text-white">
-                <i class="fa-solid fa-house w-6 text-orange-400"></i> Inicio
-            </a>
-            
-            <a href="almacen.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-box w-6"></i> Almacén
-            </a>
-
-            <a href="cotizaciones.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-file-invoice w-6"></i> Cotizaciones
-            </a>
-
-            <a href="compras.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-truck w-6"></i> Compras
-            </a>
-
-            <a href="caja.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-cash-register w-6"></i> Caja
-            </a>
-
-            <a href="ventas.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-cart-shopping w-6"></i> Ventas
-            </a>
-
-            <a href="apartados.html" class="flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-tags w-6"></i> Apartados
-            </a>
-
-            <a href="inventario.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-boxes-stacked w-6"></i> Inventario
-            </a>
-
-            <a href="comprobantes.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-receipt w-6"></i> Comprobantes
-            </a>
-
-            <a href="parametros.html" class="solo-admin flex items-center px-6 py-3 hover:bg-sidebarHover transition-colors">
-                <i class="fa-solid fa-gear w-6"></i> Parámetros
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-sidebarHover">
-            <button onclick="cerrarSesion()" class="w-full flex items-center justify-center px-4 py-2 bg-transparent border border-gray-500 text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 rounded transition-colors">
-                <i class="fa-solid fa-right-from-bracket mr-2"></i> Cerrar Sesión
-            </button>
-        </div>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <header class="h-16 bg-topbar shadow flex items-center justify-between px-6 text-white">
-            <button onclick="toggleSidebar()" class="md:hidden text-gray-300 hover:text-white focus:outline-none">
-                <i class="fa-solid fa-bars text-xl"></i>
-            </button>
-            <h1 class="text-xl font-bold">Panel de Control</h1>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
-                    <p class="text-sm text-gray-500 font-semibold">Ventas Hoy</p>
-                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-                    <p class="text-sm text-gray-500 font-semibold">Ventas Mes</p>
-                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-                    <p class="text-sm text-gray-500 font-semibold">Productos</p>
-                    <p class="text-2xl font-bold text-gray-800">0</p>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
-                    <p class="text-sm text-gray-500 font-semibold">Caja Actual</p>
-                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual</h2>
-                <div class="relative h-72">
-                    <canvas id="miGrafico"></canvas>
-                </div>
-            </div>
-        </div>
-    </main>
+            <button type="submit" class="btn-login" id="btnSubmit">INGRESAR</button>
+            <div id="mensaje-error">Usuario o PIN incorrectos</div>
+        </form>
+    </div>
 
     <script>
-        // === GUARDIA DE SEGURIDAD ===
-        if (!localStorage.getItem('usuario_id')) {
-            window.location.href = 'index.html'; 
-        }
-
-        // === LÓGICA DE INTERFAZ MÓVIL ===
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
-
-        function cerrarSesion() {
-            localStorage.clear();
-            window.location.href = 'index.html';
-        }
-
-        // === AL CARGAR LA PÁGINA ===
-        window.onload = function() {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // 1. CARGAMOS DATOS DEL USUARIO
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const username = document.getElementById('username').value;
+            const pin = document.getElementById('pin').value;
+            const btnSubmit = document.getElementById('btnSubmit');
+            const mensajeError = document.getElementById('mensaje-error');
 
-            // 2. MODIFICAMOS EL PERFIL
-            if (nombreActual) {
-                document.getElementById('nombre-usuario').innerText = nombreActual;
-                // Ponemos la primera letra del nombre en el circulito
-                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
-            }
-            if (rolActual) {
-                document.getElementById('rol-usuario').innerText = rolActual;
-            }
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Verificando...';
+            mensajeError.style.display = 'none';
 
-            // 3. LA MAGIA DE LOS ROLES (HIDING)
-            if (rolActual === 'CAJERO') {
-                const elementosAdmin = document.querySelectorAll('.solo-admin');
-                elementosAdmin.forEach(elemento => {
-                    elemento.style.display = 'none';
+            try {
+                // Hacemos la petición a tu backend en Node.js (que ya está arreglado)
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, pin })
                 });
-            }
 
-            // 4. CÓDIGO DEL GRÁFICO ORIGINAL
-            const ctx = document.getElementById('miGrafico').getContext('2d');
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
-            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; 
-            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; 
-            const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
+                const data = await response.json();
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: meses,
-                    datasets: [
-                        { type: 'line', label: 'Beneficio', data: dataBeneficio, borderColor: '#22c55e', backgroundColor: '#22c55e', borderWidth: 2, tension: 0.4, yAxisID: 'y', fill: false, pointRadius: 3 },
-                        { type: 'bar', label: 'Ventas', data: dataVentas, backgroundColor: '#E65100', borderRadius: 4, barPercentage: 0.6 },
-                        { type: 'bar', label: 'Compras', data: dataCompras, backgroundColor: '#8D6E63', borderRadius: 4, barPercentage: 0.6 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
-                    scales: { y: { beginAtZero: true } }
+                if (response.ok) {
+                    // Guardamos la sesión en el navegador
+                    localStorage.setItem('usuario_id', data.usuario.id);
+                    localStorage.setItem('usuario_nombre', data.usuario.nombre);
+                    localStorage.setItem('usuario_rol', data.usuario.rol);
+                    
+                    // ¡Redirigimos al dashboard!
+                    window.location.href = 'dashboard.html';
+                } else {
+                    mensajeError.textContent = data.error || 'Error al iniciar sesión';
+                    mensajeError.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'INGRESAR';
                 }
-            });
-        };
+            } catch (error) {
+                mensajeError.textContent = 'Error de conexión con el servidor';
+                mensajeError.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'INGRESAR';
+            }
+        });
     </script>
 </body>
 </html>
