@@ -9,10 +9,10 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const app = express();
 
 // ==========================================
-// 2. MIDDLEWARES (TRADUCTORES) - ¡DEBEN IR AQUÍ ARRIBA!
+// 2. MIDDLEWARES (TRADUCTORES)
 // ==========================================
 app.use(cors());
-app.use(express.json()); // <--- ¡Esto permite que TODAS las rutas lean req.body!
+app.use(express.json()); 
 
 // ==========================================
 // 3. IMPORTAR RUTAS
@@ -27,12 +27,13 @@ const rutasInventario = require('./routes/inventario');
 const rutasComprobantes = require('./routes/comprobantes');
 const rutasParametros = require('./routes/parametros');
 const rutasCompras = require('./routes/compras');
-const rutasAuth = require('./routes/auth'); // <-- IMPORTACIÓN ARREGLADA
+const rutasAuth = require('./routes/auth');
+const rutasProveedores = require('./routes/proveedores'); // <--- NUEVA RUTA IMPORTADA
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
 // ==========================================
-app.use('/api/auth', rutasAuth); // <-- RUTA ARREGLADA (Movida antes del Frontend y del Listen)
+app.use('/api/auth', rutasAuth);
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 
 app.use('/api/cotizaciones', rutasCotizaciones);
@@ -43,6 +44,7 @@ app.use('/api/inventario', rutasInventario);
 app.use('/api/comprobantes', rutasComprobantes);
 app.use('/api/parametros', rutasParametros);
 app.use('/api/compras', rutasCompras);
+app.use('/api/proveedores', rutasProveedores); // <--- NUEVA RUTA ACTIVADA
 
 // ==========================================
 // 5. ARCHIVOS ESTÁTICOS (FRONTEND)
