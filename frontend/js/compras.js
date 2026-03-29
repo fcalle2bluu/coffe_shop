@@ -15,8 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. CARGA INICIAL (RUTINAS BASE)
 // ==========================================
 async function cargarHistorialCompras() {
-    // Si tienes una ruta GET /api/compras, aquí se cargaría. 
-    // Para no romper tu sistema si aún no tienes el endpoint, lo dejamos preparado.
     try {
         const res = await fetch('/api/compras');
         if(res.ok) {
@@ -28,7 +26,7 @@ async function cargarHistorialCompras() {
 
 async function cargarProveedores() {
     try {
-        const respuesta = await fetch('/api/proveedores'); // Asume que tienes este endpoint o lo crearás
+        const respuesta = await fetch('/api/proveedores'); 
         if (!respuesta.ok) return;
         proveedoresGlobal = await respuesta.json();
         
@@ -114,7 +112,7 @@ function agregarAlDetalle() {
     const empaques = parseFloat(document.getElementById('inpEmpaques').value) || 1;
     const contenidoUnidad = parseFloat(document.getElementById('inpContenido').value) || 0;
     const costoSubtotal = parseFloat(document.getElementById('inpCosto').value) || 0;
-    const unidadElegida = document.getElementById('selUnidadFila').value; // Nueva Unidad Dinámica
+    const unidadElegida = document.getElementById('selUnidadFila').value; 
     const vencimiento = document.getElementById('inpVence').value || null;
 
     const cantidadTotal = parseFloat((empaques * contenidoUnidad).toFixed(2));
@@ -179,6 +177,8 @@ function abrirModalNuevoProveedor() {
     document.getElementById('modalNuevoProveedor').classList.remove('hidden');
     document.getElementById('inpProvNombre').value = '';
     document.getElementById('inpProvTel').value = '';
+    document.getElementById('inpProvEmail').value = '';
+    document.getElementById('inpProvDir').value = '';
 }
 
 function cerrarModalNuevoProveedor() {
@@ -188,24 +188,29 @@ function cerrarModalNuevoProveedor() {
 async function guardarProveedor() {
     const nombre = document.getElementById('inpProvNombre').value;
     const tel = document.getElementById('inpProvTel').value;
+    const email = document.getElementById('inpProvEmail').value;
+    const dir = document.getElementById('inpProvDir').value;
 
     if(!nombre) return alert('El nombre de la empresa es obligatorio.');
 
-    // Simulación o llamada real al backend
     try {
         const res = await fetch('/api/proveedores', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nombre, telefono: tel })
+            body: JSON.stringify({ 
+                nombre: nombre, 
+                telefono: tel,
+                email: email,
+                direccion: dir
+            })
         });
         
         if(!res.ok) throw new Error('No se pudo guardar el proveedor');
         
         alert('Proveedor guardado exitosamente');
         cerrarModalNuevoProveedor();
-        await cargarProveedores(); // Recargar el dropdown
+        await cargarProveedores(); 
         
-        // Intentar auto-seleccionar el último si la API lo devuelve (opcional)
     } catch(e) {
         console.error(e);
         alert('Error conectando al servidor para guardar proveedor.');
@@ -238,7 +243,7 @@ async function guardarInsumoDesdeCompras() {
             body: JSON.stringify({
                 nombre: nombre,
                 unidad_medida: unidad,
-                stock_inicial: 0, // Inicia en 0, porque el ingreso se hace en la tabla de compras
+                stock_inicial: 0, 
                 stock_minimo: minimo
             })
         });
@@ -247,7 +252,7 @@ async function guardarInsumoDesdeCompras() {
         
         alert('Insumo guardado exitosamente');
         cerrarModalNuevoInsumo();
-        await cargarInsumos(); // Recargar el dropdown
+        await cargarInsumos(); 
         
     } catch(e) {
         console.error(e);
@@ -271,7 +276,7 @@ async function guardarCompra() {
         proveedor_id: provId,
         usuario_id: usuarioId,
         total: totalCompra,
-        detalles: detalleCompra // Aquí ya va la "unidad" personalizada
+        detalles: detalleCompra
     };
 
     const btn = document.getElementById('btnGuardarCompra');
