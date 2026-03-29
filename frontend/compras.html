@@ -94,8 +94,13 @@
                         <label class="block text-xs font-bold text-[#E65100] mb-1">Proveedor</label>
                         <div class="flex gap-2">
                             <select id="selProveedor" class="flex-1 border border-gray-300 rounded p-2 focus:ring-[#8D6E63] font-bold text-gray-700 outline-none"></select>
+                            
                             <button onclick="abrirModalNuevoProveedor()" class="bg-[#5D4037] hover:bg-[#3E2723] text-white px-3 rounded shadow transition-colors" title="Añadir Nuevo Proveedor">
                                 <i class="fa-solid fa-plus"></i>
+                            </button>
+                            
+                            <button onclick="eliminarProveedorSeleccionado()" class="bg-red-500 hover:bg-red-700 text-white px-3 rounded shadow transition-colors" title="Eliminar Proveedor Seleccionado">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
                     </div>

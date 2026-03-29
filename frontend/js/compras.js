@@ -71,7 +71,6 @@ function cerrarModalCompra() {
     document.getElementById('modalCompra').classList.add('hidden');
 }
 
-// Cuando se selecciona un insumo en el dropdown
 function actualizarUnidadLabel() {
     const sel = document.getElementById('selInsumo');
     if(!sel.value) return;
@@ -79,7 +78,6 @@ function actualizarUnidadLabel() {
     const opcionSeleccionada = sel.options[sel.selectedIndex];
     const unidadBase = opcionSeleccionada.getAttribute('data-unidad');
     
-    // Auto-seleccionar la unidad base en el nuevo selector
     const selUnidad = document.getElementById('selUnidadFila');
     if([...selUnidad.options].some(o => o.value === unidadBase)) {
         selUnidad.value = unidadBase;
@@ -130,7 +128,6 @@ function agregarAlDetalle() {
 
     renderizarDetalle();
     
-    // Limpiar fila de ingreso
     document.getElementById('inpEmpaques').value = '1';
     document.getElementById('inpContenido').value = '1000';
     document.getElementById('inpCosto').value = '0.00';
@@ -169,10 +166,9 @@ function renderizarDetalle() {
 }
 
 // ==========================================
-// 3. NUEVAS FUNCIONES: CREAR DESDE COMPRAS
+// 3. FUNCIONES: CREAR / ELIMINAR PROVEEDOR
 // ==========================================
 
-// --- PROVEEDORES ---
 function abrirModalNuevoProveedor() {
     document.getElementById('modalNuevoProveedor').classList.remove('hidden');
     document.getElementById('inpProvNombre').value = '';
@@ -214,6 +210,38 @@ async function guardarProveedor() {
     } catch(e) {
         console.error(e);
         alert('Error conectando al servidor para guardar proveedor.');
+    }
+}
+
+// ---> NUEVO: Eliminar el proveedor que esté seleccionado en la lista
+async function eliminarProveedorSeleccionado() {
+    const sel = document.getElementById('selProveedor');
+    const idProveedor = sel.value;
+    
+    if (!idProveedor) {
+        return alert('Por favor, selecciona primero un proveedor de la lista para eliminarlo.');
+    }
+    
+    const nombreProveedor = sel.options[sel.selectedIndex].text;
+    
+    const confirmar = confirm(`¿Estás seguro que deseas eliminar al proveedor "${nombreProveedor}" de tu base de datos?`);
+    if (!confirmar) return;
+
+    try {
+        const res = await fetch(`/api/proveedores/${idProveedor}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar el proveedor');
+        
+        alert('Proveedor eliminado exitosamente');
+        await cargarProveedores(); // Recargamos el Select
+        
+    } catch(e) {
+        console.error(e);
+        alert(e.message);
     }
 }
 

@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 2. Guardar un nuevo proveedor usando tu tabla exacta
+// 2. Guardar un nuevo proveedor 
 router.post('/', async (req, res) => {
     const { nombre, telefono, email, direccion } = req.body;
     
@@ -33,6 +33,22 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('Error creando proveedor:', error);
         res.status(500).json({ error: 'Error interno al guardar el proveedor' });
+    }
+});
+
+// 3. NUEVO: Eliminar un proveedor
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM proveedores WHERE id = $1', [id]);
+        res.json({ success: true, mensaje: 'Proveedor eliminado correctamente' });
+    } catch (error) {
+        console.error('Error eliminando proveedor:', error);
+        // Código 23503 en Postgres significa que la llave foránea está en uso (tiene compras registradas)
+        if (error.code === '23503') { 
+            return res.status(400).json({ error: '⛔ No puedes eliminar este proveedor porque ya tiene compras registradas en el historial.' });
+        }
+        res.status(500).json({ error: 'Error al eliminar el proveedor' });
     }
 });
 
