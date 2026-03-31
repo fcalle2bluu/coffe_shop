@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Apartados</title>
+    <title>MokaPOS - Pedidos Internos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -21,9 +21,7 @@
         </div>
         
         <div class="flex items-center p-4 border-b border-[#5D4037] flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
-                <span id="avatar-letra">U</span>
-            </div>
+            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner"><span id="avatar-letra">U</span></div>
             <div>
                 <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
                 <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
@@ -36,14 +34,14 @@
         <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
                 <li><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
-  <li class="solo-admin"><a href="almacen_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Stock Insumos</span></a></li>                
+                <li class="solo-admin"><a href="almacen_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Stock Insumos</span></a></li>                
                 <li class="solo-admin"><a href="almacen_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-[#BCAAA4]"></i> <span>Historial Almacén</span></a></li>
-                              <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
+                <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
                 <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
                 <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
-                <li><a href="apartados.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-tags w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Apartados</span></a></li>                
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Inventario</span></a></li>
+                <li><a href="apartados.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-clipboard-list w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Pedidos Internos</span></a></li>                
+                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Auditoría</span></a></li>
                 <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
                 <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
             </ul>
@@ -53,33 +51,36 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Reservas y Apartados</h1>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Requerimientos de Compra</h1>
             <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 overflow-hidden p-2 sm:p-4 md:p-6 flex flex-col">
             <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden">
                 <div class="p-3 sm:p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
-                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-tags mr-2"></i>Activos</h2>
-                    <button onclick="abrirModalNuevo()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded shadow font-medium text-xs sm:text-sm">
-                        <i class="fa-solid fa-plus mr-1 sm:mr-2"></i> Nuevo
+                    <div>
+                        <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-clipboard-list mr-2"></i>Lista de Pedidos</h2>
+                        <p class="text-xs text-gray-500" id="lbl-rol-vista">Aquí puedes pedir lo que haga falta en la sucursal.</p>
+                    </div>
+                    <button onclick="abrirModalNuevo()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-4 py-2 rounded shadow font-bold text-sm transition-colors">
+                        <i class="fa-solid fa-plus mr-2"></i> Solicitar Compra
                     </button>
                 </div>
                 
                 <div class="flex-1 overflow-auto">
-                    <table class="min-w-full w-full whitespace-nowrap">
-                        <thead class="bg-gray-100 sticky top-0 z-10">
+                    <table class="min-w-full w-full whitespace-nowrap text-left text-sm">
+                        <thead class="bg-gray-100 sticky top-0 z-10 text-gray-700">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Folio</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Cliente</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Límite</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase">Total</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-[#4E342E] uppercase text-red-600">Saldo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Acciones</th>
+                                <th class="px-4 py-3 font-bold uppercase">Fecha</th>
+                                <th class="px-4 py-3 font-bold uppercase admin-col">Cajero Solicitante</th>
+                                <th class="px-4 py-3 font-bold uppercase">Insumo a Comprar</th>
+                                <th class="px-4 py-3 font-bold uppercase text-center">Cantidad</th>
+                                <th class="px-4 py-3 font-bold uppercase">Notas / Urgencia</th>
+                                <th class="px-4 py-3 font-bold uppercase text-center">Estado</th>
+                                <th class="px-4 py-3 font-bold uppercase text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-apartados" class="divide-y divide-gray-200 text-sm"></tbody>
+                        <tbody id="tabla-pedidos" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -87,84 +88,50 @@
     </main>
 
     <div id="modalNuevo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-4 sm:p-6 border-t-4 border-[#E65100] flex flex-col max-h-[95vh]">
-            <div class="flex justify-between items-center mb-4 shrink-0">
-                <h3 class="text-lg font-bold text-[#3E2723]">Crear Nuevo Apartado</h3>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border-t-4 border-[#E65100] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-[#3E2723]"><i class="fa-solid fa-cart-plus mr-2"></i>Nuevo Requerimiento</h3>
                 <button onclick="cerrarModalNuevo()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
-            <div class="overflow-y-auto flex-1 pr-1">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div><label class="text-xs font-bold text-gray-600">Cliente</label><input type="text" id="inpCliente" class="w-full border rounded p-2 focus:ring-[#8D6E63]" required></div>
-                    <div><label class="text-xs font-bold text-gray-600">Teléfono</label><input type="text" id="inpTel" class="w-full border rounded p-2 focus:ring-[#8D6E63]"></div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">¿Qué necesitas que compremos?</label>
+                    <input type="text" id="inpInsumo" placeholder="Ej: Leche deslactosada, Vasos, Servilletas..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300" required>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Cantidad Estimada</label>
+                    <input type="text" id="inpCantidad" placeholder="Ej: 3 Cajas, 10 Litros, 5 Paquetes..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300" required>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 mb-4 bg-gray-50 p-2 border rounded">
-                    <select id="selProducto" class="flex-1 border rounded p-2 text-sm w-full"></select>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <input type="number" id="inpCant" value="1" class="w-20 border rounded p-2 text-sm text-center">
-                        <button onclick="agregarAlApartado()" class="bg-[#5D4037] text-white px-4 py-2 rounded flex-1 sm:flex-none hover:bg-[#4E342E]"><i class="fa-solid fa-plus"></i></button>
-                    </div>
-                </div>
-
-                <div class="h-32 overflow-auto border mb-4 rounded bg-white">
-                    <table class="w-full text-sm whitespace-nowrap"><tbody id="lista-productos"></tbody></table>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 border-t pt-4">
-                    <div><label class="text-xs font-bold text-gray-600">Adelanto (S/)</label><input type="number" id="inpAbono" value="0" class="w-full border rounded p-2 font-bold text-green-600 text-center"></div>
-                    <div><label class="text-xs font-bold text-gray-600">Método de Pago</label><select id="selPago" class="w-full border rounded p-2"><option value="EFECTIVO">Efectivo</option><option value="QR">QR</option></select></div>
-                    <div><label class="text-xs font-bold text-gray-600">Fecha Límite</label><input type="date" id="inpFecha" class="w-full border rounded p-2 text-red-600 font-bold"></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Notas Adicionales (Opcional)</label>
+                    <textarea id="inpNotas" rows="2" placeholder="Ej: Es muy urgente, la marca debe ser PIL, etc..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300"></textarea>
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-between items-center mt-4 shrink-0 gap-3">
-                <h4 class="text-xl font-black text-[#4E342E]">Total: S/ <span id="lblTotal">0.00</span></h4>
-                <div class="flex w-full sm:w-auto gap-2">
-                    <button onclick="cerrarModalNuevo()" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 rounded font-bold text-gray-700">Cancelar</button>
-                    <button onclick="guardarApartado()" class="flex-1 sm:flex-none px-4 py-2 bg-[#E65100] text-white font-bold rounded shadow">Apartar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalAbono" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border-t-4 border-green-500 text-center relative">
-            <button onclick="document.getElementById('modalAbono').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">Registrar Abono</h3>
-            <p class="text-sm text-gray-500 mb-4">Saldo pendiente: <strong id="lblSaldoModal" class="text-red-600 text-lg">S/ 0.00</strong></p>
-            
-            <input type="number" id="inpMontoAbono" placeholder="0.00" class="w-full border text-center text-2xl font-bold py-3 rounded mb-4 focus:ring-green-500 outline-none">
-            <select id="selPagoAbono" class="w-full border rounded p-3 mb-6 font-bold text-gray-700 outline-none"><option value="EFECTIVO">💵 Efectivo</option><option value="QR">📱 QR</option><option value="TARJETA">💳 Tarjeta</option></select>
-            
-            <div class="flex gap-2">
-                <button onclick="document.getElementById('modalAbono').classList.add('hidden')" class="w-1/2 py-3 bg-gray-200 rounded font-bold text-gray-700">Cancelar</button>
-                <button onclick="procesarAbono()" class="w-1/2 py-3 bg-green-600 text-white rounded font-bold shadow-md hover:bg-green-700">Pagar</button>
+            <div class="flex gap-2 mt-6">
+                <button onclick="cerrarModalNuevo()" class="w-1/2 px-4 py-2 bg-gray-200 rounded font-bold text-gray-700 hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button onclick="guardarPedido()" id="btnGuardar" class="w-1/2 px-4 py-2 bg-[#E65100] text-white font-bold rounded shadow hover:bg-[#EF6C00] transition-colors">Enviar Solicitud</button>
             </div>
         </div>
     </div>
 
     <script src="js/apartados.js"></script>
     <script>
-        // === 1. GUARDIA DE SEGURIDAD BÁSICA (Ambos pueden entrar) ===
-        if (!localStorage.getItem('usuario_id')) {
-            window.location.href = 'index.html'; 
-        }
+        // === SEGURIDAD Y UI ===
+        if (!localStorage.getItem('usuario_id')) { window.location.href = 'index.html'; }
 
-        // === 2. LÓGICA DE INTERFAZ ===
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
         }
 
         function cerrarSesion() {
-            localStorage.clear();
-            window.location.href = 'index.html';
+            localStorage.clear(); window.location.href = 'index.html';
         }
 
-        // === 3. CARGAR ROLES AL INICIAR ===
         window.addEventListener('DOMContentLoaded', () => {
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
@@ -176,13 +143,14 @@
             }
             if (rolActual) {
                 document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
-            }
-
-            if (rolActual === 'CAJERO') {
-                const elementosAdmin = document.querySelectorAll('.solo-admin');
-                elementosAdmin.forEach(elemento => {
-                    elemento.style.display = 'none';
-                });
+                
+                // Si es cajero, ocultar cosas de admin
+                if (rolActual === 'CAJERO') {
+                    document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.admin-col').forEach(el => el.style.display = 'none'); // Ocultar columna "Solicitante" al cajero
+                } else {
+                    document.getElementById('lbl-rol-vista').innerText = "Visión de Administrador: Controla los pedidos de todos los cajeros.";
+                }
             }
         });
     </script>
