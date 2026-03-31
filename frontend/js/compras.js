@@ -19,9 +19,32 @@ async function cargarHistorialCompras() {
         const res = await fetch('/api/compras');
         if(res.ok) {
             const historial = await res.json();
-            // Lógica para pintar tabla-compras
+            const tbody = document.getElementById('tabla-compras');
+            tbody.innerHTML = ''; // Limpiamos la tabla antes de llenarla
+
+            if (historial.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 font-bold">No hay compras registradas aún.</td></tr>';
+                return;
+            }
+
+            // Dibujamos cada compra en la tabla
+            historial.forEach(compra => {
+                // Rellenamos con ceros para que se vea como un folio real (ej: 00001)
+                const folio = compra.id.toString().padStart(5, '0');
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#E65100]">#COMP-${folio}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"><i class="fa-regular fa-calendar mr-2"></i>${compra.fecha_compra}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-800"><i class="fa-solid fa-truck mr-2 text-gray-400"></i>${compra.proveedor || 'Sin Proveedor'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-green-700">S/ ${parseFloat(compra.total).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
         }
-    } catch (e) { console.log('Historial no implementado aún o error:', e); }
+    } catch (e) { 
+        console.log('Error cargando historial de compras:', e); 
+    }
 }
 
 async function cargarProveedores() {
@@ -213,7 +236,6 @@ async function guardarProveedor() {
     }
 }
 
-// ---> NUEVO: Eliminar el proveedor que esté seleccionado en la lista
 async function eliminarProveedorSeleccionado() {
     const sel = document.getElementById('selProveedor');
     const idProveedor = sel.value;
