@@ -20,18 +20,15 @@ async function cargarHistorialCompras() {
         if(res.ok) {
             const historial = await res.json();
             const tbody = document.getElementById('tabla-compras');
-            tbody.innerHTML = ''; // Limpiamos la tabla antes de llenarla
+            tbody.innerHTML = ''; 
 
             if (historial.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 font-bold">No hay compras registradas aún.</td></tr>';
                 return;
             }
 
-            // Dibujamos cada compra en la tabla
             historial.forEach(compra => {
-                // Rellenamos con ceros para que se vea como un folio real (ej: 00001)
                 const folio = compra.id.toString().padStart(5, '0');
-                
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#E65100]">#COMP-${folio}</td>
@@ -101,10 +98,8 @@ function actualizarUnidadLabel() {
     const opcionSeleccionada = sel.options[sel.selectedIndex];
     const unidadBase = opcionSeleccionada.getAttribute('data-unidad');
     
-    const selUnidad = document.getElementById('selUnidadFila');
-    if([...selUnidad.options].some(o => o.value === unidadBase)) {
-        selUnidad.value = unidadBase;
-    }
+    // Al ser un campo de texto, le pasamos el valor directamente
+    document.getElementById('selUnidadFila').value = unidadBase;
     
     actualizarLabelAbajo();
     calcularTotalFila();
@@ -112,7 +107,7 @@ function actualizarUnidadLabel() {
 
 function actualizarLabelAbajo() {
     const unidad = document.getElementById('selUnidadFila').value;
-    document.getElementById('lblUndFormVisual').innerText = unidad;
+    document.getElementById('lblUndFormVisual').innerText = unidad || '...';
 }
 
 function calcularTotalFila() {
@@ -139,6 +134,7 @@ function agregarAlDetalle() {
     const cantidadTotal = parseFloat((empaques * contenidoUnidad).toFixed(2));
 
     if (cantidadTotal <= 0) return alert('La cantidad debe ser mayor a 0');
+    if (!unidadElegida) return alert('Debes especificar la unidad de medida');
 
     detalleCompra.push({
         insumo_id: idInsumo,
@@ -271,7 +267,10 @@ async function eliminarProveedorSeleccionado() {
 function abrirModalNuevoInsumo() {
     document.getElementById('modalNuevoInsumoCompras').classList.remove('hidden');
     document.getElementById('inpInsNombre').value = '';
-    document.getElementById('inpInsUnidad').value = 'ml';
+    
+    // Lo dejamos en blanco para que escribas libremente
+    document.getElementById('inpInsUnidad').value = '';
+    
     document.getElementById('inpInsMinimo').value = '10';
 }
 
@@ -281,10 +280,12 @@ function cerrarModalNuevoInsumo() {
 
 async function guardarInsumoDesdeCompras() {
     const nombre = document.getElementById('inpInsNombre').value;
-    const unidad = document.getElementById('inpInsUnidad').value;
+    // Eliminamos espacios extra con trim()
+    const unidad = document.getElementById('inpInsUnidad').value.trim();
     const minimo = document.getElementById('inpInsMinimo').value;
 
     if(!nombre) return alert('El nombre del insumo es obligatorio.');
+    if(!unidad) return alert('La unidad de medida es obligatoria. Ej: kg, lt, cajas...');
 
     try {
         const res = await fetch('/api/almacen', {
@@ -320,11 +321,9 @@ async function guardarCompra() {
     if(!provId) return alert('Debe seleccionar un proveedor');
 
     const totalCompra = parseFloat(document.getElementById('lblTotalCompra').innerText);
-    const usuarioId = localStorage.getItem('usuario_id');
 
     const data = {
         proveedor_id: provId,
-        usuario_id: usuarioId,
         total: totalCompra,
         detalles: detalleCompra
     };
