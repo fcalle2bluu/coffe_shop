@@ -34,7 +34,7 @@ async function cargarHistorialCompras() {
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#E65100]">#COMP-${folio}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"><i class="fa-regular fa-calendar mr-2"></i>${compra.fecha_compra}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-800"><i class="fa-solid fa-truck mr-2 text-gray-400"></i>${compra.proveedor || 'Sin Proveedor'}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-green-700">S/ ${parseFloat(compra.total).toFixed(2)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-green-700">Bs. ${parseFloat(compra.total).toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -52,8 +52,19 @@ async function cargarProveedores() {
         
         const sel = document.getElementById('selProveedor');
         sel.innerHTML = '<option value="" disabled selected>-- Seleccione Proveedor --</option>';
+        
         proveedoresGlobal.forEach(p => {
-            sel.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            // Recopilamos toda la información extra que exista en la BD
+            let detalles = [];
+            if (p.telefono) detalles.push(`Tel: ${p.telefono}`);
+            if (p.email) detalles.push(`Email: ${p.email}`);
+            if (p.direccion) detalles.push(`Dir: ${p.direccion}`);
+            
+            // Si hay detalles, los ponemos entre paréntesis
+            let infoExtra = detalles.length > 0 ? ` (${detalles.join(' | ')})` : '';
+            
+            // Llenamos la lista mostrando TODO
+            sel.innerHTML += `<option value="${p.id}">${p.nombre}${infoExtra}</option>`;
         });
     } catch (error) {
         console.error("Error cargando proveedores:", error);
@@ -98,7 +109,6 @@ function actualizarUnidadLabel() {
     const opcionSeleccionada = sel.options[sel.selectedIndex];
     const unidadBase = opcionSeleccionada.getAttribute('data-unidad');
     
-    // Al ser un campo de texto, le pasamos el valor directamente
     document.getElementById('selUnidadFila').value = unidadBase;
     
     actualizarLabelAbajo();
@@ -173,7 +183,7 @@ function renderizarDetalle() {
                 <td class="p-2 text-center text-green-700 font-bold">${item.cantidad}</td>
                 <td class="p-2 text-center text-xs font-bold text-gray-500">${item.unidad}</td>
                 <td class="p-2 text-center text-red-600 text-xs">${item.vencimiento || '-'}</td>
-                <td class="p-2 text-right font-bold">S/ ${item.costo.toFixed(2)}</td>
+                <td class="p-2 text-right font-bold">Bs. ${item.costo.toFixed(2)}</td>
                 <td class="p-2 text-center">
                     <button onclick="quitarDelDetalle(${index})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
                 </td>
@@ -267,10 +277,7 @@ async function eliminarProveedorSeleccionado() {
 function abrirModalNuevoInsumo() {
     document.getElementById('modalNuevoInsumoCompras').classList.remove('hidden');
     document.getElementById('inpInsNombre').value = '';
-    
-    // Lo dejamos en blanco para que escribas libremente
     document.getElementById('inpInsUnidad').value = '';
-    
     document.getElementById('inpInsMinimo').value = '10';
 }
 
@@ -280,7 +287,6 @@ function cerrarModalNuevoInsumo() {
 
 async function guardarInsumoDesdeCompras() {
     const nombre = document.getElementById('inpInsNombre').value;
-    // Eliminamos espacios extra con trim()
     const unidad = document.getElementById('inpInsUnidad').value.trim();
     const minimo = document.getElementById('inpInsMinimo').value;
 
