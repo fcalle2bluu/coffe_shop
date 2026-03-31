@@ -6,7 +6,6 @@ let detalleCompra = [];
 document.addEventListener('DOMContentLoaded', () => {
     cargarHistorialCompras();
     
-    // Configurar fecha de hoy en el modal
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('inpFecha').value = hoy;
 });
@@ -23,17 +22,26 @@ async function cargarHistorialCompras() {
             tbody.innerHTML = ''; 
 
             if (historial.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 font-bold">No hay compras registradas aún.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500 font-bold">No hay compras registradas aún.</td></tr>';
                 return;
             }
 
             historial.forEach(compra => {
                 const folio = compra.id.toString().padStart(5, '0');
+                
+                // Formateamos la información adicional del Proveedor y los Insumos
+                const telInfo = compra.prov_tel ? `<div class="text-xs text-gray-500 font-normal mt-0.5"><i class="fa-solid fa-phone text-[10px] mr-1"></i>${compra.prov_tel}</div>` : '';
+                const detalles = compra.detalles_compra || 'Sin detalles registrados';
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#E65100]">#COMP-${folio}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"><i class="fa-regular fa-calendar mr-2"></i>${compra.fecha_compra}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-800"><i class="fa-solid fa-truck mr-2 text-gray-400"></i>${compra.proveedor || 'Sin Proveedor'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-800">
+                            <i class="fa-solid fa-truck mr-2 text-gray-400"></i>${compra.proveedor || 'Sin Proveedor'}
+                            ${telInfo}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="${detalles}">${detalles}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-black text-green-700">Bs. ${parseFloat(compra.total).toFixed(2)}</td>
                     </tr>
                 `;
@@ -54,16 +62,13 @@ async function cargarProveedores() {
         sel.innerHTML = '<option value="" disabled selected>-- Seleccione Proveedor --</option>';
         
         proveedoresGlobal.forEach(p => {
-            // Recopilamos toda la información extra que exista en la BD
             let detalles = [];
             if (p.telefono) detalles.push(`Tel: ${p.telefono}`);
             if (p.email) detalles.push(`Email: ${p.email}`);
             if (p.direccion) detalles.push(`Dir: ${p.direccion}`);
             
-            // Si hay detalles, los ponemos entre paréntesis
             let infoExtra = detalles.length > 0 ? ` (${detalles.join(' | ')})` : '';
             
-            // Llenamos la lista mostrando TODO
             sel.innerHTML += `<option value="${p.id}">${p.nombre}${infoExtra}</option>`;
         });
     } catch (error) {
@@ -265,7 +270,7 @@ async function eliminarProveedorSeleccionado() {
         if (!res.ok) throw new Error(data.error || 'Error al eliminar el proveedor');
         
         alert('Proveedor eliminado exitosamente');
-        await cargarProveedores(); // Recargamos el Select
+        await cargarProveedores(); 
         
     } catch(e) {
         console.error(e);
