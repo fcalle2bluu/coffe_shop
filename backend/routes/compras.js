@@ -22,7 +22,8 @@ router.get('/', async (req, res) => {
 
 // 2. Registrar una nueva Compra (Transacción Completa)
 router.post('/', async (req, res) => {
-    const { proveedor_id, usuario_id, total, detalles } = req.body;
+    // Ya no usamos usuario_id aquí porque tu tabla no lo requiere
+    const { proveedor_id, total, detalles } = req.body;
     
     // Validación de seguridad
     if (!detalles || detalles.length === 0) {
@@ -34,42 +35,42 @@ router.post('/', async (req, res) => {
     try {
         await client.query('BEGIN'); // 🔒 Inicia Transacción
 
-        // 1. Insertar Cabecera de Compra
+        // 1. Insertar Cabecera de Compra (ADAPTADO EXACTAMENTE A TU TABLA)
         const resCompra = await client.query(`
-            INSERT INTO compras (proveedor_id, usuario_id, total, fecha) 
-            VALUES ($1, $2, $3, NOW()) RETURNING id
-        `, [proveedor_id, usuario_id || null, total]);
+            INSERT INTO compras (proveedor_id, total, fecha) 
+            VALUES ($1, $2, NOW()) RETURNING id
+        `, [proveedor_id, total]);
         
         const compraId = resCompra.rows[0].id;
 
         // 2. Procesar cada ítem del carrito
         for (let item of detalles) {
             
-            // Atrapamos las variables exactas que manda el frontend
             const cantidad = parseFloat(item.cantidad);
             const subtotal = parseFloat(item.costo); 
             // Calculamos el costo unitario internamente
             const costoUnitario = cantidad > 0 ? (subtotal / cantidad) : 0;
+            // Si el frontend no manda vencimiento, enviamos null
             const fechaVencimiento = item.vencimiento ? item.vencimiento : null;
 
-            // A) Insertar Detalle de la Compra
+            // A) Insertar Detalle de la Compra (ADAPTADO A TU TABLA)
             await client.query(`
                 INSERT INTO detalle_compras (compra_id, insumo_id, cantidad, costo_unitario, subtotal)
                 VALUES ($1, $2, $3, $4, $5)
             `, [compraId, item.insumo_id, cantidad, costoUnitario, subtotal]);
 
-            // B) Registrar Lote 
+            // B) Registrar Lote (ADAPTADO A TU TABLA)
             await client.query(`
                 INSERT INTO lotes_insumos (insumo_id, compra_id, cantidad_comprada, costo_total, fecha_vencimiento)
                 VALUES ($1, $2, $3, $4, $5)
             `, [item.insumo_id, compraId, cantidad, subtotal, fechaVencimiento]);
 
-            // C) Sumar al Stock Actual del Almacén
+            // C) Sumar al Stock Actual del Almacén (ADAPTADO A TU TABLA)
             await client.query(`
                 UPDATE insumos SET stock_actual = stock_actual + $1 WHERE id = $2
             `, [cantidad, item.insumo_id]);
 
-            // D) Dejar registro en el Kardex (Movimientos)
+            // D) Dejar registro en el Kardex/Movimientos (ADAPTADO A TU TABLA)
             await client.query(`
                 INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
                 VALUES ($1, 'COMPRA', $2, $3, NOW())
