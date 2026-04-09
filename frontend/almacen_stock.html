@@ -100,9 +100,12 @@
                         <label class="block text-xs font-bold text-gray-600 mb-1">Nombre Insumo Nuevo</label>
                         <input type="text" id="inpRapidoNombre" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 focus:border-orange-500 outline-none border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 transition-colors">
                     </div>
-                    <div class="w-24">
+                    <div class="w-48 flex flex-col">
                         <label class="block text-xs font-bold text-gray-600 mb-1">Foto <i class="fa-solid fa-camera"></i></label>
-                        <input type="file" id="inpRapidoFoto" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            <img id="previewFoto" src="" class="hidden w-9 h-9 object-cover rounded border border-gray-300 shadow-sm shrink-0">
+                            <input type="file" id="inpRapidoFoto" accept="image/*" class="w-full text-xs text-gray-500 file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer" onchange="previewImagenRapida(event)">
+                        </div>
                     </div>
                     <div class="w-24">
                         <label class="block text-xs font-bold text-gray-600 mb-1">Unidad</label>

@@ -30,7 +30,9 @@ function renderizarTabla(insumos) {
         const alerta = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
         const badgeClase = alerta ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
         const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Bajo Stock' : 'Normal';
-        const imgHtml = insumo.imagen_url ? `<img src="${insumo.imagen_url}" class="w-8 h-8 rounded object-cover shadow border border-gray-200 cursor-pointer" onclick="window.open('${insumo.imagen_url}', '_blank')">` : `<div class="w-8 h-8 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs"><i class="fa-solid fa-image"></i></div>`;
+        const imgHtml = insumo.imagen_url 
+            ? `<img src="${insumo.imagen_url}" class="w-14 h-14 rounded object-cover shadow border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
+            : `<div class="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 text-xl border border-gray-200"><i class="fa-solid fa-image"></i></div>`;
 
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition-colors">
@@ -98,6 +100,23 @@ async function eliminarInsumo(id, nombre) {
         alert('Error: ' + error.message);
     }
 }
+// --- VISTA PREVIA DE IMAGEN ---
+function previewImagenRapida(event) {
+    const input = event.target;
+    const preview = document.getElementById('previewFoto');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.src = '';
+        preview.classList.add('hidden');
+    }
+}
 
 async function guardarInsumoRapido() {
     const nombre = document.getElementById('inpRapidoNombre').value.trim();
@@ -134,6 +153,13 @@ async function guardarInsumoRapido() {
             document.getElementById('inpRapidoUnidad').value = '';
             if (document.getElementById('inpRapidoMin')) document.getElementById('inpRapidoMin').value = '0';
             if (archivoInput) archivoInput.value = '';
+            
+            const preview = document.getElementById('previewFoto');
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+            
             cargarInsumos();
             
             if (data.advertencia) {
