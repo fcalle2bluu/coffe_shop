@@ -118,6 +118,46 @@ function previewImagenRapida(event) {
     }
 }
 
+// --- COMPRESIÓN DE IMAGEN ---
+function comprimirImagen(file, maxWidth = 1024, maxHeight = 1024, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
 async function guardarInsumoRapido() {
     const nombre = document.getElementById('inpRapidoNombre').value.trim();
     const unidad = document.getElementById('inpRapidoUnidad').value.trim();
@@ -126,17 +166,23 @@ async function guardarInsumoRapido() {
     // Puede venir del input Galería o del input Cámara
     const fileGallery = document.getElementById('inpRapidoFoto');
     const fileCamera = document.getElementById('inpRapidoCamara');
-    const foto = (fileGallery.files && fileGallery.files[0]) ? fileGallery.files[0] : 
+    let foto = (fileGallery.files && fileGallery.files[0]) ? fileGallery.files[0] : 
                  (fileCamera.files && fileCamera.files[0]) ? fileCamera.files[0] : null;
 
     if (!nombre) return alert('Por favor, ingresa el nombre del insumo');
     if (!unidad) return alert('Por favor, ingresa la unidad de medida');
-    if (foto && foto.size > 15 * 1024 * 1024) return alert('La foto es demasiado pesada (máx 15MB). Por favor reduce su tamaño o elige una foto de galería.');
 
     const btn = document.getElementById('btnGuardarRapido');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Comprimiendo...'; }
 
     try {
+        if (foto) {
+            // ¡Magia aquí! Comprimimos la foto a un tamaño más pequeño (max 1024x1024) antes de enviarla
+            foto = await comprimirImagen(foto, 1024, 1024, 0.7);
+        }
+
+        if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo...'; }
+
         const formData = new FormData();
         formData.append('nombre', nombre);
         formData.append('unidad_medida', unidad);
