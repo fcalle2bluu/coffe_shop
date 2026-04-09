@@ -14,7 +14,7 @@ if (supabaseUrl && supabaseKey) {
 }
 
 // Configuración de Multer (Memoria)
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB MAX
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB MAX
 
 
 // 1. Obtener insumos ACTIVOS (Tabla de Stock)

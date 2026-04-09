@@ -131,6 +131,7 @@ async function guardarInsumoRapido() {
 
     if (!nombre) return alert('Por favor, ingresa el nombre del insumo');
     if (!unidad) return alert('Por favor, ingresa la unidad de medida');
+    if (foto && foto.size > 15 * 1024 * 1024) return alert('La foto es demasiado pesada (máx 15MB). Por favor reduce su tamaño o elige una foto de galería.');
 
     const btn = document.getElementById('btnGuardarRapido');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>'; }
