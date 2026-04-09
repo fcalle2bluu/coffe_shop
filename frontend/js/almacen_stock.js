@@ -156,7 +156,8 @@ async function guardarInsumoRapido() {
             document.getElementById('inpRapidoNombre').value = '';
             document.getElementById('inpRapidoUnidad').value = '';
             if (document.getElementById('inpRapidoMin')) document.getElementById('inpRapidoMin').value = '0';
-            if (archivoInput) archivoInput.value = '';
+            if (fileGallery) fileGallery.value = '';
+            if (fileCamera) fileCamera.value = '';
             
             const preview = document.getElementById('previewFoto');
             if (preview) {
