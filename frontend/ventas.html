@@ -11,19 +11,24 @@
             theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } }
         }
     </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 </head>
 <body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
 
     <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
-        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723] shrink-0">
-            <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
+        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-stone-800 shrink-0">
+            <i class="fa-solid fa-mug-hot text-orange-500 mr-2"></i> MokaPOS
             <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         
-        <div class="flex items-center p-4 border-b border-[#5D4037] flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner">
+        <div class="flex items-center p-4 border-b border-stone-800 flex-wrap">
+            <div class="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold mr-3 shadow-inner">
                 <span id="avatar-letra">U</span>
             </div>
             <div>
@@ -37,34 +42,34 @@
         
         <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
-                <li ><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i> <span>Inicio</span></a></li>
-                <li class="solo-admin"><a href="Almacén_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-[#BCAAA4]"></i> <span>Stock Insumos</span></a></li>
-                <li class="solo-admin"><a href="Almacén_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-[#BCAAA4]"></i> <span>Historial Almacén</span></a></li>
-                <li ><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
-                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
-                <li ><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
-                <li ><a href="ventas.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Ventas</span></a></li>
-                <li ><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-[#BCAAA4]"></i> <span>Pedidos Internos</span></a></li>
-                <li ><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-[#BCAAA4]"></i> <span>Reservas Clientes</span></a></li>
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Auditoría</span></a></li>
-                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
-                <li class="solo-admin"><a href="Parámetros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
+                <li ><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-stone-400"></i> <span>Inicio</span></a></li>
+                <li class="solo-admin"><a href="Almacén_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-stone-400"></i> <span>Stock Insumos</span></a></li>
+                <li class="solo-admin"><a href="Almacén_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-stone-400"></i> <span>Historial Almacén</span></a></li>
+                <li ><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-stone-400"></i> <span>Cotizaciones</span></a></li>
+                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-stone-400"></i> <span>Compras</span></a></li>
+                <li ><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-stone-400"></i> <span>Caja</span></a></li>
+                <li ><a href="ventas.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-orange-600 text-white"><i class="fa-solid fa-cart-shopping w-6 text-center text-orange-500"></i><span class="font-medium">Ventas</span></a></li>
+                <li ><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-stone-400"></i> <span>Pedidos Internos</span></a></li>
+                <li ><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-stone-400"></i> <span>Reservas Clientes</span></a></li>
+                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-stone-400"></i> <span>Auditoría</span></a></li>
+                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-stone-400"></i> <span>Comprobantes</span></a></li>
+                <li class="solo-admin"><a href="Parámetros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-stone-400"></i> <span>Parámetros</span></a></li>
             </ul>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
-        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0 flex-1">Terminal Táctil</h1>
-            <div class="text-xs sm:text-sm font-semibold text-[#D7CCC8] shrink-0" id="reloj">--:--:--</div>
+            <div class="text-xs sm:text-sm font-semibold text-orange-500 shrink-0" id="reloj">--:--:--</div>
         </header>
 
         <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
             
             <div class="w-full md:w-2/3 p-2 sm:p-4 flex flex-col bg-mainBg overflow-hidden flex-1 md:flex-none h-1/2 md:h-auto">
                 <div class="mb-3 sm:mb-4 relative shadow-sm shrink-0">
-                    <input type="text" id="buscarProducto" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 sm:py-3 rounded-lg border-2 border-transparent focus:border-[#8D6E63] focus:outline-none text-gray-700 font-medium text-sm sm:text-base">
+                    <input type="text" id="buscarProducto" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 sm:py-3 rounded-lg border-2 border-transparent focus:border-orange-500 focus:outline-none text-gray-700 font-medium text-sm sm:text-base">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 sm:top-4 text-gray-400"></i>
                 </div>
 
@@ -75,8 +80,8 @@
             </div>
 
             <div class="w-full md:w-1/3 bg-white shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] md:shadow-xl md:border-l border-t-2 md:border-t-0 flex flex-col z-10 h-[45vh] md:h-auto shrink-0">
-                <div class="p-3 sm:p-4 bg-[#FAFAFA] border-b border-gray-200 shrink-0">
-                    <h2 class="text-[#4E342E] font-bold text-base sm:text-lg flex justify-between items-center">
+                <div class="p-3 sm:p-4 bg-white border-b border-gray-200 shrink-0">
+                    <h2 class="text-slate-800 font-bold text-base sm:text-lg flex justify-between items-center">
                         <span><i class="fa-solid fa-receipt mr-2"></i>Ticket</span>
                         <button onclick="limpiarCarrito()" class="text-red-500 hover:text-red-700 text-xs sm:text-sm font-normal"><i class="fa-solid fa-trash-can mr-1"></i>Limpiar</button>
                     </h2>
@@ -96,11 +101,11 @@
                     </div>
                     <div class="flex justify-between items-end">
                         <span class="text-lg sm:text-xl font-bold text-[#3E2723]">TOTAL</span>
-                        <span class="text-2xl sm:text-3xl font-black text-[#E65100]" id="total-ticket">S/ 0.00</span>
+                        <span class="text-2xl sm:text-3xl font-black text-orange-600" id="total-ticket">S/ 0.00</span>
                     </div>
                     
                     <div class="mt-1 sm:mt-2">
-                        <select id="metodo-pago" class="w-full border border-gray-300 rounded-lg p-2 sm:p-3 bg-white focus:ring-2 focus:ring-[#8D6E63] font-medium text-gray-700 text-sm">
+                        <select id="metodo-pago" class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg p-2 sm:p-3 bg-white focus:ring-2 focus:ring-orange-500 font-medium text-gray-700 text-sm">
                             <option value="EFECTIVO">💵 Efectivo</option>
                             <option value="QR">📱 QR Transferencia</option>
                             <option value="TARJETA">💳 Tarjeta POS</option>
@@ -124,7 +129,7 @@
             <h2 class="text-xl sm:text-2xl font-black text-gray-800 mb-1">¡Venta Exitosa!</h2>
             <p class="text-sm text-gray-500 mb-6" id="info-ticket">Ticket #0000</p>
             
-            <button onclick="cerrarModalExito()" class="w-full bg-[#E65100] hover:bg-[#EF6C00] text-white font-bold py-3 rounded-lg mb-3 shadow">
+            <button onclick="cerrarModalExito()" class="w-full bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white font-bold py-3 rounded-lg mb-3 shadow">
                 Nueva Venta
             </button>
             <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors">

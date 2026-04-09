@@ -9,19 +9,24 @@
     <script>
         tailwind.config = { theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } } }
     </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 </head>
 <body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
 
     <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
-        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-[#3E2723] shrink-0">
-            <i class="fa-solid fa-mug-hot text-[#D7CCC8] mr-2"></i> MokaPOS
+        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-stone-800 shrink-0">
+            <i class="fa-solid fa-mug-hot text-orange-500 mr-2"></i> MokaPOS
             <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         
-        <div class="flex items-center p-4 border-b border-[#5D4037] flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-[#8D6E63] flex items-center justify-center text-white font-bold mr-3 shadow-inner"><span id="avatar-letra">U</span></div>
+        <div class="flex items-center p-4 border-b border-stone-800 flex-wrap">
+            <div class="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold mr-3 shadow-inner"><span id="avatar-letra">U</span></div>
             <div>
                 <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
                 <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
@@ -33,38 +38,38 @@
         
         <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
             <ul class="space-y-1">
-                <li><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-[#BCAAA4]"></i><span>Inicio</span></a></li>
+                <li><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-stone-400"></i><span>Inicio</span></a></li>
                 
-                <li class="solo-admin"><a href="Almacén_stock.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-box w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Stock Insumos</span></a></li>                
-                <li class="solo-admin"><a href="Almacén_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-[#BCAAA4]"></i> <span>Historial Almacén</span></a></li>                
+                <li class="solo-admin"><a href="Almacén_stock.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-orange-600 text-white"><i class="fa-solid fa-box w-6 text-center text-orange-500"></i><span class="font-medium">Stock Insumos</span></a></li>                
+                <li class="solo-admin"><a href="Almacén_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-stone-400"></i> <span>Historial Almacén</span></a></li>                
                 
-                <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-[#BCAAA4]"></i> <span>Cotizaciones</span></a></li>
-                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
-                <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
-                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
-                <li><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-[#BCAAA4]"></i> <span>Pedidos Internos</span></a></li>
-                <li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-[#BCAAA4]"></i> <span>Reservas Clientes</span></a></li>                
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Auditoría</span></a></li>
-                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
-                <li class="solo-admin"><a href="Parámetros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
+                <li><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-stone-400"></i> <span>Cotizaciones</span></a></li>
+                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-stone-400"></i> <span>Compras</span></a></li>
+                <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-stone-400"></i> <span>Caja</span></a></li>
+                <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-stone-400"></i> <span>Ventas</span></a></li>                
+                <li><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-stone-400"></i> <span>Pedidos Internos</span></a></li>
+                <li><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-stone-400"></i> <span>Reservas Clientes</span></a></li>                
+                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-stone-400"></i> <span>Auditoría</span></a></li>
+                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-stone-400"></i> <span>Comprobantes</span></a></li>
+                <li class="solo-admin"><a href="Parámetros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-stone-400"></i> <span>Parámetros</span></a></li>
             </ul>
         </nav>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
-        <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Gestión de Stock</h1>
             <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 md:p-6">
-            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden relative">
-                <div class="p-3 sm:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#FAFAFA] shrink-0 gap-3">
-                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
+            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-stone-800 overflow-hidden relative">
+                <div class="p-3 sm:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white shrink-0 gap-3">
+                    <h2 class="font-bold text-slate-800 text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
                     <div class="flex w-full sm:w-auto space-x-2 sm:space-x-3 items-center">
                         <div class="relative flex-1 sm:w-56">
-                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8D6E63] text-sm">
+                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
                         </div>
                             <i class="fa-solid fa-plus sm:mr-2"></i> <span class="hidden sm:inline">Nuevo Insumo</span>
@@ -74,14 +79,14 @@
                 
                 <div class="flex-1 overflow-auto">
                     <table class="min-w-full w-full whitespace-nowrap">
-                        <thead class="bg-gray-100 sticky top-0 z-10">
+                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Insumo</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-[#4E342E] uppercase">Unidad</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Stock</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Mínimo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-[#4E342E] uppercase">Acciones Rápidas</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Unidad</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Stock</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Mínimo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Estado</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Acciones Rápidas</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
@@ -101,19 +106,19 @@
             <form id="formInsumo" onsubmit="guardarNuevoInsumo(event)" class="p-4 sm:p-6 overflow-y-auto">
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Insumo</label>
-                    <input type="text" id="inputNombre" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-[#8D6E63]">
+                    <input type="text" id="inputNombre" required class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg px-3 py-2 focus:ring-orange-500">
                 </div>
                 
                 <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <label class="block text-xs font-bold text-gray-600 mb-2">Método de Ingreso de Cantidad Inicial</label>
                     <div class="flex space-x-4 mb-3 border-b pb-3">
                         <label class="flex items-center text-sm cursor-pointer"><input type="radio" name="modoIngreso" value="directo" checked class="mr-2" onchange="toggleModoIngreso()"> Cantidad Exacta</label>
-                        <label class="flex items-center text-sm cursor-pointer text-[#E65100] font-bold"><input type="radio" name="modoIngreso" value="calculadora" class="mr-2" onchange="toggleModoIngreso()"> Usar Calculadora</label>
+                        <label class="flex items-center text-sm cursor-pointer text-orange-600 font-bold"><input type="radio" name="modoIngreso" value="calculadora" class="mr-2" onchange="toggleModoIngreso()"> Usar Calculadora</label>
                     </div>
 
                     <div id="divIngresoDirecto" class="flex rounded-md shadow-sm">
-                        <input type="number" id="inputCantDirecta" value="0" min="0" step="0.1" class="w-full border border-gray-300 rounded-l-md px-3 py-2 text-sm font-bold text-center" oninput="actualizarResumen()">
-                        <select id="selectUnidadDir" class="border border-l-0 border-gray-300 rounded-r-md px-3 py-2 text-sm bg-white font-bold text-[#5D4037]" onchange="sincronizarUnidades()">
+                        <input type="number" id="inputCantDirecta" value="0" min="0" step="0.1" class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-l-md px-3 py-2 text-sm font-bold text-center" oninput="actualizarResumen()">
+                        <select id="selectUnidadDir" class="border border-l-0 border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-r-md px-3 py-2 text-sm bg-white font-bold text-slate-800" onchange="sincronizarUnidades()">
                             <option value="ml">ml</option>
                             <option value="gr">gr</option>
                             <option value="unidad">unid.</option>
@@ -136,7 +141,7 @@
                                 <label class="block text-xs font-bold text-gray-600 mb-1">Contenido c/u</label>
                                 <div class="flex shadow-sm">
                                     <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" class="w-20 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold" oninput="actualizarResumen()">
-                                    <select id="selectUnidadCalc" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-[#5D4037]" onchange="sincronizarUnidades(true)">
+                                    <select id="selectUnidadCalc" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-slate-800" onchange="sincronizarUnidades(true)">
                                         <option value="ml">ml</option>
                                         <option value="gr">gr</option>
                                         <option value="unidad">unid.</option>
@@ -148,21 +153,21 @@
 
                     <div class="bg-white p-2 rounded-md border border-gray-200 mt-3 flex justify-between shadow-sm items-center">
                         <span class="text-xs font-medium text-gray-500 uppercase">Inventario Final:</span>
-                        <div><strong id="totalCalculado" class="text-lg text-[#E65100] font-black">0</strong> <span id="lblUnidad" class="font-bold text-gray-600 text-sm">ml</span></div>
+                        <div><strong id="totalCalculado" class="text-lg text-orange-600 font-black">0</strong> <span id="lblUnidad" class="font-bold text-gray-600 text-sm">ml</span></div>
                     </div>
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">Aviso de Stock Crítico (Mínimo)</label>
                     <div class="relative">
-                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700 text-center">
+                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700 text-center">
                         <span id="lblMinimoUnidad" class="absolute right-3 top-2.5 text-sm font-bold text-gray-400">ml</span>
                     </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                     <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-[#E65100] text-white font-bold rounded-lg shadow hover:bg-[#EF6C00]">Guardar Insumo</button>
+                    <button type="submit" class="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg shadow hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg">Guardar Insumo</button>
                 </div>
             </form>
         </div>
