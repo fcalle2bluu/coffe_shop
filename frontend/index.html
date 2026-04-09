@@ -110,7 +110,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Guardamos la sesión en el navegador
+                    // Guardamos la Sesión en el navegador
                     localStorage.setItem('usuario_id', data.usuario.id);
                     localStorage.setItem('usuario_nombre', data.usuario.nombre);
                     localStorage.setItem('usuario_rol', data.usuario.rol);
@@ -118,7 +118,7 @@
                     // ¡Redirigimos al dashboard!
                     window.location.href = 'dashboard.html';
                 } else {
-                    mensajeError.textContent = data.error || 'Error al iniciar sesión';
+                    mensajeError.textContent = data.error || 'Error al iniciar Sesión';
                     mensajeError.style.display = 'block';
                     btnSubmit.disabled = false;
                     btnSubmit.textContent = 'INGRESAR';
