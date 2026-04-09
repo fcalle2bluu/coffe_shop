@@ -3,151 +3,163 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// 1. Obtener la lista de pedidos (Inteligente por Rol)
+// 1. Obtener la lista de Apartados (Reservas de clientes)
 router.get('/', async (req, res) => {
-    const { usuario_id, rol } = req.query;
-
     try {
-        let result;
-        if (rol === 'ADMIN') {
-            // El ADMIN ve TODOS los pedidos de TODOS los cajeros
-            result = await pool.query(`
-                SELECT p.id, p.insumo_nombre, p.cantidad, p.notas, p.estado, 
-                       TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
-                       u.nombre as solicitante
-                FROM pedidos_compra p
-                JOIN usuarios u ON p.usuario_id = u.id
-                ORDER BY 
-                    CASE p.estado WHEN 'PENDIENTE' THEN 1 ELSE 2 END, 
-                    p.fecha DESC
-            `);
-        } else {
-            // El CAJERO ve SOLO SUS PROPIOS pedidos
-            result = await pool.query(`
-                SELECT p.id, p.insumo_nombre, p.cantidad, p.notas, p.estado, 
-                       TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
-                       u.nombre as solicitante
-                FROM pedidos_compra p
-                JOIN usuarios u ON p.usuario_id = u.id
-                WHERE p.usuario_id = $1
-                ORDER BY p.fecha DESC
-            `, [usuario_id]);
-        }
+        const result = await pool.query(`
+            SELECT id, nombre_cliente, telefono_cliente, total, saldo_pendiente, estado,
+                   TO_CHAR(fecha_creacion, 'DD/MM/YYYY HH24:MI') as fecha_creacion,
+                   TO_CHAR(fecha_limite, 'DD/MM/YYYY') as fecha_limite
+            FROM apartados
+            ORDER BY 
+                CASE estado WHEN 'PENDIENTE' THEN 1 WHEN 'PAGADO' THEN 2 ELSE 3 END, 
+                fecha_creacion DESC
+        `);
         res.json(result.rows);
     } catch (error) {
-        console.error("Error al cargar pedidos:", error);
-        res.status(500).json({ error: 'Error al cargar pedidos' });
+        console.error("Error al cargar apartados:", error);
+        res.status(500).json({ error: 'Error al cargar apartados' });
     }
 });
 
-// 2. Crear un nuevo pedido de compra
+// 2. Obtener los detalles de un apartado específico (para el Modal de Entregas)
+router.get('/:id/detalles', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT da.id, da.producto_id, p.nombre as producto_nombre, da.cantidad, da.precio_unitario, da.subtotal, 
+                   COALESCE(da.cantidad_entregada, 0) as cantidad_entregada
+            FROM detalle_apartados da
+            JOIN productos p ON da.producto_id = p.id
+            WHERE da.apartado_id = $1
+        `, [id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Error al cargar detalles del apartado:", error);
+        res.status(500).json({ error: 'Error al cargar detalles' });
+    }
+});
+
+// 3. Crear un nuevo Apartado
 router.post('/', async (req, res) => {
-    const { usuario_id, insumo_nombre, cantidad, notas } = req.body;
+    const { nombre_cliente, telefono_cliente, total, abono_inicial, fecha_limite, detalles } = req.body;
     
-    if (!usuario_id || !insumo_nombre || !cantidad) {
-        return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    if (!detalles || detalles.length === 0) {
+        return res.status(400).json({ error: 'La reserva no tiene productos' });
     }
 
+    const client = await pool.connect();
     try {
-        await pool.query(`
-            INSERT INTO pedidos_compra (usuario_id, insumo_nombre, cantidad, notas)
-            VALUES ($1, $2, $3, $4)
-        `, [usuario_id, insumo_nombre, cantidad, notas]);
-        res.status(201).json({ message: 'Pedido creado exitosamente' });
-    } catch (error) {
-        console.error("Error al crear pedido:", error);
-        res.status(500).json({ error: 'Error al crear pedido' });
-    }
-});
+        await client.query('BEGIN');
 
-// 3. Cambiar estado del pedido (Solo ADMIN)
-router.put('/:id/estado', async (req, res) => {
-    const { id } = req.params;
-    const { estado } = req.body; // 'COMPRADO' o 'RECHAZADO'
-    try {
-        await pool.query('UPDATE pedidos_compra SET estado = $1 WHERE id = $2', [estado, id]);
-        res.json({ message: 'Estado actualizado correctamente' });
-    } catch (error) {
-        res.status(500).json({ error: 'Error al actualizar estado' });
-    }
-});
+        const saldo_pendiente = total - (abono_inicial || 0);
+        const estadoInicial = saldo_pendiente <= 0 ? 'PAGADO' : 'PENDIENTE';
 
-// 4. Eliminar un pedido (Solo CAJERO, y solo si está PENDIENTE)
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query("DELETE FROM pedidos_compra WHERE id = $1 AND estado = 'PENDIENTE'", [id]);
-        if (result.rowCount === 0) {
-            return res.status(400).json({ error: 'No se puede eliminar (ya fue procesado o no existe)' });
+        const resApartado = await client.query(`
+            INSERT INTO apartados (nombre_cliente, telefono_cliente, total, saldo_pendiente, estado, fecha_limite)
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+        `, [nombre_cliente, telefono_cliente, total, saldo_pendiente, estadoInicial, fecha_limite]);
+        
+        const apartadoId = resApartado.rows[0].id;
+
+        for (let item of detalles) {
+            await client.query(`
+                INSERT INTO detalle_apartados (apartado_id, producto_id, cantidad, precio_unitario, subtotal, cantidad_entregada)
+                VALUES ($1, $2, $3, $4, $5, 0)
+            `, [apartadoId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
         }
-        res.json({ message: 'Pedido eliminado correctamente' });
+
+        if (abono_inicial > 0) {
+            await client.query(`
+                INSERT INTO abonos_apartados (apartado_id, monto)
+                VALUES ($1, $2)
+            `, [apartadoId, abono_inicial]);
+        }
+
+        await client.query('COMMIT');
+        res.status(201).json({ message: 'Reserva creada exitosamente' });
     } catch (error) {
-        res.status(500).json({ error: 'Error al eliminar pedido' });
+        await client.query('ROLLBACK');
+        console.error("Error al crear apartado:", error);
+        res.status(500).json({ error: 'Error al crear la reserva' });
+    } finally {
+        client.release();
     }
 });
 
-// 5. Entregar apartado y descontar inventario vía receta (Transacción Completa)
+// 4. Entregar apartado parcialmente o totalmente (con descuento de inventario vía receta)
 router.put('/:id/entregar', async (req, res) => {
     const { id } = req.params;
+    const { items_entrega } = req.body; // [{ detalle_id, entregado_ahora, producto_id }]
+    
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN'); // 🔒 Inicia la transacción
 
-        // 1. Cambiar estado a 'ENTREGADO'
-        const resApartado = await client.query(`
-            UPDATE apartados 
-            SET estado = 'ENTREGADO' 
-            WHERE id = $1 AND estado != 'ENTREGADO'
-            RETURNING id
-        `, [id]);
+        let entregadoPorCompleto = true;
 
-        if (resApartado.rowCount === 0) {
-            throw new Error('El apartado no existe o ya fue entregado previamente');
-        }
-
-        // 2. Hacer SELECT a detalle_apartados para obtener los productos
-        const detallesRes = await client.query(`
-            SELECT producto_id, cantidad 
-            FROM detalle_apartados 
-            WHERE apartado_id = $1
-        `, [id]);
-
-        // 3. Recorrer los detalles y descontar por receta
-        for (let item of detallesRes.rows) {
-            // Hacer SELECT a recetas para verificar qué insumos componen esos productos
-            const recetasRes = await client.query(`
-                SELECT insumo_id, cantidad_necesaria
-                FROM recetas
-                WHERE producto_id = $1
-            `, [item.producto_id]);
-
-            // Calcular merma y actualizar insumos
-            for (let receta of recetasRes.rows) {
-                // Calcular la merma
-                const cantidad_calculada = item.cantidad * receta.cantidad_necesaria;
-
-                // Actualizar el stock
+        for (let item of items_entrega) {
+            if (item.entregado_ahora > 0) {
+                // Actualizar detalle_apartados incrementando la cantidad entregada
                 await client.query(`
-                    UPDATE insumos 
-                    SET stock_actual = stock_actual - $1 
+                    UPDATE detalle_apartados 
+                    SET cantidad_entregada = COALESCE(cantidad_entregada, 0) + $1
                     WHERE id = $2
-                `, [cantidad_calculada, receta.insumo_id]);
+                `, [item.entregado_ahora, item.detalle_id]);
 
-                // Insertar en movimientos_inventario
-                await client.query(`
-                    INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
-                    VALUES ($1, 'ENTREGA', $2, $3, CURRENT_TIMESTAMP)
-                `, [receta.insumo_id, cantidad_calculada, id]);
+                // Hacer SELECT a recetas para verificar qué insumos componen esos productos
+                const recetasRes = await client.query(`
+                    SELECT insumo_id, cantidad_necesaria
+                    FROM recetas
+                    WHERE producto_id = $1
+                `, [item.producto_id]);
+
+                // Calcular merma y actualizar insumos SOLO por lo entregado AHORA
+                for (let receta of recetasRes.rows) {
+                    const cantidad_calculada = item.entregado_ahora * receta.cantidad_necesaria;
+
+                    // Actualizar el stock
+                    await client.query(`
+                        UPDATE insumos 
+                        SET stock_actual = stock_actual - $1 
+                        WHERE id = $2
+                    `, [cantidad_calculada, receta.insumo_id]);
+
+                    // Insertar en movimientos_inventario
+                    await client.query(`
+                        INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+                        VALUES ($1, 'ENTREGA', $2, $3, CURRENT_TIMESTAMP)
+                    `, [receta.insumo_id, cantidad_calculada, id]);
+                }
+            }
+            
+            // Verificación si con esta entrega ya se completó la linea
+            const checkLinea = await client.query(`
+                SELECT cantidad, COALESCE(cantidad_entregada, 0) as cantidad_entregada 
+                FROM detalle_apartados WHERE id = $1
+            `, [item.detalle_id]);
+            
+            if (checkLinea.rows[0].cantidad_entregada < checkLinea.rows[0].cantidad) {
+                entregadoPorCompleto = false;
             }
         }
 
+        // Si se entregaron todas las líneas de todos los productos en su totalidad, marcar como 'ENTREGADO'
+        if (entregadoPorCompleto) {
+            await client.query(`
+                UPDATE apartados 
+                SET estado = 'ENTREGADO' 
+                WHERE id = $1
+            `, [id]);
+        }
+
         await client.query('COMMIT'); // ✅ Confirma todo
-        res.json({ message: 'Apartado entregado e inventario actualizado exitosamente' });
+        res.json({ message: 'Entrega procesada e inventario actualizado' });
 
     } catch (error) {
         await client.query('ROLLBACK'); // ❌ Revierte cambios en caso de fallo
-        console.error("Error en la transacción de entrega de apartado:", error);
+        console.error("Error en la transacción de entrega parcial:", error);
         res.status(500).json({ error: error.message || 'Error interno al procesar la entrega del apartado' });
     } finally {
         client.release();

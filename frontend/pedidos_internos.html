@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Reservas de Clientes</title>
+    <title>MokaPOS - Pedidos Internos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -40,8 +40,7 @@
                 <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-[#BCAAA4]"></i> <span>Compras</span></a></li>
                 <li><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-[#BCAAA4]"></i> <span>Caja</span></a></li>
                 <li><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-[#BCAAA4]"></i> <span>Ventas</span></a></li>                
-                <li><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-[#BCAAA4]"></i><span>Pedidos Internos</span></a></li>                
-                <li><a href="apartados.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#1E88E5] text-white"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-[#64B5F6]"></i><span class="font-medium">Reservas Clientes</span></a></li>                
+                <li><a href="apartados.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-[#E65100] text-white"><i class="fa-solid fa-clipboard-list w-6 text-center text-[#FFB74D]"></i><span class="font-medium">Pedidos Internos</span></a></li>                
                 <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-[#BCAAA4]"></i> <span>Auditoría</span></a></li>
                 <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-[#BCAAA4]"></i> <span>Comprobantes</span></a></li>
                 <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-[#BCAAA4]"></i> <span>Parámetros</span></a></li>
@@ -52,19 +51,19 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header class="h-14 bg-topbar text-white flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Reservas de Clientes (Apartados)</h1>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Requerimientos de Compra</h1>
             <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 overflow-hidden p-2 sm:p-4 md:p-6 flex flex-col">
-            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#1E88E5] overflow-hidden">
+            <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden">
                 <div class="p-3 sm:p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
                     <div>
-                        <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-hand-holding-hand mr-2"></i>Historial de Apartados</h2>
-                        <p class="text-xs text-gray-500">Administra las reservas y realiza entregas parciales.</p>
+                        <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-clipboard-list mr-2"></i>Lista de Pedidos</h2>
+                        <p class="text-xs text-gray-500" id="lbl-rol-vista">Aquí puedes pedir lo que haga falta en la sucursal.</p>
                     </div>
-                    <button onclick="window.location.href='ventas.html'" class="bg-[#1E88E5] hover:bg-[#1976D2] text-white px-4 py-2 rounded shadow font-bold text-sm transition-colors">
-                        <i class="fa-solid fa-plus mr-2"></i> Nuevo Apartado (Ir a POS)
+                    <button onclick="abrirModalNuevo()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-4 py-2 rounded shadow font-bold text-sm transition-colors">
+                        <i class="fa-solid fa-plus mr-2"></i> Solicitar Compra
                     </button>
                 </div>
                 
@@ -72,63 +71,71 @@
                     <table class="min-w-full w-full whitespace-nowrap text-left text-sm">
                         <thead class="bg-gray-100 sticky top-0 z-10 text-gray-700">
                             <tr>
-                                <th class="px-4 py-3 font-bold uppercase">Cliente</th>
-                                <th class="px-4 py-3 font-bold uppercase">Teléfono</th>
-                                <th class="px-4 py-3 font-bold uppercase">Fecha Límite</th>
-                                <th class="px-4 py-3 font-bold uppercase text-right">Monto Total</th>
-                                <th class="px-4 py-3 font-bold uppercase text-right">Saldo Pend.</th>
+                                <th class="px-4 py-3 font-bold uppercase">Fecha</th>
+                                <th class="px-4 py-3 font-bold uppercase admin-col">Cajero Solicitante</th>
+                                <th class="px-4 py-3 font-bold uppercase">Insumo a Comprar</th>
+                                <th class="px-4 py-3 font-bold uppercase text-center">Cantidad</th>
+                                <th class="px-4 py-3 font-bold uppercase">Notas / Urgencia</th>
                                 <th class="px-4 py-3 font-bold uppercase text-center">Estado</th>
                                 <th class="px-4 py-3 font-bold uppercase text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-apartados" class="divide-y divide-gray-200"></tbody>
+                        <tbody id="tabla-pedidos" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- MODAL DE ENTREGAS PARCIALES -->
-    <div id="modalEntregas" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-6 border-t-4 border-[#1E88E5] flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center mb-4 border-b pb-2 shrink-0">
-                <h3 class="text-lg font-bold text-[#3E2723]"><i class="fa-solid fa-box-open mr-2"></i>Entregar Productos: <span id="nombreClienteModal" class="text-[#1E88E5]"></span></h3>
-                <button onclick="cerrarModalEntregas()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <div id="modalNuevo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border-t-4 border-[#E65100] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-[#3E2723]"><i class="fa-solid fa-cart-plus mr-2"></i>Nuevo Requerimiento</h3>
+                <button onclick="cerrarModalNuevo()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
-            <div class="flex-1 overflow-auto mb-4">
-                <table class="min-w-full text-sm text-left">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-2 py-2 font-bold uppercase">Producto</th>
-                            <th class="px-2 py-2 font-bold uppercase text-center">Total Reservado</th>
-                            <th class="px-2 py-2 font-bold uppercase text-center">Ya Entregado</th>
-                            <th class="px-2 py-2 font-bold uppercase text-center">Pendiente</th>
-                            <th class="px-2 py-2 font-bold uppercase text-center bg-blue-50 text-blue-700">Entregar AHORA</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-modal-detalles" class="divide-y divide-gray-200">
-                        <!-- Llenado dinámico -->
-                    </tbody>
-                </table>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">¿Qué necesitas que compremos?</label>
+                    <input type="text" id="inpInsumo" placeholder="Ej: Leche deslactosada, Vasos, Servilletas..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300" required>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Cantidad Estimada</label>
+                    <input type="text" id="inpCantidad" placeholder="Ej: 3 Cajas, 10 Litros, 5 Paquetes..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Notas Adicionales (Opcional)</label>
+                    <textarea id="inpNotas" rows="2" placeholder="Ej: Es muy urgente, la marca debe ser PIL, etc..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none border-gray-300"></textarea>
+                </div>
             </div>
 
-            <div class="flex gap-2 mt-2 shrink-0 border-t pt-4">
-                <button onclick="cerrarModalEntregas()" class="w-1/3 px-4 py-2 bg-gray-200 rounded font-bold text-gray-700 hover:bg-gray-300 transition-colors">Cancelar</button>
-                <button onclick="procesarEntrega()" id="btnProcesarEntrega" class="w-2/3 px-4 py-2 bg-[#1E88E5] text-white font-bold rounded shadow hover:bg-[#1976D2] transition-colors">Procesar Entrega y Descontar Inventario</button>
+            <div class="flex gap-2 mt-6">
+                <button onclick="cerrarModalNuevo()" class="w-1/2 px-4 py-2 bg-gray-200 rounded font-bold text-gray-700 hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button onclick="guardarPedido()" id="btnGuardar" class="w-1/2 px-4 py-2 bg-[#E65100] text-white font-bold rounded shadow hover:bg-[#EF6C00] transition-colors">Enviar Solicitud</button>
             </div>
-            <input type="hidden" id="apartadoIdActivo" value=""/>
         </div>
     </div>
 
-    <script src="js/apartados.js"></script>
+    <script src="js/pedidos_internos.js"></script>
     <script>
+        // === SEGURIDAD Y UI ===
         if (!localStorage.getItem('usuario_id')) { window.location.href = 'index.html'; }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebarOverlay').classList.toggle('hidden'); }
-        function cerrarSesion() { localStorage.clear(); window.location.href = 'index.html'; }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
+        }
+
+        function cerrarSesion() {
+            localStorage.clear(); window.location.href = 'index.html';
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
+
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;
                 document.getElementById('header-nombre-usuario').innerText = nombreActual;
@@ -136,7 +143,14 @@
             }
             if (rolActual) {
                 document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
-                if (rolActual === 'CAJERO') { document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none'); }
+                
+                // Si es cajero, ocultar cosas de admin
+                if (rolActual === 'CAJERO') {
+                    document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+                    document.querySelectorAll('.admin-col').forEach(el => el.style.display = 'none'); // Ocultar columna "Solicitante" al cajero
+                } else {
+                    document.getElementById('lbl-rol-vista').innerText = "Visión de Administrador: Controla los pedidos de todos los cajeros.";
+                }
             }
         });
     </script>
