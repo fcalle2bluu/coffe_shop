@@ -74,7 +74,7 @@ function actualizarUnidadLabel() {
     const sel = document.getElementById('selInsumo');
     const opt = sel.options[sel.selectedIndex];
     if(opt && opt.value) {
-        document.getElementById('lblUndFormVisual').innerText = opt.getAttribute('data-unidad');
+        document.getElementById('inpUnidadCompra').value = opt.getAttribute('data-unidad');
     }
 }
 
@@ -82,6 +82,7 @@ function actualizarUnidadLabel() {
 async function ejecutarCompraRapida() {
     const proveedor_id = document.getElementById('selProveedor').value;
     const insumo_id = document.getElementById('selInsumo').value;
+    const unidad_compra = document.getElementById('inpUnidadCompra').value; // Extraemos para futuro uso
     const cantidad = parseFloat(document.getElementById('inpContenido').value) || 0;
     const costo = parseFloat(document.getElementById('inpCosto').value) || 0;
     const vencimiento = document.getElementById('inpVence').value || null;
@@ -121,7 +122,7 @@ async function ejecutarCompraRapida() {
         document.getElementById('inpContenido').value = '';
         document.getElementById('inpCosto').value = '0.00';
         document.getElementById('inpVence').value = '';
-        document.getElementById('lblUndFormVisual').innerText = 'Unidad';
+        document.getElementById('inpUnidadCompra').value = '';
 
         cargarHistorialCompras();
     } catch (error) {
