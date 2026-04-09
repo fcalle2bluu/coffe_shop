@@ -83,10 +83,13 @@ router.post('/', upload.single('imagen'), async (req, res) => {
     }
 
     try {
+        let mensajeAdvertencia = null;
+        
         // [Fase A] - Subida de Imagen a Supabase Storage
         if (req.file) {
             if (!supabaseUrl || !supabaseKey) {
                 console.warn('⚠️ No hay keys de Supabase configuradas para subir la imagen.');
+                mensajeAdvertencia = 'El insumo se guardó, pero la foto no porque faltan las claves de Supabase en tu servidor (.env).';
             } else {
                 const nombreArchivo = `${Date.now()}_${req.file.originalname.replace(/\s+/g, '_')}`;
                 
@@ -99,7 +102,7 @@ router.post('/', upload.single('imagen'), async (req, res) => {
 
                 if (error) {
                     console.error('Error subiendo a Supabase:', error);
-                    // No bloquearemos la creación del insumo si falla la foto
+                    mensajeAdvertencia = 'Error subiendo la foto a Supabase (revisa los permisos del Bucket "insumos"): ' + error.message;
                 } else {
                     const { data: publicUrlData } = supabase.storage
                         .from('insumos')
@@ -132,7 +135,12 @@ router.post('/', upload.single('imagen'), async (req, res) => {
             }
 
             await cliente.query('COMMIT'); 
-            res.json({ mensaje: 'Insumo creado con éxito', insumo: nuevoInsumo });
+            
+            res.json({ 
+                mensaje: 'Insumo creado con éxito', 
+                insumo: nuevoInsumo,
+                advertencia: mensajeAdvertencia 
+            });
         } catch (dbError) {
             await cliente.query('ROLLBACK'); 
             throw dbError; // Pasamos el error al catch general

@@ -135,6 +135,10 @@ async function guardarInsumoRapido() {
             if (document.getElementById('inpRapidoMin')) document.getElementById('inpRapidoMin').value = '0';
             if (archivoInput) archivoInput.value = '';
             cargarInsumos();
+            
+            if (data.advertencia) {
+                alert('Insumo guardado, PERO:\n' + data.advertencia);
+            }
         } else {
             alert('Error: ' + data.error);
         }
