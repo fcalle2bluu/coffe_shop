@@ -31,8 +31,8 @@ function renderizarTabla(insumos) {
         const badgeClase = alerta ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
         const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Bajo Stock' : 'Normal';
         const imgHtml = insumo.imagen_url 
-            ? `<img src="${insumo.imagen_url}" class="w-14 h-14 rounded object-cover shadow border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
-            : `<div class="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 text-xl border border-gray-200"><i class="fa-solid fa-image"></i></div>`;
+            ? `<img src="${insumo.imagen_url}" class="w-20 h-20 rounded-lg object-cover shadow-md border border-gray-300 cursor-pointer hover:scale-105 transition-transform" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
+            : `<div class="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-3xl border border-gray-200"><i class="fa-solid fa-image"></i></div>`;
 
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition-colors">
