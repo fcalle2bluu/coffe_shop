@@ -108,30 +108,8 @@ router.put('/:id/entregar', async (req, res) => {
                     WHERE id = $2
                 `, [item.entregado_ahora, item.detalle_id]);
 
-                // Hacer SELECT a recetas para verificar qué insumos componen esos productos
-                const recetasRes = await client.query(`
-                    SELECT insumo_id, cantidad_necesaria
-                    FROM recetas
-                    WHERE producto_id = $1
-                `, [item.producto_id]);
-
-                // Calcular merma y actualizar insumos SOLO por lo entregado AHORA
-                for (let receta of recetasRes.rows) {
-                    const cantidad_calculada = item.entregado_ahora * receta.cantidad_necesaria;
-
-                    // Actualizar el stock
-                    await client.query(`
-                        UPDATE insumos 
-                        SET stock_actual = stock_actual - $1 
-                        WHERE id = $2
-                    `, [cantidad_calculada, receta.insumo_id]);
-
-                    // Insertar en movimientos_inventario
-                    await client.query(`
-                        INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
-                        VALUES ($1, 'ENTREGA', $2, $3, CURRENT_TIMESTAMP)
-                    `, [receta.insumo_id, cantidad_calculada, id]);
-                }
+                // (Se ha eliminado el motor de inventario por receta a petición del usuario.
+                // El inventario solo se descuenta en Almacén -> Caja mediante pedidos internos)
             }
             
             // Verificación si con esta entrega ya se completó la linea

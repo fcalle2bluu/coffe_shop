@@ -50,32 +50,6 @@ router.post('/', async (req, res) => {
                 INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal)
                 VALUES ($1, $2, $3, $4, $5)
             `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
-            
-            // b. MOTOR DE INVENTARIO: Hacer un SELECT a la tabla recetas
-            const recetasRes = await client.query(`
-                SELECT insumo_id, cantidad_necesaria
-                FROM recetas
-                WHERE producto_id = $1
-            `, [item.producto_id]);
-
-            // c. Recorrer esa receta
-            for (let receta of recetasRes.rows) {
-                // Calcular la cantidad total a descontar
-                const descuento = item.cantidad * receta.cantidad_necesaria;
-
-                // d. Actualizar el stock
-                await client.query(`
-                    UPDATE insumos 
-                    SET stock_actual = stock_actual - $1 
-                    WHERE id = $2
-                `, [descuento, receta.insumo_id]);
-
-                // e. Registrar el movimiento
-                await client.query(`
-                    INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
-                    VALUES ($1, 'VENTA', $2, $3, CURRENT_TIMESTAMP)
-                `, [receta.insumo_id, descuento, ventaId]);
-            }
         }
 
         await client.query('COMMIT'); // ✅ Confirma y guarda todo en la BD

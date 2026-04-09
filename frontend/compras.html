@@ -58,12 +58,46 @@
         <div class="flex-1 overflow-hidden p-2 sm:p-4 md:p-6 flex flex-col">
             <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-[#5D4037] overflow-hidden">
                 <div class="p-3 sm:p-4 border-b flex justify-between items-center bg-[#FAFAFA] shrink-0">
-                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-truck-ramp-box mr-2"></i>Historial</h2>
-                    <button onclick="abrirModalCompra()" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded shadow font-bold text-xs sm:text-sm transition-colors">
-                        <i class="fa-solid fa-plus mr-1 sm:mr-2"></i> Ingresar Compra
-                    </button>
+                    <h2 class="font-bold text-[#4E342E] text-base sm:text-lg"><i class="fa-solid fa-truck-ramp-box mr-2"></i>Historial de Ingresos</h2>
                 </div>
                 
+                <!-- NUEVA FILA: Compra rápida -->
+                <div class="bg-orange-50 p-3 flex flex-wrap xl:flex-nowrap gap-3 items-end border-b border-orange-100 shrink-0">
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-[10px] font-bold text-[#E65100] mb-1 uppercase">Proveedor</label>
+                        <div class="flex gap-1">
+                            <select id="selProveedor" class="w-full border rounded px-2 py-1.5 text-xs focus:ring-[#8D6E63] font-bold text-gray-700 outline-none"></select>
+                            <button onclick="abrirModalNuevoProveedor()" class="bg-[#5D4037] hover:bg-[#3E2723] text-white px-2 rounded min-w-[30px]" title="Añadir"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 min-w-[180px]">
+                        <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Insumo Base</label>
+                        <select id="selInsumo" class="w-full border rounded px-2 py-1.5 text-xs focus:ring-[#8D6E63] font-bold text-[#4E342E] outline-none" onchange="actualizarUnidadLabel()"></select>
+                    </div>
+
+                    <div class="w-24">
+                        <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Cant (<span id="lblUndFormVisual">ml</span>)</label>
+                        <input type="number" id="inpContenido" min="0.1" step="0.1" class="w-full border rounded px-2 py-1.5 text-xs text-center font-bold outline-none focus:border-[#8D6E63]">
+                    </div>
+
+                    <div class="w-24">
+                        <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Costo Total(S/)</label>
+                        <input type="number" id="inpCosto" value="0.00" min="0" step="0.1" class="w-full border rounded px-2 py-1.5 text-xs text-center font-black text-[#E65100] outline-none focus:border-[#8D6E63]">
+                    </div>
+
+                    <div class="w-28 border-l pl-3 border-orange-200">
+                        <label class="block text-[10px] font-bold text-red-500 mb-1 uppercase">Vence (Opcional)</label>
+                        <input type="date" id="inpVence" class="w-full border rounded px-2 py-1 text-[10px] text-red-700 outline-none focus:border-[#8D6E63]">
+                    </div>
+
+                    <div>
+                        <button onclick="ejecutarCompraRapida()" id="btnGuardarCompraRapida" class="bg-[#E65100] hover:bg-[#EF6C00] text-white px-4 py-1.5 rounded shadow font-bold text-xs h-[34px] flex items-center min-w-[110px] justify-center">
+                            <i class="fa-solid fa-check mr-1 text-[10px]"></i> Comprar
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex-1 overflow-auto">
                     <table class="min-w-full w-full whitespace-nowrap">
                         <thead class="bg-gray-100 sticky top-0 z-10">
@@ -82,105 +116,8 @@
         </div>
     </main>
 
-    <div id="modalCompra" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-40 p-2 sm:p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[98vh] sm:max-h-[95vh] border-t-4 border-[#E65100]">
-            <div class="p-3 sm:p-4 border-b bg-[#FAFAFA] flex justify-between items-center shrink-0">
-                <h3 class="text-lg sm:text-xl font-black text-[#3E2723]">Registrar Compra</h3>
-                <button onclick="cerrarModalCompra()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            
-            <div class="p-3 sm:p-4 overflow-y-auto flex-1">
-                
-                <div class="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-100 mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <div class="flex-1">
-                        <label class="block text-xs font-bold text-[#E65100] mb-1">Proveedor</label>
-                        <div class="flex gap-2">
-                            <select id="selProveedor" class="flex-1 border border-gray-300 rounded p-2 focus:ring-[#8D6E63] font-bold text-gray-700 outline-none"></select>
-                            
-                            <button onclick="abrirModalNuevoProveedor()" class="bg-[#5D4037] hover:bg-[#3E2723] text-white px-3 rounded shadow transition-colors" title="Añadir Nuevo Proveedor">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-                            
-                            <button onclick="eliminarProveedorSeleccionado()" class="bg-red-500 hover:bg-red-700 text-white px-3 rounded shadow transition-colors" title="Eliminar Proveedor Seleccionado">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="w-full sm:w-1/3">
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Fecha de Registro</label>
-                        <input type="date" id="inpFecha" class="w-full border border-gray-300 rounded p-2 text-gray-700 bg-gray-100 outline-none" readonly>
-                    </div>
-                </div>
-
-                <div class="border border-gray-200 p-3 sm:p-4 rounded-lg mb-4 bg-white shadow-sm">
-                    <h4 class="text-sm font-bold text-gray-800 mb-3 border-b pb-2">Agregar Insumo</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
-                        <div class="sm:col-span-2 md:col-span-3">
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Insumo</label>
-                            <div class="flex gap-1">
-                                <select id="selInsumo" class="flex-1 border rounded p-2 text-sm outline-none focus:border-[#8D6E63]" onchange="actualizarUnidadLabel()"></select>
-                                <button onclick="abrirModalNuevoInsumo()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 rounded border border-gray-300 transition-colors" title="Crear Insumo en Almacén">
-                                    <i class="fa-solid fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Empaques</label>
-                            <input type="number" id="inpEmpaques" value="1" min="1" class="w-full border rounded p-2 text-sm text-center outline-none focus:border-[#8D6E63]" oninput="calcularTotalFila()">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Cont. Total</label>
-                            <div class="flex rounded-md shadow-sm">
-                                <input type="number" id="inpContenido" value="1000" min="0.1" step="0.1" class="w-full border rounded-l-md p-2 text-sm text-center outline-none focus:border-[#8D6E63]" oninput="calcularTotalFila()">
-                                <input type="text" id="selUnidadFila" value="ml" class="border-y border-r rounded-r-md px-2 py-2 text-xs font-bold bg-gray-50 text-[#5D4037] outline-none w-16 text-center" oninput="actualizarLabelAbajo()">
-                            </div>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Costo (Total)</label>
-                            <input type="number" id="inpCosto" value="0.00" min="0" step="0.1" class="w-full border rounded p-2 text-sm text-right font-bold text-[#E65100] outline-none focus:border-[#8D6E63]">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-red-500 mb-1">Vencimiento</label>
-                            <input type="date" id="inpVence" class="w-full border rounded p-2 text-sm text-red-700 outline-none focus:border-[#8D6E63]">
-                        </div>
-                        <div class="sm:col-span-2 md:col-span-1 pt-2 sm:pt-0">
-                            <button onclick="agregarAlDetalle()" class="w-full bg-[#5D4037] text-white p-2 rounded hover:bg-[#4E342E] font-bold shadow"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                    </div>
-                    <p class="text-xs text-green-600 mt-2 font-medium">👉 Ingresarán al almacén: <strong id="lblSumaTotal">1000</strong> <span id="lblUndFormVisual">ml</span>.</p>
-                </div>
-
-                <div class="overflow-auto border rounded max-h-40 sm:max-h-60">
-                    <table class="w-full text-sm text-left whitespace-nowrap">
-                        <thead class="bg-gray-100 text-gray-700 border-b sticky top-0">
-                            <tr>
-                                <th class="p-2">Insumo</th>
-                                <th class="p-2 text-center">Cant. Ingreso</th>
-                                <th class="p-2 text-center">Unidad</th>
-                                <th class="p-2 text-center">Vencimiento</th>
-                                <th class="p-2 text-right">Costo Subtotal</th>
-                                <th class="p-2 text-center"><i class="fa-solid fa-trash text-gray-400"></i></th>
-                            </tr>
-                        </thead>
-                        <tbody id="lista-detalle" class="divide-y bg-white"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="p-3 sm:p-4 bg-gray-50 border-t flex flex-col sm:flex-row justify-between items-center rounded-b-xl gap-3 shrink-0">
-                <div class="text-xl sm:text-2xl font-black text-[#4E342E]">TOTAL: Bs. <span id="lblTotalCompra">0.00</span></div>
-                <div class="flex w-full sm:w-auto gap-2">
-                    <button onclick="cerrarModalCompra()" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-gray-300 text-gray-800 font-bold rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base">Cancelar</button>
-                    <button onclick="guardarCompra()" id="btnGuardarCompra" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-[#E65100] text-white font-bold rounded-lg shadow-md hover:bg-[#EF6C00] transition-colors text-sm sm:text-base">
-                        <i class="fa-solid fa-save mr-2"></i> Confirmar Compra
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="modalNuevoProveedor" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
             <div class="bg-gray-800 p-4 flex justify-between items-center text-white shrink-0">
                 <h3 class="text-base font-bold"><i class="fa-solid fa-truck mr-2"></i>Nuevo Proveedor</h3>
                 <button onclick="cerrarModalNuevoProveedor()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -190,48 +127,12 @@
                     <label class="block text-xs font-bold text-gray-700 mb-1">Nombre / Empresa *</label>
                     <input type="text" id="inpProvNombre" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none" required>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
-                        <input type="text" id="inpProvTel" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Email</label>
-                        <input type="email" id="inpProvEmail" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
-                    </div>
-                </div>
                 <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Dirección</label>
-                    <input type="text" id="inpProvDir" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
+                    <input type="text" id="inpProvTel" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
                 </div>
                 <button onclick="guardarProveedor()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-2 rounded shadow">
-                    Guardar Proveedor
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalNuevoInsumoCompras" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-            <div class="bg-[#5D4037] p-4 flex justify-between items-center text-white shrink-0">
-                <h3 class="text-base font-bold"><i class="fa-solid fa-box-open mr-2"></i>Crear Insumo</h3>
-                <button onclick="cerrarModalNuevoInsumo()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5">
-                <div class="mb-3">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Nombre del Insumo</label>
-                    <input type="text" id="inpInsNombre" class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none">
-                </div>
-                <div class="mb-3">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Unidad de Medida Base</label>
-                    <input type="text" id="inpInsUnidad" placeholder="Ej: kg, litros, cajas, docenas..." class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none font-bold text-gray-700">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Stock Mínimo (Alerta)</label>
-                    <input type="number" id="inpInsMinimo" value="10" min="0" class="w-full border rounded px-3 py-2 text-sm focus:ring-[#8D6E63] outline-none">
-                </div>
-                <button onclick="guardarInsumoDesdeCompras()" class="w-full bg-[#E65100] hover:bg-[#EF6C00] text-white font-bold py-2 rounded shadow">
-                    Guardar Insumo
+                    Guardar
                 </button>
             </div>
         </div>

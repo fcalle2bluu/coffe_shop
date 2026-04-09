@@ -3,32 +3,32 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// 1. Obtener la lista de pedidos (Inteligente por Rol)
+// 1. Obtener la lista de pedidos
 router.get('/', async (req, res) => {
     const { usuario_id, rol } = req.query;
 
     try {
         let result;
         if (rol === 'ADMIN') {
-            // El ADMIN ve TODOS los pedidos de TODOS los cajeros
             result = await pool.query(`
-                SELECT p.id, p.insumo_nombre, p.cantidad, p.notas, p.estado, 
+                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, 
                        TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
-                       u.nombre as solicitante
+                       u.nombre as solicitante, i.stock_actual, i.unidad_medida
                 FROM pedidos_compra p
                 JOIN usuarios u ON p.usuario_id = u.id
+                LEFT JOIN insumos i ON p.insumo_id = i.id
                 ORDER BY 
                     CASE p.estado WHEN 'PENDIENTE' THEN 1 ELSE 2 END, 
                     p.fecha DESC
             `);
         } else {
-            // El CAJERO ve SOLO SUS PROPIOS pedidos
             result = await pool.query(`
-                SELECT p.id, p.insumo_nombre, p.cantidad, p.notas, p.estado, 
+                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, 
                        TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
-                       u.nombre as solicitante
+                       u.nombre as solicitante, i.unidad_medida
                 FROM pedidos_compra p
                 JOIN usuarios u ON p.usuario_id = u.id
+                LEFT JOIN insumos i ON p.insumo_id = i.id
                 WHERE p.usuario_id = $1
                 ORDER BY p.fecha DESC
             `, [usuario_id]);
@@ -40,19 +40,19 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 2. Crear un nuevo pedido de compra
+// 2. Crear un nuevo pedido de compra (ahora usando insumo_id)
 router.post('/', async (req, res) => {
-    const { usuario_id, insumo_nombre, cantidad, notas } = req.body;
+    const { usuario_id, insumo_id, insumo_nombre, cantidad, notas } = req.body;
     
-    if (!usuario_id || !insumo_nombre || !cantidad) {
+    if (!usuario_id || (!insumo_id && !insumo_nombre) || !cantidad) {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
     try {
         await pool.query(`
-            INSERT INTO pedidos_compra (usuario_id, insumo_nombre, cantidad, notas)
-            VALUES ($1, $2, $3, $4)
-        `, [usuario_id, insumo_nombre, cantidad, notas]);
+            INSERT INTO pedidos_compra (usuario_id, insumo_id, insumo_nombre, cantidad, notas)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [usuario_id, insumo_id, insumo_nombre, cantidad.toString(), notas]);
         res.status(201).json({ message: 'Pedido creado exitosamente' });
     } catch (error) {
         console.error("Error al crear pedido:", error);
@@ -60,10 +60,10 @@ router.post('/', async (req, res) => {
     }
 });
 
-// 3. Cambiar estado del pedido (Solo ADMIN)
+// 3. Cambiar estado simple (COMPRADO externo, o RECHAZADO)
 router.put('/:id/estado', async (req, res) => {
     const { id } = req.params;
-    const { estado } = req.body; // 'COMPRADO' o 'RECHAZADO'
+    const { estado } = req.body;
     try {
         await pool.query('UPDATE pedidos_compra SET estado = $1 WHERE id = $2', [estado, id]);
         res.json({ message: 'Estado actualizado correctamente' });
@@ -72,7 +72,42 @@ router.put('/:id/estado', async (req, res) => {
     }
 });
 
-// 4. Eliminar un pedido (Solo CAJERO, y solo si está PENDIENTE)
+// 4. Despachar Insumo (Descuenta stock)
+router.put('/:id/despachar', async (req, res) => {
+    const { id } = req.params;
+    const { cantidad_entregada, insumo_id } = req.body;
+
+    if (!insumo_id || cantidad_entregada <= 0) {
+        return res.status(400).json({ error: 'Datos no válidos para el despacho' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        await client.query('UPDATE pedidos_compra SET estado = $1 WHERE id = $2', ['COMPRADO', id]);
+        
+        await client.query(`
+            UPDATE insumos SET stock_actual = stock_actual - $1 WHERE id = $2
+        `, [cantidad_entregada, insumo_id]);
+        
+        await client.query(`
+            INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+            VALUES ($1, 'AJUSTE', $2, $3, NOW())
+        `, [insumo_id, cantidad_entregada, id]);
+        
+        await client.query('COMMIT');
+        res.json({ message: 'Insumo despachado a caja y descontado del inventario general' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error despachando:', error);
+        res.status(500).json({ error: 'Error al despachar inventario' });
+    } finally {
+        client.release();
+    }
+});
+
+// 5. Eliminar un pedido
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {

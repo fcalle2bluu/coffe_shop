@@ -8,50 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtrados = insumosGlobal.filter(i => i.nombre.toLowerCase().includes(busqueda));
         renderizarTabla(filtrados);
     });
-    actualizarResumen(); // Iniciar UI del modal
 });
-
-// --- LÓGICA DE UI DEL MODAL ---
-function toggleModoIngreso() {
-    const modo = document.querySelector('input[name="modoIngreso"]:checked').value;
-    if (modo === 'directo') {
-        document.getElementById('divIngresoDirecto').classList.remove('hidden');
-        document.getElementById('divIngresoDirecto').classList.add('flex');
-        document.getElementById('divCalculadora').classList.add('hidden');
-    } else {
-        document.getElementById('divIngresoDirecto').classList.add('hidden');
-        document.getElementById('divIngresoDirecto').classList.remove('flex');
-        document.getElementById('divCalculadora').classList.remove('hidden');
-    }
-    actualizarResumen();
-}
-
-function sincronizarUnidades(desdeCalculadora = false) {
-    const unidad = desdeCalculadora 
-        ? document.getElementById('selectUnidadCalc').value 
-        : document.getElementById('selectUnidadDir').value;
-    
-    document.getElementById('selectUnidadDir').value = unidad;
-    document.getElementById('selectUnidadCalc').value = unidad;
-    document.getElementById('lblUnidad').innerText = unidad;
-    document.getElementById('lblMinimoUnidad').innerText = unidad;
-}
-
-function actualizarResumen() {
-    const modo = document.querySelector('input[name="modoIngreso"]:checked').value;
-    let totalLimpio = 0;
-
-    if (modo === 'directo') {
-        totalLimpio = parseFloat(document.getElementById('inputCantDirecta').value) || 0;
-    } else {
-        const cantidad = parseFloat(document.getElementById('cantEmpaques').value) || 0;
-        const contenido = parseFloat(document.getElementById('contenidoPorEmpaque').value) || 0;
-        totalLimpio = parseFloat((cantidad * contenido).toFixed(2));
-    }
-
-    document.getElementById('totalCalculado').innerText = totalLimpio;
-    return totalLimpio;
-}
 
 // --- CONEXIÓN AL BACKEND ---
 async function cargarInsumos() {
@@ -125,7 +82,6 @@ async function aplicarAjusteRapido(id, tipo) {
     }
 }
 
-// NUEVA FUNCIÓN PARA ELIMINAR
 async function eliminarInsumo(id, nombre) {
     const confirmar = confirm(`¿Estás seguro que deseas eliminar "${nombre}" del almacén? Esta acción lo ocultará permanentemente.`);
     if(!confirmar) return;
@@ -135,31 +91,31 @@ async function eliminarInsumo(id, nombre) {
             method: 'DELETE'
         });
         if (!respuesta.ok) throw new Error('No se pudo eliminar');
-        cargarInsumos(); // Recargamos la tabla automáticamente
+        cargarInsumos();
     } catch (error) {
         alert('Error: ' + error.message);
     }
 }
 
-function abrirModal() {
-    document.getElementById('modalInsumo').classList.remove('hidden');
-    actualizarResumen();
-}
+async function guardarInsumoRapido() {
+    const nombre = document.getElementById('inpRapidoNombre').value.trim();
+    const unidad = document.getElementById('inpRapidoUnidad').value;
+    const stock = parseFloat(document.getElementById('inpRapidoStock').value) || 0;
+    const minimo = parseFloat(document.getElementById('inpRapidoMinimo').value) || 0;
 
-function cerrarModal() {
-    document.getElementById('modalInsumo').classList.add('hidden');
-    document.getElementById('formInsumo').reset();
-    toggleModoIngreso();
-}
+    if(!nombre || !unidad) {
+        return alert('Nombre y unidad obligatorios.');
+    }
 
-async function guardarNuevoInsumo(e) {
-    e.preventDefault(); 
-    
+    const btn = document.getElementById('btnGuardarInsumoRapido');
+    btn.disabled = true;
+    btn.innerHTML = 'Guardando...';
+
     const data = {
-        nombre: document.getElementById('inputNombre').value,
-        unidad_medida: document.getElementById('selectUnidadDir').value, // Ambos selectores tienen lo mismo gracias a la sincronización
-        stock_inicial: actualizarResumen(), 
-        stock_minimo: document.getElementById('inputMinimo').value
+        nombre: nombre,
+        unidad_medida: unidad,
+        stock_inicial: stock,
+        stock_minimo: minimo
     };
 
     try {
@@ -169,9 +125,16 @@ async function guardarNuevoInsumo(e) {
             body: JSON.stringify(data)
         });
         if (!respuesta.ok) throw new Error((await respuesta.json()).error);
-        cerrarModal();
+        
+        // Limpiamos los inputs
+        document.getElementById('inpRapidoNombre').value = '';
+        document.getElementById('inpRapidoStock').value = '0';
+        
         cargarInsumos(); 
     } catch (error) {
         alert('Error al crear: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Crear Insumo';
     }
 }

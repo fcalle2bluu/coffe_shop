@@ -1,16 +1,27 @@
-// frontend/js/apartados.js (AHORA USADO PARA PEDIDOS INTERNOS)
+// frontend/js/pedidos_internos.js
 
 const usuarioId = localStorage.getItem('usuario_id');
 const usuarioRol = localStorage.getItem('usuario_rol');
+let listadoInsumosGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarPedidos();
+    cargarInsumosCatalogo();
 });
 
-// 1. Cargar la lista de pedidos desde el backend
+// 1. Cargar la lista de insumos reales para el select del nuevo Pedido
+async function cargarInsumosCatalogo() {
+    try {
+        const res = await fetch('/api/almacen/insumos');
+        listadoInsumosGlobal = await res.json();
+    } catch(e) {
+        console.error("Error al cargar insumos del almacén:", e);
+    }
+}
+
+// 2. Cargar la lista de pedidos desde el backend
 async function cargarPedidos() {
     try {
-        // Le pasamos al backend quiénes somos para que nos devuelva lo correcto
         const res = await fetch(`/api/pedidos_internos?usuario_id=${usuarioId}&rol=${usuarioRol}`);
         const data = await res.json();
         
@@ -23,19 +34,18 @@ async function cargarPedidos() {
         }
 
         data.forEach(pedido => {
-            // Colores según el estado
-            let colorEstado = 'bg-yellow-100 text-yellow-800 border-yellow-200'; // PENDIENTE
+            let colorEstado = 'bg-yellow-100 text-yellow-800 border-yellow-200';
             if (pedido.estado === 'COMPRADO') colorEstado = 'bg-green-100 text-green-800 border-green-200';
             if (pedido.estado === 'RECHAZADO') colorEstado = 'bg-red-100 text-red-800 border-red-200';
 
-            // Lógica de botones de ACCIÓN dependiendo de quién está viendo
             let botonesAccion = '<span class="text-xs text-gray-400">-</span>';
             
             if (usuarioRol === 'ADMIN' && pedido.estado === 'PENDIENTE') {
+                // Nuevo botón de "Entregar a caja"
                 botonesAccion = `
                     <div class="flex justify-center gap-2">
-                        <button onclick="cambiarEstado(${pedido.id}, 'COMPRADO')" class="bg-green-500 hover:bg-green-600 text-white p-2 rounded shadow transition-colors" title="Marcar como Comprado"><i class="fa-solid fa-check"></i></button>
-                        <button onclick="cambiarEstado(${pedido.id}, 'RECHAZADO')" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded shadow transition-colors" title="Rechazar Pedido"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="abrirModalDespacho(${pedido.id}, '${pedido.insumo_id}', '${pedido.insumo_nombre}', '${pedido.cantidad}', '${pedido.solicitante}', '${pedido.stock_actual}', '${pedido.unidad_medida}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow transition-colors font-bold text-xs" title="Despachar a Caja"><i class="fa-solid fa-people-carry-box mr-1"></i> Despachar</button>
+                        <button onclick="cambiarEstado(${pedido.id}, 'RECHAZADO')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow transition-colors text-xs" title="Rechazar Pedido"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else if (usuarioRol === 'CAJERO' && pedido.estado === 'PENDIENTE') {
@@ -44,15 +54,15 @@ async function cargarPedidos() {
                 `;
             }
 
-            // Si es Cajero, no dibujamos la columna del solicitante para no desperdiciar espacio
             const colSolicitante = usuarioRol === 'ADMIN' ? `<td class="px-4 py-3 font-bold text-gray-700">${pedido.solicitante}</td>` : '';
+            const cantidadVisual = `${pedido.cantidad} ${pedido.unidad_medida || 'unid'}`;
 
             tbody.innerHTML += `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-gray-500 text-xs"><i class="fa-regular fa-clock mr-1"></i>${pedido.fecha_pedido}</td>
                     ${colSolicitante}
                     <td class="px-4 py-3 font-bold text-[#4E342E]">${pedido.insumo_nombre}</td>
-                    <td class="px-4 py-3 text-center font-bold text-[#E65100] bg-orange-50">${pedido.cantidad}</td>
+                    <td class="px-4 py-3 text-center font-bold text-[#E65100] bg-orange-50">${cantidadVisual}</td>
                     <td class="px-4 py-3 text-gray-600 text-xs italic">${pedido.notas || 'Ninguna'}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide border ${colorEstado}">${pedido.estado}</span>
@@ -68,26 +78,44 @@ async function cargarPedidos() {
     }
 }
 
-// 2. Lógica del Modal
+// 3. UI del Cajero: Solicitud
 function abrirModalNuevo() {
-    document.getElementById('inpInsumo').value = '';
+    const select = document.getElementById('inpInsumo');
+    select.innerHTML = '<option value="">-- Selecciona el insumo --</option>';
+    
+    listadoInsumosGlobal.forEach(ins => {
+        select.innerHTML += `<option value="${ins.id}" data-unidad="${ins.unidad_medida}">${ins.nombre}</option>`;
+    });
+
     document.getElementById('inpCantidad').value = '';
     document.getElementById('inpNotas').value = '';
+    document.getElementById('lblUnidadNuevo').innerText = 'Unidad';
     document.getElementById('modalNuevo').classList.remove('hidden');
+}
+
+function actualizarUnidadNuevoPedido() {
+    const select = document.getElementById('inpInsumo');
+    const option = select.options[select.selectedIndex];
+    if(option && option.value) {
+        document.getElementById('lblUnidadNuevo').innerText = option.getAttribute('data-unidad');
+    } else {
+        document.getElementById('lblUnidadNuevo').innerText = 'Unidad';
+    }
 }
 
 function cerrarModalNuevo() { 
     document.getElementById('modalNuevo').classList.add('hidden'); 
 }
 
-// 3. Guardar Solicitud
 async function guardarPedido() {
-    const insumo = document.getElementById('inpInsumo').value.trim();
-    const cantidad = document.getElementById('inpCantidad').value.trim();
+    const selectInsumo = document.getElementById('inpInsumo');
+    const insumo_id = selectInsumo.value;
+    const insumo_nombre = insumo_id ? selectInsumo.options[selectInsumo.selectedIndex].text : '';
+    const cantidad = parseFloat(document.getElementById('inpCantidad').value);
     const notas = document.getElementById('inpNotas').value.trim();
 
-    if(!insumo || !cantidad) {
-        return alert("Debes escribir qué necesitas y en qué cantidad.");
+    if(!insumo_id || !cantidad || cantidad <= 0) {
+        return alert("Debes seleccionar el insumo y una cantidad válida mayor a 0.");
     }
 
     const btn = document.getElementById('btnGuardar');
@@ -96,7 +124,8 @@ async function guardarPedido() {
 
     const data = {
         usuario_id: usuarioId,
-        insumo_nombre: insumo,
+        insumo_id: insumo_id,
+        insumo_nombre: insumo_nombre,
         cantidad: cantidad,
         notas: notas
     };
@@ -120,9 +149,68 @@ async function guardarPedido() {
     }
 }
 
-// 4. Cambiar Estado (Solo ADMIN)
+// 4. UI del Admin: Despacho a Caja (Desconta Stock)
+function abrirModalDespacho(pedidoId, insumoId, insumoNombre, cantidadPedida, solicitante, stockActual, unidad) {
+    if(!insumoId || insumoId === 'null') {
+        alert("Este pedido es antiguo y no tiene vinculación estricta con el catálogo de insumos. Usa el botón 'Rechazar' y pide al cajero que lo envíe de nuevo.");
+        return;
+    }
+
+    document.getElementById('hdnDespachoPedidoId').value = pedidoId;
+    document.getElementById('hdnDespachoInsumoId').value = insumoId;
+    
+    document.getElementById('lblDespachoSolicitante').innerText = solicitante;
+    document.getElementById('lblDespachoInsumo').innerText = insumoNombre;
+    document.getElementById('lblDespachoSol').innerText = `${cantidadPedida} ${unidad}`;
+    document.getElementById('lblDespachoStock').innerText = `${stockActual} ${unidad}`;
+    
+    document.getElementById('lblDespachoUnidad').innerText = unidad;
+    document.getElementById('inpCantidadDespacho').value = cantidadPedida;
+
+    document.getElementById('modalDespacho').classList.remove('hidden');
+}
+
+function cerrarModalDespacho() {
+    document.getElementById('modalDespacho').classList.add('hidden');
+}
+
+async function confirmarDespacho() {
+    const pedidoId = document.getElementById('hdnDespachoPedidoId').value;
+    const insumoId = document.getElementById('hdnDespachoInsumoId').value;
+    const cantEntregar = parseFloat(document.getElementById('inpCantidadDespacho').value);
+
+    if(!cantEntregar || cantEntregar <= 0) {
+        return alert("Debes ingresar una cantidad válida mayor a 0 para despachar.");
+    }
+
+    const btn = document.getElementById('btnDespachar');
+    btn.disabled = true;
+    btn.innerHTML = 'Procesando...';
+
+    try {
+        const res = await fetch(`/api/pedidos_internos/${pedidoId}/despachar`, { 
+            method: 'PUT', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ cantidad_entregada: cantEntregar, insumo_id: insumoId }) 
+        });
+        
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || "Error al despachar");
+        
+        cerrarModalDespacho();
+        cargarPedidos();
+        cargarInsumosCatalogo(); // Recargar stock en memoria
+    } catch(e) {
+        alert(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Entregar Stock';
+    }
+}
+
+// 5. Rechazos y Eliminaciones Simples
 async function cambiarEstado(id, nuevoEstado) {
-    if(!confirm(`¿Estás seguro de marcar este pedido como ${nuevoEstado}?`)) return;
+    if(!confirm(`¿Estás seguro de marcar este pedido como ${nuevoEstado}? (No moverá stock)`)) return;
 
     try {
         const res = await fetch(`/api/pedidos_internos/${id}/estado`, { 
@@ -138,7 +226,6 @@ async function cambiarEstado(id, nuevoEstado) {
     }
 }
 
-// 5. Eliminar Pedido (Solo CAJERO)
 async function eliminarPedido(id) {
     if(!confirm("¿Seguro que deseas eliminar esta solicitud de compra?")) return;
 
