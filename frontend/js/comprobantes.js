@@ -41,7 +41,7 @@ function renderizarTabla(lista) {
                 <td class="px-4 py-3 font-black text-gray-700">${ticketFmt}</td>
                 <td class="px-4 py-3 text-gray-600"><i class="fa-regular fa-calendar mr-2"></i>${comp.fecha}</td>
                 <td class="px-4 py-3 text-center font-medium">${comp.metodo_pago}</td>
-                <td class="px-4 py-3 text-right font-bold text-slate-800">S/ ${comp.total}</td>
+                <td class="px-4 py-3 text-right font-bold text-stone-800">S/ ${comp.total}</td>
                 <td class="px-4 py-3 text-center">
                     <span class="px-2 py-1 rounded text-xs font-bold border ${colorEstado}">${comp.estado}</span>
                 </td>

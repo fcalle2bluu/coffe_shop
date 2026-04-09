@@ -26,7 +26,7 @@ async function cargarListaCotizaciones() {
                     <td class="px-4 py-3 font-medium text-gray-900">#${cot.id.toString().padStart(4, '0')}</td>
                     <td class="px-4 py-3 text-gray-500">${cot.fecha_emision}</td>
                     <td class="px-4 py-3 text-gray-700 font-semibold">${cot.nombre_cliente}</td>
-                    <td class="px-4 py-3 text-right font-bold text-slate-800">S/ ${cot.total}</td>
+                    <td class="px-4 py-3 text-right font-bold text-stone-800">S/ ${cot.total}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 text-xs font-semibold rounded-full border ${colorEstado}">${cot.estado}</span>
                     </td>
@@ -121,7 +121,7 @@ function actualizarTablaCarrito() {
                 <td class="px-4 py-2 font-medium text-gray-800">${item.nombre}</td>
                 <td class="px-4 py-2 text-center">${item.cantidad}</td>
                 <td class="px-4 py-2 text-right text-gray-500">S/ ${item.precio_unitario}</td>
-                <td class="px-4 py-2 text-right font-bold text-slate-800">S/ ${item.subtotal.toFixed(2)}</td>
+                <td class="px-4 py-2 text-right font-bold text-stone-800">S/ ${item.subtotal.toFixed(2)}</td>
                 <td class="px-4 py-2 text-center">
                     <button onclick="quitarDelCarrito(${index})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
                 </td>

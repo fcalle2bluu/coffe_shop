@@ -41,7 +41,7 @@ function renderizarCatalogo(filtro = '') {
                     <span class="text-xs font-bold text-orange-600 mb-1 block">${prod.categoria || 'General'}</span>
                     <h3 class="font-bold text-gray-800 leading-tight">${prod.nombre}</h3>
                 </div>
-                <div class="text-lg font-black text-slate-800 mt-2">
+                <div class="text-lg font-black text-stone-800 mt-2">
                     S/ ${prod.precio_venta}
                 </div>
             </div>
@@ -116,7 +116,7 @@ function actualizarTicket() {
                         <button onclick="modificarCantidad(${index}, 'suma')" class="px-2 py-1 text-gray-600 hover:text-green-500 font-bold">+</button>
                     </div>
 
-                    <div class="text-right font-black text-slate-900 w-16">
+                    <div class="text-right font-black text-stone-900 w-16">
                         S/ ${item.subtotal.toFixed(2)}
                     </div>
                 </div>

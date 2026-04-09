@@ -7,6 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+
     <script>
         tailwind.config = { 
             theme: { 
@@ -14,6 +22,7 @@
                     colors: { 
                         sidebar: '#1c1917',
                         sidebarHover: '#292524',
+                        topbar: '#ffffff',
                         logoBg: '#1c1917',
                         mainBg: '#f8fafc',
                         accent: '#ea580c'
@@ -25,11 +34,6 @@
             } 
         }
     </script>
-
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 </head>
 <body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
@@ -80,7 +84,7 @@
         <div class="flex-1 overflow-hidden p-2 sm:p-4 md:p-6 flex flex-col">
             <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-stone-800 overflow-hidden">
                 <div class="p-3 sm:p-4 border-b flex justify-between items-center bg-white shrink-0">
-                    <h2 class="font-bold text-slate-800 text-base sm:text-lg"><i class="fa-solid fa-truck-ramp-box mr-2"></i>Historial de Ingresos</h2>
+                    <h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-truck-ramp-box mr-2"></i>Historial de Ingresos</h2>
                 </div>
                 
                 <!-- NUEVA FILA: Compra rápida -->
@@ -89,13 +93,13 @@
                         <label class="block text-[10px] font-bold text-orange-600 mb-1 uppercase">Proveedor</label>
                         <div class="flex gap-1">
                             <select id="selProveedor" class="w-full border rounded px-2 py-1.5 text-xs focus:ring-orange-500 font-bold text-gray-700 outline-none"></select>
-                            <button onclick="abrirModalNuevoProveedor()" class="bg-slate-700 hover:bg-slate-900 text-white px-2 rounded min-w-[30px]" title="Añadir"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                            <button onclick="abrirModalNuevoProveedor()" class="bg-stone-700 hover:bg-stone-900 text-white px-2 rounded min-w-[30px]" title="Añadir"><i class="fa-solid fa-plus text-[10px]"></i></button>
                         </div>
                     </div>
                     
                     <div class="flex-1 min-w-[180px]">
                         <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Insumo Base</label>
-                        <select id="selInsumo" class="w-full border rounded px-2 py-1.5 text-xs focus:ring-orange-500 font-bold text-slate-800 outline-none" onchange="actualizarUnidadLabel()"></select>
+                        <select id="selInsumo" class="w-full border rounded px-2 py-1.5 text-xs focus:ring-orange-500 font-bold text-stone-800 outline-none" onchange="actualizarUnidadLabel()"></select>
                     </div>
 
                     <div class="flex-1 min-w-[100px]">
@@ -129,11 +133,11 @@
                     <table class="min-w-full w-full whitespace-nowrap">
                         <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Folio Compra</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Fecha</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Proveedor Info</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Insumos Comprados</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-800 uppercase">Monto Total</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Folio Compra</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Fecha</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Proveedor Info</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Insumos Comprados</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-stone-800 uppercase">Monto Total</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-compras" class="divide-y divide-gray-200 text-sm"></tbody>

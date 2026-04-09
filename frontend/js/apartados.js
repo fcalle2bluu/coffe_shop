@@ -31,7 +31,7 @@ async function cargarApartados() {
 
             tbody.innerHTML += `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 font-bold text-slate-800">${apt.nombre_cliente}</td>
+                    <td class="px-4 py-3 font-bold text-stone-800">${apt.nombre_cliente}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">${apt.telefono_cliente || '-'}</td>
                     <td class="px-4 py-3 text-red-500 text-xs font-bold">${apt.fecha_limite}</td>
                     <td class="px-4 py-3 text-right font-bold text-gray-700">Bs. ${Number(apt.total).toFixed(2)}</td>

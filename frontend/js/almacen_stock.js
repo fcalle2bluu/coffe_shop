@@ -37,7 +37,7 @@ function renderizarTabla(insumos) {
                 <td class="px-4 py-2">${imgHtml}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${insumo.nombre}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-500">${insumo.unidad_medida}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-slate-800'} text-lg">${insumo.stock_actual}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-stone-800'} text-lg">${insumo.stock_actual}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-400">${insumo.stock_minimo}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold border ${badgeClase}">${badgeTexto}</span>

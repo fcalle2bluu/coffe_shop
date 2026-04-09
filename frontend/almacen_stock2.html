@@ -6,13 +6,32 @@
     <title>MokaPOS - Stock de Insumos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = { theme: { extend: { colors: { sidebar: '#0f172a', sidebarHover: '#1e293b', topbar: '#334155', logoBg: '#1e293b', mainBg: '#f8fafc' } } } }
-    </script>
+    
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        sidebar: '#1c1917',
+                        sidebarHover: '#292524',
+                        topbar: '#ffffff',
+                        logoBg: '#1c1917',
+                        mainBg: '#f8fafc',
+                        accent: '#ea580c'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                } 
+            } 
+        }
+    </script>
 
 </head>
 <body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
@@ -66,10 +85,10 @@
         <div class="flex-1 flex flex-col overflow-hidden p-2 sm:p-4 md:p-6">
             <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-stone-800 overflow-hidden relative">
                 <div class="p-3 sm:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white shrink-0 gap-3">
-                    <h2 class="font-bold text-slate-800 text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
+                    <h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
                     <div class="flex w-full sm:w-auto space-x-2 sm:space-x-3 items-center">
                         <div class="relative flex-1 sm:w-56">
-                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+                            <input type="text" id="searchInput" placeholder="Buscar insumo..." class="w-full pl-8 pr-3 py-1.5 rounded border border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
                         </div>
                             <i class="fa-solid fa-plus sm:mr-2"></i> <span class="hidden sm:inline">Nuevo Insumo</span>
@@ -81,12 +100,12 @@
                     <table class="min-w-full w-full whitespace-nowrap">
                         <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Insumo</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Unidad</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Stock</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Mínimo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Acciones Rápidas</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Unidad</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Stock</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Mínimo</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Estado</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Acciones Rápidas</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
@@ -98,7 +117,7 @@
 
     <div id="modalInsumo" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh]">
-            <div class="bg-slate-700 p-4 flex justify-between items-center text-white shrink-0">
+            <div class="bg-stone-700 p-4 flex justify-between items-center text-white shrink-0">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-box-open mr-2"></i>Registrar Insumo</h3>
                 <button onclick="cerrarModal()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
@@ -106,7 +125,7 @@
             <form id="formInsumo" onsubmit="guardarNuevoInsumo(event)" class="p-4 sm:p-6 overflow-y-auto">
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Insumo</label>
-                    <input type="text" id="inputNombre" required class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg px-3 py-2 focus:ring-orange-500">
+                    <input type="text" id="inputNombre" required class="w-full border border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg px-3 py-2 focus:ring-orange-500">
                 </div>
                 
                 <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -117,8 +136,8 @@
                     </div>
 
                     <div id="divIngresoDirecto" class="flex rounded-md shadow-sm">
-                        <input type="number" id="inputCantDirecta" value="0" min="0" step="0.1" class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-l-md px-3 py-2 text-sm font-bold text-center" oninput="actualizarResumen()">
-                        <select id="selectUnidadDir" class="border border-l-0 border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-r-md px-3 py-2 text-sm bg-white font-bold text-slate-800" onchange="sincronizarUnidades()">
+                        <input type="number" id="inputCantDirecta" value="0" min="0" step="0.1" class="w-full border border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-l-md px-3 py-2 text-sm font-bold text-center" oninput="actualizarResumen()">
+                        <select id="selectUnidadDir" class="border border-l-0 border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-r-md px-3 py-2 text-sm bg-white font-bold text-stone-800" onchange="sincronizarUnidades()">
                             <option value="ml">ml</option>
                             <option value="gr">gr</option>
                             <option value="unidad">unid.</option>
@@ -141,7 +160,7 @@
                                 <label class="block text-xs font-bold text-gray-600 mb-1">Contenido c/u</label>
                                 <div class="flex shadow-sm">
                                     <input type="number" id="contenidoPorEmpaque" value="1000" min="0.1" step="0.1" class="w-20 border rounded-l-md px-2 py-1.5 text-sm text-center font-bold" oninput="actualizarResumen()">
-                                    <select id="selectUnidadCalc" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-slate-800" onchange="sincronizarUnidades(true)">
+                                    <select id="selectUnidadCalc" class="flex-1 border-y border-r rounded-r-md px-2 py-1.5 text-sm bg-white font-bold text-stone-800" onchange="sincronizarUnidades(true)">
                                         <option value="ml">ml</option>
                                         <option value="gr">gr</option>
                                         <option value="unidad">unid.</option>
@@ -160,7 +179,7 @@
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-700 mb-1">Aviso de Stock Crítico (Mínimo)</label>
                     <div class="relative">
-                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700 text-center">
+                        <input type="number" id="inputMinimo" required min="0" step="0.1" value="10" class="w-full border border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg pl-3 pr-12 py-2 font-bold text-gray-700 text-center">
                         <span id="lblMinimoUnidad" class="absolute right-3 top-2.5 text-sm font-bold text-gray-400">ml</span>
                     </div>
                 </div>

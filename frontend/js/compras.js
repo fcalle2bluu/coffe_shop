@@ -30,7 +30,7 @@ async function cargarHistorialCompras() {
 
             tbody.innerHTML += `
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-3 font-bold text-slate-800">#COM-${String(compra.id).padStart(5, '0')}</td>
+                    <td class="px-4 py-3 font-bold text-stone-800">#COM-${String(compra.id).padStart(5, '0')}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">${compra.fecha_compra}</td>
                     <td class="px-4 py-3 font-medium text-gray-800">${proveedorStr}</td>
                     <td class="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title="${detalles}">${detalles}</td>
