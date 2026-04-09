@@ -122,8 +122,12 @@ async function guardarInsumoRapido() {
     const nombre = document.getElementById('inpRapidoNombre').value.trim();
     const unidad = document.getElementById('inpRapidoUnidad').value.trim();
     const min = document.getElementById('inpRapidoMin') ? parseFloat(document.getElementById('inpRapidoMin').value) : 10;
-    const archivoInput = document.getElementById('inpRapidoFoto');
-    const foto = archivoInput ? archivoInput.files[0] : null;
+    
+    // Puede venir del input Galería o del input Cámara
+    const fileGallery = document.getElementById('inpRapidoFoto');
+    const fileCamera = document.getElementById('inpRapidoCamara');
+    const foto = (fileGallery.files && fileGallery.files[0]) ? fileGallery.files[0] : 
+                 (fileCamera.files && fileCamera.files[0]) ? fileCamera.files[0] : null;
 
     if (!nombre) return alert('Por favor, ingresa el nombre del insumo');
     if (!unidad) return alert('Por favor, ingresa la unidad de medida');
