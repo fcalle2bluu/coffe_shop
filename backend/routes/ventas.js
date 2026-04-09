@@ -22,7 +22,7 @@ router.get('/productos', async (req, res) => {
 
 // 2. Procesar una nueva venta (Transacción Completa)
 router.post('/', async (req, res) => {
-    const { total, metodo_pago, detalles } = req.body;
+    const { usuario_id, caja_id, total, metodo_pago, detalles } = req.body;
     
     // Validaciones básicas
     if (!detalles || detalles.length === 0) {
@@ -35,43 +35,60 @@ router.post('/', async (req, res) => {
         await client.query('BEGIN'); // 🔒 Inicia la transacción
 
         // Paso 1: Registrar la cabecera de la venta
-        // Nota: usuario_id y caja_id los dejamos nulos por ahora hasta tener el módulo de Login/Caja
-        // Buscar la caja abierta actualmente
-        const cajaActivaRes = await client.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL ORDER BY id DESC LIMIT 1');
-        if (cajaActivaRes.rows.length === 0) {
-            throw new Error("No hay una caja abierta. Ve al módulo de Caja y abre un turno primero.");
-        }
-        const caja_id = cajaActivaRes.rows[0].id;
-
         const insertVenta = `
-            INSERT INTO ventas (caja_id, total, metodo_pago) 
-            VALUES ($1, $2, $3) 
-            RETURNING id, TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
+            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago) 
+            VALUES ($1, $2, $3, $4) 
+            RETURNING id
         `;
-        const resultVenta = await client.query(insertVenta, [caja_id, total, metodo_pago]);
+        const resultVenta = await client.query(insertVenta, [usuario_id, caja_id, total, metodo_pago]);
         const ventaId = resultVenta.rows[0].id;
-        const fechaVenta = resultVenta.rows[0].fecha;
 
-        // Paso 2: Registrar los detalles de la venta
+        // Paso 2: Registrar los detalles y descontar del inventario
         for (let item of detalles) {
+            // a. Insertarlo en detalle_ventas
             await client.query(`
                 INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal)
                 VALUES ($1, $2, $3, $4, $5)
             `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
             
-            // 💡 Aquí a futuro agregaremos la lógica para descontar insumos usando la tabla "recetas"
+            // b. MOTOR DE INVENTARIO: Hacer un SELECT a la tabla recetas
+            const recetasRes = await client.query(`
+                SELECT insumo_id, cantidad_necesaria
+                FROM recetas
+                WHERE producto_id = $1
+            `, [item.producto_id]);
+
+            // c. Recorrer esa receta
+            for (let receta of recetasRes.rows) {
+                // Calcular la cantidad total a descontar
+                const descuento = item.cantidad * receta.cantidad_necesaria;
+
+                // d. Actualizar el stock
+                await client.query(`
+                    UPDATE insumos 
+                    SET stock_actual = stock_actual - $1 
+                    WHERE id = $2
+                `, [descuento, receta.insumo_id]);
+
+                // e. Registrar el movimiento
+                await client.query(`
+                    INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+                    VALUES ($1, 'VENTA', $2, $3, CURRENT_TIMESTAMP)
+                `, [receta.insumo_id, descuento, ventaId]);
+            }
         }
 
         await client.query('COMMIT'); // ✅ Confirma y guarda todo en la BD
-        res.status(201).json({ 
-            message: 'Venta registrada con éxito', 
-            ticket: { id: ventaId, total, metodo_pago, fecha: fechaVenta } 
-        });
+        
+        // Devolver un JSON con el ID de la venta
+        res.status(201).json({ venta_id: ventaId });
 
     } catch (error) {
         await client.query('ROLLBACK'); // ❌ Si algo falla, deshace todos los cambios
         console.error('Error en la transacción de venta:', error);
-        res.status(500).json({ error: 'Error interno al procesar la venta' });
+        
+        // Devolver un status 500 con el mensaje de error
+        res.status(500).json({ error: error.message || 'Error interno al procesar la venta' });
     } finally {
         client.release(); // Libera la conexión
     }
