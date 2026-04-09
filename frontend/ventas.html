@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
-            theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } }
+            theme: { extend: { colors: { sidebar: '#0f172a', sidebarHover: '#1e293b', topbar: '#334155', logoBg: '#1e293b', mainBg: '#f8fafc' } } }
         }
     </script>
 
@@ -100,7 +100,7 @@
                         <span id="subtotal-ticket" class="font-bold">S/ 0.00</span>
                     </div>
                     <div class="flex justify-between items-end">
-                        <span class="text-lg sm:text-xl font-bold text-[#3E2723]">TOTAL</span>
+                        <span class="text-lg sm:text-xl font-bold text-slate-900">TOTAL</span>
                         <span class="text-2xl sm:text-3xl font-black text-orange-600" id="total-ticket">S/ 0.00</span>
                     </div>
                     
@@ -112,7 +112,7 @@
                         </select>
                     </div>
 
-                    <button onclick="procesarCobro()" id="btn-cobrar" class="w-full bg-[#5D4037] hover:bg-[#4E342E] text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg text-base sm:text-lg mt-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onclick="procesarCobro()" id="btn-cobrar" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg text-base sm:text-lg mt-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         COBRAR S/ <span id="btn-total">0.00</span>
                     </button>
                 </div>

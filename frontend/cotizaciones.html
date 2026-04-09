@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
-            theme: { extend: { colors: { sidebar: '#3E2723', sidebarHover: '#4E342E', topbar: '#5D4037', logoBg: '#4E342E', mainBg: '#F4F1EA' } } }
+            theme: { extend: { colors: { sidebar: '#0f172a', sidebarHover: '#1e293b', topbar: '#334155', logoBg: '#1e293b', mainBg: '#f8fafc' } } }
         }
     </script>
 
@@ -97,7 +97,7 @@
     <div id="modalCotizacion" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-4 sm:p-6 border-t-4 border-orange-600 flex flex-col max-h-[95vh]">
             <div class="flex justify-between items-center mb-4 shrink-0">
-                <h3 class="text-lg font-bold text-[#3E2723]">Crear Cotización</h3>
+                <h3 class="text-lg font-bold text-slate-900">Crear Cotización</h3>
                 <button onclick="cerrarModal()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
@@ -117,7 +117,7 @@
                             <label class="text-xs font-semibold text-gray-600 block mb-1">Cant.</label>
                             <input type="number" id="inputCantidad" value="1" min="1" class="w-full border rounded px-3 py-2 text-sm focus:ring-orange-500 text-center">
                         </div>
-                        <button type="button" onclick="agregarAlCarrito()" class="flex-1 sm:flex-none bg-[#5D4037] hover:bg-[#4E342E] text-white px-4 py-2 rounded text-sm transition-colors mt-5 sm:mt-0">
+                        <button type="button" onclick="agregarAlCarrito()" class="flex-1 sm:flex-none bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded text-sm transition-colors mt-5 sm:mt-0">
                             <i class="fa-solid fa-cart-plus sm:mr-1"></i> <span class="hidden sm:inline">Agregar</span>
                         </button>
                     </div>

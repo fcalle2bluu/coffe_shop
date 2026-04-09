@@ -36,12 +36,12 @@ function renderizarCatalogo(filtro = '') {
 
     filtrados.forEach(prod => {
         contenedor.innerHTML += `
-            <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-[#8D6E63] transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px]">
+            <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px]">
                 <div>
-                    <span class="text-xs font-bold text-[#E65100] mb-1 block">${prod.categoria || 'General'}</span>
+                    <span class="text-xs font-bold text-orange-600 mb-1 block">${prod.categoria || 'General'}</span>
                     <h3 class="font-bold text-gray-800 leading-tight">${prod.nombre}</h3>
                 </div>
-                <div class="text-lg font-black text-[#4E342E] mt-2">
+                <div class="text-lg font-black text-slate-800 mt-2">
                     S/ ${prod.precio_venta}
                 </div>
             </div>
@@ -116,7 +116,7 @@ function actualizarTicket() {
                         <button onclick="modificarCantidad(${index}, 'suma')" class="px-2 py-1 text-gray-600 hover:text-green-500 font-bold">+</button>
                     </div>
 
-                    <div class="text-right font-black text-[#3E2723] w-16">
+                    <div class="text-right font-black text-slate-900 w-16">
                         S/ ${item.subtotal.toFixed(2)}
                     </div>
                 </div>

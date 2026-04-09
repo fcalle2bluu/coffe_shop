@@ -61,8 +61,8 @@ async function cargarPedidos() {
                 <tr class="border-b hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-gray-500 text-xs"><i class="fa-regular fa-clock mr-1"></i>${pedido.fecha_pedido}</td>
                     ${colSolicitante}
-                    <td class="px-4 py-3 font-bold text-[#4E342E]">${pedido.insumo_nombre}</td>
-                    <td class="px-4 py-3 text-center font-bold text-[#E65100] bg-orange-50">${cantidadVisual}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${pedido.insumo_nombre}</td>
+                    <td class="px-4 py-3 text-center font-bold text-orange-600 bg-orange-50">${cantidadVisual}</td>
                     <td class="px-4 py-3 text-gray-600 text-xs italic">${pedido.notas || 'Ninguna'}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide border ${colorEstado}">${pedido.estado}</span>

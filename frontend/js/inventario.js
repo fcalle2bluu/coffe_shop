@@ -41,7 +41,7 @@ function renderizarGraficas(graficas) {
             datasets: [{
                 label: 'Cantidad en Stock',
                 data: graficas.topStock.map(i => i.stock_actual),
-                backgroundColor: '#8D6E63',
+                backgroundColor: '#f97316',
                 borderRadius: 4
             }]
         },
@@ -81,7 +81,7 @@ function renderizarTablaAuditoria() {
                 <td class="p-3 text-center font-bold text-gray-600">${item.stock_actual}</td>
                 <td class="p-3 text-center">
                     <input type="number" id="fisico-${index}" value="${item.stock_actual}" step="0.1" 
-                           class="w-24 border-2 border-gray-300 rounded px-2 py-1 text-center font-bold text-[#E65100] focus:border-[#E65100] outline-none"
+                           class="w-24 border-2 border-gray-300 rounded px-2 py-1 text-center font-bold text-orange-600 focus:border-orange-600 outline-none"
                            oninput="calcularDiferencia(${index}, ${item.stock_actual})">
                 </td>
                 <td class="p-3 text-center font-black text-gray-400" id="dif-${index}">0.00</td>
