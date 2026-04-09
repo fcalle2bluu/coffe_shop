@@ -30,9 +30,11 @@ function renderizarTabla(insumos) {
         const alerta = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
         const badgeClase = alerta ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
         const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Bajo Stock' : 'Normal';
+        const imgHtml = insumo.imagen_url ? `<img src="${insumo.imagen_url}" class="w-8 h-8 rounded object-cover shadow border border-gray-200 cursor-pointer" onclick="window.open('${insumo.imagen_url}', '_blank')">` : `<div class="w-8 h-8 rounded bg-gray-200 flex items-center justify-center text-gray-400 text-xs"><i class="fa-solid fa-image"></i></div>`;
 
         tbody.innerHTML += `
             <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-2">${imgHtml}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${insumo.nombre}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-500">${insumo.unidad_medida}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-slate-800'} text-lg">${insumo.stock_actual}</td>
@@ -99,42 +101,46 @@ async function eliminarInsumo(id, nombre) {
 
 async function guardarInsumoRapido() {
     const nombre = document.getElementById('inpRapidoNombre').value.trim();
-    const unidad = document.getElementById('inpRapidoUnidad').value;
-    const stock = parseFloat(document.getElementById('inpRapidoStock').value) || 0;
-    const minimo = parseFloat(document.getElementById('inpRapidoMinimo').value) || 0;
+    const unidad = document.getElementById('inpRapidoUnidad').value.trim();
+    const min = document.getElementById('inpRapidoMin') ? parseFloat(document.getElementById('inpRapidoMin').value) : 10;
+    const archivoInput = document.getElementById('inpRapidoFoto');
+    const foto = archivoInput ? archivoInput.files[0] : null;
 
-    if(!nombre || !unidad) {
-        return alert('Nombre y unidad obligatorios.');
-    }
+    if (!nombre) return alert('Por favor, ingresa el nombre del insumo');
+    if (!unidad) return alert('Por favor, ingresa la unidad de medida');
 
-    const btn = document.getElementById('btnGuardarInsumoRapido');
-    btn.disabled = true;
-    btn.innerHTML = 'Guardando...';
-
-    const data = {
-        nombre: nombre,
-        unidad_medida: unidad,
-        stock_inicial: stock,
-        stock_minimo: minimo
-    };
+    const btn = document.getElementById('btnGuardarRapido');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>'; }
 
     try {
-        const respuesta = await fetch('/api/almacen', {
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('unidad_medida', unidad);
+        formData.append('stock_inicial', 0);
+        formData.append('stock_minimo', min);
+        if (foto) {
+            formData.append('imagen', foto);
+        }
+
+        const response = await fetch('/api/almacen', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: formData
         });
-        if (!respuesta.ok) throw new Error((await respuesta.json()).error);
         
-        // Limpiamos los inputs
-        document.getElementById('inpRapidoNombre').value = '';
-        document.getElementById('inpRapidoStock').value = '0';
+        const data = await response.json();
         
-        cargarInsumos(); 
+        if (response.ok) {
+            document.getElementById('inpRapidoNombre').value = '';
+            document.getElementById('inpRapidoUnidad').value = '';
+            if (document.getElementById('inpRapidoMin')) document.getElementById('inpRapidoMin').value = '0';
+            if (archivoInput) archivoInput.value = '';
+            cargarInsumos();
+        } else {
+            alert('Error: ' + data.error);
+        }
     } catch (error) {
-        alert('Error al crear: ' + error.message);
+        alert('Error conectando al servidor');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Crear Insumo';
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Crear'; }
     }
 }

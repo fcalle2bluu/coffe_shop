@@ -94,32 +94,31 @@
                 <div class="bg-slate-50 border-t border-b border-gray-100 p-3 flex flex-wrap gap-2 items-end border-b  shrink-0 solo-admin">
                     <div class="flex-1 min-w-[200px]">
                         <label class="block text-xs font-bold text-gray-600 mb-1">Nombre Insumo Nuevo</label>
-                        <input type="text" id="inpRapidoNombre" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 focus:border-orange-500 outline-none border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors">
-                    </div>
-                    <div class="w-32">
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Unidad</label>
-                        <input type="text" id="inpRapidoUnidad" placeholder="Ej: kg, bolsa, L" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 outline-none border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors font-bold text-slate-800">
+                        <input type="text" id="inpRapidoNombre" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 focus:border-orange-500 outline-none border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 transition-colors">
                     </div>
                     <div class="w-24">
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Minimo Ctd</label>
-                        <input type="number" id="inpRapidoMinimo" min="0" step="0.1" value="10" class="w-full border rounded px-2 py-1.5 text-sm outline-none border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors text-center text-red-500 font-bold">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Foto <i class="fa-solid fa-camera"></i></label>
+                        <input type="file" id="inpRapidoFoto" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer">
                     </div>
-                    <div class="w-32">
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Stock Inicial</label>
-                        <input type="number" id="inpRapidoStock" min="0" step="0.1" value="0" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 outline-none border-gray-300 text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors text-center font-bold">
+                    <div class="w-24">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Unidad</label>
+                        <input type="text" id="inpRapidoUnidad" placeholder="Ej: kg, L" class="w-full border rounded px-2 py-1.5 text-sm focus:ring-orange-500 outline-none border-gray-300 font-bold text-slate-800">
                     </div>
-                    <div>
-                        <button onclick="guardarInsumoRapido()" id="btnGuardarInsumoRapido" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white px-4 py-1.5 rounded shadow transition-colors font-bold text-sm h-[34px] flex items-center">
-                            <i class="fa-solid fa-plus mr-2"></i> Crear Insumo
-                        </button>
+                    <div class="w-20">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Stk Mín</label>
+                        <input type="number" id="inpRapidoMin" value="0" class="w-full border rounded px-2 py-1.5 text-sm text-center focus:ring-orange-500 outline-none border-gray-300 font-bold text-slate-800">
                     </div>
+                    <button onclick="guardarInsumoRapido()" id="btnGuardarRapido" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white font-bold py-1.5 px-4 rounded text-sm whitespace-nowrap h-9 self-end">
+                        <i class="fa-solid fa-plus mr-1"></i> Crear
+                    </button>
                 </div>
                 
-                <div class="flex-1 overflow-auto">
-                    <table class="min-w-full w-full whitespace-nowrap">
-                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10">
+                <div class="flex-1 overflow-auto bg-slate-50 relative">
+                    <table class="min-w-full w-full">
+                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10 hidden sm:table-header-group">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Insumo</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12">Foto</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Insumo</th>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-800 uppercase">Unidad</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Stock</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-slate-800 uppercase">Mínimo</th>

@@ -2,6 +2,17 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const multer = require('multer');
+const { createClient } = require('@supabase/supabase-js');
+
+// Configuración de Supabase
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Configuración de Multer (Memoria)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB MAX
+
 
 // 1. Obtener insumos ACTIVOS (Tabla de Stock)
 router.get('/insumos', async (req, res) => {
@@ -59,39 +70,76 @@ router.post('/ajuste', async (req, res) => {
 });
 
 // 3. Crear un NUEVO Insumo
-router.post('/', async (req, res) => {
+router.post('/', upload.single('imagen'), async (req, res) => {
+    // Si viene FormData, req.body tendrá datos como strings y req.file tendrá la imagen
     const { nombre, unidad_medida, stock_inicial, stock_minimo } = req.body;
+    let imagen_url = null;
     
     if (!nombre || !unidad_medida) {
         return res.status(400).json({ error: 'El nombre y unidad son obligatorios' });
     }
 
-    const cliente = await pool.connect();
     try {
-        await cliente.query('BEGIN');
-        const insertInsumo = await cliente.query(`
-            INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo) 
-            VALUES ($1, $2, $3, $4) 
-            RETURNING *
-        `, [nombre, unidad_medida, stock_inicial || 0, stock_minimo || 0]);
-        
-        const nuevoInsumo = insertInsumo.rows[0];
+        // [Fase A] - Subida de Imagen a Supabase Storage
+        if (req.file) {
+            if (!supabaseUrl || !supabaseKey) {
+                console.warn('⚠️ No hay keys de Supabase configuradas para subir la imagen.');
+            } else {
+                const nombreArchivo = `${Date.now()}_${req.file.originalname.replace(/\s+/g, '_')}`;
+                
+                const { data, error } = await supabase.storage
+                    .from('insumos') // Nombre del bucket fijo
+                    .upload(nombreArchivo, req.file.buffer, {
+                        contentType: req.file.mimetype,
+                        upsert: false
+                    });
 
-        if (stock_inicial > 0) {
-            await cliente.query(`
-                INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, fecha) 
-                VALUES ($1, 'COMPRA', $2, NOW())
-            `, [nuevoInsumo.id, stock_inicial]);
+                if (error) {
+                    console.error('Error subiendo a Supabase:', error);
+                    // No bloquearemos la creación del insumo si falla la foto
+                } else {
+                    const { data: publicUrlData } = supabase.storage
+                        .from('insumos')
+                        .getPublicUrl(nombreArchivo);
+                    
+                    imagen_url = publicUrlData.publicUrl;
+                }
+            }
         }
 
-        await cliente.query('COMMIT'); 
-        res.json({ mensaje: 'Insumo creado con éxito', insumo: nuevoInsumo });
+        // [Fase B] - Guardado en PostgreSQL
+        const cliente = await pool.connect();
+        try {
+            await cliente.query('BEGIN');
+            
+            // Inyectamos la URL de la imagen en la tabla (requiere la columna imagen_url)
+            const insertInsumo = await cliente.query(`
+                INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo, imagen_url) 
+                VALUES ($1, $2, $3, $4, $5) 
+                RETURNING *
+            `, [nombre, unidad_medida, stock_inicial || 0, stock_minimo || 0, imagen_url]);
+            
+            const nuevoInsumo = insertInsumo.rows[0];
+
+            if (stock_inicial > 0) {
+                await cliente.query(`
+                    INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, fecha) 
+                    VALUES ($1, 'COMPRA', $2, NOW())
+                `, [nuevoInsumo.id, stock_inicial]);
+            }
+
+            await cliente.query('COMMIT'); 
+            res.json({ mensaje: 'Insumo creado con éxito', insumo: nuevoInsumo });
+        } catch (dbError) {
+            await cliente.query('ROLLBACK'); 
+            throw dbError; // Pasamos el error al catch general
+        } finally {
+            cliente.release();
+        }
+
     } catch (error) {
-        await cliente.query('ROLLBACK'); 
-        console.error('Error creando insumo:', error);
-        res.status(500).json({ error: 'Error al guardar el insumo' });
-    } finally {
-        cliente.release();
+        console.error('Error creando insumo o subiendo archivo:', error);
+        res.status(500).json({ error: 'Error interno guardando insumo: ' + error.message });
     }
 });
 
