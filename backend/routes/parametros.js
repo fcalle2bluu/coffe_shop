@@ -78,7 +78,8 @@ router.post('/usuarios', async (req, res) => {
         res.status(201).json({ message: 'Usuario creado exitosamente' });
     } catch (error) {
         console.error('Error al crear usuario:', error);
-        res.status(500).json({ error: 'Error al registrar usuario' });
+        // Devolvemos el mensaje específico del error para diagnosticar (ej: violación de check constraint)
+        res.status(500).json({ error: error.message || 'Error al registrar usuario' });
     }
 });
 
