@@ -3,383 +3,368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Parámetros</title>
+    <title>MokaPOS - Configuración Avanzada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = { 
             theme: { 
                 extend: { 
                     colors: { 
-                        sidebar: '#1c1917',
-                        sidebarHover: '#292524',
+                        sidebar: '#0f172a',
+                        sidebarHover: '#1e293b',
                         topbar: '#ffffff',
-                        logoBg: '#1c1917',
-                        mainBg: '#f8fafc',
-                        accent: '#ea580c'
+                        mainBg: '#f1f5f9',
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
                     }
                 } 
             } 
         }
     </script>
 
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gradient-border {
+            position: relative;
+            background: #fff;
+            border-radius: 1rem;
+        }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, #f97316, #ec4899, #6366f1);
+            z-index: -1;
+            border-radius: 1.1rem;
+            filter: blur(10px);
+            opacity: 0.15;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-mainBg flex items-start font-sans relative font-sans relative">
+<body class="bg-mainBg flex font-sans min-h-screen text-slate-800">
 
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
-    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
-        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-stone-800 shrink-0">
-            <i class="fa-solid fa-mug-hot text-orange-500 mr-2"></i> MokaPOS
-            <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight">Moka<span class="text-accent">POS</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         
-        <div class="flex items-center p-4 border-b border-stone-800 flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold mr-3 shadow-inner">
-                <span id="avatar-letra">U</span>
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center text-white ring-2 ring-slate-800">
+                    <span id="avatar-letra" class="font-bold">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-semibold truncate">Cargando...</p>
+                    <p id="rol-usuario" class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">ROL</p>
+                </div>
             </div>
-            <div>
-                <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
-                <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
-            </div>
-            <button onclick="cerrarSesión()" class="w-full mt-3 flex items-center justify-center px-2 py-1 bg-transparent border border-gray-500 text-gray-400 hover:bg-red-600 hover:text-white hover:border-red-600 rounded text-xs transition-colors">
-                <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold border border-slate-700 rounded-lg hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Salir del Sistema
             </button>
         </div>
         
-        <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
-            <ul class="space-y-1">
-                <li ><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-stone-400"></i> <span>Inicio</span></a></li>
-                <li class="solo-admin"><a href="almacen_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-stone-400"></i> <span>Stock Insumos</span></a></li>
-                <li class="solo-admin"><a href="almacen_movimientos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-stone-400"></i> <span>Historial Almacén</span></a></li>
-                <li ><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-stone-400"></i> <span>Cotizaciones</span></a></li>
-                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-stone-400"></i> <span>Compras</span></a></li>
-                <li ><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-stone-400"></i> <span>Caja</span></a></li>
-                <li ><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-stone-400"></i> <span>Ventas</span></a></li>
-                <li ><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-stone-400"></i> <span>Pedidos Internos</span></a></li>
-                <li ><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-stone-400"></i> <span>Reservas Clientes</span></a></li>
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-stone-400"></i> <span>Auditoría</span></a></li>
-                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-stone-400"></i> <span>Comprobantes</span></a></li>
-                <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-orange-600 text-white"><i class="fa-solid fa-gear w-6 text-center text-orange-500"></i><span class="font-medium">Parámetros</span></a></li>
-            </ul>
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gauge-high w-5"></i> <span>Dashboard</span></a>
+            <div class="pt-4 pb-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inventario</div>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors solo-admin"><i class="fa-solid fa-boxes-stacked w-5"></i> <span>Stock Actual</span></a>
+            <a href="compras.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors solo-admin"><i class="fa-solid fa-cart-flatbed w-5"></i> <span>Compras</span></a>
+            <div class="pt-4 pb-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operaciones</div>
+            <a href="ventas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-5"></i> <span>Terminal de Venta</span></a>
+            <a href="caja.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-vault w-5"></i> <span>Control de Caja</span></a>
+            <a href="parametros.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-accent text-white shadow-lg shadow-accent/20 font-semibold solo-admin"><i class="fa-solid fa-sliders w-5"></i> <span>Configuración</span></a>
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
-        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
-            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0 flex-1">Configuración Global</h1>
-            <button onclick="guardarParámetros()" id="btnGuardar" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white px-3 sm:px-6 py-1.5 rounded shadow font-bold transition-colors flex items-center text-xs sm:text-sm shrink-0">
-                <i class="fa-solid fa-save sm:mr-2"></i> <span class="hidden sm:inline">Guardar Cambios</span><span class="sm:hidden">Guardar</span>
+    <!-- CONTENT AREA -->
+    <main class="flex-1 flex flex-col min-w-0">
+        <!-- HEADER -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100"><i class="fa-solid fa-bars"></i></button>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Configuración del Negocio</h1>
+            </div>
+            <button onclick="guardarParametros()" id="btnGuardar" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Guardar Cambios
             </button>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
-            
-            <div class="flex-1 space-y-4 sm:space-y-6">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <div class="max-w-7xl mx-auto p-6 space-y-8">
                 
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-stone-800 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-building mr-2"></i>Datos de la Empresa</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Comercial</label>
-                            <input type="text" id="inpEmpresa" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Documento (NIT/RUC)</label>
-                            <input type="text" id="inpDoc" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Teléfono</label>
-                            <input type="text" id="inpTel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Dirección Física</label>
-                            <input type="text" id="inpDir" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-green-600 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-money-bill-wave mr-2"></i>Finanzas e Impuestos</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Moneda</label>
-                            <input type="text" id="inpMoneda" placeholder="Ej: Bs." class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 font-bold text-center text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Impuesto</label>
-                            <input type="text" id="inpImpNombre" placeholder="Ej: IVA" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">% Porcentaje</label>
-                            <input type="number" id="inpImpPorcentaje" step="0.01" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-orange-500 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-print mr-2"></i>Personalización de Ticket</h2>
-                    <div class="grid grid-cols-1 gap-3 sm:gap-4">
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Superior</label>
-                            <input type="text" id="inpMsgSup" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Inferior</label>
-                            <input type="text" id="inpMsgInf" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Formato de Impresora</label>
-                            <select id="selPapel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                                <option value="80mm">Ticket Ancho (80mm)</option>
-                                <option value="58mm">Ticket Delgado (58mm)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="w-full lg:w-96 flex flex-col items-center pb-10 lg:pb-0">
-                <h3 class="font-bold text-gray-500 mb-2 uppercase tracking-widest text-xs sm:text-sm">Vista Previa en Vivo</h3>
-                
-                <div class="bg-white p-4 sm:p-6 shadow-xl w-full max-w-[320px] font-mono text-xs sm:text-sm border-t-8 border-gray-800 relative">
-                    <div class="absolute top-[-4px] left-0 w-full h-2 bg-[radial-gradient(circle,white_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x"></div>
+                <!-- TOP FORMS + PREVIEW -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     
-                    <div class="text-center mb-4">
-                        <p class="text-[10px] sm:text-xs mb-1" id="prev-msg-sup">¡Bienvenido a MokaPOS!</p>
-                        <h2 class="font-black text-lg sm:text-xl tracking-widest uppercase" id="prev-empresa">MOKA POS</h2>
-                        <p class="text-[10px] sm:text-xs mt-1" id="prev-doc">NIT: 0000000</p>
-                        <p class="text-[10px] sm:text-xs" id="prev-dir">Av. Principal 123</p>
-                        <p class="text-[10px] sm:text-xs" id="prev-tel">+591 000000</p>
-                        <p class="text-[10px] sm:text-xs mt-2">TICKET #0001</p>
+                    <!-- LEFT SIDE: FORMS -->
+                    <div class="lg:col-span-8 space-y-8">
+                        
+                        <!-- CARD: DATOS DE EMPRESA -->
+                        <section class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+                                <i class="fa-solid fa-briefcase text-indigo-500"></i>
+                                <h2 class="font-bold text-slate-800">Identidad Corporativa</h2>
+                            </div>
+                            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nombre Comercial del Establecimiento</label>
+                                    <input type="text" id="inpEmpresa" placeholder="MokaPOS Café" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Documento Tributario (NIT/RUC)</label>
+                                    <input type="text" id="inpDoc" placeholder="000-000-000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Teléfono de Contacto</label>
+                                    <input type="text" id="inpTel" placeholder="+51 900..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Dirección Fiscal / Física</label>
+                                    <input type="text" id="inpDir" placeholder="Av. Gastronomía 123, Lima" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- GRID: FINANCE + TICKET -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- FINANCE -->
+                            <section class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+                                    <i class="fa-solid fa-coins text-emerald-500"></i>
+                                    <h2 class="font-bold text-slate-800">Moneda e Impuestos</h2>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Símbolo</label>
+                                            <input type="text" id="inpMoneda" placeholder="S/" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-center font-bold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nombre Imp.</label>
+                                            <input type="text" id="inpImpNombre" placeholder="IGV" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Porcentaje de Impuesto (%)</label>
+                                        <input type="number" id="inpImpPorcentaje" step="0.01" value="18" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- TICKET -->
+                            <section class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+                                    <i class="fa-solid fa-receipt text-orange-500"></i>
+                                    <h2 class="font-bold text-slate-800">Parámetros de Impresión</h2>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Formato de Papel</label>
+                                        <div class="relative">
+                                            <select id="selPapel" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none appearance-none cursor-pointer">
+                                                <option value="80mm">Ticket Ancho (80mm)</option>
+                                                <option value="58mm">Ticket Estándar (58mm)</option>
+                                            </select>
+                                            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                    <div class="group">
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Mensaje en Cabecera de Ticket</label>
+                                        <input type="text" id="inpMsgSup" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                    <div class="group">
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Mensaje en Pie de Ticket</label>
+                                        <input type="text" id="inpMsgInf" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
                     </div>
-                    
-                    <div class="border-t border-dashed border-gray-400 my-2"></div>
-                    
-                    <table class="w-full text-[10px] sm:text-xs">
-                        <tr class="font-bold"><td class="py-1">1x</td><td>Café Americano</td><td class="text-right"><span class="prev-moneda">Bs.</span> 15.00</td></tr>
-                        <tr class="font-bold"><td class="py-1">2x</td><td>Croissant</td><td class="text-right"><span class="prev-moneda">Bs.</span> 24.00</td></tr>
-                    </table>
-        </nav>
-    </aside>
 
-    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
-        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
-            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0 flex-1">Configuración Global</h1>
-            <button onclick="guardarParámetros()" id="btnGuardar" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white px-3 sm:px-6 py-1.5 rounded shadow font-bold transition-colors flex items-center text-xs sm:text-sm shrink-0">
-                <i class="fa-solid fa-save sm:mr-2"></i> <span class="hidden sm:inline">Guardar Cambios</span><span class="sm:hidden">Guardar</span>
-            </button>
-        </header>
+                    <!-- RIGHT SIDE: TICKET PREVIEW -->
+                    <div class="lg:col-span-4 lg:sticky lg:top-24">
+                        <div class="flex flex-col items-center">
+                            <h3 class="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-4">Vista Previa Dinámica</h3>
+                            
+                            <!-- THE TICKET -->
+                            <div class="bg-white p-6 shadow-2xl w-full max-w-[300px] font-mono text-xs border-t-[10px] border-slate-900 relative">
+                                <!-- Paper zig-zag effect top -->
+                                <div class="absolute -top-[14px] left-0 w-full h-2 bg-[radial-gradient(circle,rgba(241,245,249,1)_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x z-20"></div>
+                                
+                                <div class="text-center mb-6">
+                                    <p class="text-[9px] text-slate-400 mb-1" id="prev-msg-sup">¡Gracias por visitarnos!</p>
+                                    <h2 class="font-black text-lg tracking-tighter uppercase leading-none mb-1" id="prev-empresa">NEGOCIO POS</h2>
+                                    <p class="text-[9px] font-bold" id="prev-doc">DOC: 0000000</p>
+                                    <p class="text-[9px]" id="prev-dir">Av. Principal 123</p>
+                                    <p class="text-[9px]" id="prev-tel">TLF: 000 000</p>
+                                </div>
+                                
+                                <div class="border-t border-dashed border-slate-300 my-3"></div>
+                                
+                                <div class="space-y-2">
+                                    <div class="flex justify-between"><span>1x Café Americano</span><span>15.00</span></div>
+                                    <div class="flex justify-between"><span>2x Medialunas</span><span>24.00</span></div>
+                                </div>
+                                
+                                <div class="border-t border-dashed border-slate-300 my-3"></div>
+                                
+                                <div class="flex justify-between font-black text-sm">
+                                    <span>TOTAL</span>
+                                    <span><span class="prev-moneda">Bs.</span> 39.00</span>
+                                </div>
+                                
+                                <div class="text-center mt-8 space-y-1">
+                                    <p id="prev-msg-inf" class="italic text-[10px]">¡Vuelva pronto!</p>
+                                    <div class="flex justify-center pt-2 opacity-20">
+                                        <i class="fa-solid fa-barcode text-3xl"></i>
+                                    </div>
+                                </div>
 
-        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
-            
-            <div class="flex-1 space-y-4 sm:space-y-6">
-                
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-stone-800 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-building mr-2"></i>Datos de la Empresa</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Comercial</label>
-                            <input type="text" id="inpEmpresa" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Documento (NIT/RUC)</label>
-                            <input type="text" id="inpDoc" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Teléfono</label>
-                            <input type="text" id="inpTel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Dirección Física</label>
-                            <input type="text" id="inpDir" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                                <!-- Paper zig-zag effect bottom -->
+                                <div class="absolute -bottom-[6px] left-0 w-full h-2 bg-[radial-gradient(circle,rgba(241,245,249,1)_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x rotate-180"></div>
+                            </div>
+
+                            <p class="mt-6 text-[11px] text-slate-400 text-center italic max-w-[200px]">Este diseño se adapta automáticamente según el formato de 58mm o 80mm seleccionado.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-green-600 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-money-bill-wave mr-2"></i>Finanzas e Impuestos</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Moneda</label>
-                            <input type="text" id="inpMoneda" placeholder="Ej: Bs." class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 font-bold text-center text-sm">
+                <!-- USER MANAGEMENT: CENTERED & FULL WIDTH -->
+                <section id="seccion-usuarios" class="pt-8 pb-20">
+                    <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 italic tracking-tight uppercase">
+                                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                        <i class="fa-solid fa-users-gear text-sm"></i>
+                                    </div>
+                                    Gestión de Personal y Accesos
+                                </h2>
+                                <p class="text-xs text-slate-400 font-medium ml-13">Administra los roles, permisos y códigos de acceso de tu equipo.</p>
+                            </div>
+                            <button onclick="abrirModalUsuario()" class="bg-indigo-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-2 group">
+                                <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
+                                Registrar Nuevo Usuario
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Impuesto</label>
-                            <input type="text" id="inpImpNombre" placeholder="Ej: IVA" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">% Porcentaje</label>
-                            <input type="number" id="inpImpPorcentaje" step="0.01" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
+                        
+                        <div class="p-8">
+                            <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-inner-soft">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50/50">
+                                        <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                                            <th class="px-6 py-4">Colaborador / Identidad</th>
+                                            <th class="px-6 py-4 text-center">Rol en el Sistema</th>
+                                            <th class="px-6 py-4 text-center">Estado</th>
+                                            <th class="px-6 py-4 text-right">Controles Externos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-usuarios" class="divide-y divide-slate-100">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-20 text-slate-300 italic">
+                                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block"></i>
+                                                Sincronizando base de datos de personal...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="bg-white rounded-lg shadow-md border-t-4 border-orange-500 p-4 sm:p-5">
-                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-print mr-2"></i>Personalización de Ticket</h2>
-                    <div class="grid grid-cols-1 gap-3 sm:gap-4">
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Superior</label>
-                            <input type="text" id="inpMsgSup" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Inferior</label>
-                            <input type="text" id="inpMsgInf" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Formato de Impresora</label>
-                            <select id="selPapel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
-                                <option value="80mm">Ticket Ancho (80mm)</option>
-                                <option value="58mm">Ticket Delgado (58mm)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="w-full lg:w-96 flex flex-col items-center pb-10 lg:pb-0">
-                <h3 class="font-bold text-gray-500 mb-2 uppercase tracking-widest text-xs sm:text-sm">Vista Previa en Vivo</h3>
-                
-                <div class="bg-white p-4 sm:p-6 shadow-xl w-full max-w-[320px] font-mono text-xs sm:text-sm border-t-8 border-gray-800 relative">
-                    <div class="absolute top-[-4px] left-0 w-full h-2 bg-[radial-gradient(circle,white_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x"></div>
-                    
-                    <div class="text-center mb-4">
-                        <p class="text-[10px] sm:text-xs mb-1" id="prev-msg-sup">¡Bienvenido a MokaPOS!</p>
-                        <h2 class="font-black text-lg sm:text-xl tracking-widest uppercase" id="prev-empresa">MOKA POS</h2>
-                        <p class="text-[10px] sm:text-xs mt-1" id="prev-doc">NIT: 0000000</p>
-                        <p class="text-[10px] sm:text-xs" id="prev-dir">Av. Principal 123</p>
-                        <p class="text-[10px] sm:text-xs" id="prev-tel">+591 000000</p>
-                        <p class="text-[10px] sm:text-xs mt-2">TICKET #0001</p>
-                    </div>
-                    
-                    <div class="border-t border-dashed border-gray-400 my-2"></div>
-                    
-                    <table class="w-full text-[10px] sm:text-xs">
-                        <tr class="font-bold"><td class="py-1">1x</td><td>Café Americano</td><td class="text-right"><span class="prev-moneda">Bs.</span> 15.00</td></tr>
-                        <tr class="font-bold"><td class="py-1">2x</td><td>Croissant</td><td class="text-right"><span class="prev-moneda">Bs.</span> 24.00</td></tr>
-                    </table>
-                    
-                    <div class="border-t border-dashed border-gray-400 my-2"></div>
-                    
-                    <div class="flex justify-between font-black text-sm sm:text-base">
-                        <span>TOTAL:</span>
-                        <span><span class="prev-moneda">Bs.</span> 39.00</span>
-                    </div>
-                    <div class="text-center mt-6 text-[10px] sm:text-xs italic">
-                        <p id="prev-msg-inf">¡Gracias por su preferencia!</p>
-                    </div>
-
-                    <div class="absolute bottom-[-4px] left-0 w-full h-2 bg-[radial-gradient(circle,white_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x rotate-180"></div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- SECCIÓN: GESTIÓN DE USUARIOS (ANCHO COMPLETO) -->
-        <div class="px-3 sm:px-4 md:px-6 pb-10">
-            <div class="bg-white rounded-lg shadow-md border-t-4 border-indigo-600 p-4 sm:p-5">
-                <div class="flex justify-between items-center mb-4 border-b pb-3">
-                    <div>
-                        <h2 class="text-base sm:text-lg font-bold text-stone-800"><i class="fa-solid fa-users-gear mr-2"></i>Gestión de Personal</h2>
-                        <p class="text-[10px] text-gray-400 font-medium">Administra los accesos y roles de tu equipo</p>
-                    </div>
-                    <button onclick="abrirModalUsuario()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4 py-2 rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i> <span class="hidden sm:inline">Nuevo Usuario</span><span class="sm:inline hidden">Añadir</span>
-                    </button>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs sm:text-sm border-separate border-spacing-y-1">
-                        <thead>
-                            <tr class="text-gray-400 font-black uppercase tracking-widest text-[10px]">
-                                <th class="px-4 py-2">Colaborador / Usuario</th>
-                                <th class="px-4 py-2 text-center">Rol Asignado</th>
-                                <th class="px-4 py-2 text-right">Acciones de Control</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lista-usuarios" class="divide-y divide-gray-50">
-                            <!-- Carga vía JS -->
-                            <tr><td colspan="3" class="text-center py-10 text-gray-300 italic"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando lista de personal...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </main>
 
-    <!-- SECCIÓN DE USUARIOS (INSERCIÓN) -->
-    <!-- Nota: Se insertará en el flujo del grid arriba para que se vea bien -->
+    <!-- MODAL: REGISTRO USUARIO -->
+    <div id="modalUsuario" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="bg-indigo-600 p-8 text-white relative">
+                <button onclick="cerrarModalUsuario()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-user-plus text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-black italic tracking-tight uppercase leading-tight">Registrar Nuevo Usuario</h3>
+                <p class="text-indigo-100/70 text-sm mt-1">Configura las credenciales de un nuevo colaborador.</p>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre Completo</label>
+                        <input type="text" id="userNombre" placeholder="Nombre Apellido" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Usuario (Login)</label>
+                            <input type="text" id="userUsername" placeholder="colaborador1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">PIN de Acceso</label>
+                            <input type="password" id="userPin" placeholder="****" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-center tracking-widest font-black">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Permisos del Sistema</label>
+                        <div class="relative">
+                            <select id="userRol" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none appearance-none cursor-pointer font-semibold">
+                                <option value="CAJERO">Colaborador / Cajero (Ventas)</option>
+                                <option value="ADMIN">Administrador (Acceso Total)</option>
+                                <option value="ALMACEN">Encargado de Logística</option>
+                            </select>
+                            <i class="fa-solid fa-caret-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- MODAL: NUEVO USUARIO -->
-    <div id="modalUsuario" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="bg-indigo-600 p-6 text-white relative">
-                <button onclick="cerrarModalUsuario()" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
-                <h3 class="text-xl font-black italic tracking-tight uppercase">Registrar Nuevo Usuario</h3>
-                <p class="text-indigo-100 text-xs mt-1">Asigna permisos y un PIN de acceso</p>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nombre Completo</label>
-                    <input type="text" id="userNombre" placeholder="Ej: Juan Perez" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                <div class="flex gap-4 pt-4">
+                    <button onclick="cerrarModalUsuario()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">Descartar</button>
+                    <button onclick="guardarNuevoUsuario()" id="btnGuardarUser" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
+                        Autorizar Usuario
+                    </button>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nombre de Usuario</label>
-                        <input type="text" id="userUsername" placeholder="jperez" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">PIN de Acceso</label>
-                        <input type="password" id="userPin" placeholder="****" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center font-black tracking-widest">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Rol de Sistema</label>
-                    <div class="relative">
-                        <select id="userRol" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer">
-                            <option value="CAJERO">Colaborador / Cajero</option>
-                            <option value="ADMIN">Administrador de Sistema</option>
-                            <option value="ALMACEN">Encargado de Almacén</option>
-                        </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
-                <button onclick="cerrarModalUsuario()" class="flex-1 bg-white border border-gray-200 text-gray-500 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors">Cancelar</button>
-                <button onclick="guardarNuevoUsuario()" id="btnGuardarUser" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-plus"></i> Crear Usuario
-                </button>
             </div>
         </div>
     </div>
 
     <script src="js/parametros.js"></script>
     <script>
-        // === 1. GUARDIA DE SEGURIDAD ESTRICTA (Admin Only) ===
-        const rolGuardia = localStorage.getItem('usuario_rol');
+        // === GUARDIA DE SEGURIDAD ESTRICTA ===
+        const rolUsuarioAutenticado = localStorage.getItem('usuario_rol');
         if (!localStorage.getItem('usuario_id')) {
             window.location.href = 'index.html'; 
-        } else if (rolGuardia === 'CAJERO') {
-            alert('⛔ Acceso denegado: La configuración del sistema es exclusiva para Administradores.');
+        } else if (rolUsuarioAutenticado === 'CAJERO') {
+            alert('⛔ Acceso denegado: Esta zona es exclusiva para Gerencia.');
             window.location.href = 'dashboard.html';
         }
 
-        // === 2. LÓGICA DE INTERFAZ ===
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -388,11 +373,12 @@
         }
 
         function cerrarSesión() {
-            localStorage.clear();
-            window.location.href = 'index.html';
+            if(confirm('¿Deseas cerrar tu sesión administrativa?')) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
         }
 
-        // === 3. CARGAR ROLES AL INICIAR ===
         window.addEventListener('DOMContentLoaded', () => {
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
@@ -402,14 +388,11 @@
                 document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
             }
             if (rolActual) {
-                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
+                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1 animate-pulse"></i> ${rolActual}`;
             }
 
             if (rolActual === 'CAJERO') {
-                const elementosAdmin = document.querySelectorAll('.solo-admin');
-                elementosAdmin.forEach(elemento => {
-                    elemento.style.display = 'none';
-                });
+                document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
             }
         });
     </script>

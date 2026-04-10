@@ -106,31 +106,45 @@ async function cargarUsuarios() {
 
         data.forEach(u => {
             const row = document.createElement('tr');
-            row.className = "hover:bg-gray-50 transition-colors";
+            row.className = "group hover:bg-slate-50/80 transition-all duration-200 cursor-default";
             
-            const badgeClass = u.rol === 'ADMINISTRADOR' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
-            const statusClass = u.activo ? 'text-green-500' : 'text-gray-300';
-            const statusIcon = u.activo ? 'fa-toggle-on' : 'fa-toggle-off';
+            // Colores por Rol
+            let badgeClass = 'bg-slate-100 text-slate-600';
+            if (u.rol === 'ADMIN') badgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+            if (u.rol === 'CAJERO') badgeClass = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+            if (u.rol === 'ALMACEN') badgeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
+
+            const statusLabel = u.activo ? 'Operativo' : 'Suspendido';
+            const statusColor = u.activo ? 'text-emerald-500 bg-emerald-50' : 'text-slate-400 bg-slate-50';
+            const toggleIcon = u.activo ? 'fa-toggle-on text-indigo-600' : 'fa-toggle-off text-slate-300';
 
             row.innerHTML = `
-                <td class="px-2 py-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">${u.nombre.charAt(0)}</div>
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm shadow-sm group-hover:bg-white transition-colors">
+                            ${u.nombre.charAt(0).toUpperCase()}
+                        </div>
                         <div>
-                            <p class="font-bold text-gray-800">${u.nombre}</p>
-                            <p class="text-[10px] text-gray-400">@${u.username}</p>
+                            <p class="font-bold text-slate-900 leading-none mb-1 text-sm">${u.nombre}</p>
+                            <p class="text-[10px] text-slate-400 font-medium tracking-wide italic">@${u.username}</p>
                         </div>
                     </div>
                 </td>
-                <td class="px-2 py-3 text-center">
-                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${badgeClass}">${u.rol}</span>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${badgeClass}">${u.rol}</span>
                 </td>
-                <td class="px-2 py-3 text-right">
-                    <div class="flex items-center justify-end gap-3 text-lg">
-                        <button onclick="toggleEstadoUser(${u.id}, ${u.activo})" class="${statusClass} hover:opacity-80 transition-opacity" title="Ajustar estado">
-                            <i class="fa-solid ${statusIcon}"></i>
+                <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${statusColor}">
+                        <i class="fa-solid fa-circle text-[6px]"></i>
+                        ${statusLabel}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-4">
+                        <button onclick="toggleEstadoUser(${u.id}, ${u.activo})" class="text-2xl transition-all hover:scale-110 active:scale-95" title="Cambiar Estado">
+                            <i class="fa-solid ${toggleIcon}"></i>
                         </button>
-                        <button onclick="eliminarUser(${u.id})" class="text-gray-300 hover:text-red-500 transition-colors" title="Eliminar">
+                        <button onclick="eliminarUser(${u.id})" class="text-slate-300 hover:text-rose-500 transition-all hover:rotate-12" title="Eliminar Acceso">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </button>
                     </div>
