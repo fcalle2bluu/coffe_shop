@@ -131,21 +131,10 @@
                     </button>
                 </div>
                 
-                <div class="flex-1 overflow-auto bg-slate-50 relative">
-                    <table class="min-w-full w-full">
-                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10 hidden sm:table-header-group">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12">Foto</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Insumo</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-stone-800 uppercase">Unidad</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Stock</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Mínimo</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Estado</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-stone-800 uppercase">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-insumos" class="divide-y divide-gray-200"></tbody>
-                    </table>
+                <div class="flex-1 overflow-auto bg-slate-50 relative p-2 sm:p-4">
+                    <div id="tabla-insumos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        <!-- Las tarjetas se generan aquí vía JS -->
+                    </div>
                 </div>
             </div>
         </div>

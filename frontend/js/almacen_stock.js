@@ -31,39 +31,50 @@ function renderizarTabla(insumos) {
         const badgeClase = alerta ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
         const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Bajo Stock' : 'Normal';
         const imgHtml = insumo.imagen_url 
-            ? `<img src="${insumo.imagen_url}" class="w-20 h-20 rounded-lg object-cover shadow-md border border-gray-300 cursor-pointer hover:scale-105 transition-transform" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
-            : `<div class="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-3xl border border-gray-200"><i class="fa-solid fa-image"></i></div>`;
+            ? `<img src="${insumo.imagen_url}" class="w-full h-40 object-cover cursor-pointer hover:scale-105 transition-transform" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
+            : `<div class="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-300 text-5xl"><i class="fa-solid fa-image"></i></div>`;
 
         tbody.innerHTML += `
-            <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 py-2">${imgHtml}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${insumo.nombre}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-500">${insumo.unidad_medida}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold ${alerta ? 'text-red-600' : 'text-stone-800'} text-lg">${insumo.stock_actual}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-400">${insumo.stock_minimo}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                    <span class="px-2 py-1 rounded-full text-xs font-semibold border ${badgeClase}">${badgeTexto}</span>
-                </td>
-                
-                <td class="px-4 py-3 whitespace-nowrap text-center">
-                    <div class="flex items-center justify-center space-x-2">
-                        
-                        <button onclick="eliminarInsumo(${insumo.id}, '${insumo.nombre}')" class="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors" title="Eliminar">
-                            <i class="fa-solid fa-trash-can text-lg"></i>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
+                <!-- Foto Grande -->
+                <div class="relative w-full h-40 overflow-hidden shrink-0 bg-gray-50 border-b border-gray-100">
+                    ${imgHtml}
+                    <!-- Badge superpuesto -->
+                    <div class="absolute top-2 right-2">
+                        <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide uppercase shadow-sm border bg-white ${alerta ? 'text-red-600 border-red-300' : 'text-green-600 border-green-300'}">
+                            ${badgeTexto}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Info (2 líneas principales) -->
+                <div class="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg leading-tight truncate mb-2" title="${insumo.nombre}">${insumo.nombre}</h3>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Detalle</span>
+                            <span class="text-2xl font-black tracking-tight ${alerta ? 'text-red-600' : 'text-stone-800'}">${insumo.stock_actual} <span class="text-sm text-gray-500 font-bold">${insumo.unidad_medida}</span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Acciones Inferiores -->
+                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <button onclick="eliminarInsumo(${insumo.id}, '${insumo.nombre}')" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors" title="Eliminar Insumo">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                         
-                        <div class="flex items-center justify-center shadow-sm rounded-md border border-gray-300 overflow-hidden">
-                            <input type="number" id="qty-${insumo.id}" value="10" min="0.1" step="0.1" class="w-16 text-center text-sm py-1 outline-none bg-gray-50 font-bold">
-                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-gray-200 hover:bg-red-500 hover:text-white text-gray-600 px-2 py-1 transition-colors border-l" title="Restar">
+                        <div class="flex items-center rounded-lg border border-gray-300 overflow-hidden shadow-sm">
+                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-gray-50 hover:bg-red-500 hover:text-white text-gray-600 w-9 h-8 flex items-center justify-center transition-colors">
                                 <i class="fa-solid fa-minus"></i>
                             </button>
-                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-gray-200 hover:bg-green-500 hover:text-white text-gray-600 px-2 py-1 transition-colors border-l" title="Sumar">
+                            <input type="number" id="qty-${insumo.id}" value="10" min="0.1" step="0.1" class="w-14 text-center text-sm outline-none bg-white font-bold h-8 border-x border-gray-200">
+                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-gray-50 hover:bg-green-500 hover:text-white text-gray-600 w-9 h-8 flex items-center justify-center transition-colors">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
                     </div>
-                </td>
-            </tr>
+                </div>
+            </div>
         `;
     });
 }
