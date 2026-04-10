@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ]).then(() => {
         console.log("🚀 Carga de parámetros completada.");
     });
-});
+
     // Añadir listeners para que el ticket en vivo se actualice al escribir
     const inputsLive = [
         { id: 'inpEmpresa', prevId: 'prev-empresa' },
@@ -19,16 +19,23 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     inputsLive.forEach(map => {
-        document.getElementById(map.id).addEventListener('input', (e) => {
-            document.getElementById(map.prevId).innerText = e.target.value;
-        });
+        const el = document.getElementById(map.id);
+        if (el) {
+            el.addEventListener('input', (e) => {
+                const prev = document.getElementById(map.prevId);
+                if (prev) prev.innerText = e.target.value;
+            });
+        }
     });
 
-    // Listener especial para el símbolo de moneda (se repite en varios lados)
-    document.getElementById('inpMoneda').addEventListener('input', (e) => {
-        const monedaTags = document.querySelectorAll('.prev-moneda');
-        monedaTags.forEach(tag => tag.innerText = e.target.value);
-    });
+    // Listener especial para el símbolo de moneda
+    const inpMoneda = document.getElementById('inpMoneda');
+    if (inpMoneda) {
+        inpMoneda.addEventListener('input', (e) => {
+            const monedaTags = document.querySelectorAll('.prev-moneda');
+            monedaTags.forEach(tag => tag.innerText = e.target.value);
+        });
+    }
 });
 
 async function cargarParametros() {
