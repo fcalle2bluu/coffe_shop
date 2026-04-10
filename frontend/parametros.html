@@ -34,11 +34,11 @@
     </script>
 
 </head>
-<body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
+<body class="bg-mainBg flex items-start font-sans relative font-sans relative">
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
 
-    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
+    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
         <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-stone-800 shrink-0">
             <i class="fa-solid fa-mug-hot text-orange-500 mr-2"></i> MokaPOS
             <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -75,7 +75,7 @@
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
         <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0 flex-1">Configuración Global</h1>
@@ -172,6 +172,131 @@
                         <tr class="font-bold"><td class="py-1">1x</td><td>Café Americano</td><td class="text-right"><span class="prev-moneda">Bs.</span> 15.00</td></tr>
                         <tr class="font-bold"><td class="py-1">2x</td><td>Croissant</td><td class="text-right"><span class="prev-moneda">Bs.</span> 24.00</td></tr>
                     </table>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0 flex-1">Configuración Global</h1>
+            <button onclick="guardarParámetros()" id="btnGuardar" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white px-3 sm:px-6 py-1.5 rounded shadow font-bold transition-colors flex items-center text-xs sm:text-sm shrink-0">
+                <i class="fa-solid fa-save sm:mr-2"></i> <span class="hidden sm:inline">Guardar Cambios</span><span class="sm:hidden">Guardar</span>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
+            
+            <div class="flex-1 space-y-4 sm:space-y-6">
+                
+                <div class="bg-white rounded-lg shadow-md border-t-4 border-stone-800 p-4 sm:p-5">
+                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-building mr-2"></i>Datos de la Empresa</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Comercial</label>
+                            <input type="text" id="inpEmpresa" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Documento (NIT/RUC)</label>
+                            <input type="text" id="inpDoc" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Teléfono</label>
+                            <input type="text" id="inpTel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Dirección Física</label>
+                            <input type="text" id="inpDir" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md border-t-4 border-green-600 p-4 sm:p-5">
+                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-money-bill-wave mr-2"></i>Finanzas e Impuestos</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Moneda</label>
+                            <input type="text" id="inpMoneda" placeholder="Ej: Bs." class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 font-bold text-center text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Nombre Impuesto</label>
+                            <input type="text" id="inpImpNombre" placeholder="Ej: IVA" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">% Porcentaje</label>
+                            <input type="number" id="inpImpPorcentaje" step="0.01" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-center text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md border-t-4 border-orange-500 p-4 sm:p-5">
+                    <h2 class="text-base sm:text-lg font-bold text-stone-800 mb-3 border-b pb-2"><i class="fa-solid fa-print mr-2"></i>Personalización de Ticket</h2>
+                    <div class="grid grid-cols-1 gap-3 sm:gap-4">
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Superior</label>
+                            <input type="text" id="inpMsgSup" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Mensaje Inferior</label>
+                            <input type="text" id="inpMsgInf" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">Formato de Impresora</label>
+                            <select id="selPapel" class="w-full border rounded-lg px-3 py-2 focus:ring-orange-500 text-sm">
+                                <option value="80mm">Ticket Ancho (80mm)</option>
+                                <option value="58mm">Ticket Delgado (58mm)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md border-t-4 border-indigo-600 p-4 sm:p-5">
+                    <div class="flex justify-between items-center mb-3 border-b pb-2">
+                        <h2 class="text-base sm:text-lg font-bold text-stone-800"><i class="fa-solid fa-users-gear mr-2"></i>Gestión de Personal</h2>
+                        <button onclick="abrirModalUsuario()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-lg shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-user-plus mr-1"></i> Añadir Usuario
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm">
+                            <thead>
+                                <tr class="text-gray-400 font-bold uppercase tracking-wider border-b text-[10px]">
+                                    <th class="px-2 py-2">Nombre / Usuario</th>
+                                    <th class="px-2 py-2 text-center">Rol</th>
+                                    <th class="px-2 py-2 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-usuarios" class="divide-y divide-gray-100">
+                                <!-- Se llena vía JS -->
+                                <tr><td colspan="3" class="text-center py-4 text-gray-400 italic">Cargando personal...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="w-full lg:w-96 flex flex-col items-center pb-10 lg:pb-0">
+                <h3 class="font-bold text-gray-500 mb-2 uppercase tracking-widest text-xs sm:text-sm">Vista Previa en Vivo</h3>
+                
+                <div class="bg-white p-4 sm:p-6 shadow-xl w-full max-w-[320px] font-mono text-xs sm:text-sm border-t-8 border-gray-800 relative">
+                    <div class="absolute top-[-4px] left-0 w-full h-2 bg-[radial-gradient(circle,white_4px,transparent_4px)] bg-[length:10px_10px] bg-repeat-x"></div>
+                    
+                    <div class="text-center mb-4">
+                        <p class="text-[10px] sm:text-xs mb-1" id="prev-msg-sup">¡Bienvenido a MokaPOS!</p>
+                        <h2 class="font-black text-lg sm:text-xl tracking-widest uppercase" id="prev-empresa">MOKA POS</h2>
+                        <p class="text-[10px] sm:text-xs mt-1" id="prev-doc">NIT: 0000000</p>
+                        <p class="text-[10px] sm:text-xs" id="prev-dir">Av. Principal 123</p>
+                        <p class="text-[10px] sm:text-xs" id="prev-tel">+591 000000</p>
+                        <p class="text-[10px] sm:text-xs mt-2">TICKET #0001</p>
+                    </div>
+                    
+                    <div class="border-t border-dashed border-gray-400 my-2"></div>
+                    
+                    <table class="w-full text-[10px] sm:text-xs">
+                        <tr class="font-bold"><td class="py-1">1x</td><td>Café Americano</td><td class="text-right"><span class="prev-moneda">Bs.</span> 15.00</td></tr>
+                        <tr class="font-bold"><td class="py-1">2x</td><td>Croissant</td><td class="text-right"><span class="prev-moneda">Bs.</span> 24.00</td></tr>
+                    </table>
                     
                     <div class="border-t border-dashed border-gray-400 my-2"></div>
                     
@@ -179,7 +304,6 @@
                         <span>TOTAL:</span>
                         <span><span class="prev-moneda">Bs.</span> 39.00</span>
                     </div>
-                    
                     <div class="text-center mt-6 text-[10px] sm:text-xs italic">
                         <p id="prev-msg-inf">¡Gracias por su preferencia!</p>
                     </div>
@@ -191,7 +315,50 @@
         </div>
     </main>
 
-    <script src="js/Parámetros.js"></script>
+    <!-- SECCIÓN DE USUARIOS (INSERCIÓN) -->
+    <!-- Nota: Se insertará en el flujo del grid arriba para que se vea bien -->
+
+    <!-- MODAL: NUEVO USUARIO -->
+    <div id="modalUsuario" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-indigo-600 p-6 text-white relative">
+                <button onclick="cerrarModalUsuario()" class="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h3 class="text-xl font-black italic tracking-tight uppercase">Registrar Nuevo Usuario</h3>
+                <p class="text-indigo-100 text-xs mt-1">Asigna permisos y un PIN de acceso</p>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nombre Completo</label>
+                    <input type="text" id="userNombre" placeholder="Ej: Juan Perez" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nombre de Usuario</label>
+                        <input type="text" id="userUsername" placeholder="jperez" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">PIN de Acceso</label>
+                        <input type="password" id="userPin" placeholder="****" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center font-black tracking-widest">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Rol de Sistema</label>
+                    <select id="userRol" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer">
+                        <option value="CAJERO">Colaborador / Cajero</option>
+                        <option value="ADMINISTRADOR">Administrador de Sistema</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+                <button onclick="cerrarModalUsuario()" class="flex-1 bg-white border border-gray-200 text-gray-500 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors">Cancelar</button>
+                <button onclick="guardarNuevoUsuario()" id="btnGuardarUser" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-plus"></i> Crear Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/parametros.js"></script>
     <script>
         // === 1. GUARDIA DE SEGURIDAD ESTRICTA (Admin Only) ===
         const rolGuardia = localStorage.getItem('usuario_rol');

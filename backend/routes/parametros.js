@@ -42,4 +42,70 @@ router.put('/', async (req, res) => {
     }
 });
 
+// --- GESTIÓN DE USUARIOS ---
+
+// 3. Listar usuarios
+router.get('/usuarios', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, nombre, username, rol, activo FROM usuarios ORDER BY nombre ASC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al listar usuarios:', error);
+        res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+});
+
+// 4. Crear usuario
+router.post('/usuarios', async (req, res) => {
+    const { nombre, username, pin, rol } = req.body;
+
+    if (!nombre || !username || !pin || !rol) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
+
+    try {
+        // Verificar si el username ya existe
+        const check = await pool.query('SELECT id FROM usuarios WHERE username = $1', [username]);
+        if (check.rows.length > 0) {
+            return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
+        }
+
+        await pool.query(`
+            INSERT INTO usuarios (nombre, username, pin, rol, activo)
+            VALUES ($1, $2, $3, $4, true)
+        `, [nombre, username, pin, rol]);
+
+        res.status(201).json({ message: 'Usuario creado exitosamente' });
+    } catch (error) {
+        console.error('Error al crear usuario:', error);
+        res.status(500).json({ error: 'Error al registrar usuario' });
+    }
+});
+
+// 5. Alternar estado activo/inactivo
+router.put('/usuarios/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { activo } = req.body;
+
+    try {
+        await pool.query('UPDATE usuarios SET activo = $1 WHERE id = $2', [activo, id]);
+        res.json({ message: 'Estado actualizado' });
+    } catch (error) {
+        console.error('Error al actualizar estado:', error);
+        res.status(500).json({ error: 'Error al actualizar usuario' });
+    }
+});
+
+// 6. Eliminar usuario
+router.delete('/usuarios/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+        res.json({ message: 'Usuario eliminado' });
+    } catch (error) {
+        console.error('Error al eliminar usuario:', error);
+        res.status(500).json({ error: 'Error al eliminar usuario' });
+    }
+});
+
 module.exports = router;
