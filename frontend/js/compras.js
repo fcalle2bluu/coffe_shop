@@ -31,21 +31,32 @@ async function cargarHistorialCompras() {
             if (Array.isArray(compra.detalles_compra)) {
                 compra.detalles_compra.forEach(det => {
                     const imgInsumo = det.imagen_url 
-                        ? `<img src="${det.imagen_url}" class="w-10 h-10 object-cover rounded border border-gray-200 shadow-sm shrink-0">` 
-                        : `<div class="w-10 h-10 bg-gray-100 flex items-center justify-center text-gray-300 rounded border border-gray-100 shrink-0"><i class="fa-solid fa-image text-xs"></i></div>`;
+                        ? `<img src="${det.imagen_url}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-sm shrink-0">` 
+                        : `<div class="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-300 rounded-lg border border-gray-100 shrink-0"><i class="fa-solid fa-image text-xs"></i></div>`;
                     
+                    const venceHtml = det.vencimiento 
+                        ? `<p class="text-[10px] text-red-600 font-bold mt-1 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded-full inline-block"><i class="fa-solid fa-calendar-times mr-1"></i> Vence: ${det.vencimiento}</p>` 
+                        : '';
+
                     detallesHtml += `
-                        <div class="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-50 mb-2 last:mb-0">
+                        <div class="flex items-start gap-3 bg-white p-2.5 rounded-xl border border-gray-50 mb-2 last:mb-0 shadow-sm">
                             ${imgInsumo}
                             <div class="flex-1">
-                                <p class="text-xs font-bold text-gray-800 leading-tight">${det.nombre}</p>
-                                <p class="text-[10px] text-gray-500 font-medium uppercase">${det.cantidad} ${det.unidad}</p>
+                                <div class="flex justify-between items-start">
+                                    <p class="text-xs font-black text-gray-800 leading-tight">${det.nombre}</p>
+                                    <p class="text-[11px] font-black text-orange-600 italic">S/ ${Number(det.subtotal).toFixed(2)}</p>
+                                </div>
+                                <div class="flex justify-between items-center mt-1">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase">${det.cantidad} ${det.unidad}</p>
+                                    <p class="text-[9px] text-gray-400 font-medium">U. Cost: S/ ${Number(det.costo_unitario).toFixed(2)}</p>
+                                </div>
+                                ${venceHtml}
                             </div>
                         </div>
                     `;
                 });
             } else {
-                detallesHtml = `<p class="text-xs text-gray-500 italic">${compra.detalles_compra || 'Sin detalles'}</p>`;
+                detallesHtml = `<p class="text-xs text-gray-500 italic px-2">${compra.detalles_compra || 'Sin detalles'}</p>`;
             }
 
             const proveedorStr = compra.proveedor ? `<h3 class="font-bold text-gray-900 border-b pb-2 mb-3 px-1 flex items-center justify-between"><span>🏭 ${compra.proveedor}</span></h3>` : '<h3 class="font-bold text-gray-400 italic border-b pb-2 mb-3">Proveedor Desconocido</h3>';
@@ -203,6 +214,8 @@ async function ejecutarCompraRapida() {
     const fInsumoC = document.getElementById('inpInsumoCamara').files[0];
     const fileInsumo = fInsumoG || fInsumoC;
 
+    const unidad_compra = document.getElementById('inpUnidadCompra').value;
+
     if (!proveedor_id) return alert("Selecciona un proveedor.");
     if (!insumo_id) return alert("Selecciona un insumo.");
     if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad mayor a 0.");
@@ -222,6 +235,7 @@ async function ejecutarCompraRapida() {
                     insumo_id: insumo_id,
                     cantidad: cantidad,
                     costo: costo,
+                    unidad: unidad_compra,
                     vencimiento: vencimiento
                 }
             ]

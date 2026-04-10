@@ -32,7 +32,10 @@ router.get('/', async (req, res) => {
                                'nombre', i.nombre,
                                'cantidad', dc.cantidad,
                                'unidad', i.unidad_medida,
-                               'imagen_url', i.imagen_url
+                               'imagen_url', i.imagen_url,
+                               'costo_unitario', dc.costo_unitario,
+                               'subtotal', dc.subtotal,
+                               'vencimiento', (SELECT TO_CHAR(fecha_vencimiento, 'DD/MM/YYYY') FROM lotes_insumos WHERE compra_id = c.id AND insumo_id = i.id LIMIT 1)
                            )
                        )
                        FROM detalle_compras dc
@@ -134,8 +137,11 @@ router.post('/', upload.fields([{ name: 'foto_recibo', maxCount: 1 }, { name: 'f
             `, [item.insumo_id, compraId, cantidad, subtotal, fechaVencimiento]);
 
             await client.query(`
-                UPDATE insumos SET stock_actual = stock_actual + $1 WHERE id = $2
-            `, [cantidad, item.insumo_id]);
+                UPDATE insumos 
+                SET stock_actual = stock_actual + $1,
+                    unidad_medida = $2
+                WHERE id = $3
+            `, [cantidad, item.unidad || 'unidad', item.insumo_id]);
 
             // Novedad: Si se subió foto del PRODUCTO, actualizar la foto del insumo en el Stock!
             if (foto_producto_url) {
