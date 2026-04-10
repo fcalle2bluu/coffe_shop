@@ -20,22 +20,37 @@ async function cargarHistorialCompras() {
         tbody.innerHTML = '';
         
         if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-500 font-bold">No hay ingresos registrados.</td></tr>`;
+            tbody.innerHTML = `<div class="col-span-full text-center py-10 bg-white rounded-xl shadow-sm"><p class="text-gray-400 font-bold"><i class="fa-solid fa-truck-fast text-4xl mb-3 opacity-30 block"></i> No hay ingresos registrados.</p></div>`;
             return;
         }
 
         data.forEach(compra => {
             const detalles = compra.detalles_compra || 'Sin detalles';
-            const proveedorStr = compra.proveedor ? `${compra.proveedor} <br><span class="text-[10px] text-gray-500">${compra.prov_tel || ''}</span>` : '<span class="text-gray-400 italic">Desconocido</span>';
+            const proveedorStr = compra.proveedor ? `<h3 class="font-bold text-gray-900 border-b pb-1 mb-2">🏭 ${compra.proveedor}</h3>` : '<h3 class="font-bold text-gray-400 italic border-b pb-1 mb-2">Desconocido</h3>';
 
             tbody.innerHTML += `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-3 font-bold text-stone-800">#COM-${String(compra.id).padStart(5, '0')}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs">${compra.fecha_compra}</td>
-                    <td class="px-4 py-3 font-medium text-gray-800">${proveedorStr}</td>
-                    <td class="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title="${detalles}">${detalles}</td>
-                    <td class="px-4 py-3 text-right font-black text-orange-600">Bs. ${Number(compra.total).toFixed(2)}</td>
-                </tr>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
+                    ${proveedorStr}
+                    
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Recibo</span>
+                            <span class="font-bold text-stone-800 bg-gray-100 px-2 py-1 rounded text-xs">#COM-${String(compra.id).padStart(5, '0')}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Inversión</span>
+                            <span class="text-xl font-black text-orange-600 tracking-tight">Bs. ${Number(compra.total).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 border border-gray-100 rounded p-2 text-sm text-gray-600 italic">
+                        <i class="fa-solid fa-box-open text-orange-400 mr-2"></i>${detalles}
+                    </div>
+                    
+                    <div class="mt-3 text-right">
+                        <span class="text-xs text-gray-500 font-medium"><i class="fa-regular fa-calendar mr-1"></i>${compra.fecha_compra}</span>
+                    </div>
+                </div>
             `;
         });
     } catch (e) {
