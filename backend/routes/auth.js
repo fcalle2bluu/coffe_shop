@@ -38,18 +38,33 @@ router.post('/login', async (req, res) => {
 
         console.log(`✅ Login EXITOSO para: ${usuario.nombre} (Rol: ${usuario.rol})`);
 
-        // NUEVO: Registrar en historial de accesos (Auditoría)
+        // Registrar en historial de accesos (Auditoría Avanzada)
         try {
-            const dispositivo = req.headers['user-agent'] || 'Desconocido';
-            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '0.0.0.0';
+            const userAgent = req.headers['user-agent'] || 'Desconocido';
+            const ipRaw = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '0.0.0.0';
+            const ip = ipRaw.split(',')[0].trim(); // La IP real es la primera en x-forwarded-for
             
+            let ubicacion = 'Desconocida';
+            
+            // Intentar obtener ubicación por IP (Solo si no es localhost)
+            if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '0.0.0.0') {
+                try {
+                    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`);
+                    const locData = await response.json();
+                    if (locData.status === 'success') {
+                        ubicacion = `${locData.city}, ${locData.country}`;
+                    }
+                } catch (apiErr) {
+                    console.error('Error al consultar ip-api:', apiErr.message);
+                }
+            }
+
             await pool.query(
-                'INSERT INTO historial_accesos (usuario_id, dispositivo, ip) VALUES ($1, $2, $3)',
-                [usuario.id, dispositivo, ip]
+                'INSERT INTO historial_accesos (usuario_id, dispositivo, ip, ubicacion) VALUES ($1, $2, $3, $4)',
+                [usuario.id, userAgent, ip, ubicacion]
             );
         } catch (logErr) {
             console.error('⚠️ No se pudo registrar el historial de acceso:', logErr.message);
-            // No detenemos el login si falla el log
         }
 
         res.json({ success: true, usuario });

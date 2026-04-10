@@ -24,12 +24,22 @@ pool.query('SELECT NOW()', async (err, res) => {
     console.error('❌ Error de conexión inicial:', err.message);
   } else {
     console.log('✅ ¡CONEXIÓN EXITOSA! MokaPOS está conectado a Supabase.');
-    try {
-        await pool.query('ALTER TABLE compras ADD COLUMN foto_url VARCHAR(255);');
-        console.log('✅ Auto-migración SQL: foto_url agregada a la tabla compras.');
-    } catch(e) {
-        if(e.code !== '42701') console.log('Info Migración:', e.message); // Ignorar error de tabla existente
-    }
+        try {
+            await pool.query('ALTER TABLE compras ADD COLUMN IF NOT EXISTS foto_url VARCHAR(255);');
+            // Migraciones críticas para la tabla usuarios
+            await pool.query('ALTER TABLE usuarios ALTER COLUMN nombre TYPE TEXT;');
+            await pool.query('ALTER TABLE usuarios ALTER COLUMN rol TYPE TEXT;');
+            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT;');
+            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin TEXT;');
+            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;');
+            
+            // Nueva columna para ubicación en auditoría
+            await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS ubicacion TEXT;');
+
+            console.log('✅ Auto-migraciones SQL completadas exitosamente.');
+        } catch(e) {
+            if(e.code !== '42701') console.log('Info Migración:', e.message); 
+        }
   }
 });
 

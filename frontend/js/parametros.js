@@ -252,19 +252,25 @@ async function cargarHistorial() {
             row.innerHTML = `
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-[10px]">
                             ${h.usuario.charAt(0).toUpperCase()}
                         </div>
                         <span class="font-bold text-slate-700 text-sm">${h.usuario}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-slate-500 text-xs font-medium">
-                    <i class="fa-regular fa-calendar-check mr-1 opacity-50"></i> ${h.fecha_formateada}
+                <td class="px-6 py-4 text-slate-500 text-xs font-semibold italic">
+                    <i class="fa-regular fa-clock mr-1 opacity-50"></i> ${h.fecha_formateada}
+                </td>
+                <td class="px-6 py-4 text-xs">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 text-amber-700 font-bold border border-amber-100">
+                        <i class="fa-solid fa-location-dot text-[10px]"></i>
+                        ${h.ubicacion || 'Desconocida'}
+                    </span>
                 </td>
                 <td class="px-6 py-4 text-xs font-mono text-slate-400">
                     <div class="flex flex-col">
-                        <span class="text-slate-600 font-bold"><i class="fa-solid fa-mobile-screen-button mr-1 text-[10px]"></i> ${deviceName}</span>
-                        <span class="text-[9px] opacity-70">IP: ${h.ip}</span>
+                        <span class="text-slate-600 font-bold"><i class="fa-solid fa-desktop mr-1 text-[10px] text-indigo-400"></i> ${deviceName}</span>
+                        <span class="text-[9px] opacity-70">CONEXIÓN IP: ${h.ip}</span>
                     </div>
                 </td>
             `;
@@ -277,11 +283,23 @@ async function cargarHistorial() {
 
 function detectarDispositivo(ua) {
     if (!ua) return 'Desconocido';
-    if (ua.includes('Windows')) return 'PC (Windows)';
-    if (ua.includes('iPhone')) return 'iPhone';
-    if (ua.includes('iPad')) return 'iPad';
-    if (ua.includes('Android')) return 'Móvil (Android)';
-    if (ua.includes('Macintosh')) return 'MacBook / iMac';
-    if (ua.includes('Linux')) return 'PC (Linux)';
-    return 'Navegador Web';
+    let browser = 'Web';
+    let os = 'Sistema';
+
+    // Detectar Navegador
+    if (ua.includes('Chrome') && !ua.includes('Edg') && !ua.includes('Brave')) browser = 'Chrome';
+    else if (ua.includes('Edg')) browser = 'Edge';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+    else if (ua.includes('Brave')) browser = 'Brave';
+
+    // Detectar S.O.
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone')) os = 'iOS (iPhone)';
+    else if (ua.includes('iPad')) os = 'iOS (iPad)';
+    else if (ua.includes('Macintosh')) os = 'macOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+
+    return `${browser} en ${os}`;
 }

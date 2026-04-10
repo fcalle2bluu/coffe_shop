@@ -113,7 +113,7 @@ router.delete('/usuarios/:id', async (req, res) => {
 router.get('/historial', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, 
+            SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, h.ubicacion,
                 TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_formateada
             FROM historial_accesos h
             JOIN usuarios u ON h.usuario_id = u.id
