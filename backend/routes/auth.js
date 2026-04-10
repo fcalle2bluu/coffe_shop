@@ -37,6 +37,21 @@ router.post('/login', async (req, res) => {
         }
 
         console.log(`✅ Login EXITOSO para: ${usuario.nombre} (Rol: ${usuario.rol})`);
+
+        // NUEVO: Registrar en historial de accesos (Auditoría)
+        try {
+            const dispositivo = req.headers['user-agent'] || 'Desconocido';
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '0.0.0.0';
+            
+            await pool.query(
+                'INSERT INTO historial_accesos (usuario_id, dispositivo, ip) VALUES ($1, $2, $3)',
+                [usuario.id, dispositivo, ip]
+            );
+        } catch (logErr) {
+            console.error('⚠️ No se pudo registrar el historial de acceso:', logErr.message);
+            // No detenemos el login si falla el log
+        }
+
         res.json({ success: true, usuario });
 
     } catch (err) {

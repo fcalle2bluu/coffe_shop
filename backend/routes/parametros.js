@@ -109,4 +109,22 @@ router.delete('/usuarios/:id', async (req, res) => {
     }
 });
 
+// 4. Obtener Historial de Accesos
+router.get('/historial', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, 
+                TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_formateada
+            FROM historial_accesos h
+            JOIN usuarios u ON h.usuario_id = u.id
+            ORDER BY h.fecha DESC
+            LIMIT 50
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener historial:', error);
+        res.status(500).json({ error: 'Error al obtener historial de accesos' });
+    }
+});
+
 module.exports = router;

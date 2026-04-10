@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     cargarParametros();
-    cargarUsuarios(); // <--- Cargar lista de usuarios al inicio
-
+    cargarUsuarios(); 
+    cargarHistorial(); // <--- NUEVO: Cargar bitácora de accesos
+});
     // Añadir listeners para que el ticket en vivo se actualice al escribir
     const inputsLive = [
         { id: 'inpEmpresa', prevId: 'prev-empresa' },
@@ -225,4 +226,62 @@ async function eliminarUser(id) {
     } catch (error) {
         alert("Error al eliminar usuario");
     }
+}
+
+async function cargarHistorial() {
+    try {
+        const res = await fetch('/api/parametros/historial');
+        const data = await res.json();
+        const container = document.getElementById('lista-historial');
+        
+        if (!container) return; // Seguridad si el elemento no existe
+
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+            container.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-slate-300 italic">No hay registros aún</td></tr>';
+            return;
+        }
+
+        data.forEach(h => {
+            const row = document.createElement('tr');
+            row.className = "hover:bg-slate-50 transition-colors";
+            
+            const deviceName = detectarDispositivo(h.dispositivo);
+            
+            row.innerHTML = `
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
+                            ${h.usuario.charAt(0).toUpperCase()}
+                        </div>
+                        <span class="font-bold text-slate-700 text-sm">${h.usuario}</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-slate-500 text-xs font-medium">
+                    <i class="fa-regular fa-calendar-check mr-1 opacity-50"></i> ${h.fecha_formateada}
+                </td>
+                <td class="px-6 py-4 text-xs font-mono text-slate-400">
+                    <div class="flex flex-col">
+                        <span class="text-slate-600 font-bold"><i class="fa-solid fa-mobile-screen-button mr-1 text-[10px]"></i> ${deviceName}</span>
+                        <span class="text-[9px] opacity-70">IP: ${h.ip}</span>
+                    </div>
+                </td>
+            `;
+            container.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+    }
+}
+
+function detectarDispositivo(ua) {
+    if (!ua) return 'Desconocido';
+    if (ua.includes('Windows')) return 'PC (Windows)';
+    if (ua.includes('iPhone')) return 'iPhone';
+    if (ua.includes('iPad')) return 'iPad';
+    if (ua.includes('Android')) return 'Móvil (Android)';
+    if (ua.includes('Macintosh')) return 'MacBook / iMac';
+    if (ua.includes('Linux')) return 'PC (Linux)';
+    return 'Navegador Web';
 }
