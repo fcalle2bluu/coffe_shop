@@ -25,36 +25,62 @@ async function cargarHistorialCompras() {
         }
 
         data.forEach(compra => {
-            const detalles = compra.detalles_compra || 'Sin detalles';
-            const proveedorStr = compra.proveedor ? `<h3 class="font-bold text-gray-900 border-b pb-1 mb-2">🏭 ${compra.proveedor}</h3>` : '<h3 class="font-bold text-gray-400 italic border-b pb-1 mb-2">Desconocido</h3>';
+            let detallesHtml = '';
+            
+            // compra.detalles_compra ahora es un array JSON (gracias al cambio en el backend)
+            if (Array.isArray(compra.detalles_compra)) {
+                compra.detalles_compra.forEach(det => {
+                    const imgInsumo = det.imagen_url 
+                        ? `<img src="${det.imagen_url}" class="w-10 h-10 object-cover rounded border border-gray-200 shadow-sm shrink-0">` 
+                        : `<div class="w-10 h-10 bg-gray-100 flex items-center justify-center text-gray-300 rounded border border-gray-100 shrink-0"><i class="fa-solid fa-image text-xs"></i></div>`;
+                    
+                    detallesHtml += `
+                        <div class="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-50 mb-2 last:mb-0">
+                            ${imgInsumo}
+                            <div class="flex-1">
+                                <p class="text-xs font-bold text-gray-800 leading-tight">${det.nombre}</p>
+                                <p class="text-[10px] text-gray-500 font-medium uppercase">${det.cantidad} ${det.unidad}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                detallesHtml = `<p class="text-xs text-gray-500 italic">${compra.detalles_compra || 'Sin detalles'}</p>`;
+            }
 
-            const btnFoto = compra.foto_url 
-                ? `<a href="${compra.foto_url}" target="_blank" class="mt-2 text-[10px] text-blue-600 font-bold hover:underline border border-blue-200 bg-blue-50 px-2 py-1 rounded inline-block"><i class="fa-solid fa-image"></i> Ver Recibo</a>` 
+            const proveedorStr = compra.proveedor ? `<h3 class="font-bold text-gray-900 border-b pb-2 mb-3 px-1 flex items-center justify-between"><span>🏭 ${compra.proveedor}</span></h3>` : '<h3 class="font-bold text-gray-400 italic border-b pb-2 mb-3">Proveedor Desconocido</h3>';
+
+            const btnFotoComprobante = compra.foto_url 
+                ? `<a href="${compra.foto_url}" target="_blank" class="w-full mt-3 flex items-center justify-center gap-2 text-[11px] text-orange-700 bg-orange-50 border border-orange-200 py-2 rounded-lg font-black hover:bg-orange-100 transition-colors uppercase tracking-tight shadow-sm">
+                    <i class="fa-solid fa-file-invoice"></i> Ver Foto del Comprobante
+                   </a>` 
                 : '';
 
             tbody.innerHTML += `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
                     ${proveedorStr}
                     
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start mb-4 px-1">
                         <div>
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Recibo</span>
-                            <span class="font-bold text-stone-800 bg-gray-100 px-2 py-1 rounded text-xs">#COM-${String(compra.id).padStart(5, '0')}</span>
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Recibo</span>
+                            <span class="font-bold text-stone-800 bg-gray-100 px-2 py-0.5 rounded text-[11px]">#${String(compra.id).padStart(5, '0')}</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Inversión</span>
-                            <span class="text-xl font-black text-orange-600 tracking-tight">Bs. ${Number(compra.total).toFixed(2)}</span>
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Total Pagado</span>
+                            <span class="text-xl font-black text-orange-600 tracking-tight leading-none italic">Bs. ${Number(compra.total).toFixed(2)}</span>
                         </div>
                     </div>
                     
-                    <div class="bg-slate-50 border border-gray-100 rounded p-2 text-sm text-gray-600 italic">
-                        <i class="fa-solid fa-box-open text-orange-400 mr-2"></i>${detalles}
-                        <br>
-                        ${btnFoto}
+                    <div class="flex-1 bg-slate-50 border border-gray-100 rounded-xl p-3">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-list-check mr-1"></i> Artículos</p>
+                        ${detallesHtml}
                     </div>
                     
-                    <div class="mt-3 text-right">
-                        <span class="text-xs text-gray-500 font-medium"><i class="fa-regular fa-calendar mr-1"></i>${compra.fecha_compra}</span>
+                    ${btnFotoComprobante}
+                    
+                    <div class="mt-4 pt-3 border-t border-gray-50 flex justify-between items-center text-[11px] text-gray-400">
+                        <span class="font-medium"><i class="fa-regular fa-calendar mr-1"></i> ${compra.fecha_compra}</span>
+                        <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase">Finalizado</span>
                     </div>
                 </div>
             `;

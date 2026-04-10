@@ -27,7 +27,14 @@ router.get('/', async (req, res) => {
                    c.foto_url,
                    TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_compra,
                    (
-                       SELECT string_agg(i.nombre || ' (' || dc.cantidad || ' ' || i.unidad_medida || ')', ', ')
+                       SELECT json_agg(
+                           json_build_object(
+                               'nombre', i.nombre,
+                               'cantidad', dc.cantidad,
+                               'unidad', i.unidad_medida,
+                               'imagen_url', i.imagen_url
+                           )
+                       )
                        FROM detalle_compras dc
                        JOIN insumos i ON dc.insumo_id = i.id
                        WHERE dc.compra_id = c.id
@@ -129,6 +136,13 @@ router.post('/', upload.single('foto'), async (req, res) => {
             await client.query(`
                 UPDATE insumos SET stock_actual = stock_actual + $1 WHERE id = $2
             `, [cantidad, item.insumo_id]);
+
+            // Novedad: Si se subió foto, también actualizar la foto del insumo en el Stock!
+            if (foto_url) {
+                await client.query(`
+                    UPDATE insumos SET imagen_url = $1 WHERE id = $2
+                `, [foto_url, item.insumo_id]);
+            }
 
             await client.query(`
                 INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
