@@ -1,7 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    cargarParametros();
-    cargarUsuarios(); 
-    cargarHistorial(); // <--- NUEVO: Cargar bitácora de accesos
+    // Carga paralela para máxima velocidad
+    Promise.allSettled([
+        cargarParametros(),
+        cargarUsuarios(),
+        cargarHistorial()
+    ]).then(() => {
+        console.log("🚀 Carga de parámetros completada.");
+    });
 });
     // Añadir listeners para que el ticket en vivo se actualice al escribir
     const inputsLive = [
@@ -155,6 +160,17 @@ async function cargarUsuarios() {
         });
     } catch (error) {
         console.error("Error cargando usuarios:", error);
+        const container = document.getElementById('lista-usuarios');
+        if (container) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-10">
+                        <p class="text-rose-500 font-bold mb-2">⚠️ Error de conexión al cargar personal</p>
+                        <button onclick="cargarUsuarios()" class="text-xs bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200 transition-colors tracking-tight font-black uppercase">Reintentar</button>
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
@@ -278,6 +294,17 @@ async function cargarHistorial() {
         });
     } catch (error) {
         console.error("Error cargando historial:", error);
+        const container = document.getElementById('lista-historial');
+        if (container) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-10">
+                        <p class="text-rose-500 font-bold mb-2 text-xs">⚠️ No se pudo obtener la bitácora</p>
+                        <button onclick="cargarHistorial()" class="text-[10px] bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200 transition-colors font-black uppercase tracking-widest">Reintentar</button>
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 

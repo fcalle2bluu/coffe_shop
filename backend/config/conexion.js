@@ -25,20 +25,25 @@ pool.query('SELECT NOW()', async (err, res) => {
   } else {
     console.log('✅ ¡CONEXIÓN EXITOSA! MokaPOS está conectado a Supabase.');
         try {
+            // 1. Migraciones de Compras
             await pool.query('ALTER TABLE compras ADD COLUMN IF NOT EXISTS foto_url VARCHAR(255);');
-            // Migraciones críticas para la tabla usuarios
-            await pool.query('ALTER TABLE usuarios ALTER COLUMN nombre TYPE TEXT;');
-            await pool.query('ALTER TABLE usuarios ALTER COLUMN rol TYPE TEXT;');
-            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT;');
-            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin TEXT;');
-            await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;');
             
-            // Nueva columna para ubicación en auditoría
-            await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS ubicacion TEXT;');
+            // 2. Migraciones críticas para Usuarios (Consolidadas)
+            await pool.query(`
+                ALTER TABLE usuarios ALTER COLUMN nombre TYPE TEXT;
+                ALTER TABLE usuarios ALTER COLUMN rol TYPE TEXT;
+                ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT;
+                ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin TEXT;
+                ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+            `);
 
-            console.log('✅ Auto-migraciones SQL completadas exitosamente.');
+            // 3. Auditoría y Rendimiento
+            await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS ubicacion TEXT;');
+            await pool.query('CREATE INDEX IF NOT EXISTS idx_historial_fecha ON historial_accesos(fecha DESC);');
+            
+            console.log('✅ Base de Datos Optimizada y migrada.');
         } catch(e) {
-            if(e.code !== '42701') console.log('Info Migración:', e.message); 
+            console.log('Info Sistema:', e.message); 
         }
   }
 });
