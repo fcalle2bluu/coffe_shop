@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Configuración Avanzada</title>
+    <title>Café La Paz - Configuración Avanzada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -16,13 +16,24 @@
             theme: { 
                 extend: { 
                     colors: { 
-                        sidebar: '#0f172a',
-                        sidebarHover: '#1e293b',
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
                         topbar: '#ffffff',
-                        mainBg: '#f1f5f9',
+                        mainBg: '#f8fafc',
                         accent: '#f97316',
                         glass: 'rgba(255, 255, 255, 0.8)'
                     },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                } 
+            } 
+        },
                     fontFamily: {
                         sans: ['Outfit', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
@@ -63,7 +74,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-mainBg flex font-sans min-h-screen text-slate-800">
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
@@ -73,41 +84,55 @@
             <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
                 <i class="fa-solid fa-mug-hot text-white"></i>
             </div>
-            <span class="text-white font-bold text-xl tracking-tight">Moka<span class="text-accent">POS</span></span>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
             <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         
         <div class="p-4 border-b border-slate-800/30">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center text-white ring-2 ring-slate-800">
-                    <span id="avatar-letra" class="font-bold">U</span>
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
                 </div>
                 <div class="overflow-hidden">
-                    <p id="nombre-usuario" class="text-slate-200 text-sm font-semibold truncate">Cargando...</p>
-                    <p id="rol-usuario" class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">ROL</p>
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
                 </div>
             </div>
-            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold border border-slate-700 rounded-lg hover:bg-slate-800 hover:text-white transition-all">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Salir del Sistema
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
             </button>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gauge-high w-5"></i> <span>Dashboard</span></a>
-            <div class="pt-4 pb-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inventario</div>
-            <a href="almacen_stock.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors solo-admin"><i class="fa-solid fa-boxes-stacked w-5"></i> <span>Stock Actual</span></a>
-            <a href="compras.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors solo-admin"><i class="fa-solid fa-cart-flatbed w-5"></i> <span>Compras</span></a>
-            <div class="pt-4 pb-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operaciones</div>
-            <a href="ventas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-5"></i> <span>Terminal de Venta</span></a>
-            <a href="caja.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-vault w-5"></i> <span>Control de Caja</span></a>
-            <a href="parametros.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-accent text-white shadow-lg shadow-accent/20 font-semibold solo-admin"><i class="fa-solid fa-sliders w-5"></i> <span>Configuración</span></a>
+            
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
         </nav>
     </aside>
 
     <!-- CONTENT AREA -->
     <main class="flex-1 flex flex-col min-w-0">
         <!-- HEADER -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
+        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100"><i class="fa-solid fa-bars"></i></button>
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">Configuración del Negocio</h1>
@@ -135,7 +160,7 @@
                             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="md:col-span-2">
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nombre Comercial del Establecimiento</label>
-                                    <input type="text" id="inpEmpresa" placeholder="MokaPOS Café" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                                    <input type="text" id="inpEmpresa" placeholder="Café La Paz Café" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Documento Tributario (NIT/RUC)</label>

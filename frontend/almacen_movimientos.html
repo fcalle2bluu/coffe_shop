@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MokaPOS - Historial Almacén</title>
+    <title>Café La Paz - Historial Almacén</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 
     <script>
@@ -19,13 +19,24 @@
             theme: { 
                 extend: { 
                     colors: { 
-                        sidebar: '#1c1917',
-                        sidebarHover: '#292524',
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
                         topbar: '#ffffff',
-                        logoBg: '#1c1917',
                         mainBg: '#f8fafc',
-                        accent: '#ea580c'
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
                     },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                } 
+            } 
+        },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     }
@@ -35,47 +46,62 @@
     </script>
 
 </head>
-<body class="bg-mainBg flex h-screen overflow-hidden font-sans relative">
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
 
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
-    <aside id="sidebar" class="w-64 bg-sidebar text-gray-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-xl">
-        <div class="h-14 bg-logoBg flex items-center justify-center text-white font-bold text-xl tracking-wider border-b border-stone-800 shrink-0">
-            <i class="fa-solid fa-mug-hot text-orange-500 mr-2"></i> MokaPOS
-            <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         
-        <div class="flex items-center p-4 border-b border-stone-800 flex-wrap">
-            <div class="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold mr-3 shadow-inner"><span id="avatar-letra">U</span></div>
-            <div>
-                <p id="nombre-usuario" class="text-white text-sm font-semibold">Cargando...</p>
-                <p id="rol-usuario" class="text-xs text-emerald-400 font-bold uppercase"><i class="fa-solid fa-circle text-[10px] mr-1"></i> ROL</p>
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
             </div>
-            <button onclick="cerrarSesión()" class="w-full mt-3 flex items-center justify-center px-2 py-1 bg-transparent border border-gray-500 text-gray-400 hover:bg-red-600 hover:text-white hover:border-red-600 rounded text-xs transition-colors">
-                <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
             </button>
         </div>
         
-        <nav class="flex-1 overflow-y-auto py-2 text-sm pb-20 md:pb-2">
-            <ul class="space-y-1">
-                <li ><a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-house w-6 text-center text-stone-400"></i> <span>Inicio</span></a></li>
-                <li class="solo-admin"><a href="almacen_stock.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-box w-6 text-center text-stone-400"></i> <span>Stock Insumos</span></a></li>
-                <li class="solo-admin"><a href="almacen_movimientos.html" class="flex items-center px-4 py-3 bg-sidebarHover border-l-4 border-orange-600 text-white"><i class="fa-solid fa-clock-rotate-left w-6 text-center text-orange-500"></i><span class="font-medium">Historial Almacén</span></a></li>
-                <li ><a href="cotizaciones.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-file-invoice w-6 text-center text-stone-400"></i> <span>Cotizaciones</span></a></li>
-                <li class="solo-admin"><a href="compras.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-truck w-6 text-center text-stone-400"></i> <span>Compras</span></a></li>
-                <li ><a href="caja.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cash-register w-6 text-center text-stone-400"></i> <span>Caja</span></a></li>
-                <li ><a href="ventas.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-cart-shopping w-6 text-center text-stone-400"></i> <span>Ventas</span></a></li>
-                <li ><a href="pedidos_internos.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-clipboard-list w-6 text-center text-stone-400"></i> <span>Pedidos Internos</span></a></li>
-                <li ><a href="apartados.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-hand-holding-hand w-6 text-center text-stone-400"></i> <span>Reservas Clientes</span></a></li>
-                <li class="solo-admin"><a href="inventario.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-boxes-stacked w-6 text-center text-stone-400"></i> <span>Auditoría</span></a></li>
-                <li class="solo-admin"><a href="comprobantes.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-receipt w-6 text-center text-stone-400"></i> <span>Comprobantes</span></a></li>
-                <li class="solo-admin"><a href="parametros.html" class="flex items-center px-4 py-2 hover:bg-sidebarHover hover:text-white transition-colors"><i class="fa-solid fa-gear w-6 text-center text-stone-400"></i> <span>Parámetros</span></a></li>
-            </ul>
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
-        <header class="h-14 bg-white text-gray-900 border-b border-gray-200 flex items-center justify-between px-4 shadow-md z-10 shrink-0">
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Historial y Kardex</h1>
             <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>

@@ -41,7 +41,10 @@ pool.query('SELECT NOW()', async (err, res) => {
             await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS ubicacion TEXT;');
             await pool.query('CREATE INDEX IF NOT EXISTS idx_historial_fecha ON historial_accesos(fecha DESC);');
             
-            console.log('✅ Base de Datos Optimizada y migrada.');
+            // 4. Branding Global
+            await pool.query("UPDATE parametros SET nombre_empresa = 'Café La Paz' WHERE id = 1;");
+
+            console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
         } catch(e) {
             console.log('Info Sistema:', e.message); 
         }

@@ -1,115 +1,107 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - MokaPOS</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #F5F7FA;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-card {
-            background-color: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 350px;
-            text-align: center;
-        }
-        .login-card h2 {
-            color: #0D47A1;
-            margin-bottom: 25px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #1F2937;
-            font-weight: bold;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        .btn-login {
-            background-color: #1976D2;
-            color: white;
-            border: none;
-            padding: 15px;
-            width: 100%;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .btn-login:hover {
-            background-color: #0D47A1;
-        }
-        #mensaje-error {
-            color: red;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-        }
-    </style>
-
+    <title>Acceso - Café La Paz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = { 
             theme: { 
                 extend: { 
-                    colors: { 
-                        sidebar: '#1c1917',
-                        sidebarHover: '#292524',
-                        topbar: '#ffffff',
-                        logoBg: '#1c1917',
-                        mainBg: '#f8fafc',
-                        accent: '#ea580c'
-                    },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'premium': '0 20px 50px -12px rgba(0,0,0,0.12)',
                     }
                 } 
             } 
         }
     </script>
 
+    <style>
+        .bg-login {
+            background: linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.6)), url('login_background_cafe_la_paz_1775797730643.png');
+            background-size: cover;
+            background-position: center;
+        }
+        .glass-login {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-950 min-h-screen flex items-center justify-center p-4 bg-login font-sans">
 
-    <div class="login-card">
-        <h2>🔒 MokaPOS</h2>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Usuario</label>
-                <input type="text" id="username" placeholder="Ej. admin" required autocomplete="off">
+    <div class="w-full max-w-md animate-in fade-in zoom-in duration-700">
+        <!-- Logo Area -->
+        <div class="flex flex-col items-center mb-8">
+            <div class="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-orange-500/30 mb-4 animate-float">
+                <i class="fa-solid fa-mug-hot text-3xl"></i>
             </div>
-            <div class="form-group">
-                <label for="pin">PIN de Acceso</label>
-                <input type="password" id="pin" placeholder="****" required inputmode="numeric" maxlength="6">
+            <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">
+                Café <span class="text-orange-500">La Paz</span>
+            </h1>
+            <p class="text-slate-300 text-xs font-bold uppercase tracking-[0.2em] mt-2 opacity-80">Gestión de Cafetería Premium</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="glass-login rounded-[2.5rem] p-10 shadow-premium relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-black text-slate-900 leading-tight tracking-tight uppercase italic">Bienvenido</h2>
+                    <p class="text-slate-500 text-sm mt-1">Ingresa tus credenciales para continuar.</p>
+                </div>
+
+                <form id="loginForm" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificador de Usuario</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="username" required placeholder="Ej. admin" 
+                                class="w-full bg-slate-100 border-none rounded-2xl pl-12 pr-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 placeholder-slate-400 transition-all outline-none text-slate-900 font-semibold" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PIN de Seguridad</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" id="pin" required placeholder="****" inputmode="numeric" maxlength="6"
+                                class="w-full bg-slate-100 border-none rounded-2xl pl-12 pr-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 placeholder-slate-400 transition-all outline-none text-slate-900 font-semibold tracking-[0.5em]">
+                        </div>
+                    </div>
+
+                    <div id="mensaje-error" class="hidden bg-rose-50 text-rose-600 text-xs font-bold p-4 rounded-xl text-center animate-in slide-in-from-top-2">
+                        Credenciales incorrectas
+                    </div>
+
+                    <button type="submit" id="btnSubmit" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                        Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </form>
             </div>
-            <button type="submit" class="btn-login" id="btnSubmit">INGRESAR</button>
-            <div id="mensaje-error">Usuario o PIN incorrectos</div>
-        </form>
+            
+            <!-- Decorative circle -->
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-orange-500/5 rounded-full blur-3xl"></div>
+        </div>
+
+        <p class="text-center text-slate-400 text-[10px] mt-10 font-bold uppercase tracking-widest">
+            &copy; 2026 Café La Paz &bull; v2.0 Premium
+        </p>
     </div>
 
     <script>
@@ -122,11 +114,10 @@
             const mensajeError = document.getElementById('mensaje-error');
 
             btnSubmit.disabled = true;
-            btnSubmit.textContent = 'Verificando...';
-            mensajeError.style.display = 'none';
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            mensajeError.classList.add('hidden');
 
             try {
-                // Hacemos la petición a tu backend en Node.js
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -136,24 +127,21 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Guardamos la Sesión en el navegador
                     localStorage.setItem('usuario_id', data.usuario.id);
                     localStorage.setItem('usuario_nombre', data.usuario.nombre);
                     localStorage.setItem('usuario_rol', data.usuario.rol);
-                    
-                    // ¡Redirigimos al dashboard!
                     window.location.href = 'dashboard.html';
                 } else {
-                    mensajeError.textContent = data.error || 'Error al iniciar Sesión';
-                    mensajeError.style.display = 'block';
+                    mensajeError.textContent = data.error || 'Acceso denegado';
+                    mensajeError.classList.remove('hidden');
                     btnSubmit.disabled = false;
-                    btnSubmit.textContent = 'INGRESAR';
+                    btnSubmit.innerHTML = 'Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>';
                 }
             } catch (error) {
-                mensajeError.textContent = 'Error de conexión con el servidor';
-                mensajeError.style.display = 'block';
+                mensajeError.textContent = 'Error de conexión';
+                mensajeError.classList.remove('hidden');
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'INGRESAR';
+                btnSubmit.innerHTML = 'Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>';
             }
         });
     </script>
