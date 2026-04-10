@@ -122,8 +122,21 @@
                         <input type="date" id="inpVence" class="w-full border rounded px-2 py-1 text-[10px] text-red-700 outline-none focus:border-orange-500">
                     </div>
 
-                    <div>
-                        <button onclick="ejecutarCompraRapida()" id="btnGuardarCompraRapida" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white px-4 py-1.5 rounded shadow font-bold text-xs h-[34px] flex items-center min-w-[110px] justify-center">
+                    <div class="flex-1 min-w-[200px] border-l pl-3 border-gray-200 flex flex-col justify-end">
+                        <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Foto Recibo <i class="fa-solid fa-camera"></i></label>
+                        <div class="flex items-center gap-2">
+                            <img id="previewFotoCompra" src="" class="hidden w-8 h-8 object-cover rounded shadow-sm border border-gray-300 shrink-0">
+                            <div class="flex gap-1">
+                                <input type="file" id="inpFotoCompraGaleria" accept="image/*" class="hidden" onchange="previewImagenCompra(event)">
+                                <button onclick="document.getElementById('inpFotoCompraGaleria').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 px-2 py-1.5 rounded text-[10px] shadow-sm"><i class="fa-solid fa-image"></i></button>
+                                <input type="file" id="inpFotoCompraCamara" accept="image/*" capture="environment" class="hidden" onchange="previewImagenCompra(event)">
+                                <button onclick="document.getElementById('inpFotoCompraCamara').click()" class="bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-700 px-2 py-1.5 rounded text-[10px] shadow-sm flex-1 whitespace-nowrap"><i class="fa-solid fa-camera mr-1"></i> Cámara</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="shrink-0">
+                        <button onclick="ejecutarCompraRapida()" id="btnGuardarCompraRapida" class="bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md text-white px-4 py-1.5 rounded font-bold text-xs h-[34px] flex items-center justify-center">
                             <i class="fa-solid fa-check mr-1 text-[10px]"></i> Comprar
                         </button>
                     </div>

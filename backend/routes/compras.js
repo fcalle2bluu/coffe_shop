@@ -2,6 +2,19 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const multer = require('multer');
+const { createClient } = require('@supabase/supabase-js');
+
+// Configuración de Supabase
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+let supabase = null;
+if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+}
+
+// Configuración de Multer (Memoria)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB MAX
 
 // 1. Obtener historial de compras (AHORA CON DETALLES INCLUIDOS)
 router.get('/', async (req, res) => {
@@ -11,6 +24,7 @@ router.get('/', async (req, res) => {
                    p.nombre as proveedor, 
                    p.telefono as prov_tel,
                    c.total, 
+                   c.foto_url,
                    TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_compra,
                    (
                        SELECT string_agg(i.nombre || ' (' || dc.cantidad || ' ' || i.unidad_medida || ')', ', ')
@@ -29,12 +43,57 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 2. Registrar una nueva Compra (Transacción Completa)
-router.post('/', async (req, res) => {
-    const { proveedor_id, total, detalles } = req.body;
+// 2. Registrar una nueva Compra (Transacción Completa con Foto)
+router.post('/', upload.single('foto'), async (req, res) => {
     
+    // Si enviamos con FormData, los campos de texto podrían venir en req.body.datos como string JSON
+    let proveedor_id, total, detalles;
+    
+    // Soportar tanto FormData (req.body.datos) como JSON raw (req.body)
+    if (req.body.datos) {
+        const parsed = JSON.parse(req.body.datos);
+        proveedor_id = parsed.proveedor_id;
+        total = parsed.total;
+        detalles = parsed.detalles;
+    } else {
+        proveedor_id = req.body.proveedor_id;
+        total = req.body.total;
+        detalles = req.body.detalles;
+    }
+    
+    let foto_url = null;
+
     if (!detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'El carrito de compras está vacío.' });
+    }
+    
+    // --- Subida a Supabase si existe foto ---
+    if (req.file) {
+        if (!supabaseUrl || !supabaseKey) {
+            console.warn('⚠️ Faltan keys de Supabase para subir comprobante.');
+        } else {
+            try {
+                const nombreArchivo = `${Date.now()}_comprobante_${req.file.originalname.replace(/\\s+/g, '_')}`;
+                
+                const { data, error } = await supabase.storage
+                    .from('insumos') // Reutilizamos el bucket de insumos
+                    .upload(nombreArchivo, req.file.buffer, {
+                        contentType: req.file.mimetype,
+                        upsert: false
+                    });
+
+                if (error) throw error;
+
+                const { data: publicData } = supabase.storage
+                    .from('insumos')
+                    .getPublicUrl(nombreArchivo);
+
+                foto_url = publicData.publicUrl;
+            } catch (errSupabase) {
+                console.error("Error subiendo foto de compra a Supabase:", errSupabase);
+                // Continuamos aunque falle la foto para no detener la compra
+            }
+        }
     }
 
     const client = await pool.connect();
@@ -44,9 +103,9 @@ router.post('/', async (req, res) => {
 
         // 1. Insertar Cabecera
         const resCompra = await client.query(`
-            INSERT INTO compras (proveedor_id, total, fecha) 
-            VALUES ($1, $2, NOW()) RETURNING id
-        `, [proveedor_id, total]);
+            INSERT INTO compras (proveedor_id, total, fecha, foto_url) 
+            VALUES ($1, $2, NOW(), $3) RETURNING id
+        `, [proveedor_id, total, foto_url]);
         
         const compraId = resCompra.rows[0].id;
 
