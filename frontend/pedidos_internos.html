@@ -92,21 +92,10 @@
                     </button>
                 </div>
                 
-                <div class="flex-1 overflow-auto">
-                    <table class="min-w-full w-full whitespace-nowrap text-left text-sm">
-                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0 z-10 text-gray-700">
-                            <tr>
-                                <th class="px-4 py-3 font-bold uppercase">Fecha</th>
-                                <th class="px-4 py-3 font-bold uppercase admin-col">Cajero Solicitante</th>
-                                <th class="px-4 py-3 font-bold uppercase">Insumo a Comprar</th>
-                                <th class="px-4 py-3 font-bold uppercase text-center">Cantidad</th>
-                                <th class="px-4 py-3 font-bold uppercase">Notas / Urgencia</th>
-                                <th class="px-4 py-3 font-bold uppercase text-center">Estado</th>
-                                <th class="px-4 py-3 font-bold uppercase text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-pedidos" class="divide-y divide-gray-200"></tbody>
-                    </table>
+                <div class="flex-1 overflow-auto p-2 sm:p-4 bg-slate-50">
+                    <div id="tabla-pedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- Las tarjetas JS irán aquí -->
+                    </div>
                 </div>
             </div>
         </div>

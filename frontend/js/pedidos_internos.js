@@ -54,23 +54,34 @@ async function cargarPedidos() {
                 `;
             }
 
-            const colSolicitante = usuarioRol === 'ADMIN' ? `<td class="px-4 py-3 font-bold text-gray-700">${pedido.solicitante}</td>` : '';
-            const cantidadVisual = `${pedido.cantidad} ${pedido.unidad_medida || 'unid'}`;
+            const colSolicitante = usuarioRol === 'ADMIN' ? `<p class="text-xs text-gray-400 mb-1">Cajero: <span class="font-bold text-gray-700">${pedido.solicitante}</span></p>` : '';
+            const cantidadVisual = `${pedido.cantidad} <span class="text-xs text-gray-500">${pedido.unidad_medida || 'unid'}</span>`;
 
             tbody.innerHTML += `
-                <tr class="border-b hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-gray-500 text-xs"><i class="fa-regular fa-clock mr-1"></i>${pedido.fecha_pedido}</td>
-                    ${colSolicitante}
-                    <td class="px-4 py-3 font-bold text-stone-800">${pedido.insumo_nombre}</td>
-                    <td class="px-4 py-3 text-center font-bold text-orange-600 bg-orange-50">${cantidadVisual}</td>
-                    <td class="px-4 py-3 text-gray-600 text-xs italic">${pedido.notas || 'Ninguna'}</td>
-                    <td class="px-4 py-3 text-center">
-                        <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide border ${colorEstado}">${pedido.estado}</span>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        ${botonesAccion}
-                    </td>
-                </tr>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            ${colSolicitante}
+                            <h3 class="font-bold text-gray-900 text-lg leading-tight mb-1">${pedido.insumo_nombre}</h3>
+                            <div class="text-2xl font-black text-orange-600">${cantidadVisual}</div>
+                        </div>
+                        <span class="px-2 py-1 rounded-md text-[10px] font-black tracking-wide border ${colorEstado} uppercase shadow-sm">
+                            ${pedido.estado}
+                        </span>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded p-2 text-sm italic text-gray-600 mb-3 border border-gray-100 flex items-start">
+                        <i class="fa-solid fa-note-sticky text-orange-400 mt-1 mr-2"></i>
+                        <span>${pedido.notas || 'Sin notas especiales'}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+                        <span class="text-xs text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${pedido.fecha_pedido}</span>
+                        <div class="flex gap-2">
+                            ${botonesAccion}
+                        </div>
+                    </div>
+                </div>
             `;
         });
     } catch (e) { 
