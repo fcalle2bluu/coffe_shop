@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
 });
 
 // 2. Registrar una nueva Compra (Transacción Completa con Foto)
-router.post('/', upload.single('foto'), async (req, res) => {
+router.post('/', upload.fields([{ name: 'foto_recibo', maxCount: 1 }, { name: 'foto_producto', maxCount: 1 }]), async (req, res) => {
     
     // Si enviamos con FormData, los campos de texto podrían venir en req.body.datos como string JSON
     let proveedor_id, total, detalles;
@@ -68,38 +68,37 @@ router.post('/', upload.single('foto'), async (req, res) => {
         detalles = req.body.detalles;
     }
     
-    let foto_url = null;
+    let foto_recibo_url = null;
+    let foto_producto_url = null;
 
     if (!detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'El carrito de compras está vacío.' });
     }
     
-    // --- Subida a Supabase si existe foto ---
-    if (req.file) {
-        if (!supabaseUrl || !supabaseKey) {
-            console.warn('⚠️ Faltan keys de Supabase para subir comprobante.');
-        } else {
+    // --- Subidas a Supabase ---
+    if (req.files) {
+        // 1. Procesar Foto del Recibo
+        if (req.files['foto_recibo']) {
+            const file = req.files['foto_recibo'][0];
             try {
-                const nombreArchivo = `${Date.now()}_comprobante_${req.file.originalname.replace(/\\s+/g, '_')}`;
-                
-                const { data, error } = await supabase.storage
-                    .from('insumos') // Reutilizamos el bucket de insumos
-                    .upload(nombreArchivo, req.file.buffer, {
-                        contentType: req.file.mimetype,
-                        upsert: false
-                    });
-
+                const nombreArchivo = `${Date.now()}_recibo_${file.originalname.replace(/\s+/g, '_')}`;
+                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype });
                 if (error) throw error;
+                const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
+                foto_recibo_url = publicData.publicUrl;
+            } catch (e) { console.error("Error subiendo foto_recibo:", e); }
+        }
 
-                const { data: publicData } = supabase.storage
-                    .from('insumos')
-                    .getPublicUrl(nombreArchivo);
-
-                foto_url = publicData.publicUrl;
-            } catch (errSupabase) {
-                console.error("Error subiendo foto de compra a Supabase:", errSupabase);
-                // Continuamos aunque falle la foto para no detener la compra
-            }
+        // 2. Procesar Foto del Producto
+        if (req.files['foto_producto']) {
+            const file = req.files['foto_producto'][0];
+            try {
+                const nombreArchivo = `${Date.now()}_producto_${file.originalname.replace(/\s+/g, '_')}`;
+                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype });
+                if (error) throw error;
+                const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
+                foto_producto_url = publicData.publicUrl;
+            } catch (e) { console.error("Error subiendo foto_producto:", e); }
         }
     }
 
@@ -108,13 +107,14 @@ router.post('/', upload.single('foto'), async (req, res) => {
     try {
         await client.query('BEGIN'); 
 
-        // 1. Insertar Cabecera
+        // 1. Insertar Cabecera (Referencia al Recibo)
         const resCompra = await client.query(`
             INSERT INTO compras (proveedor_id, total, fecha, foto_url) 
             VALUES ($1, $2, NOW(), $3) RETURNING id
-        `, [proveedor_id, total, foto_url]);
+        `, [proveedor_id, total, foto_recibo_url]);
         
         const compraId = resCompra.rows[0].id;
+
 
         // 2. Procesar cada ítem
         for (let item of detalles) {
@@ -137,11 +137,11 @@ router.post('/', upload.single('foto'), async (req, res) => {
                 UPDATE insumos SET stock_actual = stock_actual + $1 WHERE id = $2
             `, [cantidad, item.insumo_id]);
 
-            // Novedad: Si se subió foto, también actualizar la foto del insumo en el Stock!
-            if (foto_url) {
+            // Novedad: Si se subió foto del PRODUCTO, actualizar la foto del insumo en el Stock!
+            if (foto_producto_url) {
                 await client.query(`
                     UPDATE insumos SET imagen_url = $1 WHERE id = $2
-                `, [foto_url, item.insumo_id]);
+                `, [foto_producto_url, item.insumo_id]);
             }
 
             await client.query(`

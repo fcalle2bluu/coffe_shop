@@ -126,9 +126,9 @@ function actualizarUnidadLabel() {
 }
 
 // --- VISTA PREVIA Y COMPRESIÓN DE LA FOTO ---
-function previewImagenCompra(event) {
+function previewImagenCompra(event, previewId) {
     const input = event.target;
-    const preview = document.getElementById('previewFotoCompra');
+    const preview = document.getElementById(previewId);
     
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -193,10 +193,15 @@ async function ejecutarCompraRapida() {
     const costo = parseFloat(document.getElementById('inpCosto').value) || 0;
     const vencimiento = document.getElementById('inpVence').value || null;
     
-    // Obtener archivo (galeria o camara)
-    const fileGaleria = document.getElementById('inpFotoCompraGaleria').files[0];
-    const fileCamara = document.getElementById('inpFotoCompraCamara').files[0];
-    const archivoInput = fileGaleria || fileCamara;
+    // Archivos de Factura
+    const fFacturaG = document.getElementById('inpFacturaGaleria').files[0];
+    const fFacturaC = document.getElementById('inpFacturaCamara').files[0];
+    const fileFactura = fFacturaG || fFacturaC;
+
+    // Archivos de Insumo
+    const fInsumoG = document.getElementById('inpInsumoGaleria').files[0];
+    const fInsumoC = document.getElementById('inpInsumoCamara').files[0];
+    const fileInsumo = fInsumoG || fInsumoC;
 
     if (!proveedor_id) return alert("Selecciona un proveedor.");
     if (!insumo_id) return alert("Selecciona un insumo.");
@@ -224,10 +229,14 @@ async function ejecutarCompraRapida() {
         
         formData.append('datos', JSON.stringify(payloadData));
         
-        if (archivoInput) {
-            if (archivoInput.size > 20 * 1024 * 1024) throw new Error("Aviso de Sistema: La foto pesa más de 20MB, demasiada memoria.");
-            const imagenComprimida = await comprimirImagen(archivoInput);
-            formData.append('foto', imagenComprimida);
+        if (fileFactura) {
+            const imgComp = await comprimirImagen(fileFactura);
+            formData.append('foto_recibo', imgComp);
+        }
+
+        if (fileInsumo) {
+            const imgComp = await comprimirImagen(fileInsumo);
+            formData.append('foto_producto', imgComp);
         }
 
         const res = await fetch('/api/compras', {
@@ -237,17 +246,21 @@ async function ejecutarCompraRapida() {
 
         if(!res.ok) throw new Error((await res.json()).error);
         
-        // Limpiar inputs pero mantener proveedor
+        // Limpiar inputs
         document.getElementById('selInsumo').value = '';
         document.getElementById('inpContenido').value = '';
         document.getElementById('inpCosto').value = '0.00';
         document.getElementById('inpVence').value = '';
         document.getElementById('inpUnidadCompra').value = '';
         
-        document.getElementById('previewFotoCompra').src = '';
-        document.getElementById('previewFotoCompra').classList.add('hidden');
-        document.getElementById('inpFotoCompraGaleria').value = '';
-        document.getElementById('inpFotoCompraCamara').value = '';
+        // Limpiar previas
+        ['previewFotoFactura', 'previewFotoInsumo'].forEach(id => {
+            document.getElementById(id).src = '';
+            document.getElementById(id).classList.add('hidden');
+        });
+        ['inpFacturaGaleria', 'inpFacturaCamara', 'inpInsumoGaleria', 'inpInsumoCamara'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
 
         cargarHistorialCompras();
     } catch (error) {
