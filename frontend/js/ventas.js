@@ -146,6 +146,8 @@ async function procesarCobro() {
     btnCobrar.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
 
     const payload = {
+        usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1, // <--- NUEVO
+        caja_id: parseInt(localStorage.getItem('caja_id')) || 1,      // <--- NUEVO
         total: totalVenta,
         metodo_pago: document.getElementById('metodo-pago').value,
         detalles: carritoVenta
@@ -161,9 +163,10 @@ async function procesarCobro() {
         const data = await respuesta.json();
 
         if (!respuesta.ok) throw new Error(data.error || 'Error al procesar');
+        const vId = data.venta_id || (data.ticket && data.ticket.id); // <--- CORRECCIÓN DE ACCESO
 
         // Mostrar Modal de Éxito
-        document.getElementById('info-ticket').innerText = `Ticket #${data.ticket.id} | ${data.ticket.metodo_pago}`;
+        document.getElementById('info-ticket').innerText = `Ticket #${vId} | ${payload.metodo_pago}`;
         document.getElementById('modalExito').classList.remove('hidden');
 
     } catch (error) {

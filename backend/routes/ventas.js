@@ -22,8 +22,12 @@ router.get('/productos', async (req, res) => {
 
 // 2. Procesar una nueva venta (Transacción Completa)
 router.post('/', async (req, res) => {
-    const { usuario_id, caja_id, total, metodo_pago, detalles } = req.body;
+    let { usuario_id, caja_id, total, metodo_pago, detalles } = req.body;
     
+    // Valores por defecto si no vienen especificados
+    usuario_id = usuario_id || 1;
+    caja_id = caja_id || 1;
+
     // Validaciones básicas
     if (!detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'El carrito está vacío' });
