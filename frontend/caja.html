@@ -114,18 +114,10 @@
 
             <div class="flex-1 bg-white rounded shadow border-t-4 border-stone-800 overflow-hidden flex flex-col min-h-[300px]">
                 <div class="p-3 sm:p-4 border-b bg-white shrink-0"><h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Historial de Turnos</h2></div>
-                <div class="overflow-auto flex-1">
-                    <table class="min-w-full w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-50 sticky border-b border-gray-200 shadow-sm top-0">
-                            <tr>
-                                <th class="px-4 py-3 text-gray-600 font-bold uppercase tracking-wider">Apertura</th>
-                                <th class="px-4 py-3 text-gray-600 font-bold uppercase tracking-wider">Cierre</th>
-                                <th class="px-4 py-3 text-right text-gray-600 font-bold uppercase tracking-wider">Saldo Inicial</th>
-                                <th class="px-4 py-3 text-right text-gray-600 font-bold uppercase tracking-wider">Saldo Final</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-historial" class="divide-y divide-gray-200"></tbody>
-                    </table>
+                <div class="overflow-auto flex-1 p-2 sm:p-4 bg-slate-50">
+                    <div id="tabla-historial" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- JS cards inserted here -->
+                    </div>
                 </div>
             </div>
         </div>

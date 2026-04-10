@@ -71,12 +71,29 @@ async function cargarHistorial() {
             const colorDif = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
             
             tbody.innerHTML += `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-800">${turno.apertura}</td>
-                    <td class="px-4 py-3 text-gray-800">${turno.cierre}</td>
-                    <td class="px-4 py-3 text-right font-medium">S/ ${turno.saldo_inicial}</td>
-                    <td class="px-4 py-3 text-right font-bold ${colorDif}">S/ ${turno.saldo_final}</td>
-                </tr>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start border-b border-gray-100 pb-2 mb-2">
+                        <div>
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Apertura</span>
+                            <span class="font-bold text-stone-800 text-sm"><i class="fa-regular fa-clock text-green-500 mr-1"></i>${turno.apertura}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Cierre</span>
+                            <span class="font-bold text-stone-800 text-sm"><i class="fa-solid fa-lock text-red-500 mr-1"></i>${turno.cierre}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between mt-1">
+                        <div>
+                            <span class="text-[10px] text-gray-500 block uppercase">Fondo Inicial</span>
+                            <span class="font-medium text-gray-700">S/ ${turno.saldo_inicial}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-gray-500 block uppercase">Cierre Efectivo</span>
+                            <span class="font-black text-lg ${colorDif}">S/ ${turno.saldo_final}</span>
+                        </div>
+                    </div>
+                </div>
             `;
         });
     } catch (error) {
