@@ -146,8 +146,8 @@ async function procesarCobro() {
     btnCobrar.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
 
     const payload = {
-        usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1, // <--- NUEVO
-        caja_id: parseInt(localStorage.getItem('caja_id')) || 1,      // <--- NUEVO
+        usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1,
+        caja_id: localStorage.getItem('caja_id') ? parseInt(localStorage.getItem('caja_id')) : null,
         total: totalVenta,
         metodo_pago: document.getElementById('metodo-pago').value,
         detalles: carritoVenta

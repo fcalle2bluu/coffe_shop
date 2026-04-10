@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
     
     // Valores por defecto si no vienen especificados
     usuario_id = usuario_id || 1;
-    caja_id = caja_id || 1;
+    caja_id = caja_id || null;
 
     // Validaciones básicas
     if (!detalles || detalles.length === 0) {
