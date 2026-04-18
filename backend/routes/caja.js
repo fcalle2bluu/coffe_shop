@@ -101,4 +101,25 @@ router.get('/historial', async (req, res) => {
     }
 });
 
+// 5. [NUEVO] Obtener historial exhaustivo de ventas por cajero
+router.get('/historial-ventas-cajeros', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                v.id as venta_id,
+                TO_CHAR(v.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta,
+                v.total,
+                v.metodo_pago,
+                u.nombre as cajero
+            FROM ventas v
+            LEFT JOIN usuarios u ON v.usuario_id = u.id
+            ORDER BY v.fecha DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al cargar historial ventas por cajero:', error);
+        res.status(500).json({ error: 'Error al cargar ventas' });
+    }
+});
+
 module.exports = router;
