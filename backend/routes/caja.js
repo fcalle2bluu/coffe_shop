@@ -107,13 +107,13 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 v.id as venta_id,
-                TO_CHAR(v.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta,
+                TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta,
                 v.total,
                 v.metodo_pago,
                 u.nombre as cajero
             FROM ventas v
             LEFT JOIN usuarios u ON v.usuario_id = u.id
-            ORDER BY v.fecha DESC
+            ORDER BY v.fecha_venta DESC
         `);
         res.json(result.rows);
     } catch (error) {
