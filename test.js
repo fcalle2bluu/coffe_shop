@@ -1,0 +1,1 @@
+const pool = require('./backend/config/conexion'); pool.query('SELECT v.id, v.fecha, u.nombre FROM ventas v LEFT JOIN usuarios u ON v.usuario_id = u.id ORDER BY v.fecha DESC LIMIT 1').then(res => { console.log(res.rows); process.exit(0); }).catch(err => { console.error(err); process.exit(1); });
