@@ -104,7 +104,7 @@ function renderGananciasMensuales(ventas, compras) {
         if(!v.fecha_venta) return;
         const partes = v.fecha_venta.split(' ')[0].split('-'); // "YYYY-MM-DD"
         if(partes.length < 3) return;
-        const mesAno = \`\${partes[0]}-\${partes[1]}\`;
+        const mesAno = `${partes[0]}-${partes[1]}`;
 
         if(!agrupado[mesAno]) agrupado[mesAno] = { ingresos: 0, egresos: 0 };
         agrupado[mesAno].ingresos += parseFloat(v.total || 0);
@@ -117,7 +117,7 @@ function renderGananciasMensuales(ventas, compras) {
         const fecha = c.fecha_compra.split(' ')[0]; // "DD/MM/YYYY"
         const partes = fecha.split('/');
         if(partes.length < 3) return;
-        const mesAno = \`\${partes[2]}-\${partes[1]}\`; // Convertir a YYYY-MM
+        const mesAno = `${partes[2]}-${partes[1]}`; // Convertir a YYYY-MM
 
         if(!agrupado[mesAno]) agrupado[mesAno] = { ingresos: 0, egresos: 0 };
         agrupado[mesAno].egresos += parseFloat(c.total || 0);
@@ -138,16 +138,16 @@ function renderGananciasMensuales(ventas, compras) {
         sumaTotalGanancias += utilidad;
 
         const [yyyy, mm] = mesClave.split('-');
-        const tituloMes = \`\${mesesNombres[mm]} \${yyyy}\`;
+        const tituloMes = `${mesesNombres[mm]} ${yyyy}`;
 
         const colorUtilidad = utilidad >= 0 ? 'text-green-600' : 'text-red-600';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-4 py-2 font-bold text-stone-800 uppercase tracking-wide text-xs">\${tituloMes}</td>
-                <td class="px-4 py-2 text-right font-bold text-green-700 bg-green-50/30">Bs. \${data.ingresos.toFixed(2)}</td>
-                <td class="px-4 py-2 text-right font-bold text-red-700 bg-red-50/30">Bs. \${data.egresos.toFixed(2)}</td>
-                <td class="px-4 py-2 text-right font-black text-lg \${colorUtilidad}">Bs. \${utilidad.toFixed(2)}</td>
+                <td class="px-4 py-2 font-bold text-stone-800 uppercase tracking-wide text-xs">${tituloMes}</td>
+                <td class="px-4 py-2 text-right font-bold text-green-700 bg-green-50/30">Bs. ${data.ingresos.toFixed(2)}</td>
+                <td class="px-4 py-2 text-right font-bold text-red-700 bg-red-50/30">Bs. ${data.egresos.toFixed(2)}</td>
+                <td class="px-4 py-2 text-right font-black text-lg ${colorUtilidad}">Bs. ${utilidad.toFixed(2)}</td>
             </tr>
         `;
     });
@@ -157,7 +157,7 @@ function renderGananciasMensuales(ventas, compras) {
     tbody.innerHTML += `
         <tr class="bg-gray-800 text-white border-t-4 border-slate-900">
             <td colspan="3" class="px-4 py-3 text-right uppercase font-bold text-xs tracking-widest text-slate-300">Utilidad Neta Histórica Total</td>
-            <td class="px-4 py-3 text-right font-black text-xl \${colorTotal}">Bs. \${sumaTotalGanancias.toFixed(2)}</td>
+            <td class="px-4 py-3 text-right font-black text-xl ${colorTotal}">Bs. ${sumaTotalGanancias.toFixed(2)}</td>
         </tr>
     `;
 }
@@ -189,6 +189,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     if (rolActual) {
         const rolIcon = document.getElementById('rol-usuario');
-        if(rolIcon) rolIcon.innerHTML = \`<i class="fa-solid fa-circle text-[10px] mr-1"></i> \${rolActual}\`;
+        if(rolIcon) rolIcon.innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
     }
 });
