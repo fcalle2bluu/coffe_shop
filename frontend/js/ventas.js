@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('buscarProducto').addEventListener('input', (e) => {
         renderizarCatalogo(e.target.value);
     });
+    
+    // Cargar categorias para el modal
+    cargarCategoriasSelect();
 });
 
 // --- 1. CATÁLOGO DE PRODUCTOS ---
@@ -36,8 +39,13 @@ function renderizarCatalogo(filtro = '') {
 
     filtrados.forEach(prod => {
         contenedor.innerHTML += `
-            <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px]">
-                <div>
+            <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px] relative">
+                
+                <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="solo-admin absolute top-2 right-2 text-gray-300 hover:text-orange-600 transition-colors p-1" title="Editar Producto">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                
+                <div class="flex-1 pt-1 pr-6">
                     <span class="text-xs font-bold text-orange-600 mb-1 block">${prod.categoria || 'General'}</span>
                     <h3 class="font-bold text-gray-800 leading-tight">${prod.nombre}</h3>
                 </div>
@@ -47,6 +55,12 @@ function renderizarCatalogo(filtro = '') {
             </div>
         `;
     });
+    
+    // Ocultar botones '.solo-admin' si el rol actual es CAJERO
+    const rolActual = localStorage.getItem('usuario_rol');
+    if (rolActual === 'CAJERO' || rolActual === 'ALMACEN' || rolActual === 'LOGISTICA') {
+        document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+    }
 }
 
 // --- 2. LÓGICA DEL CARRITO (TICKET) ---
@@ -181,6 +195,86 @@ function cerrarModalExito() {
     carritoVenta = [];
     actualizarTicket();
     document.getElementById('btn-cobrar').innerHTML = `COBRAR Bs. <span id="btn-total">0.00</span>`;
+}
+
+// --- 4. ADMINISTRACIÓN DE PRODUCTOS (SOLO ADMIN) ---
+let categoriasParaModal = [];
+
+async function cargarCategoriasSelect() {
+    try {
+        const res = await fetch('/api/ventas/categorias');
+        if (res.ok) {
+            categoriasParaModal = await res.json();
+            const select = document.getElementById('inpProdCategoria');
+            select.innerHTML = '<option value="">-- Sin categoría --</option>';
+            categoriasParaModal.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+        }
+    } catch (e) {
+        console.error("Error al cargar categorías", e);
+    }
+}
+
+function abrirModalProducto(id = null) {
+    document.getElementById('modalProductoAdmin').classList.remove('hidden');
+    
+    if (id) {
+        document.getElementById('titulo-modal-producto').innerText = "Editar Producto";
+        const prod = productosCatalogo.find(p => p.id === id);
+        document.getElementById('inpProdId').value = prod.id;
+        document.getElementById('inpProdNombre').value = prod.nombre;
+        document.getElementById('inpProdPrecio').value = prod.precio_venta;
+        
+        // Buscar categoría_id coincidente por nombre
+        const cat = categoriasParaModal.find(c => c.nombre === prod.categoria);
+        document.getElementById('inpProdCategoria').value = cat ? cat.id : '';
+    } else {
+        document.getElementById('titulo-modal-producto').innerText = "Nuevo Producto";
+        document.getElementById('formProducto').reset();
+        document.getElementById('inpProdId').value = "";
+    }
+}
+
+function cerrarModalProducto() {
+    document.getElementById('modalProductoAdmin').classList.add('hidden');
+}
+
+async function guardarProducto() {
+    const id = document.getElementById('inpProdId').value;
+    const nombre = document.getElementById('inpProdNombre').value.trim();
+    const precio_venta = document.getElementById('inpProdPrecio').value;
+    const categoria_id = document.getElementById('inpProdCategoria').value || null;
+
+    const btn = document.getElementById('btnGuardarProd');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    try {
+        let url = '/api/ventas/productos';
+        let method = 'POST';
+
+        if (id) {
+            url += `/${id}`;
+            method = 'PUT';
+        }
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, precio_venta, categoria_id })
+        });
+
+        if (!res.ok) throw new Error("Error al guardar");
+
+        cerrarModalProducto();
+        await cargarProductos(); // Refresh catalogo
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar';
+    }
 }
 
 // Utilidad: Reloj de la barra superior

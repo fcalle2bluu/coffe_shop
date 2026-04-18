@@ -19,6 +19,47 @@ router.get('/productos', async (req, res) => {
         res.status(500).json({ error: 'Error al cargar el catálogo' });
     }
 });
+// 1.5. Obtener categorías para el dropdown
+router.get('/categorias', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, nombre FROM categorias ORDER BY nombre ASC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al cargar categorias:', error);
+        res.status(500).json({ error: 'Error al cargar categorias' });
+    }
+});
+
+// 1.6. Crear nuevo producto
+router.post('/productos', async (req, res) => {
+    const { nombre, precio_venta, categoria_id } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO productos (nombre, precio_venta, categoria_id, activo) VALUES ($1, $2, $3, TRUE) RETURNING id',
+            [nombre, precio_venta, categoria_id]
+        );
+        res.status(201).json({ id: result.rows[0].id });
+    } catch (error) {
+        console.error('Error al crear producto:', error);
+        res.status(500).json({ error: 'Error interno al crear producto' });
+    }
+});
+
+// 1.7. Modificar producto
+router.put('/productos/:id', async (req, res) => {
+    const { id } = req.params;
+    const { nombre, precio_venta, categoria_id } = req.body;
+    try {
+        await pool.query(
+            'UPDATE productos SET nombre = $1, precio_venta = $2, categoria_id = $3 WHERE id = $4',
+            [nombre, precio_venta, categoria_id, id]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error al modificar producto:', error);
+        res.status(500).json({ error: 'Error interno al modificar producto' });
+    }
+});
 
 // 2. Procesar una nueva venta (Transacción Completa)
 router.post('/', async (req, res) => {

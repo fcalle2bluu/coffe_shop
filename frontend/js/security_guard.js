@@ -12,8 +12,8 @@
     const urlPath = window.location.pathname;
     const pageName = urlPath.substring(urlPath.lastIndexOf('/') + 1) || 'index.html';
 
-    // REGLAS PARA ENCARGADO DE LOGÍSTICA
-    if (rol.includes('LOGISTICA')) {
+    // REGLAS PARA ENCARGADO DE LOGÍSTICA O ALMACEN
+    if (rol.includes('LOGISTICA') || rol.includes('ALMACEN')) {
         const paginasPermitidas = ['pedidos_internos.html', 'index.html', ''];
         
         if (!paginasPermitidas.includes(pageName)) {
