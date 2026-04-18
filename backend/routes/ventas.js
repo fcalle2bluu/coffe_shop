@@ -30,6 +30,22 @@ router.get('/categorias', async (req, res) => {
     }
 });
 
+// 1.5.1 Crear nueva categoría
+router.post('/categorias', async (req, res) => {
+    const { nombre } = req.body;
+    if (!nombre) return res.status(400).json({ error: 'El nombre de la categoría es requerido' });
+    try {
+        const result = await pool.query(
+            'INSERT INTO categorias (nombre) VALUES ($1) RETURNING id, nombre',
+            [nombre]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error al crear categoría:', error);
+        res.status(500).json({ error: 'Error interno al crear categoría' });
+    }
+});
+
 // 1.6. Crear nuevo producto
 router.post('/productos', async (req, res) => {
     const { nombre, precio_venta, categoria_id } = req.body;

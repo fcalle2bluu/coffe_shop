@@ -236,6 +236,32 @@ function abrirModalProducto(id = null) {
     }
 }
 
+async function agregarNuevaCategoria() {
+    const nombreCat = prompt("Ingrese el nombre de la nueva categoría:");
+    if (!nombreCat || nombreCat.trim() === '') return;
+
+    try {
+        const res = await fetch('/api/ventas/categorias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nombreCat.trim() })
+        });
+        
+        if (res.ok) {
+            const nuevaCat = await res.json();
+            // Recargar categorías y volver a seleccionar la recién creada
+            await cargarCategoriasSelect();
+            document.getElementById('inpProdCategoria').value = nuevaCat.id;
+        } else {
+            const errorData = await res.json();
+            alert(errorData.error || "Error al crear la categoría");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión al crear categoría.");
+    }
+}
+
 function cerrarModalProducto() {
     document.getElementById('modalProductoAdmin').classList.add('hidden');
 }
