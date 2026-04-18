@@ -117,19 +117,19 @@
             <div id="panel-resumen" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 hidden">
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded shadow-sm">
                     <p class="text-xs font-bold text-blue-800 uppercase">Fondo Inicial</p>
-                    <h3 class="text-xl font-black text-blue-900 mt-1" id="res-inicial">S/ 0.00</h3>
+                    <h3 class="text-xl font-black text-blue-900 mt-1" id="res-inicial">Bs. 0.00</h3>
                 </div>
                 <div class="bg-green-50 border border-green-100 p-4 rounded shadow-sm">
                     <p class="text-xs font-bold text-green-800 uppercase">Ventas Efectivo</p>
-                    <h3 class="text-xl font-black text-green-900 mt-1" id="res-efectivo">S/ 0.00</h3>
+                    <h3 class="text-xl font-black text-green-900 mt-1" id="res-efectivo">Bs. 0.00</h3>
                 </div>
                 <div class="bg-purple-50 border border-purple-100 p-4 rounded shadow-sm">
                     <p class="text-xs font-bold text-purple-800 uppercase">Ventas Digitales</p>
-                    <h3 class="text-xl font-black text-purple-900 mt-1" id="res-digital">S/ 0.00</h3>
+                    <h3 class="text-xl font-black text-purple-900 mt-1" id="res-digital">Bs. 0.00</h3>
                 </div>
                 <div class="bg-slate-50 border-t border-b border-gray-100 border border-orange-200 p-4 rounded shadow-sm border-b-4 border-b-orange-500">
                     <p class="text-xs font-bold text-orange-800 uppercase">Efectivo en Cajón</p>
-                    <h3 class="text-2xl font-black text-orange-900 mt-1" id="res-esperado">S/ 0.00</h3>
+                    <h3 class="text-2xl font-black text-orange-900 mt-1" id="res-esperado">Bs. 0.00</h3>
                 </div>
             </div>
 
@@ -147,7 +147,7 @@
     <div id="modalAbrir" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 sm:p-6 border-t-4 border-green-500">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Apertura de Caja</h3>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Monto Base / Sencillo (S/)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Monto Base / Sencillo (Bs.)</label>
             <input type="number" id="inputSaldoInicial" value="0.00" min="0" step="0.1" class="w-full border rounded px-3 py-2 text-xl font-bold text-center focus:ring-green-500 mb-6 outline-none">
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModales()" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded">Cancelar</button>
@@ -160,7 +160,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 sm:p-6 border-t-4 border-red-500">
             <h3 class="text-lg font-bold text-gray-800 mb-2">Cierre de Turno</h3>
             <p class="text-xs sm:text-sm text-gray-500 mb-4">Cuenta el efectivo en tu cajón e ingrésalo aquí. El sistema esperaba <strong id="lbl-esperado" class="text-red-600">0.00</strong>.</p>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Efectivo Real en Caja (S/)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Efectivo Real en Caja (Bs.)</label>
             <input type="number" id="inputSaldoFinal" min="0" step="0.1" class="w-full border rounded px-3 py-2 text-xl font-bold text-center focus:ring-red-500 mb-6 outline-none">
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModales()" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-800 font-bold rounded">Cancelar</button>

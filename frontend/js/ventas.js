@@ -42,7 +42,7 @@ function renderizarCatalogo(filtro = '') {
                     <h3 class="font-bold text-gray-800 leading-tight">${prod.nombre}</h3>
                 </div>
                 <div class="text-lg font-black text-stone-800 mt-2">
-                    S/ ${prod.precio_venta}
+                    Bs. ${prod.precio_venta}
                 </div>
             </div>
         `;
@@ -107,7 +107,7 @@ function actualizarTicket() {
                 <div class="flex justify-between items-center py-3 border-b border-dashed border-gray-200">
                     <div class="flex-1">
                         <h4 class="font-bold text-gray-800 text-sm">${item.nombre}</h4>
-                        <p class="text-xs text-gray-500">S/ ${item.precio_unitario.toFixed(2)}</p>
+                        <p class="text-xs text-gray-500">Bs. ${item.precio_unitario.toFixed(2)}</p>
                     </div>
                     
                     <div class="flex items-center bg-gray-100 rounded-lg mx-2 border">
@@ -117,7 +117,7 @@ function actualizarTicket() {
                     </div>
 
                     <div class="text-right font-black text-stone-900 w-16">
-                        S/ ${item.subtotal.toFixed(2)}
+                        Bs. ${item.subtotal.toFixed(2)}
                     </div>
                 </div>
             `;
@@ -125,8 +125,8 @@ function actualizarTicket() {
     }
 
     const totalFormateado = totalVenta.toFixed(2);
-    document.getElementById('subtotal-ticket').innerText = `S/ ${totalFormateado}`;
-    document.getElementById('total-ticket').innerText = `S/ ${totalFormateado}`;
+    document.getElementById('subtotal-ticket').innerText = `Bs. ${totalFormateado}`;
+    document.getElementById('total-ticket').innerText = `Bs. ${totalFormateado}`;
     document.getElementById('btn-total').innerText = totalFormateado;
 }
 
@@ -172,7 +172,7 @@ async function procesarCobro() {
     } catch (error) {
         alert("Error de Venta: " + error.message);
         btnCobrar.disabled = false;
-        btnCobrar.innerHTML = `COBRAR S/ <span id="btn-total">${totalVenta.toFixed(2)}</span>`;
+        btnCobrar.innerHTML = `COBRAR Bs. <span id="btn-total">${totalVenta.toFixed(2)}</span>`;
     }
 }
 
@@ -180,7 +180,7 @@ function cerrarModalExito() {
     document.getElementById('modalExito').classList.add('hidden');
     carritoVenta = [];
     actualizarTicket();
-    document.getElementById('btn-cobrar').innerHTML = `COBRAR S/ <span id="btn-total">0.00</span>`;
+    document.getElementById('btn-cobrar').innerHTML = `COBRAR Bs. <span id="btn-total">0.00</span>`;
 }
 
 // Utilidad: Reloj de la barra superior

@@ -44,7 +44,7 @@ async function cargarHistorialCompras() {
                             <div class="flex-1">
                                 <div class="flex justify-between items-start">
                                     <p class="text-xs font-black text-gray-800 leading-tight">${det.nombre}</p>
-                                    <p class="text-[11px] font-black text-orange-600 italic">S/ ${Number(det.subtotal).toFixed(2)}</p>
+                                    <p class="text-[11px] font-black text-orange-600 italic">Bs. ${Number(det.subtotal).toFixed(2)}</p>
                                 </div>
                                 <div class="flex justify-between items-center mt-1">
                                     <p class="text-[10px] text-gray-500 font-bold uppercase">${det.cantidad} ${det.unidad}</p>

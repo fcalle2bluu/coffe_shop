@@ -33,10 +33,10 @@ async function cargarEstadoCaja() {
             btnAccion.onclick = abrirModalCierre;
 
             // Llenar montos en vivo
-            document.getElementById('res-inicial').innerText = `S/ ${data.caja.saldo_inicial}`;
-            document.getElementById('res-efectivo').innerText = `S/ ${data.ventas.total_efectivo}`;
-            document.getElementById('res-digital').innerText = `S/ ${(parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta)).toFixed(2)}`;
-            document.getElementById('res-esperado').innerText = `S/ ${efectivoEsperadoEnCaja.toFixed(2)}`;
+            document.getElementById('res-inicial').innerText = `Bs. ${data.caja.saldo_inicial}`;
+            document.getElementById('res-efectivo').innerText = `Bs. ${data.ventas.total_efectivo}`;
+            document.getElementById('res-digital').innerText = `Bs. ${(parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta)).toFixed(2)}`;
+            document.getElementById('res-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
             
             panelResumen.classList.remove('hidden');
 
@@ -86,11 +86,11 @@ async function cargarHistorial() {
                     <div class="flex justify-between mt-1">
                         <div>
                             <span class="text-[10px] text-gray-500 block uppercase">Fondo Inicial</span>
-                            <span class="font-medium text-gray-700">S/ ${turno.saldo_inicial}</span>
+                            <span class="font-medium text-gray-700">Bs. ${turno.saldo_inicial}</span>
                         </div>
                         <div class="text-right">
                             <span class="text-[10px] text-gray-500 block uppercase">Cierre Efectivo</span>
-                            <span class="font-black text-lg ${colorDif}">S/ ${turno.saldo_final}</span>
+                            <span class="font-black text-lg ${colorDif}">Bs. ${turno.saldo_final}</span>
                         </div>
                     </div>
                 </div>
@@ -108,7 +108,7 @@ function abrirModalApertura() {
 }
 
 function abrirModalCierre() {
-    document.getElementById('lbl-esperado').innerText = `S/ ${efectivoEsperadoEnCaja.toFixed(2)}`;
+    document.getElementById('lbl-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
     document.getElementById('inputSaldoFinal').value = efectivoEsperadoEnCaja.toFixed(2);
     document.getElementById('modalCerrar').classList.remove('hidden');
 }

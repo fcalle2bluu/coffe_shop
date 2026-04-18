@@ -41,7 +41,7 @@ function renderizarTabla(lista) {
                 <td class="px-4 py-3 font-black text-gray-700">${ticketFmt}</td>
                 <td class="px-4 py-3 text-gray-600"><i class="fa-regular fa-calendar mr-2"></i>${comp.fecha}</td>
                 <td class="px-4 py-3 text-center font-medium">${comp.metodo_pago}</td>
-                <td class="px-4 py-3 text-right font-bold text-stone-800">S/ ${comp.total}</td>
+                <td class="px-4 py-3 text-right font-bold text-stone-800">Bs. ${comp.total}</td>
                 <td class="px-4 py-3 text-center">
                     <span class="px-2 py-1 rounded text-xs font-bold border ${colorEstado}">${comp.estado}</span>
                 </td>
@@ -72,7 +72,7 @@ async function abrirTicket(id) {
         // Llenar datos de cabecera
         document.getElementById('t-id').innerText = data.ticket.id.toString().padStart(4, '0');
         document.getElementById('t-fecha').innerText = data.ticket.fecha;
-        document.getElementById('t-total').innerText = `S/ ${data.ticket.total}`;
+        document.getElementById('t-total').innerText = `Bs. ${data.ticket.total}`;
         document.getElementById('t-pago').innerText = data.ticket.metodo_pago;
 
         // Llenar productos
@@ -83,7 +83,7 @@ async function abrirTicket(id) {
                 <tr class="border-b border-gray-100">
                     <td class="py-2 text-center">${item.cantidad}</td>
                     <td class="py-2">${item.nombre}</td>
-                    <td class="py-2 text-right">S/ ${item.subtotal}</td>
+                    <td class="py-2 text-right">Bs. ${item.subtotal}</td>
                 </tr>
             `;
         });
