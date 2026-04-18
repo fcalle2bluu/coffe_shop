@@ -48,7 +48,6 @@ async function cargarHistorialCompras() {
                                 </div>
                                 <div class="flex justify-between items-center mt-1">
                                     <p class="text-[10px] text-gray-500 font-bold uppercase">${det.cantidad} ${det.unidad}</p>
-                                    <p class="text-[9px] text-gray-400 font-medium">U. Cost: S/ ${Number(det.costo_unitario).toFixed(2)}</p>
                                 </div>
                                 ${venceHtml}
                             </div>
