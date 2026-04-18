@@ -44,7 +44,8 @@
         'compras_reporte.html', 
         'inventario.html', 
         'comprobantes.html', 
-        'parametros.html'
+        'parametros.html',
+        'informe_general.html'
     ];
 
     if (adminPages.includes(pageName) && rol === 'CAJERO') {
