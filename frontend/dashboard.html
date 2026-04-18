@@ -160,6 +160,344 @@
         }
 
         // === AL CARGAR LA PÁGINA ===
+        let chartHorasInst = null;
+        let dataHorasRaw = [];
+        let modoHoras = 'bs'; 
+
+        window.onload = function() {
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
+
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+                const avatar = document.getElementById('avatar-letra');
+                if(avatar) avatar.innerText = nombreActual.charAt(0).toUpperCase();
+            }
+            if (rolActual) {
+                const rolElem = document.getElementById('rol-usuario');
+                if(rolElem) rolElem.innerText = rolActual;
+            }
+
+            if (rolActual === 'CAJERO') {
+                document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+            }
+
+            cargarIndicadoresBase();
+            cargarGraficosAvanzados();
+            renderGraficoRendimiento();
+        };
+
+        async function cargarIndicadoresBase() {
+            try {
+                const res = await fetch('/api/kpis');
+                const data = await res.json();
+                document.getElementById('kpi-ventas-dia').innerText = `Bs. ${data.ventasDia}`;
+                document.getElementById('kpi-ventas-mes').innerText = `Bs. ${data.comprasMes}`; 
+                document.getElementById('kpi-productos').innerText = data.productos;
+                document.getElementById('kpi-proveedores').innerText = data.proveedores;
+            } catch (e) {
+                console.error("Error KPIs", e);
+            }
+        }
+
+        async function cargarGraficosAvanzados() {
+            try {
+                const res = await fetch('/api/kpis/stats-avanzadas');
+                const data = await res.json();
+                dataHorasRaw = data.horas;
+
+                renderBCG(data.bcg);
+                renderHoras(data.horas);
+            } catch (e) {
+                console.error("Error Stats", e);
+            }
+        }
+
+        function renderBCG(productos) {
+            const ctx = document.getElementById('chartBCG').getContext('2d');
+            const datasets = productos.map(p => ({
+                label: p.nombre,
+                data: [{ x: parseFloat(p.volumen), y: parseFloat(p.ingresos) }],
+                backgroundColor: p.ingresos > 1000 ? '#f97316' : '#94a3b8',
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }));
+
+            new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const p = context.raw;
+                                    return `${context.dataset.label}: ${p.x} Unid. / Bs. ${p.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Volumen de Ventas', font: { size: 10 } } },
+                        y: { title: { display: true, text: 'Ingresos (Bs)', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function renderHoras(horas) {
+            const ctx = document.getElementById('chartHoras').getContext('2d');
+            const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+            const dataBS = Array(24).fill(0);
+
+            horas.forEach(h => {
+                const idx = parseInt(h.hora);
+                dataBS[idx] = parseFloat(h.ingresos);
+            });
+
+            chartHorasInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ingresos (Bs)',
+                        data: dataBS,
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+
+        function toggleHoras(modo) {
+            modoHoras = modo;
+            const btnBs = document.getElementById('btn-horas-bs');
+            const btnQty = document.getElementById('btn-horas-qty');
+            const dataBS = Array(24).fill(0);
+            const dataQTY = Array(24).fill(0);
+
+            dataHorasRaw.forEach(h => {
+                const idx = parseInt(h.hora);
+                dataBS[idx] = parseFloat(h.ingresos);
+                dataQTY[idx] = parseInt(h.ventas_cont);
+            });
+
+            if (modo === 'bs') {
+                chartHorasInst.data.datasets[0].data = dataBS;
+                chartHorasInst.data.datasets[0].label = 'Ingresos (Bs)';
+                chartHorasInst.data.datasets[0].borderColor = '#f97316';
+                btnBs.className = 'text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600';
+                btnQty.className = 'text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200';
+            } else {
+                chartHorasInst.data.datasets[0].data = dataQTY;
+                chartHorasInst.data.datasets[0].label = 'Clientes Atendidos';
+                chartHorasInst.data.datasets[0].borderColor = '#6366f1';
+                btnQty.className = 'text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-indigo-600';
+                btnBs.className = 'text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200';
+            }
+            chartHorasInst.update();
+        }
+
+        function renderGraficoRendimiento() {
+            const ctx = document.getElementById('miGrafico').getContext('2d');
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
+            const dataVentas = [1200, 1900, 3000, 2500, 3200, 4100, 4800]; 
+            const dataCompras = [800, 1500, 2000, 1800, 1200, 2500, 2100]; 
+            const dataBeneficio = dataVentas.map((venta, i) => venta - dataCompras[i]);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        { type: 'line', label: 'Beneficio', data: dataBeneficio, borderColor: '#22c55e', backgroundColor: '#22c55e', borderWidth: 2, tension: 0.4, fill: false, pointRadius: 3 },
+                        { type: 'bar', label: 'Ventas', data: dataVentas, backgroundColor: '#ea580c', borderRadius: 4, barPercentage: 0.6 },
+                        { type: 'bar', label: 'Compras', data: dataCompras, backgroundColor: '#f97316', borderRadius: 4, barPercentage: 0.6 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }ng="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Dashboard Cafetería</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
+                        topbar: '#ffffff',
+                        mainBg: '#f8fafc',
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                } 
+            } 
+        }
+    </script>
+
+    <link rel="icon" href="favicon.png" type="image/png">
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
+            </button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
+                    <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+            </a>
+                    <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-mug-hot w-5 text-center text-orange-500/60"></i> <span>Informe General</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-300 hover:text-white focus:outline-none">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h1 class="text-xl font-bold">Panel de Control</h1>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+                    <p class="text-sm text-gray-500 font-semibold">Ventas Hoy</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                    <p class="text-sm text-gray-500 font-semibold">Ventas Mes</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                    <p class="text-sm text-gray-500 font-semibold">Productos</p>
+                    <p class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                    <p class="text-sm text-gray-500 font-semibold">Caja Actual</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs. 0.00</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual</h2>
+                <div class="relative h-72">
+                    <canvas id="miGrafico"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // === GUARDIA DE SEGURIDAD ===
+        if (!localStorage.getItem('usuario_id')) {
+            window.location.href = 'index.html'; 
+        }
+
+        // === LÓGICA DE INTERFAZ MÓVIL ===
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function cerrarSesión() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // === AL CARGAR LA PÁGINA ===
         window.onload = function() {
             
             // 1. CARGAMOS DATOS DEL USUARIO
