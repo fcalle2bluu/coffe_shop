@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Reporte Mensual de Compras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
+                        topbar: '#ffffff',
+                        mainBg: '#f8fafc',
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                } 
+            } 
+        }
+    </script>
+    <style>
+        @media print {
+            body { font-size: 12px; background-color: white;}
+            #sidebar, #sidebarOverlay, header, .no-print { display: none !important; }
+            main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+            .bg-stone-800 { background-color: #f3f4f6 !important; color: #111827 !important; border-top: 2px solid #000 !important; }
+            .text-orange-400 { color: #000 !important; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #d1d5db !important; }
+        }
+    </style>
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
+            </button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
+            <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen relative">
+        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium print:hidden">
+            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
+            <div class="flex items-center gap-3">
+                <a href="compras.html" class="text-gray-400 hover:text-orange-600 transition-colors"><i class="fa-solid fa-arrow-left text-lg"></i></a>
+                <h1 class="text-base sm:text-lg font-bold tracking-wide truncate flex-1">Reporte Analítico de Compras</h1>
+            </div>
+            <div class="flex items-center shrink-0 ml-2">
+                <button onclick="imprimirReporte()" class="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 font-bold text-xs rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> <span class="hidden sm:inline">Imprimir / PDF</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-4 md:p-8 flex flex-col relative w-full items-center">
+            
+            <div class="w-full max-w-[1200px] mb-6 flex justify-between items-end border-b-2 border-stone-800 pb-2">
+                <div>
+                    <h2 class="text-2xl font-black text-stone-900 uppercase tracking-tighter">Historial Contable</h2>
+                    <p class="text-sm text-gray-500 font-medium">Todas las compras a proveedores desglosadas por periodo mensual.</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total General Gastado</p>
+                    <h3 class="text-3xl font-black text-orange-600 tabular-nums" id="total-global-reporte">Bs. 0.00</h3>
+                </div>
+            </div>
+
+            <!-- TABLA EXCEL -->
+            <div class="w-full max-w-[1200px] bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-stone-700 text-xs uppercase tracking-wider font-extrabold border-b border-gray-300">
+                                <th class="px-4 py-3 border-r border-gray-200 w-[80px] text-center">ID Compra</th>
+                                <th class="px-4 py-3 border-r border-gray-200 w-[140px]">Fecha</th>
+                                <th class="px-4 py-3 border-r border-gray-200 w-[200px]">Proveedor</th>
+                                <th class="px-4 py-3 border-r border-gray-200">Detalle / Ítems</th>
+                                <th class="px-4 py-3 text-right bg-orange-50 text-orange-800 border-l border-orange-200 w-[130px]">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-reporte-body">
+                            <!-- JS Inject -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="w-full max-w-[1200px] mt-8 text-center text-xs text-gray-400 font-mono">
+                Reporte generado por el Sistema Punto de Venta La Paz.
+            </div>
+            
+        </div>
+    </main>
+
+    <script src="js/security_guard.js"></script>
+    <script src="js/compras_reporte.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
+        }
+
+        function cerrarSesión() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
+            }
+            if (rolActual) {
+                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
+            }
+        });
+    </script>
+</body>
+</html>

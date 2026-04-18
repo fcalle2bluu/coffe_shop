@@ -40,7 +40,8 @@
     const adminPages = [
         'almacen_stock.html', 
         'almacen_movimientos.html', 
-        'compras.html', 
+        'compras.html',
+        'compras_reporte.html', 
         'inventario.html', 
         'comprobantes.html', 
         'parametros.html'
