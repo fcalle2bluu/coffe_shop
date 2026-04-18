@@ -180,7 +180,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const nombreActual = localStorage.getItem('usuario_nombre');
     const rolActual = localStorage.getItem('usuario_rol');
     if (nombreActual) {
-        document.getElementById('header-nombre-usuario').innerText = nombreActual;
+        const headerName = document.getElementById('header-nombre-usuario');
+        if(headerName) headerName.innerText = nombreActual;
         const elem = document.getElementById('nombre-usuario');
         if(elem) elem.innerText = nombreActual;
         const avatar = document.getElementById('avatar-letra');
