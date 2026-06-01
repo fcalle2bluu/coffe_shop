@@ -4,7 +4,33 @@ const path = require('path');
 // Cargar .env por si acaso (para local y pruebas)
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-const connectionString = process.env.DATABASE_URL && process.env.DATABASE_URL.trim();
+let connectionString = process.env.DATABASE_URL && process.env.DATABASE_URL.trim();
+
+// Interceptar y redirigir del Tenant viejo (szxhzqumzkdkizrdyxsm) al nuevo y activo (recpbqwsjbmcairosqny)
+const OLD_TENANT = 'szxhzqumzkdkizrdyxsm';
+const NEW_TENANT = 'recpbqwsjbmcairosqny';
+
+if (connectionString && connectionString.includes(OLD_TENANT)) {
+  console.log(`🔄 Redirigiendo Connection String de Supabase del tenant viejo (${OLD_TENANT}) al nuevo (${NEW_TENANT})...`);
+  connectionString = connectionString.replace(new RegExp(OLD_TENANT, 'g'), NEW_TENANT);
+}
+
+let dbUser = (process.env.DB_USER || '').trim();
+let dbHost = (process.env.DB_HOST || '').trim();
+let dbDatabase = (process.env.DB_NAME || '').trim();
+
+if (dbUser.includes(OLD_TENANT)) {
+  console.log(`🔄 Redirigiendo DB_USER de Supabase del tenant viejo al nuevo...`);
+  dbUser = dbUser.replace(new RegExp(OLD_TENANT, 'g'), NEW_TENANT);
+}
+if (dbHost.includes(OLD_TENANT)) {
+  console.log(`🔄 Redirigiendo DB_HOST de Supabase del tenant viejo al nuevo...`);
+  dbHost = dbHost.replace(new RegExp(OLD_TENANT, 'g'), NEW_TENANT);
+}
+if (dbDatabase.includes(OLD_TENANT)) {
+  console.log(`🔄 Redirigiendo DB_NAME de Supabase del tenant viejo al nuevo...`);
+  dbDatabase = dbDatabase.replace(new RegExp(OLD_TENANT, 'g'), NEW_TENANT);
+}
 
 const poolConfig = connectionString ? {
   connectionString: connectionString,
@@ -13,9 +39,9 @@ const poolConfig = connectionString ? {
   idleTimeoutMillis: 30000,
   max: 10,
 } : {
-  user: (process.env.DB_USER || '').trim(),
-  host: (process.env.DB_HOST || '').trim(),
-  database: (process.env.DB_NAME || '').trim(),
+  user: dbUser,
+  host: dbHost,
+  database: dbDatabase,
   password: (process.env.DB_PASSWORD || '').trim(),
   port: parseInt(process.env.DB_PORT) || 6543,
   ssl: { rejectUnauthorized: false },
