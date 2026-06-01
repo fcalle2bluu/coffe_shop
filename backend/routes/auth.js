@@ -71,7 +71,11 @@ router.post('/login', async (req, res) => {
 
     } catch (err) {
         console.error('🚨 ERROR CRÍTICO EN EL BACKEND:', err);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ 
+            error: 'Error interno del servidor', 
+            detalle: err.message,
+            stack: err.stack
+        });
     }
 });
 

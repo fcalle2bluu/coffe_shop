@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -133,13 +133,14 @@
                     localStorage.setItem('usuario_rol', data.usuario.rol);
                     window.location.href = 'dashboard.html';
                 } else {
-                    mensajeError.textContent = data.error || 'Acceso denegado';
+                    const extraInfo = data.detalle ? ` (${data.detalle})` : '';
+                    mensajeError.textContent = (data.error || 'Acceso denegado') + extraInfo;
                     mensajeError.classList.remove('hidden');
                     btnSubmit.disabled = false;
                     btnSubmit.innerHTML = 'Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>';
                 }
             } catch (error) {
-                mensajeError.textContent = 'Error de conexión';
+                mensajeError.textContent = 'Error de conexión: ' + error.message;
                 mensajeError.classList.remove('hidden');
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = 'Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>';
