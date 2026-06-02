@@ -79,38 +79,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.get('/reset-db-dangerous', async (req, res) => {
-    try {
-        console.log("=== INICIANDO VACIADO DE BASE DE DATOS ===");
-        
-        // 1. Obtener todas las tablas BASE en el esquema público excepto 'usuarios'
-        const getTablesQuery = `
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-              AND table_type = 'BASE TABLE' 
-              AND table_name != 'usuarios'
-              AND table_name != 'spatial_ref_sys';
-        `;
-        const { rows } = await pool.query(getTablesQuery);
-        const tables = rows.map(r => r.table_name);
-        
-        console.log("Tablas a vaciar:", tables);
-        
-        if (tables.length === 0) {
-            return res.json({ message: "No hay tablas para vaciar.", tablas: [] });
-        }
-        
-        // 2. Truncar todas las tablas con RESTART IDENTITY y CASCADE de forma segura
-        const truncateSql = `TRUNCATE TABLE ${tables.map(t => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE;`;
-        await pool.query(truncateSql);
-        
-        console.log("✅ Base de datos vaciada con éxito (excepto usuarios).");
-        res.json({ success: true, message: "Base de datos vaciada con éxito (excepto usuarios).", tablas: tables });
-    } catch (err) {
-        console.error("🚨 ERROR AL VACIAR BASE DE DATOS:", err);
-        res.status(500).json({ error: "Error al vaciar base de datos", detalle: err.message });
-    }
-});
-
 module.exports = router;
