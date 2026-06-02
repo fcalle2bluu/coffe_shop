@@ -81,6 +81,9 @@
             <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
                 <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
             </a>
+            <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-truck w-5 text-center text-orange-500/60"></i> <span>Proveedores</span>
+            </a>
             <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
             </a>
@@ -201,16 +204,24 @@
                 <h3 class="text-base font-bold"><i class="fa-solid fa-truck mr-2"></i>Nuevo Proveedor</h3>
                 <button onclick="cerrarModalNuevoProveedor()" class="text-gray-300 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-5">
-                <div class="mb-3">
+            <div class="p-5 space-y-3">
+                <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Nombre / Empresa *</label>
                     <input type="text" id="inpProvNombre" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none" required>
                 </div>
-                <div class="mb-4">
+                <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
                     <input type="text" id="inpProvTel" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
                 </div>
-                <button onclick="guardarProveedor()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-2 rounded shadow">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Lugar / Ubicación</label>
+                    <input type="text" id="inpProvLugar" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Otros / Notas</label>
+                    <input type="text" id="inpProvOtros" class="w-full border rounded px-3 py-2 text-sm focus:ring-gray-800 outline-none">
+                </div>
+                <button onclick="guardarProveedor()" class="w-full bg-gray-800 hover:bg-black text-white font-bold py-2.5 rounded shadow transition-all mt-2">
                     Guardar
                 </button>
             </div>

@@ -291,6 +291,8 @@ function cerrarModalNuevoProveedor() { document.getElementById('modalNuevoProvee
 async function guardarProveedor() {
     const nombre = document.getElementById('inpProvNombre').value.trim();
     const tel = document.getElementById('inpProvTel').value.trim();
+    const lugar = document.getElementById('inpProvLugar') ? document.getElementById('inpProvLugar').value.trim() : '';
+    const otros = document.getElementById('inpProvOtros') ? document.getElementById('inpProvOtros').value.trim() : '';
     
     if(!nombre) return alert("Nombre obligatorio");
     
@@ -298,11 +300,13 @@ async function guardarProveedor() {
         await fetch('/api/proveedores', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nombre, telefono: tel, email: '', direccion: '' })
+            body: JSON.stringify({ nombre, telefono: tel, lugar, otros })
         });
         cerrarModalNuevoProveedor();
         document.getElementById('inpProvNombre').value = '';
         document.getElementById('inpProvTel').value = '';
+        if (document.getElementById('inpProvLugar')) document.getElementById('inpProvLugar').value = '';
+        if (document.getElementById('inpProvOtros')) document.getElementById('inpProvOtros').value = '';
         cargarProveedores();
     } catch(e) {
         alert("Error guardando proveedor");

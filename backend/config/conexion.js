@@ -99,6 +99,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración Parametros:', paramErr.message);
     }
 
+    // 5.5 Migración de Proveedores
+    try {
+        await pool.query('ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS lugar TEXT;');
+        await pool.query('ALTER TABLE proveedores ADD COLUMN IF NOT EXISTS otros TEXT;');
+    } catch (provErr) {
+        console.log('Info Migración Proveedores:', provErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');

@@ -6,7 +6,7 @@ const pool = require('../config/conexion');
 // 1. Obtener todos los proveedores
 router.get('/', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, nombre, telefono, email, direccion FROM proveedores ORDER BY nombre ASC');
+        const result = await pool.query('SELECT id, nombre, telefono, email, direccion, lugar, otros FROM proveedores ORDER BY nombre ASC');
         res.json(result.rows);
     } catch (error) {
         console.error('Error obteniendo proveedores:', error);
@@ -16,18 +16,25 @@ router.get('/', async (req, res) => {
 
 // 2. Guardar un nuevo proveedor 
 router.post('/', async (req, res) => {
-    const { nombre, telefono, email, direccion } = req.body;
+    const { nombre, telefono, email, direccion, lugar, otros } = req.body;
     
     if (!nombre) {
-        return res.status(400).json({ error: 'El nombre de la empresa es obligatorio' });
+        return res.status(400).json({ error: 'El nombre del proveedor es obligatorio' });
     }
 
     try {
         const result = await pool.query(`
-            INSERT INTO proveedores (nombre, telefono, email, direccion) 
-            VALUES ($1, $2, $3, $4) 
+            INSERT INTO proveedores (nombre, telefono, email, direccion, lugar, otros) 
+            VALUES ($1, $2, $3, $4, $5, $6) 
             RETURNING *
-        `, [nombre, telefono || null, email || null, direccion || null]);
+        `, [
+            nombre, 
+            telefono || null, 
+            email || null, 
+            direccion || null,
+            lugar || null,
+            otros || null
+        ]);
         
         res.json({ mensaje: 'Proveedor creado con éxito', proveedor: result.rows[0] });
     } catch (error) {
@@ -36,7 +43,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// 3. NUEVO: Eliminar un proveedor
+// 3. Eliminar un proveedor
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
