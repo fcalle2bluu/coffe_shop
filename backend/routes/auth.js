@@ -78,4 +78,30 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+
+// Endpoint temporal para limpiar todas las ventas y turnos de caja de la base de datos de producción
+router.get('/clear-sales-dangerous', async (req, res) => {
+    try {
+        console.log("⚡ INICIANDO ELIMINACIÓN DE TODAS LAS VENTAS Y TURNOS DE CAJA DESDE EL ENDPOINT TEMPORAL...");
+        
+        // Listar tablas públicas para auditar/verificar
+        const tablesRes = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';");
+        const tables = tablesRes.rows.map(r => r.table_name);
+        console.log("Tablas en la BD:", tables);
+        
+        // Ejecutamos TRUNCATE en detalle_ventas, ventas y cajas para borrar todos los registros y reiniciar los IDs autoincrementales
+        await pool.query('TRUNCATE TABLE detalle_ventas, ventas, cajas RESTART IDENTITY CASCADE;');
+        
+        console.log("✅ VENTAS Y TURNOS DE CAJA ELIMINADOS CON ÉXITO");
+        res.json({ 
+            success: true, 
+            message: "Todas las ventas, sus detalles y los turnos de caja han sido eliminados de la base de datos.",
+            tables: tables 
+        });
+    } catch (err) {
+        console.error("❌ Error al limpiar ventas/turnos:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
