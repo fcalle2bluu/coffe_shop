@@ -110,10 +110,13 @@ async function guardarParametros() {
 // GESTIÓN DE USUARIOS
 // ==========================================
 
+let listaUsuariosLocal = [];
+
 async function cargarUsuarios() {
     try {
         const res = await fetch('/api/parametros/usuarios');
         const data = await res.json();
+        listaUsuariosLocal = data;
         const container = document.getElementById('lista-usuarios');
         container.innerHTML = '';
 
@@ -123,13 +126,42 @@ async function cargarUsuarios() {
             
             // Colores por Rol
             let badgeClass = 'bg-slate-100 text-slate-600';
-            if (u.rol === 'ADMIN') badgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+            if (u.rol === 'ADMIN' || u.rol === 'ADMINISTRADOR') badgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
             if (u.rol === 'CAJERO') badgeClass = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
             if (u.rol === 'ALMACEN') badgeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
 
             const statusLabel = u.activo ? 'Operativo' : 'Suspendido';
             const statusColor = u.activo ? 'text-emerald-500 bg-emerald-50' : 'text-slate-400 bg-slate-50';
             const toggleIcon = u.activo ? 'fa-toggle-on text-indigo-600' : 'fa-toggle-off text-slate-300';
+
+            // HTML de permisos individuales para no-admins
+            let permisosHtml = '';
+            if (u.rol === 'ADMIN' || u.rol === 'ADMINISTRADOR') {
+                permisosHtml = `<span class="text-xs text-indigo-500 font-bold uppercase tracking-wide">Acceso Total</span>`;
+            } else {
+                permisosHtml = `
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="togglePermiso(${u.id}, 'stock')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_stock ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Stock Actual">
+                            <i class="fa-solid fa-boxes-stacked text-[10px]"></i>
+                        </button>
+                        <button onclick="togglePermiso(${u.id}, 'compras')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_compras ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Compras Insumos">
+                            <i class="fa-solid fa-cart-flatbed text-[10px]"></i>
+                        </button>
+                        <button onclick="togglePermiso(${u.id}, 'proveedores')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_proveedores ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Proveedores">
+                            <i class="fa-solid fa-truck text-[10px]"></i>
+                        </button>
+                        <button onclick="togglePermiso(${u.id}, 'auditoria')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_auditoria ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Auditoría">
+                            <i class="fa-solid fa-clipboard-check text-[10px]"></i>
+                        </button>
+                        <button onclick="togglePermiso(${u.id}, 'parametros')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_parametros ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Parámetros">
+                            <i class="fa-solid fa-gears text-[10px]"></i>
+                        </button>
+                        <button onclick="togglePermiso(${u.id}, 'informe')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_informe ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Informe General">
+                            <i class="fa-solid fa-mug-hot text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+            }
 
             row.innerHTML = `
                 <td class="px-6 py-4">
@@ -145,6 +177,9 @@ async function cargarUsuarios() {
                 </td>
                 <td class="px-6 py-4 text-center">
                     <span class="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${badgeClass}">${u.rol}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    ${permisosHtml}
                 </td>
                 <td class="px-6 py-4 text-center">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${statusColor}">
@@ -171,13 +206,44 @@ async function cargarUsuarios() {
         if (container) {
             container.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center py-10">
+                    <td colspan="5" class="text-center py-10">
                         <p class="text-rose-500 font-bold mb-2">⚠️ Error de conexión al cargar personal</p>
                         <button onclick="cargarUsuarios()" class="text-xs bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200 transition-colors tracking-tight font-black uppercase">Reintentar</button>
                     </td>
                 </tr>
             `;
         }
+    }
+}
+
+async function togglePermiso(userId, tipo) {
+    const usuario = listaUsuariosLocal.find(u => u.id === userId);
+    if (!usuario) return;
+
+    // Alternar el permiso correspondiente
+    const campo = 'perm_' + tipo;
+    usuario[campo] = !usuario[campo];
+
+    try {
+        const res = await fetch(`/api/parametros/usuarios/${userId}/permisos`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                perm_stock: usuario.perm_stock,
+                perm_compras: usuario.perm_compras,
+                perm_proveedores: usuario.perm_proveedores,
+                perm_auditoria: usuario.perm_auditoria,
+                perm_parametros: usuario.perm_parametros,
+                perm_informe: usuario.perm_informe
+            })
+        });
+
+        if (!res.ok) throw new Error('Error al actualizar permisos');
+        
+        // Recargar la lista para reflejar los cambios
+        cargarUsuarios();
+    } catch (error) {
+        alert("🚨 " + error.message);
     }
 }
 

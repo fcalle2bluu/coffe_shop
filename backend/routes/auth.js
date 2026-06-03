@@ -18,7 +18,13 @@ router.post('/login', async (req, res) => {
         console.log(`2. Consultando BD con SQL para el usuario: ${username}...`);
         
         // Usamos SQL puro con parámetros ($1, $2) para evitar inyecciones SQL (Hackers)
-        const query = 'SELECT id, nombre, rol, activo FROM usuarios WHERE username = $1 AND pin = $2';
+        const query = `
+            SELECT id, nombre, rol, activo, 
+                   perm_stock, perm_compras, perm_proveedores, 
+                   perm_auditoria, perm_parametros, perm_informe 
+            FROM usuarios 
+            WHERE username = $1 AND pin = $2
+        `;
         const { rows } = await pool.query(query, [username, pin]);
 
         console.log("3. Filas encontradas:", rows.length);

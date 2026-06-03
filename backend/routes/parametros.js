@@ -47,11 +47,40 @@ router.put('/', async (req, res) => {
 // 3. Listar usuarios
 router.get('/usuarios', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, nombre, username, rol, activo FROM usuarios ORDER BY nombre ASC');
+        const result = await pool.query(`
+            SELECT id, nombre, username, rol, activo, 
+                   perm_stock, perm_compras, perm_proveedores, 
+                   perm_auditoria, perm_parametros, perm_informe 
+            FROM usuarios 
+            ORDER BY nombre ASC
+        `);
         res.json(result.rows);
     } catch (error) {
         console.error('Error al listar usuarios:', error);
         res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+});
+
+// 3.5. Actualizar permisos de usuario
+router.put('/usuarios/:id/permisos', async (req, res) => {
+    const { id } = req.params;
+    const { perm_stock, perm_compras, perm_proveedores, perm_auditoria, perm_parametros, perm_informe } = req.body;
+
+    try {
+        await pool.query(`
+            UPDATE usuarios SET 
+                perm_stock = $1, 
+                perm_compras = $2, 
+                perm_proveedores = $3, 
+                perm_auditoria = $4, 
+                perm_parametros = $5, 
+                perm_informe = $6 
+            WHERE id = $7
+        `, [perm_stock, perm_compras, perm_proveedores, perm_auditoria, perm_parametros, perm_informe, id]);
+        res.json({ message: 'Permisos actualizados correctamente' });
+    } catch (error) {
+        console.error('Error al actualizar permisos:', error);
+        res.status(500).json({ error: 'Error al actualizar permisos' });
     }
 });
 

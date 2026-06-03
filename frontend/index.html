@@ -131,6 +131,12 @@
                     localStorage.setItem('usuario_id', data.usuario.id);
                     localStorage.setItem('usuario_nombre', data.usuario.nombre);
                     localStorage.setItem('usuario_rol', data.usuario.rol);
+                    localStorage.setItem('perm_stock', data.usuario.perm_stock);
+                    localStorage.setItem('perm_compras', data.usuario.perm_compras);
+                    localStorage.setItem('perm_proveedores', data.usuario.perm_proveedores);
+                    localStorage.setItem('perm_auditoria', data.usuario.perm_auditoria);
+                    localStorage.setItem('perm_parametros', data.usuario.perm_parametros);
+                    localStorage.setItem('perm_informe', data.usuario.perm_informe);
                     
                     const rol = (data.usuario.rol || '').toUpperCase();
                     if (rol === 'CAJERO') {

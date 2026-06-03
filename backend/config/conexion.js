@@ -62,7 +62,13 @@ pool.query('SELECT NOW()', async (err, res) => {
         'ALTER TABLE usuarios ALTER COLUMN rol TYPE TEXT;',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS username TEXT;',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin TEXT;',
-        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;'
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_stock BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_compras BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_proveedores BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_auditoria BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_parametros BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_informe BOOLEAN DEFAULT FALSE;'
     ];
 
     for (const sql of userMigrations) {

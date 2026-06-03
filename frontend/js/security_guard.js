@@ -36,48 +36,90 @@
         return;
     }
 
-    // REGLAS PARA CAJERO
-    const adminPages = [
-        'almacen_stock.html', 
-        'almacen_movimientos.html', 
-        'compras.html',
-        'compras_reporte.html', 
-        'inventario.html', 
-        'comprobantes.html', 
-        'parametros.html',
-        'informe_general.html'
-    ];
+    const isAdmin = rol === 'ADMINISTRADOR' || rol === 'ADMIN';
 
-    if (rol === 'CAJERO') {
+    if (!rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !isAdmin) {
         if (pageName === 'dashboard.html') {
             window.location.href = 'ventas.html';
             return;
         }
-        if (adminPages.includes(pageName)) {
-            alert('⛔ Acceso denegado: Control exclusivo de Administradores.');
+
+        // Validar acceso por página
+        let hasAccess = true;
+        if (pageName.includes('almacen_stock.html') || pageName.includes('almacen_movimientos.html')) {
+            hasAccess = localStorage.getItem('perm_stock') === 'true';
+        } else if (pageName.includes('compras.html') || pageName.includes('compras_reporte.html')) {
+            hasAccess = localStorage.getItem('perm_compras') === 'true';
+        } else if (pageName.includes('proveedores.html')) {
+            hasAccess = localStorage.getItem('perm_proveedores') === 'true';
+        } else if (pageName.includes('inventario.html')) {
+            hasAccess = localStorage.getItem('perm_auditoria') === 'true';
+        } else if (pageName.includes('parametros.html')) {
+            hasAccess = localStorage.getItem('perm_parametros') === 'true';
+        } else if (pageName.includes('informe_general.html')) {
+            hasAccess = localStorage.getItem('perm_informe') === 'true';
+        }
+
+        if (!hasAccess) {
+            alert('⛔ Acceso denegado: No tienes permisos para acceder a esta sección.');
             window.location.href = 'ventas.html';
             return;
         }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        if (rol === 'CAJERO') {
-            document.querySelectorAll('.solo-admin').forEach(el => {
-                el.style.display = 'none';
-            });
+        // Ocultar o mostrar links del sidebar según permisos individuales
+        document.querySelectorAll('aside nav a').forEach(el => {
+            const href = el.getAttribute('href') || '';
+            
+            if (href.includes('dashboard.html') && rol === 'CAJERO') {
+                const parentLi = el.closest('li');
+                if (parentLi) parentLi.style.display = 'none';
+                else el.style.display = 'none';
+                return;
+            }
 
-            // Ocultar opción Dashboard en el menú lateral para CAJERO
-            document.querySelectorAll('aside nav a').forEach(el => {
-                const href = el.getAttribute('href');
-                if (href === 'dashboard.html') {
-                    const parentLi = el.closest('li');
-                    if (parentLi) {
-                        parentLi.style.display = 'none';
-                    } else {
-                        el.style.display = 'none';
-                    }
-                }
-            });
+            if (href.includes('almacen_stock.html')) {
+                const hasPerm = localStorage.getItem('perm_stock') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+            if (href.includes('compras.html')) {
+                const hasPerm = localStorage.getItem('perm_compras') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+            if (href.includes('proveedores.html')) {
+                const hasPerm = localStorage.getItem('perm_proveedores') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+            if (href.includes('inventario.html')) {
+                const hasPerm = localStorage.getItem('perm_auditoria') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+            if (href.includes('parametros.html')) {
+                const hasPerm = localStorage.getItem('perm_parametros') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+            if (href.includes('informe_general.html')) {
+                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+            }
+        });
+
+        // Ocultar otros elementos marcados como solo-admin en la página si no tiene el permiso correspondiente
+        if (!isAdmin) {
+            let keepSoloAdmin = false;
+            if (pageName.includes('almacen_stock') && localStorage.getItem('perm_stock') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('compras') && localStorage.getItem('perm_compras') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('proveedores') && localStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('inventario') && localStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('parametros') && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('informe_general') && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
+
+            if (!keepSoloAdmin) {
+                document.querySelectorAll('.solo-admin').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
         }
     });
 })();
