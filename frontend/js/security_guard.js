@@ -82,30 +82,36 @@
             if (href.includes('almacen_stock.html')) {
                 const hasPerm = localStorage.getItem('perm_stock') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('compras.html')) {
                 const hasPerm = localStorage.getItem('perm_compras') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('proveedores.html')) {
                 const hasPerm = localStorage.getItem('perm_proveedores') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('inventario.html')) {
                 const hasPerm = localStorage.getItem('perm_auditoria') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('parametros.html')) {
                 const hasPerm = localStorage.getItem('perm_parametros') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('informe_general.html')) {
                 const hasPerm = localStorage.getItem('perm_informe') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
         });
 
-        // Ocultar otros elementos marcados como solo-admin en la página si no tiene el permiso correspondiente
+        // Ocultar u mostrar otros elementos marcados como solo-admin en la página si tiene el permiso correspondiente
         if (!isAdmin) {
             let keepSoloAdmin = false;
             if (pageName.includes('almacen_stock') && localStorage.getItem('perm_stock') === 'true') keepSoloAdmin = true;
@@ -115,7 +121,14 @@
             if (pageName.includes('parametros') && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
             if (pageName.includes('informe_general') && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
-            if (!keepSoloAdmin) {
+            if (keepSoloAdmin) {
+                document.querySelectorAll('.solo-admin').forEach(el => {
+                    const href = el.getAttribute('href');
+                    if (!href) {
+                        el.style.display = ''; // Restaurar a su display original (ej: block/flex de Tailwind)
+                    }
+                });
+            } else {
                 document.querySelectorAll('.solo-admin').forEach(el => {
                     el.style.display = 'none';
                 });
