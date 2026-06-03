@@ -57,10 +57,10 @@ function renderizarCatalogo(filtro = '') {
         `;
     });
     
-    // Ocultar botones '.solo-admin' si el rol actual es CAJERO
+    // Ocultar botones '.solo-admin' dentro del catálogo si el rol actual es CAJERO
     const rolActual = localStorage.getItem('usuario_rol');
     if (rolActual === 'CAJERO' || rolActual === 'ALMACEN' || rolActual === 'LOGISTICA') {
-        document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+        contenedor.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
     }
 }
 

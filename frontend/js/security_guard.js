@@ -121,15 +121,18 @@
             if (pageName.includes('parametros') && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
             if (pageName.includes('informe_general') && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
+            // Filtrar para no tocar la barra lateral (aside)
+            const elementosNoSidebar = Array.from(document.querySelectorAll('.solo-admin')).filter(el => !el.closest('aside'));
+
             if (keepSoloAdmin) {
-                document.querySelectorAll('.solo-admin').forEach(el => {
+                elementosNoSidebar.forEach(el => {
                     const href = el.getAttribute('href');
                     if (!href) {
                         el.style.display = ''; // Restaurar a su display original (ej: block/flex de Tailwind)
                     }
                 });
             } else {
-                document.querySelectorAll('.solo-admin').forEach(el => {
+                elementosNoSidebar.forEach(el => {
                     el.style.display = 'none';
                 });
             }
