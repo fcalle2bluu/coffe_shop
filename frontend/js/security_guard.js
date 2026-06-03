@@ -135,4 +135,30 @@
             }
         }
     });
+
+    // Revalidación en segundo plano (para actualizar permisos en tiempo real sin obligar a reloguear)
+    const usuarioId = localStorage.getItem('usuario_id');
+    if (usuarioId && !rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !isAdmin) {
+        fetch(`/api/auth/check-permissions?usuario_id=${usuarioId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.permisos) {
+                    const keys = ['perm_stock', 'perm_compras', 'perm_proveedores', 'perm_auditoria', 'perm_parametros', 'perm_informe'];
+                    let changed = false;
+                    keys.forEach(k => {
+                        const dbVal = String(data.permisos[k]);
+                        if (localStorage.getItem(k) !== dbVal) {
+                            localStorage.setItem(k, dbVal);
+                            changed = true;
+                        }
+                    });
+                    
+                    if (changed) {
+                        console.log("🔄 Permisos actualizados en segundo plano. Re-aplicando reglas...");
+                        window.location.reload();
+                    }
+                }
+            })
+            .catch(err => console.error("Error al revalidar permisos:", err));
+    }
 })();

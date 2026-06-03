@@ -84,4 +84,32 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+
+// Endpoint para verificar permisos actualizados de un usuario en tiempo real
+router.get('/check-permissions', async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Falta ID de usuario' });
+    }
+
+    try {
+        const query = `
+            SELECT perm_stock, perm_compras, perm_proveedores, 
+                   perm_auditoria, perm_parametros, perm_informe 
+            FROM usuarios 
+            WHERE id = $1
+        `;
+        const { rows } = await pool.query(query, [usuario_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json({ success: true, permisos: rows[0] });
+    } catch (err) {
+        console.error('Error al chequear permisos:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
