@@ -38,29 +38,92 @@ function renderizarCatalogo(filtro = '') {
         p.nombre.toLowerCase().includes(filtro.toLowerCase())
     );
 
+    // Agrupar por categoría
+    const productosPorCategoria = {};
     filtrados.forEach(prod => {
-        contenedor.innerHTML += `
-            <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px] relative">
-                
-                <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="solo-admin absolute top-2 right-2 text-gray-300 hover:text-orange-600 transition-colors p-1" title="Editar Producto">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                
-                <div class="flex-1 pt-1 pr-6">
-                    <span class="text-xs font-bold text-orange-600 mb-1 block">${prod.categoria || 'General'}</span>
-                    <h3 class="font-bold text-gray-800 leading-tight">${prod.nombre}</h3>
-                </div>
-                <div class="text-lg font-black text-stone-800 mt-2">
-                    Bs. ${prod.precio_venta}
-                </div>
+        const cat = prod.categoria || 'General';
+        if (!productosPorCategoria[cat]) {
+            productosPorCategoria[cat] = [];
+        }
+        productosPorCategoria[cat].push(prod);
+    });
+
+    // Obtener las categorías ordenadas
+    const categorias = Object.keys(productosPorCategoria).sort();
+
+    if (categorias.length === 0) {
+        contenedor.innerHTML = `
+            <div class="col-span-full py-12 text-center text-slate-400 font-medium italic text-sm">
+                No se encontraron productos en el catálogo.
             </div>
         `;
+        return;
+    }
+
+    categorias.forEach(cat => {
+        // Renderizar el encabezado de categoría
+        contenedor.innerHTML += `
+            <div class="col-span-full mt-6 first:mt-2 mb-2">
+                <h3 class="text-xs font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>
+                    ${cat}
+                    <span class="text-[10px] text-slate-400 font-medium font-mono">(${productosPorCategoria[cat].length})</span>
+                </h3>
+            </div>
+        `;
+
+        // Renderizar cada producto de esta categoría
+        productosPorCategoria[cat].forEach(prod => {
+            contenedor.innerHTML += `
+                <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px] relative">
+                    
+                    <!-- Botones de Admin -->
+                    <div class="solo-admin absolute top-2 right-2 flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-400 hover:text-indigo-600 transition-colors p-1" title="Editar Producto">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); eliminarProducto(${prod.id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-rose-600 transition-colors p-1" title="Borrar Producto">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 pt-1 pr-12">
+                        <h3 class="font-bold text-gray-800 leading-tight text-sm sm:text-base">${prod.nombre}</h3>
+                    </div>
+                    <div class="text-base sm:text-lg font-black text-stone-800 mt-2">
+                        Bs. ${prod.precio_venta}
+                    </div>
+                </div>
+            `;
+        });
     });
     
     // Ocultar botones '.solo-admin' dentro del catálogo si el rol actual es CAJERO
     const rolActual = localStorage.getItem('usuario_rol');
     if (rolActual === 'CAJERO' || rolActual === 'ALMACEN' || rolActual === 'LOGISTICA') {
         contenedor.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+    }
+}
+
+async function eliminarProducto(id, nombre) {
+    if (!confirm(`¿Estás seguro de eliminar el producto "${nombre}"? Esta acción borrará también su historial de ventas asociado.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/ventas/productos/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Error al eliminar');
+        }
+
+        alert(`✅ Producto "${nombre}" eliminado con éxito.`);
+        cargarProductos(); // Recargar catálogo
+    } catch (error) {
+        alert('🚨 Error: ' + error.message);
     }
 }
 
