@@ -48,16 +48,35 @@
         'informe_general.html'
     ];
 
-    if (adminPages.includes(pageName) && rol === 'CAJERO') {
-        alert('⛔ Acceso denegado: Control exclusivo de Administradores.');
-        window.location.href = 'dashboard.html';
-        return;
+    if (rol === 'CAJERO') {
+        if (pageName === 'dashboard.html') {
+            window.location.href = 'ventas.html';
+            return;
+        }
+        if (adminPages.includes(pageName)) {
+            alert('⛔ Acceso denegado: Control exclusivo de Administradores.');
+            window.location.href = 'ventas.html';
+            return;
+        }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
         if (rol === 'CAJERO') {
             document.querySelectorAll('.solo-admin').forEach(el => {
                 el.style.display = 'none';
+            });
+
+            // Ocultar opción Dashboard en el menú lateral para CAJERO
+            document.querySelectorAll('aside nav a').forEach(el => {
+                const href = el.getAttribute('href');
+                if (href === 'dashboard.html') {
+                    const parentLi = el.closest('li');
+                    if (parentLi) {
+                        parentLi.style.display = 'none';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                }
             });
         }
     });

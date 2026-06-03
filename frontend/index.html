@@ -131,7 +131,15 @@
                     localStorage.setItem('usuario_id', data.usuario.id);
                     localStorage.setItem('usuario_nombre', data.usuario.nombre);
                     localStorage.setItem('usuario_rol', data.usuario.rol);
-                    window.location.href = 'dashboard.html';
+                    
+                    const rol = (data.usuario.rol || '').toUpperCase();
+                    if (rol === 'CAJERO') {
+                        window.location.href = 'ventas.html';
+                    } else if (rol.includes('LOGISTICA') || rol.includes('ALMACEN')) {
+                        window.location.href = 'pedidos_internos.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
                 } else {
                     const extraInfo = data.detalle ? ` (${data.detalle})` : '';
                     mensajeError.textContent = (data.error || 'Acceso denegado') + extraInfo;

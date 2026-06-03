@@ -79,4 +79,20 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Endpoint temporal para limpiar todas las ventas de la base de datos de producción
+router.get('/clear-sales-dangerous', async (req, res) => {
+    try {
+        console.log("⚡ INICIANDO ELIMINACIÓN DE TODAS LAS VENTAS DESDE EL ENDPOINT TEMPORAL...");
+        
+        // Ejecutamos TRUNCATE en detalle_ventas y ventas para borrar todos los registros y reiniciar los IDs autoincrementales
+        await pool.query('TRUNCATE TABLE detalle_ventas, ventas RESTART IDENTITY CASCADE;');
+        
+        console.log("✅ VENTAS ELIMINADAS CON ÉXITO");
+        res.json({ success: true, message: "Todas las ventas y sus detalles han sido eliminadas." });
+    } catch (err) {
+        console.error("❌ Error al limpiar ventas:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
