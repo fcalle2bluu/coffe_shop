@@ -7,7 +7,14 @@ const pool = require('../config/conexion');
 router.get('/estado', async (req, res) => {
     try {
         // Buscar si hay una caja abierta (fecha_cierre es null)
-        const cajaRes = await pool.query('SELECT * FROM cajas WHERE fecha_cierre IS NULL ORDER BY id DESC LIMIT 1');
+        const cajaRes = await pool.query(`
+            SELECT c.*, u.nombre as usuario_nombre,
+                   TO_CHAR(c.fecha_apertura AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_apertura_formateada
+            FROM cajas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.fecha_cierre IS NULL 
+            ORDER BY c.id DESC LIMIT 1
+        `);
         
         if (cajaRes.rows.length === 0) {
             return res.json({ abierta: false });
@@ -46,7 +53,7 @@ router.get('/estado', async (req, res) => {
 
 // 2. Abrir un nuevo turno de caja
 router.post('/abrir', async (req, res) => {
-    const { saldo_inicial } = req.body;
+    const { saldo_inicial, usuario_id } = req.body;
     try {
         // Verificar que no haya otra caja abierta
         const validacion = await pool.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
@@ -55,9 +62,9 @@ router.post('/abrir', async (req, res) => {
         }
 
         const result = await pool.query(`
-            INSERT INTO cajas (saldo_inicial, fecha_apertura) 
-            VALUES ($1, NOW()) RETURNING id
-        `, [saldo_inicial]);
+            INSERT INTO cajas (saldo_inicial, usuario_id, fecha_apertura) 
+            VALUES ($1, $2, NOW()) RETURNING id
+        `, [saldo_inicial, usuario_id || null]);
 
         res.status(201).json({ message: 'Caja abierta con éxito', id: result.rows[0].id });
     } catch (error) {
@@ -68,8 +75,34 @@ router.post('/abrir', async (req, res) => {
 
 // 3. Cerrar el turno de caja
 router.post('/cerrar', async (req, res) => {
-    const { caja_id, saldo_final } = req.body;
+    const { caja_id, saldo_final, usuario_id } = req.body;
+    
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido para cerrar caja.' });
+    }
+
     try {
+        // Obtener rol del usuario que intenta cerrar
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(400).json({ error: 'Usuario no válido.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+
+        // Obtener la caja activa
+        const cajaRes = await pool.query('SELECT usuario_id FROM cajas WHERE id = $1', [caja_id]);
+        if (cajaRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Turno de caja no encontrado.' });
+        }
+        const creadorId = cajaRes.rows[0].usuario_id;
+
+        // Validar permisos: solo el creador o un administrador
+        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN' && parseInt(usuario_id) !== parseInt(creadorId)) {
+            return res.status(403).json({ 
+                error: 'No tienes permisos para cerrar este turno. Solo puede cerrarlo el cajero que lo abrió o un Administrador.' 
+            });
+        }
+
         await pool.query(`
             UPDATE cajas 
             SET saldo_final = $1, fecha_cierre = NOW() 
@@ -79,7 +112,7 @@ router.post('/cerrar', async (req, res) => {
         res.json({ message: 'Caja cerrada correctamente' });
     } catch (error) {
         console.error('Error al cerrar caja:', error);
-        res.status(500).json({ error: 'Error al cerrar la caja' });
+        res.status(500).json({ error: 'Error al cerrar la caja: ' + error.message });
     }
 });
 
@@ -88,8 +121,8 @@ router.get('/historial', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT id, saldo_inicial, saldo_final, 
-                   TO_CHAR(fecha_apertura, 'DD/MM/YYYY HH24:MI') as apertura,
-                   TO_CHAR(fecha_cierre, 'DD/MM/YYYY HH24:MI') as cierre,
+                   TO_CHAR(fecha_apertura AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as apertura,
+                   TO_CHAR(fecha_cierre AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as cierre,
                    (saldo_final - saldo_inicial) as diferencia
             FROM cajas 
             WHERE fecha_cierre IS NOT NULL

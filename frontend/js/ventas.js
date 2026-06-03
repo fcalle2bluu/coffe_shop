@@ -6,6 +6,7 @@ let totalVenta = 0;
 document.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
     iniciarReloj();
+    verificarEstadoCaja();
 
     // Filtro de búsqueda en vivo
     document.getElementById('buscarProducto').addEventListener('input', (e) => {
@@ -104,6 +105,8 @@ function actualizarTicket() {
     const contenedor = document.getElementById('ticket-items');
     totalVenta = 0;
 
+    const cajaId = localStorage.getItem('caja_id');
+
     if (carritoVenta.length === 0) {
         contenedor.innerHTML = `
             <div class="text-center text-gray-400 mt-10 text-sm">
@@ -111,8 +114,20 @@ function actualizarTicket() {
                 <p>No hay productos en el ticket</p>
             </div>`;
         document.getElementById('btn-cobrar').disabled = true;
+        if (!cajaId) {
+            document.getElementById('btn-cobrar').innerHTML = '🚫 CAJA CERRADA';
+        } else {
+            document.getElementById('btn-cobrar').innerHTML = 'COBRAR Bs. <span id="btn-total">0.00</span>';
+        }
     } else {
-        document.getElementById('btn-cobrar').disabled = false;
+        if (!cajaId) {
+            document.getElementById('btn-cobrar').disabled = true;
+            document.getElementById('btn-cobrar').innerHTML = '🚫 ABRIR CAJA PRIMERO';
+        } else {
+            document.getElementById('btn-cobrar').disabled = false;
+            document.getElementById('btn-cobrar').innerHTML = `COBRAR Bs. <span id="btn-total">0.00</span>`;
+        }
+        
         contenedor.innerHTML = '';
         
         carritoVenta.forEach((item, index) => {
@@ -141,7 +156,9 @@ function actualizarTicket() {
     const totalFormateado = totalVenta.toFixed(2);
     document.getElementById('subtotal-ticket').innerText = `Bs. ${totalFormateado}`;
     document.getElementById('total-ticket').innerText = `Bs. ${totalFormateado}`;
-    document.getElementById('btn-total').innerText = totalFormateado;
+    if (cajaId && carritoVenta.length > 0) {
+        document.getElementById('btn-total').innerText = totalFormateado;
+    }
 }
 
 function limpiarCarrito() {
@@ -309,4 +326,22 @@ function iniciarReloj() {
         const ahora = new Date();
         document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }, 1000);
+}
+
+// Verificar el estado de la caja al cargar la pantalla
+async function verificarEstadoCaja() {
+    try {
+        const res = await fetch('/api/caja/estado');
+        const data = await res.json();
+        
+        if (data.abierta) {
+            localStorage.setItem('caja_id', data.caja.id);
+            actualizarTicket();
+        } else {
+            localStorage.removeItem('caja_id');
+            actualizarTicket();
+        }
+    } catch (e) {
+        console.error("Error al verificar estado de caja:", e);
+    }
 }

@@ -32,7 +32,9 @@ async function cargarEstadoCaja() {
             panelEstado.className = "bg-white rounded shadow border-t-4 border-green-500 p-6 flex items-center justify-between";
             txtEstado.innerText = "Caja Abierta (Turno Activo)";
             txtEstado.className = "text-2xl font-black text-green-700";
-            txtInfo.innerHTML = `Apertura: <strong>${new Date(data.caja.fecha_apertura).toLocaleString('es-ES')}</strong>`;
+            const apertureTime = data.caja.fecha_apertura_formateada || new Date(data.caja.fecha_apertura).toLocaleString('es-ES');
+            const openerName = data.caja.usuario_nombre || 'Usuario Desconocido';
+            txtInfo.innerHTML = `Apertura: <strong>${apertureTime}</strong> por <strong>${openerName}</strong>`;
             
             btnAccion.innerHTML = '<i class="fa-solid fa-lock mr-2"></i> Cerrar Caja';
             btnAccion.className = "bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded shadow font-bold text-lg transition-colors";
@@ -127,13 +129,23 @@ function cerrarModales() {
 // --- ACCIONES POST ---
 async function procesarApertura() {
     const saldo = document.getElementById('inputSaldoInicial').value;
+    const usuarioId = localStorage.getItem('usuario_id');
     try {
         const res = await fetch('/api/caja/abrir', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ saldo_inicial: saldo })
+            body: JSON.stringify({ saldo_inicial: saldo, usuario_id: usuarioId })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+            let errorMsg = 'Error al abrir caja';
+            try {
+                const errData = await res.json();
+                errorMsg = errData.error || errorMsg;
+            } catch (e) {
+                errorMsg = await res.text();
+            }
+            throw new Error(errorMsg);
+        }
         
         cerrarModales();
         cargarEstadoCaja();
@@ -144,13 +156,23 @@ async function procesarApertura() {
 
 async function procesarCierre() {
     const saldoReal = document.getElementById('inputSaldoFinal').value;
+    const usuarioId = localStorage.getItem('usuario_id');
     try {
         const res = await fetch('/api/caja/cerrar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ caja_id: cajaActualId, saldo_final: saldoReal })
+            body: JSON.stringify({ caja_id: cajaActualId, saldo_final: saldoReal, usuario_id: usuarioId })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+            let errorMsg = 'Error al cerrar caja';
+            try {
+                const errData = await res.json();
+                errorMsg = errData.error || errorMsg;
+            } catch (e) {
+                errorMsg = await res.text();
+            }
+            throw new Error(errorMsg);
+        }
         
         cerrarModales();
         cargarEstadoCaja();
