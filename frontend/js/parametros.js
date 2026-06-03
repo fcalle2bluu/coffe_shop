@@ -140,24 +140,24 @@ async function cargarUsuarios() {
                 permisosHtml = `<span class="text-xs text-indigo-500 font-bold uppercase tracking-wide">Acceso Total</span>`;
             } else {
                 permisosHtml = `
-                    <div class="flex items-center justify-center gap-1.5">
-                        <button onclick="togglePermiso(${u.id}, 'stock')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_stock ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Stock Actual">
-                            <i class="fa-solid fa-boxes-stacked text-[10px]"></i>
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 max-w-[380px] mx-auto">
+                        <button onclick="togglePermiso(${u.id}, 'stock')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_stock ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Stock Actual">
+                            <i class="fa-solid fa-boxes-stacked text-[10px]"></i> Stock
                         </button>
-                        <button onclick="togglePermiso(${u.id}, 'compras')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_compras ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Compras Insumos">
-                            <i class="fa-solid fa-cart-flatbed text-[10px]"></i>
+                        <button onclick="togglePermiso(${u.id}, 'compras')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_compras ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Compras Insumos">
+                            <i class="fa-solid fa-cart-flatbed text-[10px]"></i> Compras
                         </button>
-                        <button onclick="togglePermiso(${u.id}, 'proveedores')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_proveedores ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Proveedores">
-                            <i class="fa-solid fa-truck text-[10px]"></i>
+                        <button onclick="togglePermiso(${u.id}, 'proveedores')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_proveedores ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Proveedores">
+                            <i class="fa-solid fa-truck text-[10px]"></i> Proveedores
                         </button>
-                        <button onclick="togglePermiso(${u.id}, 'auditoria')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_auditoria ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Auditoría">
-                            <i class="fa-solid fa-clipboard-check text-[10px]"></i>
+                        <button onclick="togglePermiso(${u.id}, 'auditoria')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_auditoria ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Auditoría">
+                            <i class="fa-solid fa-clipboard-check text-[10px]"></i> Auditoría
                         </button>
-                        <button onclick="togglePermiso(${u.id}, 'parametros')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_parametros ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Parámetros">
-                            <i class="fa-solid fa-gears text-[10px]"></i>
+                        <button onclick="togglePermiso(${u.id}, 'parametros')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_parametros ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Parámetros">
+                            <i class="fa-solid fa-gears text-[10px]"></i> Parámetros
                         </button>
-                        <button onclick="togglePermiso(${u.id}, 'informe')" class="w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${u.perm_informe ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Informe General">
-                            <i class="fa-solid fa-mug-hot text-[10px]"></i>
+                        <button onclick="togglePermiso(${u.id}, 'informe')" class="px-2.5 py-1 rounded-xl flex items-center gap-1.5 border transition-all text-[9px] font-black uppercase tracking-wider ${u.perm_informe ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100/50' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}" title="Informe General">
+                            <i class="fa-solid fa-mug-hot text-[10px]"></i> Informes
                         </button>
                     </div>
                 `;
