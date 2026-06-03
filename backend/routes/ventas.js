@@ -77,6 +77,32 @@ router.put('/productos/:id', async (req, res) => {
     }
 });
 
+// 1.8. Eliminar producto individual
+router.delete('/productos/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM detalle_ventas WHERE producto_id = $1', [id]);
+        await pool.query('DELETE FROM productos WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Producto eliminado exitosamente.' });
+    } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        res.status(500).json({ error: 'Error interno al eliminar producto: ' + error.message });
+    }
+});
+
+// 1.9. Eliminar todos los productos (limpieza)
+router.post('/clear-all-products', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM detalle_ventas');
+        await pool.query('DELETE FROM ventas');
+        await pool.query('DELETE FROM productos');
+        res.json({ success: true, message: 'Todos los productos y ventas han sido eliminados de la base de datos.' });
+    } catch (error) {
+        console.error('Error al borrar productos:', error);
+        res.status(500).json({ error: 'Error interno al limpiar catálogo: ' + error.message });
+    }
+});
+
 // 2. Procesar una nueva venta (Transacción Completa)
 router.post('/', async (req, res) => {
     let { usuario_id, caja_id, total, metodo_pago, detalles } = req.body;
