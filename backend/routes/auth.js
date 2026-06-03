@@ -78,4 +78,17 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+
+// Endpoint temporal para inspeccionar la tabla cajas
+router.get('/inspect-cajas', async (req, res) => {
+    try {
+        const columns = await pool.query(
+            "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'cajas';"
+        );
+        res.json({ success: true, columns: columns.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
