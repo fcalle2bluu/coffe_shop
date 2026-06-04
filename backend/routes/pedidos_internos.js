@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
         let result;
         if (rol === 'ADMIN') {
             result = await pool.query(`
-                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, 
+                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, p.imagen_url,
                        TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
                        u.nombre as solicitante, i.stock_actual, i.unidad_medida
                 FROM pedidos_compra p
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
             `);
         } else {
             result = await pool.query(`
-                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, 
+                SELECT p.id, p.insumo_id, COALESCE(i.nombre, p.insumo_nombre) as insumo_nombre, p.cantidad, p.notas, p.estado, p.imagen_url,
                        TO_CHAR(p.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_pedido,
                        u.nombre as solicitante, i.unidad_medida
                 FROM pedidos_compra p
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 
 // 2. Crear un nuevo pedido de compra (ahora usando insumo_id)
 router.post('/', async (req, res) => {
-    const { usuario_id, insumo_id, insumo_nombre, cantidad, notas } = req.body;
+    const { usuario_id, insumo_id, insumo_nombre, cantidad, notas, imagen_url } = req.body;
     
     if (!usuario_id || (!insumo_id && !insumo_nombre) || !cantidad) {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -50,9 +50,9 @@ router.post('/', async (req, res) => {
 
     try {
         await pool.query(`
-            INSERT INTO pedidos_compra (usuario_id, insumo_id, insumo_nombre, cantidad, notas)
-            VALUES ($1, $2, $3, $4, $5)
-        `, [usuario_id, insumo_id, insumo_nombre, cantidad.toString(), notas]);
+            INSERT INTO pedidos_compra (usuario_id, insumo_id, insumo_nombre, cantidad, notas, imagen_url)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [usuario_id, insumo_id, insumo_nombre, cantidad.toString(), notas, imagen_url || null]);
         res.status(201).json({ message: 'Pedido creado exitosamente' });
     } catch (error) {
         console.error("Error al crear pedido:", error);

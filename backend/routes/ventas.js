@@ -7,7 +7,7 @@ const pool = require('../config/conexion');
 router.get('/productos', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT p.id, p.nombre, p.precio_venta, c.nombre as categoria 
+            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria 
             FROM productos p
             LEFT JOIN categorias c ON p.categoria_id = c.id
             WHERE p.activo = TRUE
@@ -48,11 +48,11 @@ router.post('/categorias', async (req, res) => {
 
 // 1.6. Crear nuevo producto
 router.post('/productos', async (req, res) => {
-    const { nombre, precio_venta, categoria_id } = req.body;
+    const { nombre, precio_venta, categoria_id, imagen_url } = req.body;
     try {
         const result = await pool.query(
-            'INSERT INTO productos (nombre, precio_venta, categoria_id, activo) VALUES ($1, $2, $3, TRUE) RETURNING id',
-            [nombre, precio_venta, categoria_id]
+            'INSERT INTO productos (nombre, precio_venta, categoria_id, imagen_url, activo) VALUES ($1, $2, $3, $4, TRUE) RETURNING id',
+            [nombre, precio_venta, categoria_id, imagen_url || null]
         );
         res.status(201).json({ id: result.rows[0].id });
     } catch (error) {
@@ -64,11 +64,11 @@ router.post('/productos', async (req, res) => {
 // 1.7. Modificar producto
 router.put('/productos/:id', async (req, res) => {
     const { id } = req.params;
-    const { nombre, precio_venta, categoria_id } = req.body;
+    const { nombre, precio_venta, categoria_id, imagen_url } = req.body;
     try {
         await pool.query(
-            'UPDATE productos SET nombre = $1, precio_venta = $2, categoria_id = $3 WHERE id = $4',
-            [nombre, precio_venta, categoria_id, id]
+            'UPDATE productos SET nombre = $1, precio_venta = $2, categoria_id = $3, imagen_url = $4 WHERE id = $5',
+            [nombre, precio_venta, categoria_id, imagen_url || null, id]
         );
         res.json({ success: true });
     } catch (error) {

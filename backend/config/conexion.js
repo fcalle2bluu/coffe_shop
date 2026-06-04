@@ -86,6 +86,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración Compras:', compraErr.message);
     }
 
+    // 3.5. Migraciones de Productos y Pedidos Internos (Fotos)
+    try {
+        await pool.query('ALTER TABLE productos ADD COLUMN IF NOT EXISTS imagen_url TEXT;');
+        await pool.query('ALTER TABLE pedidos_compra ADD COLUMN IF NOT EXISTS imagen_url TEXT;');
+    } catch (fotoErr) {
+        console.log('Info Migración Fotos:', fotoErr.message);
+    }
+
     // 4. Auditoría y Rendimiento
     try {
         await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS ubicacion TEXT;');
