@@ -1,0 +1,27 @@
+name: coffe_shop_app
+description: Sistema Móvil de Ventas y Gestión para Café La Paz.
+version: 1.0.0+1
+
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.5
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  google_fonts: ^6.1.0
+  font_awesome_flutter: ^10.6.0
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
