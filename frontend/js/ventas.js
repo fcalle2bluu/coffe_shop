@@ -75,23 +75,34 @@ function renderizarCatalogo(filtro = '') {
         // Renderizar cada producto de esta categoría
         productosPorCategoria[cat].forEach(prod => {
             contenedor.innerHTML += `
-                <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between min-h-[120px] relative">
+                <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between overflow-hidden relative min-h-[160px]">
                     
-                    <!-- Botones de Admin -->
-                    <div class="solo-admin absolute top-2 right-2 flex items-center gap-1.5">
-                        <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-400 hover:text-indigo-600 transition-colors p-1" title="Editar Producto">
-                            <i class="fa-solid fa-pen-to-square text-xs"></i>
-                        </button>
-                        <button onclick="event.stopPropagation(); eliminarProducto(${prod.id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-rose-600 transition-colors p-1" title="Borrar Producto">
-                            <i class="fa-solid fa-trash-can text-xs"></i>
-                        </button>
+                    <!-- Imagen -->
+                    <div class="h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b border-gray-100 relative overflow-hidden">
+                        ${prod.imagen_url ? 
+                            `<img src="${prod.imagen_url}" class="w-full h-full object-cover" alt="${prod.nombre}">` : 
+                            `<div class="w-full h-full bg-gradient-to-br from-orange-50 to-orange-100/50 flex items-center justify-center">
+                                <i class="fa-solid fa-mug-hot text-orange-300 text-2xl"></i>
+                             </div>`
+                        }
+                        
+                        <!-- Botones de Admin -->
+                        <div class="solo-admin absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg shadow-sm border border-gray-100">
+                            <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-500 hover:text-indigo-600 transition-colors p-1" title="Editar Producto">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); eliminarProducto(${prod.id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="text-slate-500 hover:text-rose-600 transition-colors p-1" title="Borrar Producto">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                     
-                    <div class="flex-1 pt-1 pr-12">
-                        <h3 class="font-bold text-gray-800 leading-tight text-sm sm:text-base">${prod.nombre}</h3>
-                    </div>
-                    <div class="text-base sm:text-lg font-black text-stone-800 mt-2">
-                        Bs. ${prod.precio_venta}
+                    <!-- Info -->
+                    <div class="p-3 flex-grow flex flex-col justify-between">
+                        <h3 class="font-bold text-gray-800 leading-tight text-xs sm:text-sm line-clamp-2">${prod.nombre}</h3>
+                        <div class="text-sm sm:text-base font-black text-stone-800 mt-1.5">
+                            Bs. ${prod.precio_venta}
+                        </div>
                     </div>
                 </div>
             `;
@@ -299,6 +310,10 @@ async function cargarCategoriasSelect() {
 function abrirModalProducto(id = null) {
     document.getElementById('modalProductoAdmin').classList.remove('hidden');
     
+    const previewImg = document.getElementById('imgPreviewProdFoto');
+    const previewIcon = document.getElementById('iconPreviewProdFoto');
+    const hiddenUrl = document.getElementById('inpProdFotoUrl');
+
     if (id) {
         document.getElementById('titulo-modal-producto').innerText = "Editar Producto";
         const prod = productosCatalogo.find(p => p.id === id);
@@ -309,10 +324,29 @@ function abrirModalProducto(id = null) {
         // Buscar categoría_id coincidente por nombre
         const cat = categoriasParaModal.find(c => c.nombre === prod.categoria);
         document.getElementById('inpProdCategoria').value = cat ? cat.id : '';
+
+        // Reset and populate photo previews
+        if (prod.imagen_url) {
+            hiddenUrl.value = prod.imagen_url;
+            previewImg.src = prod.imagen_url;
+            previewImg.classList.remove('hidden');
+            previewIcon.classList.add('hidden');
+        } else {
+            hiddenUrl.value = '';
+            previewImg.src = '';
+            previewImg.classList.add('hidden');
+            previewIcon.classList.remove('hidden');
+        }
     } else {
         document.getElementById('titulo-modal-producto').innerText = "Nuevo Producto";
         document.getElementById('formProducto').reset();
         document.getElementById('inpProdId').value = "";
+
+        // Reset photo preview
+        hiddenUrl.value = '';
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+        previewIcon.classList.remove('hidden');
     }
 }
 
@@ -329,7 +363,7 @@ async function agregarNuevaCategoria() {
         
         if (res.ok) {
             const nuevaCat = await res.json();
-            // Recargar categorías y volver a seleccionar la recién creada
+            // Recargar categorías and volver a seleccionar la recién creada
             await cargarCategoriasSelect();
             document.getElementById('inpProdCategoria').value = nuevaCat.id;
         } else {
@@ -346,11 +380,55 @@ function cerrarModalProducto() {
     document.getElementById('modalProductoAdmin').classList.add('hidden');
 }
 
+async function subirFotoProducto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const previewImg = document.getElementById('imgPreviewProdFoto');
+    const previewIcon = document.getElementById('iconPreviewProdFoto');
+    const hiddenUrl = document.getElementById('inpProdFotoUrl');
+    const btnGuardar = document.getElementById('btnGuardarProd');
+
+    // Show loading state on button
+    btnGuardar.disabled = true;
+    const oldBtnText = btnGuardar.innerHTML;
+    btnGuardar.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo...';
+
+    try {
+        const formData = new FormData();
+        formData.append('imagen', file);
+
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) throw new Error("Error al subir archivo");
+        const data = await res.json();
+
+        if (data.url) {
+            hiddenUrl.value = data.url;
+            previewImg.src = data.url;
+            previewImg.classList.remove('hidden');
+            previewIcon.classList.add('hidden');
+        } else {
+            alert("No se recibió la URL de la imagen");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error al subir la imagen al servidor: " + e.message);
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = oldBtnText;
+    }
+}
+
 async function guardarProducto() {
     const id = document.getElementById('inpProdId').value;
     const nombre = document.getElementById('inpProdNombre').value.trim();
     const precio_venta = document.getElementById('inpProdPrecio').value;
     const categoria_id = document.getElementById('inpProdCategoria').value || null;
+    const imagen_url = document.getElementById('inpProdFotoUrl').value || null;
 
     const btn = document.getElementById('btnGuardarProd');
     btn.disabled = true;
@@ -368,7 +446,7 @@ async function guardarProducto() {
         const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, precio_venta, categoria_id })
+            body: JSON.stringify({ nombre, precio_venta, categoria_id, imagen_url })
         });
 
         if (!res.ok) throw new Error("Error al guardar");

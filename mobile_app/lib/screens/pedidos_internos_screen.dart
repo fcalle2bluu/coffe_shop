@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -24,9 +25,48 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
   int? _selectedInsumoId;
   final _cantidadController = TextEditingController();
   final _notasController = TextEditingController();
+  final _imagenUrlController = TextEditingController();
+  bool _isUploadingImage = false;
 
   // Dispatch dialog state
   final _despacharCantidadController = TextEditingController();
+
+  Future<void> _pickAndUploadImage(ImageSource source, Function setDialogState) async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      setDialogState(() {
+        _isUploadingImage = true;
+      });
+
+      final String? uploadedUrl = await ApiConfig.uploadImage(file.path);
+      
+      setDialogState(() {
+        _isUploadingImage = false;
+        if (uploadedUrl != null) {
+          _imagenUrlController.text = uploadedUrl;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error al subir la imagen')),
+          );
+        }
+      });
+    } catch (e) {
+      setDialogState(() {
+        _isUploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al seleccionar imagen: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -41,6 +81,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
   void dispose() {
     _cantidadController.dispose();
     _notasController.dispose();
+    _imagenUrlController.dispose();
     _despacharCantidadController.dispose();
     super.dispose();
   }
@@ -87,6 +128,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     if (_selectedInsumoId == null) return;
     final qty = double.tryParse(_cantidadController.text) ?? 0.0;
     final notas = _notasController.text.trim();
+    final imageUrl = _imagenUrlController.text.trim();
 
     if (qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,11 +149,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
         'insumo_nombre': matchedInsumo['nombre'],
         'cantidad': qty,
         'notas': notas,
+        'imagen_url': imageUrl.isNotEmpty ? imageUrl : null,
       });
 
       if (res.statusCode == 201) {
         _cantidadController.clear();
         _notasController.clear();
+        _imagenUrlController.clear();
         _loadPedidos();
       } else {
         throw Exception('Error al registrar pedido');
@@ -258,43 +302,160 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     _selectedInsumoId = _insumos.first['id'];
     _cantidadController.clear();
     _notasController.clear();
+    _imagenUrlController.clear();
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
           title: const Text('Nueva Solicitud de Insumo'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<int>(
-                  value: _selectedInsumoId,
-                  decoration: const InputDecoration(labelText: 'Insumo / Ingrediente'),
-                  items: _insumos
-                      .map((i) => DropdownMenuItem<int>(
-                            value: i['id'],
-                            child: Text('${i['nombre']} (${i['unidad_medida']})'),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    setDialogState(() => _selectedInsumoId = val);
-                  },
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                value: _selectedInsumoId,
+                decoration: const InputDecoration(labelText: 'Insumo / Ingrediente'),
+                items: _insumos
+                    .map((i) => DropdownMenuItem<int>(
+                          value: i['id'],
+                          child: Text('${i['nombre']} (${i['unidad_medida']})'),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  setDialogState(() => _selectedInsumoId = val);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _cantidadController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Cantidad Solicitada'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notasController,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Notas / Observaciones'),
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Foto de Respaldo', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.camera, setDialogState),
+                      icon: const Icon(Icons.camera_alt, size: 16, color: AppTheme.accentColor),
+                      label: const Text('Cámara', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.gallery, setDialogState),
+                      icon: const Icon(Icons.photo_library, size: 16, color: AppTheme.accentColor),
+                      label: const Text('Galería', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _imagenUrlController,
+                decoration: const InputDecoration(labelText: 'URL de la Foto (Opcional)'),
+                onChanged: (val) {
+                  setDialogState(() {});
+                },
+              ),
+              const SizedBox(height: 12),
+              if (_isUploadingImage) ...[
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: AppTheme.accentColor),
+                      SizedBox(height: 8),
+                      Text('Subiendo foto...', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _cantidadController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Cantidad Solicitada'),
+              ] else if (_imagenUrlController.text.trim().isNotEmpty) ...[
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        _imagenUrlController.text.trim(),
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 120,
+                            color: Colors.black12,
+                            child: const Center(
+                              child: Icon(Icons.broken_image_outlined, color: Colors.white24, size: 30),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 120,
+                            color: Colors.black12,
+                            child: const Center(child: CircularProgressIndicator()),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            _imagenUrlController.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _notasController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'Notas / Observaciones'),
-                ),
               ],
-            ),
+            ],
           ),
           actions: [
             TextButton(
@@ -318,8 +479,8 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
       bg = Colors.amber.withOpacity(0.08);
       text = Colors.amber;
     } else if (estado == 'COMPRADO') {
-      bg = Colors.emerald.withOpacity(0.08);
-      text = Colors.emerald;
+      bg = const Color(0xFF10B981).withOpacity(0.08);
+      text = const Color(0xFF10B981);
     } else if (estado == 'RECHAZADO') {
       bg = Colors.redAccent.withOpacity(0.08);
       text = Colors.redAccent;
@@ -366,6 +527,8 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                       final estado = p['estado'] ?? 'PENDIENTE';
                       final qty = double.tryParse(p['cantidad'].toString()) ?? 0.0;
                       final unidad = p['unidad_medida'] ?? '';
+                      final hasImage = p['imagen_url'] != null && p['imagen_url'].toString().trim().isNotEmpty;
+                      final imageUrl = p['imagen_url']?.toString().trim();
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -375,25 +538,70 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (hasImage) ...[
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.network(
+                                        imageUrl!,
+                                        width: 70,
+                                        height: 70,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.black26,
+                                          child: const Icon(Icons.broken_image_outlined, color: Colors.white24, size: 20),
+                                        ),
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return Container(
+                                            width: 70,
+                                            height: 70,
+                                            color: Colors.black26,
+                                            child: const Center(
+                                              child: SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
                                   Expanded(
-                                    child: Text(
-                                      p['insumo_nombre'] ?? 'Insumo',
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                p['insumo_nombre'] ?? 'Insumo',
+                                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            _buildStateBadge(estado),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Cantidad: $qty $unidad',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLight),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  _buildStateBadge(estado),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Cantidad: $qty $unidad',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLight),
-                              ),
                               if (p['notas'] != null && p['notas'].toString().trim().isNotEmpty) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 10),
                                 Text(
                                   'Notas: ${p['notas']}',
                                   style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),

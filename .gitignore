@@ -1,2 +1,6 @@
 node_modules/
 .env
+.DS_Store
+scratch/
+clear_sales.js
+imagenes_de_errores/

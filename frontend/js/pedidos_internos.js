@@ -57,6 +57,18 @@ async function cargarPedidos() {
             const colSolicitante = usuarioRol === 'ADMIN' ? `<p class="text-xs text-gray-400 mb-1">Cajero: <span class="font-bold text-gray-700">${pedido.solicitante}</span></p>` : '';
             const cantidadVisual = `${pedido.cantidad} <span class="text-xs text-gray-500">${pedido.unidad_medida || 'unid'}</span>`;
 
+            let imgSeccion = '';
+            if (pedido.imagen_url && pedido.imagen_url.trim() !== '') {
+                imgSeccion = `
+                    <div class="mb-3 relative rounded-lg overflow-hidden border border-gray-100 h-24 bg-slate-50">
+                        <img src="${pedido.imagen_url}" class="w-full h-full object-cover" alt="Foto de respaldo">
+                        <a href="${pedido.imagen_url}" target="_blank" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white text-[10px] px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-bold">
+                            <i class="fa-solid fa-up-right-from-square"></i> Ampliar
+                        </a>
+                    </div>
+                `;
+            }
+
             tbody.innerHTML += `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
                     <div class="flex justify-between items-start mb-2">
@@ -69,6 +81,8 @@ async function cargarPedidos() {
                             ${pedido.estado}
                         </span>
                     </div>
+                    
+                    ${imgSeccion}
                     
                     <div class="bg-gray-50 rounded p-2 text-sm italic text-gray-600 mb-3 border border-gray-100 flex items-start">
                         <i class="fa-solid fa-note-sticky text-orange-400 mt-1 mr-2"></i>
@@ -101,6 +115,18 @@ function abrirModalNuevo() {
     document.getElementById('inpCantidad').value = '';
     document.getElementById('inpNotas').value = '';
     document.getElementById('lblUnidadNuevo').innerText = 'Unidad';
+
+    // Reset photo preview and hidden input
+    const previewImg = document.getElementById('imgPreviewPedidoFoto');
+    const previewIcon = document.getElementById('iconPreviewPedidoFoto');
+    const hiddenUrl = document.getElementById('inpPedidoFotoUrl');
+    if (previewImg && previewIcon && hiddenUrl) {
+        hiddenUrl.value = '';
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+        previewIcon.classList.remove('hidden');
+    }
+
     document.getElementById('modalNuevo').classList.remove('hidden');
 }
 
@@ -118,12 +144,56 @@ function cerrarModalNuevo() {
     document.getElementById('modalNuevo').classList.add('hidden'); 
 }
 
+async function subirFotoPedido(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const previewImg = document.getElementById('imgPreviewPedidoFoto');
+    const previewIcon = document.getElementById('iconPreviewPedidoFoto');
+    const hiddenUrl = document.getElementById('inpPedidoFotoUrl');
+    const btnGuardar = document.getElementById('btnGuardar');
+
+    // Show loading state on button
+    btnGuardar.disabled = true;
+    const oldBtnText = btnGuardar.innerHTML;
+    btnGuardar.innerHTML = 'Subiendo...';
+
+    try {
+        const formData = new FormData();
+        formData.append('imagen', file);
+
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) throw new Error("Error al subir archivo");
+        const data = await res.json();
+
+        if (data.url) {
+            hiddenUrl.value = data.url;
+            previewImg.src = data.url;
+            previewImg.classList.remove('hidden');
+            previewIcon.classList.add('hidden');
+        } else {
+            alert("No se recibió la URL de la imagen");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error al subir la imagen al servidor: " + e.message);
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = oldBtnText;
+    }
+}
+
 async function guardarPedido() {
     const selectInsumo = document.getElementById('inpInsumo');
     const insumo_id = selectInsumo.value;
     const insumo_nombre = insumo_id ? selectInsumo.options[selectInsumo.selectedIndex].text : '';
     const cantidad = parseFloat(document.getElementById('inpCantidad').value);
     const notas = document.getElementById('inpNotas').value.trim();
+    const imagen_url = document.getElementById('inpPedidoFotoUrl').value || null;
 
     if(!insumo_id || !cantidad || cantidad <= 0) {
         return alert("Debes seleccionar el insumo y una cantidad válida mayor a 0.");
@@ -138,7 +208,8 @@ async function guardarPedido() {
         insumo_id: insumo_id,
         insumo_nombre: insumo_nombre,
         cantidad: cantidad,
-        notas: notas
+        notas: notas,
+        imagen_url: imagen_url
     };
 
     try {

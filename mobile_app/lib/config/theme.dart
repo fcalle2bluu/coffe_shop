@@ -1,4 +1,4 @@
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
@@ -91,7 +91,7 @@ class AppTheme {
           borderSide: const BorderSide(color: Colors.redAccent, width: 2),
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: secondaryDark,
         elevation: 0,
         shape: RoundedRectangleBorder(

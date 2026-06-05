@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -70,7 +70,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                                     alignment: Alignment.center,
                                     child: Text(
                                       h['usuario'].toString().isNotEmpty ? h['usuario'].toString().substring(0, 1).toUpperCase() : 'U',
-                                      style: const TextStyle(fontWeight: FontWeight.black, color: AppTheme.accentColor, fontSize: 13),
+                                      style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.accentColor, fontSize: 13),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -95,7 +95,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                               // Detalles de IP, Ubicación y Navegador
                               Row(
                                 children: [
-                                  const FaIcon(FontAwesomeIcons.solidDesktop, size: 10, color: AppTheme.adminColor),
+                                  const FaIcon(FontAwesomeIcons.desktop, size: 10, color: AppTheme.adminColor),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(

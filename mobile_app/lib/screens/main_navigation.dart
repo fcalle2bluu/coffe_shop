@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
@@ -205,12 +205,12 @@ class _MainNavigationState extends State<MainNavigation> {
                         children: [
                           Text(
                             title,
-                            style: const TextStyle(fontWeight: FontWeight.black, color: Colors.white, fontSize: 13.5),
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 13.5),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             message,
-                            style: const TextStyle(color: Colors.white90, fontSize: 12),
+                            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
                           ),
                         ],
                       ),
@@ -386,7 +386,7 @@ class _MainNavigationState extends State<MainNavigation> {
                       alignment: Alignment.center,
                       child: Text(
                         _userName.isNotEmpty ? _userName.substring(0, 1).toUpperCase() : 'U',
-                        style: const TextStyle(fontWeight: FontWeight.black, fontSize: 16, color: AppTheme.accentColor),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.accentColor),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -448,7 +448,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   item['title'],
                   style: TextStyle(
                     fontSize: 13.5,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.medium,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     color: isSelected ? Colors.white : AppTheme.textMuted,
                   ),
                 ),

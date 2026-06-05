@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -346,14 +346,16 @@ class _StockScreenState extends State<StockScreen> with SingleTickerProviderStat
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4.0),
-              child: Row(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     'Base Mínima: $minimo ${i['unidad_medida']}',
                     style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                   ),
-                  if (esBajo) ...[
-                    const SizedBox(width: 8),
+                  if (esBajo)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -362,7 +364,6 @@ class _StockScreenState extends State<StockScreen> with SingleTickerProviderStat
                       ),
                       child: const Text('STOCK BAJO', style: TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold)),
                     )
-                  ]
                 ],
               ),
             ),
@@ -372,7 +373,7 @@ class _StockScreenState extends State<StockScreen> with SingleTickerProviderStat
                 Text(
                   '$actual ${i['unidad_medida']}',
                   style: TextStyle(
-                    fontWeight: FontWeight.black,
+                    fontWeight: FontWeight.w900,
                     fontSize: 15,
                     color: esBajo ? Colors.orangeAccent : Colors.white,
                   ),
@@ -419,7 +420,7 @@ class _StockScreenState extends State<StockScreen> with SingleTickerProviderStat
         final tipo = m['tipo'] ?? 'INGRESO';
         final isLoss = tipo == 'MERMA' || tipo == 'DESCUENTO';
         final symbol = isLoss ? '-' : '+';
-        final color = isLoss ? Colors.redAccent : Colors.emerald;
+        final color = isLoss ? Colors.redAccent : const Color(0xFF10B981);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -431,7 +432,7 @@ class _StockScreenState extends State<StockScreen> with SingleTickerProviderStat
                 Text(m['insumo'] ?? 'Insumo', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                 Text(
                   '$symbol${m['cantidad']}',
-                  style: TextStyle(fontWeight: FontWeight.black, fontSize: 13.5, color: color),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: color),
                 ),
               ],
             ),

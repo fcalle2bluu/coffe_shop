@@ -75,4 +75,29 @@ class ApiConfig {
       rethrow;
     }
   }
+
+  // Helper para subir archivos (Multipart POST)
+  static Future<String?> uploadImage(String filePath) async {
+    final url = Uri.parse('$baseUrl/upload');
+    print('UPLOAD: $url with file $filePath');
+    try {
+      final request = http.MultipartRequest('POST', url);
+      request.files.add(await http.MultipartFile.fromPath('imagen', filePath));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('Upload Response Status: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['url'];
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error al subir imagen: $e');
+      return null;
+    }
+  }
 }

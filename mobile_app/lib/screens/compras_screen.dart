@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -248,7 +248,7 @@ class _ComprasScreenState extends State<ComprasScreen> with SingleTickerProvider
                 ),
                 Text(
                   'Bs. ${total.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.black, fontSize: 14.5, color: Colors.orangeAccent),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, color: Colors.orangeAccent),
                 ),
               ],
             ),
@@ -381,7 +381,7 @@ class _ComprasScreenState extends State<ComprasScreen> with SingleTickerProvider
                   const Text('Total Compra:', style: TextStyle(fontWeight: FontWeight.bold)),
                   Text(
                     'Bs. ${_compraTotal.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.black, color: Colors.orangeAccent),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.orangeAccent),
                   ),
                 ],
               ),

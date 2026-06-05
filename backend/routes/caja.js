@@ -26,8 +26,9 @@ router.get('/estado', async (req, res) => {
         const ventasRes = await pool.query(`
             SELECT 
                 COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) as total_efectivo,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'QR' THEN total ELSE 0 END), 0) as total_qr,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN total ELSE 0 END), 0) as total_tarjeta,
+                COALESCE(SUM(CASE WHEN metodo_pago IN ('QR', 'QR DIGITAL') THEN total ELSE 0 END), 0) as total_qr,
+                COALESCE(SUM(CASE WHEN metodo_pago IN ('TARJETA', 'TARJETA DE DÉBITO/CRÉDITO') THEN total ELSE 0 END), 0) as total_tarjeta,
+                COALESCE(SUM(CASE WHEN metodo_pago IN ('CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO') THEN total ELSE 0 END), 0) as total_consume_lo_nuestro,
                 COALESCE(SUM(total), 0) as total_ventas
             FROM ventas 
             WHERE caja_id = $1
@@ -35,13 +36,23 @@ router.get('/estado', async (req, res) => {
 
         const ventas = ventasRes.rows[0];
 
-        // El efectivo esperado es el saldo inicial + las ventas en efectivo
-        const efectivoEsperado = parseFloat(cajaActiva.saldo_inicial) + parseFloat(ventas.total_efectivo);
+        // Calcular los gastos del turno activo
+        const gastosRes = await pool.query(`
+            SELECT COALESCE(SUM(monto), 0) as total_gastos
+            FROM gastos_caja
+            WHERE caja_id = $1
+        `, [cajaActiva.id]);
+
+        const totalGastos = parseFloat(gastosRes.rows[0].total_gastos);
+
+        // El efectivo esperado es el saldo inicial + las ventas en efectivo - gastos de caja
+        const efectivoEsperado = parseFloat(cajaActiva.saldo_inicial) + parseFloat(ventas.total_efectivo) - totalGastos;
 
         res.json({
             abierta: true,
             caja: cajaActiva,
             ventas: ventas,
+            total_gastos: totalGastos,
             efectivo_esperado: efectivoEsperado
         });
 
@@ -152,6 +163,45 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
     } catch (error) {
         console.error('Error al cargar historial ventas por cajero:', error);
         res.status(500).json({ error: 'Error al cargar ventas' });
+    }
+});
+
+// 6. Registrar un gasto de caja
+router.post('/gastos', async (req, res) => {
+    const { caja_id, usuario_id, monto, descripcion } = req.body;
+    if (!caja_id || !usuario_id || !monto || !descripcion) {
+        return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+    if (parseFloat(monto) <= 0) {
+        return res.status(400).json({ error: 'El monto debe ser mayor a cero' });
+    }
+    try {
+        await pool.query(`
+            INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion)
+            VALUES ($1, $2, $3, $4)
+        `, [caja_id, usuario_id, monto, descripcion]);
+        res.status(201).json({ message: 'Gasto registrado con éxito' });
+    } catch (error) {
+        console.error('Error al registrar gasto de caja:', error);
+        res.status(500).json({ error: 'Error al registrar el gasto de caja' });
+    }
+});
+
+// 7. Obtener los gastos de una caja específica
+router.get('/gastos/:caja_id', async (req, res) => {
+    const { caja_id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT id, monto, descripcion,
+                   TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'HH24:MI') as hora
+            FROM gastos_caja
+            WHERE caja_id = $1
+            ORDER BY fecha DESC
+        `, [caja_id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener gastos de caja:', error);
+        res.status(500).json({ error: 'Error al obtener los gastos' });
     }
 });
 

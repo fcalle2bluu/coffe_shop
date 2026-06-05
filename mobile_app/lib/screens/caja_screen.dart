@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
@@ -19,10 +19,14 @@ class _CajaScreenState extends State<CajaScreen> {
   Map<String, dynamic>? _cajaActiva;
   Map<String, dynamic>? _ventasActivas;
   double _efectivoEsperado = 0.0;
+  double _totalGastos = 0.0;
+  double _totalConsumeLoNuestro = 0.0;
   List<dynamic> _historialCajas = [];
 
   final _montoInicialController = TextEditingController();
   final _montoFinalController = TextEditingController();
+  final _gastoMontoController = TextEditingController();
+  final _gastoDescController = TextEditingController();
 
   @override
   void initState() {
@@ -34,6 +38,8 @@ class _CajaScreenState extends State<CajaScreen> {
   void dispose() {
     _montoInicialController.dispose();
     _montoFinalController.dispose();
+    _gastoMontoController.dispose();
+    _gastoDescController.dispose();
     super.dispose();
   }
 
@@ -51,10 +57,14 @@ class _CajaScreenState extends State<CajaScreen> {
             _cajaActiva = data['caja'];
             _ventasActivas = data['ventas'];
             _efectivoEsperado = double.tryParse(data['efectivo_esperado'].toString()) ?? 0.0;
+            _totalGastos = double.tryParse(data['total_gastos'].toString()) ?? 0.0;
+            _totalConsumeLoNuestro = double.tryParse(data['ventas']['total_consume_lo_nuestro'].toString()) ?? 0.0;
           } else {
             _cajaActiva = null;
             _ventasActivas = null;
             _efectivoEsperado = 0.0;
+            _totalGastos = 0.0;
+            _totalConsumeLoNuestro = 0.0;
           }
         });
       }
@@ -156,6 +166,177 @@ class _CajaScreenState extends State<CajaScreen> {
     }
   }
 
+  Future<void> _registrarGasto() async {
+    final monto = double.tryParse(_gastoMontoController.text) ?? 0.0;
+    final desc = _gastoDescController.text.trim();
+    final cajaId = _cajaActiva?['id'];
+
+    if (monto <= 0 || desc.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Llene todos los campos correctamente.')),
+      );
+      return;
+    }
+
+    Navigator.pop(context);
+    setState(() => _isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('usuario_id') ?? 1;
+
+      final res = await ApiConfig.post('/caja/gastos', {
+        'caja_id': cajaId,
+        'usuario_id': userId,
+        'monto': monto,
+        'descripcion': desc,
+      });
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        _gastoMontoController.clear();
+        _gastoDescController.clear();
+        _loadCajaStatus();
+      } else {
+        final err = jsonDecode(res.body);
+        throw Exception(err['error'] ?? 'Error');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al registrar gasto: $e')),
+      );
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showGastoDialog() {
+    _gastoMontoController.clear();
+    _gastoDescController.clear();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Registrar Gasto del Turno'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _gastoMontoController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Monto del Gasto (Bs.)',
+                hintText: '0.00',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _gastoDescController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Descripción / Concepto',
+                hintText: 'Ej: Compra de servilletas',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          TextButton(
+            onPressed: _registrarGasto,
+            child: const Text('Registrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardStatCard(String title, double value, Color bgColor, Color textColor, dynamic icon, {String? subtitle}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: textColor.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: textColor, letterSpacing: 0.5),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              FaIcon(icon, size: 11, color: textColor.withOpacity(0.6)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bs. ${value.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textColor),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 7.2, color: textColor.withOpacity(0.85), fontWeight: FontWeight.w700),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBigEfectivoCard(String title, double value, double gastos) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orangeAccent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.orangeAccent, letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Saldo Neto (Fondo + Ventas Efectivo - Gastos)',
+                  style: TextStyle(fontSize: 9, color: AppTheme.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Bs. ${value.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.orangeAccent),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStateCard() {
     if (_isCajaAbierta) {
       final username = _cajaActiva?['usuario_nombre'] ?? 'Cajero';
@@ -164,11 +345,10 @@ class _CajaScreenState extends State<CajaScreen> {
       final ventasEfectivo = double.tryParse(_ventasActivas?['total_efectivo'].toString() ?? '0.0') ?? 0.0;
       final ventasQr = double.tryParse(_ventasActivas?['total_qr'].toString() ?? '0.0') ?? 0.0;
       final ventasTarjeta = double.tryParse(_ventasActivas?['total_tarjeta'].toString() ?? '0.0') ?? 0.0;
-      final totalVentas = double.tryParse(_ventasActivas?['total_ventas'].toString() ?? '0.0') ?? 0.0;
 
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -178,55 +358,81 @@ class _CajaScreenState extends State<CajaScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(color: Colors.emerald, shape: BoxShape.circle),
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(color: const Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 8),
                       const Text(
                         'TURNO ACTIVO DE CAJA',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.0, color: Colors.emerald),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0, color: const Color(0xFF10B981)),
                       ),
                     ],
                   ),
                   Text('ID: #${_cajaActiva?['id']}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 'Abierto por $username',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 'Iniciado el $fecha',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
               ),
-              const Divider(color: Colors.white10, height: 32),
-              
-              // Montos resumidos
-              _buildAmountRow('Monto Inicial en Caja', inicial),
-              _buildAmountRow('Ventas en Efectivo (+)', ventasEfectivo),
-              _buildAmountRow('Ventas en QR (Digital)', ventasQr, isMuted: true),
-              _buildAmountRow('Ventas en Tarjeta (Pos)', ventasTarjeta, isMuted: true),
-              _buildAmountRow('Ventas Totales', totalVentas, isMuted: true),
               const Divider(color: Colors.white10, height: 24),
               
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Grid de Tableros (Fondo Inicial, Ventas Efectivo, Ventas Digitales, Gastos)
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.35,
                 children: [
-                  const Text('Efectivo Esperado en Caja:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text(
-                    'Bs. ${_efectivoEsperado.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.black, color: Colors.greenAccent),
+                  _buildDashboardStatCard('Fondo Inicial', inicial, Colors.blueAccent.withOpacity(0.08), Colors.blueAccent, FontAwesomeIcons.wallet),
+                  _buildDashboardStatCard('Ventas Efectivo', ventasEfectivo, const Color(0xFF10B981).withOpacity(0.08), const Color(0xFF10B981), FontAwesomeIcons.moneyBillWave),
+                  _buildDashboardStatCard(
+                    'Ventas Digitales',
+                    ventasQr + ventasTarjeta + _totalConsumeLoNuestro,
+                    Colors.purpleAccent.withOpacity(0.08),
+                    Colors.purpleAccent,
+                    FontAwesomeIcons.creditCard,
+                    subtitle: 'QR: ${ventasQr.toStringAsFixed(2)} | Tarj: ${ventasTarjeta.toStringAsFixed(2)} | CLN: ${_totalConsumeLoNuestro.toStringAsFixed(2)}',
+                  ),
+                  _buildDashboardStatCard('Gastos Turno', _totalGastos, Colors.redAccent.withOpacity(0.08), Colors.redAccent, FontAwesomeIcons.handHoldingDollar),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // Efectivo en Cajón (Esperado)
+              _buildBigEfectivoCard('Efectivo en Cajón', _efectivoEsperado, _totalGastos),
+              
+              const Divider(color: Colors.white10, height: 24),
+              
+              // Acciones del Turno
+              const Text('Operaciones de Turno', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showGastoDialog,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.handHoldingDollar, size: 14),
+                      label: const Text('REGISTRAR GASTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    ),
                   ),
                 ],
               ),
-              
-              const Divider(color: Colors.white10, height: 32),
-              
-              // Close Shift form
-              const Text('Cierre de Turno', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -246,10 +452,10 @@ class _CajaScreenState extends State<CajaScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 1.0, fontSize: 12)),
+                    child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 0.5, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -274,7 +480,7 @@ class _CajaScreenState extends State<CajaScreen> {
                   const SizedBox(width: 8),
                   const Text(
                     'CAJA CERRADA',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.0, color: Colors.redAccent),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.0, color: Colors.redAccent),
                   ),
                 ],
               ),
@@ -377,7 +583,7 @@ class _CajaScreenState extends State<CajaScreen> {
           final saldoFinal = double.tryParse(h['saldo_final'].toString()) ?? 0.0;
           final diff = double.tryParse(h['diferencia'].toString()) ?? 0.0;
           final diffText = diff >= 0 ? '+Bs. ${diff.toStringAsFixed(2)}' : 'Bs. ${diff.toStringAsFixed(2)}';
-          final diffColor = diff >= 0 ? Colors.emerald : Colors.redAccent;
+          final diffColor = diff >= 0 ? const Color(0xFF10B981) : Colors.redAccent;
 
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -387,7 +593,7 @@ class _CajaScreenState extends State<CajaScreen> {
                 Text('Turno #${h['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                 Text(
                   diffText,
-                  style: TextStyle(fontWeight: FontWeight.black, fontSize: 13.5, color: diffColor),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: diffColor),
                 ),
               ],
             ),
@@ -443,7 +649,7 @@ class _CajaScreenState extends State<CajaScreen> {
                 const SizedBox(width: 8),
                 const Text(
                   'HISTORIAL DE TURNOS DE CAJA',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.5, color: AppTheme.textMuted),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted),
                 ),
               ],
             ),

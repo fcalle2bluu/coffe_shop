@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
@@ -130,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
-  Widget _buildKeypadButton(String label, {IconData? icon, String? value}) {
+  Widget _buildKeypadButton(String label, {FaIconData? icon, String? value}) {
     final val = value ?? label;
     return Expanded(
       child: Padding(
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     label,
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.black,
+                      fontWeight: FontWeight.w900,
                       color: AppTheme.textLight,
                     ),
                   ),
@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           style: TextStyle(
                             fontFamily: 'Outfit',
                             fontSize: 28,
-                            fontWeight: FontWeight.black,
+                            fontWeight: FontWeight.w900,
                             fontStyle: FontStyle.italic,
                             color: Colors.white,
                             letterSpacing: -1,
@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               'PIN:',
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight: FontWeight.black,
+                                fontWeight: FontWeight.w900,
                                 color: AppTheme.textMuted,
                                 letterSpacing: 1.0,
                               ),
@@ -400,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     'ENTRAR AL SISTEMA',
                                     style: TextStyle(
                                       fontFamily: 'Outfit',
-                                      fontWeight: FontWeight.black,
+                                      fontWeight: FontWeight.w900,
                                       fontSize: 13,
                                       letterSpacing: 1.5,
                                       color: AppTheme.primaryDark,

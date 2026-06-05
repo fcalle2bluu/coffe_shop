@@ -121,6 +121,23 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración Proveedores:', provErr.message);
     }
 
+    // 5.8 Creación de tabla de Gastos de Caja
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS gastos_caja (
+                id SERIAL PRIMARY KEY,
+                caja_id INT NOT NULL,
+                usuario_id INT NOT NULL,
+                monto NUMERIC(10, 2) NOT NULL,
+                descripcion TEXT NOT NULL,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('✅ Tabla gastos_caja verificada/creada.');
+    } catch (gastoCajaErr) {
+        console.log('Info Tabla Gastos Caja:', gastoCajaErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');

@@ -158,6 +158,7 @@
                         <select id="metodo-pago" class="w-full border border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors rounded-lg p-2 sm:p-3 bg-white focus:ring-2 focus:ring-orange-500 font-medium text-gray-700 text-sm">
                             <option value="EFECTIVO">💵 Efectivo</option>
                             <option value="QR">📱 QR Transferencia</option>
+                            <option value="CONSUME_LO_NUESTRO">🇧🇴 Consume lo nuestro</option>
                             <option value="TARJETA">💳 Tarjeta POS</option>
                         </select>
                     </div>
@@ -218,6 +219,23 @@
                         <button type="button" onclick="agregarNuevaCategoria()" class="bg-gray-100 px-3 border border-gray-300 rounded hover:bg-orange-100 hover:text-orange-600 hover:border-orange-300 text-stone-800 font-bold transition-colors" title="Añadir Nueva Categoría">
                             <i class="fa-solid fa-plus"></i>
                         </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Foto del Producto (Opcional)</label>
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-slate-100 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden shrink-0" id="boxPreviewProdFoto">
+                            <i class="fa-solid fa-image text-gray-400 text-xl" id="iconPreviewProdFoto"></i>
+                            <img id="imgPreviewProdFoto" src="" class="hidden w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <input type="file" id="inpProdFotoFile" accept="image/*" class="hidden" onchange="subirFotoProducto(event)">
+                            <button type="button" onclick="document.getElementById('inpProdFotoFile').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 px-3 py-2 rounded-lg text-xs transition-colors shadow-sm font-bold w-full text-center">
+                                <i class="fa-solid fa-upload mr-1"></i> Seleccionar Imagen
+                            </button>
+                            <input type="hidden" id="inpProdFotoUrl">
+                        </div>
                     </div>
                 </div>
 

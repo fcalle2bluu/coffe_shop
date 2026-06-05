@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -327,7 +327,7 @@ class _ParametrosScreenState extends State<ParametrosScreen> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Información Comercial', style: TextStyle(fontSize: 16, fontWeight: FontWeight.black, fontFamily: 'Outfit')),
+                const Text('Información Comercial', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, fontFamily: 'Outfit')),
                 const Divider(color: Colors.white10, height: 24),
                 TextField(
                   controller: _empresaController,
@@ -364,7 +364,7 @@ class _ParametrosScreenState extends State<ParametrosScreen> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Impresión de Ticket / Recibo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.black, fontFamily: 'Outfit')),
+                const Text('Impresión de Ticket / Recibo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, fontFamily: 'Outfit')),
                 const Divider(color: Colors.white10, height: 24),
                 TextField(
                   controller: _msgSupController,
@@ -438,7 +438,7 @@ class _ParametrosScreenState extends State<ParametrosScreen> with SingleTickerPr
                   alignment: Alignment.center,
                   child: Text(
                     nombre.isNotEmpty ? nombre.substring(0, 1).toUpperCase() : 'U',
-                    style: const TextStyle(fontWeight: FontWeight.black, color: AppTheme.accentColor),
+                    style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.accentColor),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -473,12 +473,12 @@ class _ParametrosScreenState extends State<ParametrosScreen> with SingleTickerPr
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: activo ? Colors.emerald.withOpacity(0.1) : Colors.white10,
+                      color: activo ? const Color(0xFF10B981).withOpacity(0.1) : Colors.white10,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       activo ? 'OPERATIVO' : 'SUSPENDIDO',
-                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: activo ? Colors.emerald : AppTheme.textMuted),
+                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: activo ? const Color(0xFF10B981) : AppTheme.textMuted),
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -28,7 +29,46 @@ class _PosScreenState extends State<PosScreen> {
   // Controllers for Product dialog
   final _prodNameController = TextEditingController();
   final _prodPriceController = TextEditingController();
+  final _prodImageUrlController = TextEditingController();
   int? _selectedCategoryId;
+  bool _isUploadingImage = false;
+
+  Future<void> _pickAndUploadImage(ImageSource source, Function setDialogState) async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      setDialogState(() {
+        _isUploadingImage = true;
+      });
+
+      final String? uploadedUrl = await ApiConfig.uploadImage(file.path);
+      
+      setDialogState(() {
+        _isUploadingImage = false;
+        if (uploadedUrl != null) {
+          _prodImageUrlController.text = uploadedUrl;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error al subir la imagen')),
+          );
+        }
+      });
+    } catch (e) {
+      setDialogState(() {
+        _isUploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al seleccionar imagen: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -36,6 +76,14 @@ class _PosScreenState extends State<PosScreen> {
     _checkRole();
     _loadData();
     _loadCajaId();
+  }
+
+  @override
+  void dispose() {
+    _prodNameController.dispose();
+    _prodPriceController.dispose();
+    _prodImageUrlController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkRole() async {
@@ -174,6 +222,7 @@ class _PosScreenState extends State<PosScreen> {
     if (product != null) {
       _prodNameController.text = product.nombre;
       _prodPriceController.text = product.precioVenta.toString();
+      _prodImageUrlController.text = product.imagenUrl ?? '';
       final matchedCat = _categories.firstWhere(
         (c) => c.nombre == product.categoria,
         orElse: () => Category(id: 0, nombre: ''),
@@ -182,6 +231,7 @@ class _PosScreenState extends State<PosScreen> {
     } else {
       _prodNameController.clear();
       _prodPriceController.clear();
+      _prodImageUrlController.clear();
       _selectedCategoryId = _categories.isNotEmpty ? _categories.first.id : null;
     }
 
@@ -189,37 +239,153 @@ class _PosScreenState extends State<PosScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
           title: Text(product != null ? 'Editar Producto' : 'Nuevo Producto'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _prodNameController,
-                  decoration: const InputDecoration(labelText: 'Nombre del Producto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _prodNameController,
+                decoration: const InputDecoration(labelText: 'Nombre del Producto'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _prodPriceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Precio de Venta (Bs.)'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: _selectedCategoryId,
+                decoration: const InputDecoration(labelText: 'Categoría'),
+                items: _categories
+                    .map((c) => DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text(c.nombre),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  setDialogState(() => _selectedCategoryId = val);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Foto del Producto', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.camera, setDialogState),
+                      icon: const Icon(Icons.camera_alt, size: 16, color: AppTheme.accentColor),
+                      label: const Text('Cámara', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.gallery, setDialogState),
+                      icon: const Icon(Icons.photo_library, size: 16, color: AppTheme.accentColor),
+                      label: const Text('Galería', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _prodImageUrlController,
+                decoration: const InputDecoration(labelText: 'URL de la Imagen (Opcional)'),
+                onChanged: (val) {
+                  setDialogState(() {});
+                },
+              ),
+              const SizedBox(height: 12),
+              if (_isUploadingImage) ...[
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: AppTheme.accentColor),
+                      SizedBox(height: 8),
+                      Text('Subiendo imagen...', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _prodPriceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Precio de Venta (Bs.)'),
+              ] else if (_prodImageUrlController.text.trim().isNotEmpty) ...[
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        _prodImageUrlController.text.trim(),
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 120,
+                            color: Colors.black12,
+                            child: const Center(
+                              child: Icon(Icons.broken_image_outlined, color: Colors.white24, size: 30),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 120,
+                            color: Colors.black12,
+                            child: const Center(child: CircularProgressIndicator()),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            _prodImageUrlController.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  value: _selectedCategoryId,
-                  decoration: const InputDecoration(labelText: 'Categoría'),
-                  items: _categories
-                      .map((c) => DropdownMenuItem<int>(
-                            value: c.id,
-                            child: Text(c.nombre),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    setDialogState(() => _selectedCategoryId = val);
-                  },
-                ),
               ],
-            ),
+            ],
           ),
           actions: [
             TextButton(
@@ -231,6 +397,7 @@ class _PosScreenState extends State<PosScreen> {
                 final name = _prodNameController.text.trim();
                 final price = double.tryParse(_prodPriceController.text) ?? 0.0;
                 final catId = _selectedCategoryId;
+                final imageUrl = _prodImageUrlController.text.trim();
 
                 if (name.isEmpty || price <= 0 || catId == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -244,6 +411,7 @@ class _PosScreenState extends State<PosScreen> {
                     'nombre': name,
                     'precio_venta': price,
                     'categoria_id': catId,
+                    'imagen_url': imageUrl.isNotEmpty ? imageUrl : null,
                   };
 
                   final res = product != null
@@ -293,6 +461,8 @@ class _PosScreenState extends State<PosScreen> {
             const SizedBox(height: 8),
             _buildPaymentMethodButton('QR DIGITAL', FontAwesomeIcons.qrcode),
             const SizedBox(height: 8),
+            _buildPaymentMethodButton('CONSUME LO NUESTRO', FontAwesomeIcons.wallet),
+            const SizedBox(height: 8),
             _buildPaymentMethodButton('TARJETA DE DÉBITO/CRÉDITO', FontAwesomeIcons.creditCard),
           ],
         ),
@@ -306,7 +476,7 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
-  Widget _buildPaymentMethodButton(String method, IconData icon) {
+  Widget _buildPaymentMethodButton(String method, FaIconData icon) {
     return ElevatedButton.icon(
       onPressed: () => _confirmPayment(method),
       style: ElevatedButton.styleFrom(
@@ -411,12 +581,12 @@ class _PosScreenState extends State<PosScreen> {
                     const SizedBox(width: 8),
                     Text(
                       catName.toUpperCase(),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.black, letterSpacing: 1.5, color: AppTheme.textMuted),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '(${prods.length})',
-                      style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.mono),
+                      style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.normal),
                     ),
                   ],
                 ),
@@ -428,7 +598,7 @@ class _PosScreenState extends State<PosScreen> {
                   crossAxisCount: isTablet ? 3 : 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.25,
+                  childAspectRatio: isTablet ? 1.05 : 0.85,
                 ),
                 itemCount: prods.length,
                 itemBuilder: (context, idx) {
@@ -438,7 +608,6 @@ class _PosScreenState extends State<PosScreen> {
                     onTap: () => _addToCart(p),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppTheme.secondaryDark,
                         borderRadius: BorderRadius.circular(20),
@@ -447,66 +616,126 @@ class _PosScreenState extends State<PosScreen> {
                           width: inCartQty > 0 ? 1.5 : 1,
                         ),
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: Stack(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 32.0),
-                                  child: Text(
-                                    p.nombre,
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                flex: 6,
+                                child: Container(
+                                  width: double.infinity,
+                                  color: Colors.white.withOpacity(0.02),
+                                  child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
+                                      ? Image.network(
+                                          p.imagenUrl!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              color: Colors.black12,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                  color: Colors.white24,
+                                                  size: 24,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return const Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      : Container(
+                                          color: Colors.white.withOpacity(0.02),
+                                          child: Center(
+                                            child: FaIcon(
+                                              FontAwesomeIcons.mugHot,
+                                              color: Colors.white.withOpacity(0.15),
+                                              size: 24,
+                                            ),
+                                          ),
+                                        ),
                                 ),
                               ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Bs. ${p.precioVenta.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.black, color: Colors.white),
+                              Expanded(
+                                flex: 5,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        p.nombre,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Bs. ${p.precioVenta.toStringAsFixed(2)}',
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                                          ),
+                                          if (inCartQty > 0)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.accentColor.withOpacity(0.15),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                'x$inCartQty',
+                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  if (inCartQty > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.accentColor.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'x$inCartQty',
-                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.black, color: AppTheme.accentColor),
-                                      ),
-                                    ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
                           // Admin controls inside card
                           if (_isAdmin)
                             Positioned(
-                              top: -4,
-                              right: -4,
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 12, color: Colors.white24),
-                                    onPressed: () => _showProductDialog(product: p),
-                                  ),
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    icon: const FaIcon(FontAwesomeIcons.trashCan, size: 12, color: Colors.white24),
-                                    onPressed: () => _deleteProduct(p),
-                                  ),
-                                ],
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                      icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 11, color: Colors.white70),
+                                      onPressed: () => _showProductDialog(product: p),
+                                    ),
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                      icon: const FaIcon(FontAwesomeIcons.trashCan, size: 11, color: Colors.redAccent),
+                                      onPressed: () => _deleteProduct(p),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                         ],
@@ -535,7 +764,7 @@ class _PosScreenState extends State<PosScreen> {
                 children: [
                   const Text(
                     'Detalle del Ticket',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.black, fontFamily: 'Outfit'),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, fontFamily: 'Outfit'),
                   ),
                   if (_cart.isNotEmpty)
                     TextButton(
@@ -585,7 +814,7 @@ class _PosScreenState extends State<PosScreen> {
                                   icon: const Icon(Icons.remove_circle_outline, size: 18),
                                   onPressed: () => _removeFromCart(p),
                                 ),
-                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.black, fontSize: 14)),
+                                Text('$qty', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline, size: 18, color: AppTheme.accentColor),
                                   onPressed: () => _addToCart(p),
@@ -597,7 +826,7 @@ class _PosScreenState extends State<PosScreen> {
                               alignment: Alignment.centerRight,
                               child: Text(
                                 'Bs. ${(p.precioVenta * qty).toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.black, fontSize: 13),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                               ),
                             ),
                           ],
@@ -617,7 +846,7 @@ class _PosScreenState extends State<PosScreen> {
                       const Text('Total:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       Text(
                         'Bs. ${_cartTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.black, color: AppTheme.accentColor),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
                       ),
                     ],
                   ),
@@ -686,7 +915,7 @@ class _PosScreenState extends State<PosScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           icon: const Icon(Icons.add, size: 18),
-                          label: const Text('NUEVO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.black)),
+                          label: const Text('NUEVO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
                         ),
                       ]
                     ],

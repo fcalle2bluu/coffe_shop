@@ -40,13 +40,21 @@ async function cargarEstadoCaja() {
             btnAccion.className = "bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded shadow font-bold text-lg transition-colors";
             btnAccion.onclick = abrirModalCierre;
 
-            // Llenar montos en vivo
+            // Mostrar el botón de registrar gasto
+            document.getElementById('btn-gasto-caja').classList.remove('hidden');
+
             document.getElementById('res-inicial').innerText = `Bs. ${data.caja.saldo_inicial}`;
             document.getElementById('res-efectivo').innerText = `Bs. ${data.ventas.total_efectivo}`;
-            document.getElementById('res-digital').innerText = `Bs. ${(parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta)).toFixed(2)}`;
+            document.getElementById('res-gastos').innerText = `Bs. ${parseFloat(data.total_gastos || 0).toFixed(2)}`;
+            const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0);
+            document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)}</span>`;
             document.getElementById('res-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
             
             panelResumen.classList.remove('hidden');
+            
+            // Cargar y mostrar lista de gastos de este turno
+            document.getElementById('seccion-gastos-turno').classList.remove('hidden');
+            cargarGastosDelTurno(cajaActualId);
 
         } else {
             cajaActualId = null;
@@ -59,6 +67,10 @@ async function cargarEstadoCaja() {
             btnAccion.innerHTML = '<i class="fa-solid fa-key mr-2"></i> Abrir Caja';
             btnAccion.className = "bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded shadow font-bold text-lg transition-colors";
             btnAccion.onclick = abrirModalApertura;
+
+            // Ocultar botón de gasto y sección de gastos
+            document.getElementById('btn-gasto-caja').classList.add('hidden');
+            document.getElementById('seccion-gastos-turno').classList.add('hidden');
 
             panelResumen.classList.add('hidden');
         }
@@ -124,6 +136,8 @@ function abrirModalCierre() {
 function cerrarModales() {
     document.getElementById('modalAbrir').classList.add('hidden');
     document.getElementById('modalCerrar').classList.add('hidden');
+    const modalG = document.getElementById('modalGasto');
+    if (modalG) modalG.classList.add('hidden');
 }
 
 // --- ACCIONES POST ---
@@ -267,7 +281,8 @@ async function cargarHistorialVentasAdmin() {
                 
                 dataCajero.lista.forEach(venta => {
                     const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
-                                       venta.metodo_pago === 'QR' ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
+                                       (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
+                                       (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
                                        '<i class="fa-solid fa-credit-card text-purple-600 mr-1"></i>';
 
                     htmlMes += `
@@ -295,5 +310,79 @@ async function cargarHistorialVentasAdmin() {
     } catch (e) {
         console.error("Error al cargar historial cajeros:", e);
         document.getElementById('contenedor-ventas-cajeros').innerHTML = '<div class="p-4 text-red-500 font-bold">Ocurrió un error al cargar la auditoría.</div>';
+    }
+}
+
+function abrirModalGasto() {
+    document.getElementById('inputMontoGasto').value = '';
+    document.getElementById('inputDescGasto').value = '';
+    document.getElementById('modalGasto').classList.remove('hidden');
+}
+
+async function cargarGastosDelTurno(cajaId) {
+    try {
+        const res = await fetch(`/api/caja/gastos/${cajaId}`);
+        const gastos = await res.json();
+        const tbody = document.getElementById('tabla-gastos-caja');
+        const totalSpan = document.getElementById('total-gastos-lista');
+        
+        tbody.innerHTML = '';
+        let total = 0;
+
+        if (gastos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-gray-400 italic">No hay gastos registrados en este turno.</td></tr>';
+            totalSpan.innerText = 'Total: Bs. 0.00';
+            return;
+        }
+
+        gastos.forEach(g => {
+            const monto = parseFloat(g.monto);
+            total += monto;
+            tbody.innerHTML += `
+                <tr class="border-b border-gray-105 hover:bg-red-50/30 transition-colors">
+                    <td class="px-4 py-2.5 text-stone-600 font-mono text-xs">${g.hora}</td>
+                    <td class="px-4 py-2.5 text-stone-800 font-medium text-xs">${g.descripcion}</td>
+                    <td class="px-4 py-2.5 text-right font-black text-red-600 text-xs">-Bs. ${monto.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        totalSpan.innerText = `Total: Bs. ${total.toFixed(2)}`;
+    } catch (error) {
+        console.error("Error al cargar gastos del turno:", error);
+    }
+}
+
+async function procesarRegistroGasto() {
+    const monto = document.getElementById('inputMontoGasto').value;
+    const desc = document.getElementById('inputDescGasto').value.trim();
+    const usuarioId = localStorage.getItem('usuario_id');
+
+    if (!monto || parseFloat(monto) <= 0 || !desc) {
+        alert("Por favor completa todos los campos correctamente.");
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/caja/gastos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                caja_id: cajaActualId,
+                usuario_id: usuarioId,
+                monto: monto,
+                descripcion: desc
+            })
+        });
+
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Error al registrar gasto');
+        }
+
+        cerrarModales();
+        cargarEstadoCaja();
+    } catch (error) {
+        alert("Error: " + error.message);
     }
 }
