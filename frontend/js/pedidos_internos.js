@@ -33,7 +33,10 @@ async function cargarPedidos() {
             return;
         }
 
+        let pIdx = 0;
         data.forEach(pedido => {
+            pIdx++;
+            const delayClass = `delay-${Math.min(pIdx, 12)}`;
             let colorEstado = 'bg-yellow-100 text-yellow-800 border-yellow-200';
             if (pedido.estado === 'COMPRADO') colorEstado = 'bg-green-100 text-green-800 border-green-200';
             if (pedido.estado === 'RECHAZADO') colorEstado = 'bg-red-100 text-red-800 border-red-200';
@@ -44,13 +47,13 @@ async function cargarPedidos() {
                 // Nuevo botón de "Entregar a caja"
                 botonesAccion = `
                     <div class="flex justify-center gap-2">
-                        <button onclick="abrirModalDespacho(${pedido.id}, '${pedido.insumo_id}', '${pedido.insumo_nombre}', '${pedido.cantidad}', '${pedido.solicitante}', '${pedido.stock_actual}', '${pedido.unidad_medida}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow transition-colors font-bold text-xs" title="Despachar a Caja"><i class="fa-solid fa-people-carry-box mr-1"></i> Despachar</button>
-                        <button onclick="cambiarEstado(${pedido.id}, 'RECHAZADO')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow transition-colors text-xs" title="Rechazar Pedido"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="abrirModalDespacho(${pedido.id}, '${pedido.insumo_id}', '${pedido.insumo_nombre}', '${pedido.cantidad}', '${pedido.solicitante}', '${pedido.stock_actual}', '${pedido.unidad_medida}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow transition-colors font-bold text-xs btn-bounce" title="Despachar a Caja"><i class="fa-solid fa-people-carry-box mr-1"></i> Despachar</button>
+                        <button onclick="cambiarEstado(${pedido.id}, 'RECHAZADO')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow transition-colors text-xs btn-bounce" title="Rechazar Pedido"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else if (usuarioRol === 'CAJERO' && pedido.estado === 'PENDIENTE') {
                 botonesAccion = `
-                    <button onclick="eliminarPedido(${pedido.id})" class="text-red-500 hover:text-red-700 font-bold p-1"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
+                    <button onclick="eliminarPedido(${pedido.id})" class="text-red-500 hover:text-red-700 font-bold p-1 btn-bounce"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
                 `;
             }
 
@@ -62,7 +65,7 @@ async function cargarPedidos() {
                 imgSeccion = `
                     <div class="mb-3 relative rounded-lg overflow-hidden border border-gray-100 h-24 bg-slate-50">
                         <img src="${pedido.imagen_url}" class="w-full h-full object-cover" alt="Foto de respaldo">
-                        <a href="${pedido.imagen_url}" target="_blank" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white text-[10px] px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-bold">
+                        <a href="${pedido.imagen_url}" target="_blank" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white text-[10px] px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-bold btn-bounce">
                             <i class="fa-solid fa-up-right-from-square"></i> Ampliar
                         </a>
                     </div>
@@ -70,11 +73,11 @@ async function cargarPedidos() {
             }
 
             tbody.innerHTML += `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
+                <div class="animate-fade-in-up ${delayClass} bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             ${colSolicitante}
-                            <h3 class="font-bold text-gray-900 text-lg leading-tight mb-1">${pedido.insumo_nombre}</h3>
+                            <h3 class="font-bold text-gray-950 text-lg leading-tight mb-1">${pedido.insumo_nombre}</h3>
                             <div class="text-2xl font-black text-orange-600">${cantidadVisual}</div>
                         </div>
                         <span class="px-2 py-1 rounded-md text-[10px] font-black tracking-wide border ${colorEstado} uppercase shadow-sm">

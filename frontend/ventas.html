@@ -6,7 +6,7 @@
     <title>Café La Paz - Punto de Venta</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link rel="stylesheet" href="css/animations.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,7 +118,7 @@
                         <input type="text" id="buscarProducto" placeholder="Buscar producto..." class="w-full pl-10 pr-4 py-2 sm:py-3 rounded-lg border-2 border-transparent focus:border-orange-500 focus:outline-none text-gray-700 font-medium text-sm sm:text-base bg-white shadow-sm">
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 sm:top-4 text-gray-400"></i>
                     </div>
-                    <button class="solo-admin bg-stone-800 text-white px-4 rounded-lg shadow-sm font-bold hover:bg-stone-900 transition-colors shrink-0 flex items-center gap-2" onclick="abrirModalProducto()">
+                    <button class="solo-admin bg-stone-800 text-white px-4 rounded-lg shadow-sm font-bold hover:bg-stone-900 transition-colors shrink-0 flex items-center gap-2 btn-bounce" onclick="abrirModalProducto()">
                         <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Nuevo</span>
                     </button>
                 </div>
@@ -133,7 +133,7 @@
                 <div class="p-3 sm:p-4 bg-white border-b border-gray-200 shrink-0">
                     <h2 class="text-stone-800 font-bold text-base sm:text-lg flex justify-between items-center">
                         <span><i class="fa-solid fa-receipt mr-2"></i>Ticket</span>
-                        <button onclick="limpiarCarrito()" class="text-red-500 hover:text-red-700 text-xs sm:text-sm font-normal"><i class="fa-solid fa-trash-can mr-1"></i>Limpiar</button>
+                        <button onclick="limpiarCarrito()" class="text-red-500 hover:text-red-700 text-xs sm:text-sm font-normal btn-bounce"><i class="fa-solid fa-trash-can mr-1"></i>Limpiar</button>
                     </h2>
                 </div>
 
@@ -163,7 +163,7 @@
                         </select>
                     </div>
 
-                    <button onclick="procesarCobro()" id="btn-cobrar" class="w-full bg-stone-700 hover:bg-stone-800 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg text-base sm:text-lg mt-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onclick="procesarCobro()" id="btn-cobrar" class="w-full bg-stone-700 hover:bg-stone-800 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg text-base sm:text-lg mt-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed btn-bounce">
                         COBRAR Bs. <span id="btn-total">0.00</span>
                     </button>
                 </div>
@@ -173,17 +173,17 @@
     </main>
 
     <div id="modalExito" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center animate-[bounce_0.3s_ease-out]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center animate-scale-in">
             <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mb-4">
                 <i class="fa-solid fa-check"></i>
             </div>
             <h2 class="text-xl sm:text-2xl font-black text-gray-800 mb-1">¡Venta Exitosa!</h2>
             <p class="text-sm text-gray-500 mb-6" id="info-ticket">Ticket #0000</p>
             
-            <button onclick="cerrarModalExito()" class="w-full bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white font-bold py-3 rounded-lg mb-3 shadow">
+            <button onclick="cerrarModalExito()" class="w-full bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white font-bold py-3 rounded-lg mb-3 shadow btn-bounce">
                 Nueva Venta
             </button>
-            <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors">
+            <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors btn-bounce">
                 <i class="fa-solid fa-print mr-2"></i> Imprimir Recibo
             </button>
         </div>
@@ -191,10 +191,10 @@
 
     <!-- Modal Agregar/Editar Producto (Solo Admin) -->
     <div id="modalProductoAdmin" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-[60] p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border-t-4 border-stone-800 flex flex-col">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border-t-4 border-stone-800 flex flex-col animate-scale-in">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="text-lg font-bold text-stone-900" id="titulo-modal-producto">Nuevo Producto</h3>
-                <button onclick="cerrarModalProducto()" class="text-gray-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button onclick="cerrarModalProducto()" class="text-gray-400 hover:text-red-500 transition-colors btn-bounce"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
             <form id="formProducto" onsubmit="event.preventDefault(); guardarProducto();" class="space-y-4">
@@ -231,7 +231,7 @@
                         </div>
                         <div class="flex-1">
                             <input type="file" id="inpProdFotoFile" accept="image/*" class="hidden" onchange="subirFotoProducto(event)">
-                            <button type="button" onclick="document.getElementById('inpProdFotoFile').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 px-3 py-2 rounded-lg text-xs transition-colors shadow-sm font-bold w-full text-center">
+                            <button type="button" onclick="document.getElementById('inpProdFotoFile').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-slate-700 px-3 py-2 rounded-lg text-xs transition-colors shadow-sm font-bold w-full text-center btn-bounce">
                                 <i class="fa-solid fa-upload mr-1"></i> Seleccionar Imagen
                             </button>
                             <input type="hidden" id="inpProdFotoUrl">
@@ -240,8 +240,8 @@
                 </div>
 
                 <div class="flex gap-2 mt-6 pt-2">
-                    <button type="button" onclick="cerrarModalProducto()" class="w-1/2 px-4 py-2.5 bg-gray-100 rounded-lg font-bold text-gray-700 hover:bg-gray-200 transition-colors">Cancelar</button>
-                    <button type="submit" id="btnGuardarProd" class="w-1/2 px-4 py-2.5 bg-stone-800 text-white font-bold rounded-lg shadow-md hover:bg-stone-900 transition-colors">Guardar</button>
+                    <button type="button" onclick="cerrarModalProducto()" class="w-1/2 px-4 py-2.5 bg-gray-100 rounded-lg font-bold text-gray-700 hover:bg-gray-200 transition-colors btn-bounce">Cancelar</button>
+                    <button type="submit" id="btnGuardarProd" class="w-1/2 px-4 py-2.5 bg-stone-800 text-white font-bold rounded-lg shadow-md hover:bg-stone-900 transition-colors btn-bounce">Guardar</button>
                 </div>
             </form>
         </div>

@@ -7,6 +7,9 @@ import '../config/api.dart';
 import '../config/theme.dart';
 import '../models/product.dart';
 import '../models/category.dart';
+import '../widgets/bouncing_widget.dart';
+import '../widgets/pulsing_coffee_loader.dart';
+import '../widgets/fade_in_slide.dart';
 
 class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
@@ -323,13 +326,8 @@ class _PosScreenState extends State<PosScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withOpacity(0.05)),
                   ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: AppTheme.accentColor),
-                      SizedBox(height: 8),
-                      Text('Subiendo imagen...', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                    ],
+                  child: const Center(
+                    child: PulsingCoffeeLoader(message: 'Subiendo imagen...'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -357,7 +355,13 @@ class _PosScreenState extends State<PosScreen> {
                           return Container(
                             height: 120,
                             color: Colors.black12,
-                            child: const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -477,14 +481,17 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   Widget _buildPaymentMethodButton(String method, FaIconData icon) {
-    return ElevatedButton.icon(
-      onPressed: () => _confirmPayment(method),
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size.fromHeight(50),
-        alignment: Alignment.centerLeft,
+    return BouncingWidget(
+      onTap: () => _confirmPayment(method),
+      child: ElevatedButton.icon(
+        onPressed: () => _confirmPayment(method),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+          alignment: Alignment.centerLeft,
+        ),
+        icon: FaIcon(icon, size: 16, color: AppTheme.accentColor),
+        label: Text(method, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       ),
-      icon: FaIcon(icon, size: 16, color: AppTheme.accentColor),
-      label: Text(method, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -551,7 +558,7 @@ class _PosScreenState extends State<PosScreen> {
 
     Widget productsGrid() {
       if (_isLoading) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: PulsingCoffeeLoader(message: 'Cargando catálogo...'));
       }
       if (groups.isEmpty) {
         return const Center(
@@ -604,141 +611,143 @@ class _PosScreenState extends State<PosScreen> {
                 itemBuilder: (context, idx) {
                   final p = prods[idx];
                   final inCartQty = _cart[p.id] ?? 0;
-                  return InkWell(
-                    onTap: () => _addToCart(p),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryDark,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: inCartQty > 0 ? AppTheme.accentColor : Colors.white.withOpacity(0.04),
-                          width: inCartQty > 0 ? 1.5 : 1,
+                  return FadeInSlide(
+                    index: idx,
+                    child: BouncingWidget(
+                      onTap: () => _addToCart(p),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryDark,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: inCartQty > 0 ? AppTheme.accentColor : Colors.white.withOpacity(0.04),
+                            width: inCartQty > 0 ? 1.5 : 1,
+                          ),
                         ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 6,
-                                child: Container(
-                                  width: double.infinity,
-                                  color: Colors.white.withOpacity(0.02),
-                                  child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
-                                      ? Image.network(
-                                          p.imagenUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              color: Colors.black12,
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.broken_image_outlined,
-                                                  color: Colors.white24,
-                                                  size: 24,
+                        clipBehavior: Clip.antiAlias,
+                        child: Stack(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 6,
+                                  child: Container(
+                                    width: double.infinity,
+                                    color: Colors.white.withOpacity(0.02),
+                                    child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
+                                        ? Image.network(
+                                            p.imagenUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.black12,
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image_outlined,
+                                                    color: Colors.white24,
+                                                    size: 24,
+                                                  ),
                                                 ),
-                                              ),
-                                            );
-                                          },
-                                          loadingBuilder: (context, child, loadingProgress) {
-                                            if (loadingProgress == null) return child;
-                                            return const Center(
-                                              child: SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
+                                              );
+                                            },
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return const Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
                                                 ),
+                                              );
+                                            },
+                                          )
+                                        : Container(
+                                            color: Colors.white.withOpacity(0.02),
+                                            child: Center(
+                                              child: FaIcon(
+                                                FontAwesomeIcons.mugHot,
+                                                color: Colors.white.withOpacity(0.15),
+                                                size: 24,
                                               ),
-                                            );
-                                          },
-                                        )
-                                      : Container(
-                                          color: Colors.white.withOpacity(0.02),
-                                          child: Center(
-                                            child: FaIcon(
-                                              FontAwesomeIcons.mugHot,
-                                              color: Colors.white.withOpacity(0.15),
-                                              size: 24,
                                             ),
                                           ),
-                                        ),
+                                  ),
                                 ),
-                              ),
-                              Expanded(
-                                flex: 5,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        p.nombre,
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Bs. ${p.precioVenta.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
-                                          ),
-                                          if (inCartQty > 0)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: AppTheme.accentColor.withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                'x$inCartQty',
-                                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
-                                              ),
+                                Expanded(
+                                  flex: 5,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          p.nombre,
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'Bs. ${p.precioVenta.toStringAsFixed(2)}',
+                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
                                             ),
-                                        ],
+                                            if (inCartQty > 0)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.accentColor.withOpacity(0.15),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'x$inCartQty',
+                                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Admin controls inside card
+                            if (_isAdmin)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                        icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 11, color: Colors.white70),
+                                        onPressed: () => _showProductDialog(product: p),
+                                      ),
+                                      IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                        icon: const FaIcon(FontAwesomeIcons.trashCan, size: 11, color: Colors.redAccent),
+                                        onPressed: () => _deleteProduct(p),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          // Admin controls inside card
-                          if (_isAdmin)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                      icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 11, color: Colors.white70),
-                                      onPressed: () => _showProductDialog(product: p),
-                                    ),
-                                    IconButton(
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                      icon: const FaIcon(FontAwesomeIcons.trashCan, size: 11, color: Colors.redAccent),
-                                      onPressed: () => _deleteProduct(p),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -851,14 +860,17 @@ class _PosScreenState extends State<PosScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _cart.isEmpty ? null : _checkout,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(55),
-                      backgroundColor: AppTheme.accentColor,
-                      foregroundColor: Colors.white,
+                  BouncingWidget(
+                    onTap: _cart.isEmpty ? null : _checkout,
+                    child: ElevatedButton(
+                      onPressed: _cart.isEmpty ? null : _checkout,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(55),
+                        backgroundColor: AppTheme.accentColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('PROCESAR VENTA', style: TextStyle(letterSpacing: 1.5)),
                     ),
-                    child: const Text('PROCESAR VENTA', style: TextStyle(letterSpacing: 1.5)),
                   ),
                 ],
               ),

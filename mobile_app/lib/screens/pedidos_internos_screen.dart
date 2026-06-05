@@ -5,6 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
+import '../widgets/bouncing_widget.dart';
+import '../widgets/pulsing_coffee_loader.dart';
+import '../widgets/fade_in_slide.dart';
 
 class PedidosInternosScreen extends StatefulWidget {
   const PedidosInternosScreen({super.key});
@@ -393,13 +396,8 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withOpacity(0.05)),
                   ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: AppTheme.accentColor),
-                      SizedBox(height: 8),
-                      Text('Subiendo foto...', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                    ],
+                  child: const Center(
+                    child: PulsingCoffeeLoader(message: 'Subiendo imagen...'),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -427,7 +425,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                           return Container(
                             height: 120,
                             color: Colors.black12,
-                            child: const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -462,9 +466,12 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
             ),
-            TextButton(
-              onPressed: _crearPedido,
-              child: const Text('Enviar Solicitud'),
+            BouncingWidget(
+              onTap: _crearPedido,
+              child: TextButton(
+                onPressed: _crearPedido,
+                child: const Text('Enviar Solicitud'),
+              ),
             ),
           ],
         ),
@@ -504,14 +511,17 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     return Scaffold(
       floatingActionButton: _isAdmin
           ? null
-          : FloatingActionButton.extended(
-              onPressed: _showAddDialog,
-              backgroundColor: AppTheme.accentColor,
-              icon: const Icon(Icons.send, size: 16, color: Colors.white),
-              label: const Text('PEDIR INSUMO', style: TextStyle(fontWeight: FontWeight.bold)),
+          : BouncingWidget(
+              onTap: _showAddDialog,
+              child: FloatingActionButton.extended(
+                onPressed: _showAddDialog,
+                backgroundColor: AppTheme.accentColor,
+                icon: const Icon(Icons.send, size: 16, color: Colors.white),
+                label: const Text('PEDIR INSUMO', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
             ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PulsingCoffeeLoader(message: 'Cargando solicitudes...'))
           : _pedidos.isEmpty
               ? const Center(child: Text('No hay solicitudes de insumos.', style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textMuted)))
               : RefreshIndicator(
@@ -530,14 +540,16 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                       final hasImage = p['imagen_url'] != null && p['imagen_url'].toString().trim().isNotEmpty;
                       final imageUrl = p['imagen_url']?.toString().trim();
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                      return FadeInSlide(
+                        index: idx,
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (hasImage) ...[
@@ -624,30 +636,39 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                                     if (_isAdmin)
                                       Row(
                                         children: [
-                                          TextButton(
-                                            onPressed: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
-                                            child: const Text('Rechazar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                                          BouncingWidget(
+                                            onTap: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
+                                            child: TextButton(
+                                              onPressed: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
+                                              child: const Text('Rechazar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                                            ),
                                           ),
                                           const SizedBox(width: 8),
-                                          ElevatedButton(
-                                            onPressed: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppTheme.accentColor,
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                              minimumSize: Size.zero,
-                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          BouncingWidget(
+                                            onTap: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
+                                            child: ElevatedButton(
+                                              onPressed: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppTheme.accentColor,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                              child: const Text('Entregar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                             ),
-                                            child: const Text('Entregar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                           ),
                                         ],
                                       )
                                     else
-                                      IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
-                                        onPressed: () => _eliminarPedido(p['id']),
+                                      BouncingWidget(
+                                        onTap: () => _eliminarPedido(p['id']),
+                                        child: IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+                                          onPressed: () => _eliminarPedido(p['id']),
+                                        ),
                                       )
                                   ]
                                 ],
@@ -655,7 +676,8 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                             ],
                           ),
                         ),
-                      );
+                      ),
+                    );
                     },
                   ),
                 ),

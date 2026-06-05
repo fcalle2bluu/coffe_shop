@@ -38,6 +38,8 @@ function renderizarCatalogo(filtro = '') {
         p.nombre.toLowerCase().includes(filtro.toLowerCase())
     );
 
+    let prodIndex = 0;
+
     // Agrupar por categoría
     const productosPorCategoria = {};
     filtrados.forEach(prod => {
@@ -74,8 +76,10 @@ function renderizarCatalogo(filtro = '') {
 
         // Renderizar cada producto de esta categoría
         productosPorCategoria[cat].forEach(prod => {
+            prodIndex++;
+            const delayClass = `delay-${Math.min(prodIndex, 12)}`;
             contenedor.innerHTML += `
-                <div onclick="agregarAlCarrito(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all transform hover:-translate-y-1 active:translate-y-0 select-none flex flex-col justify-between overflow-hidden relative min-h-[160px]">
+                <div onclick="agregarAlCarrito(${prod.id})" class="animate-fade-in-up ${delayClass} bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all select-none flex flex-col justify-between overflow-hidden relative min-h-[160px] btn-bounce">
                     
                     <!-- Imagen -->
                     <div class="h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b border-gray-100 relative overflow-hidden">
@@ -88,10 +92,10 @@ function renderizarCatalogo(filtro = '') {
                         
                         <!-- Botones de Admin -->
                         <div class="solo-admin absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg shadow-sm border border-gray-100">
-                            <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-500 hover:text-indigo-600 transition-colors p-1" title="Editar Producto">
+                            <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-500 hover:text-indigo-600 transition-colors p-1 btn-bounce" title="Editar Producto">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
-                            <button onclick="event.stopPropagation(); eliminarProducto(${prod.id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="text-slate-500 hover:text-rose-600 transition-colors p-1" title="Borrar Producto">
+                            <button onclick="event.stopPropagation(); eliminarProducto(${prod.id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="text-slate-500 hover:text-rose-600 transition-colors p-1 btn-bounce" title="Borrar Producto">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
                         </div>
@@ -214,9 +218,9 @@ function actualizarTicket() {
                     </div>
                     
                     <div class="flex items-center bg-gray-100 rounded-lg mx-2 border">
-                        <button onclick="modificarCantidad(${index}, 'resta')" class="px-2 py-1 text-gray-600 hover:text-red-500 font-bold">-</button>
+                        <button onclick="modificarCantidad(${index}, 'resta')" class="px-2 py-1 text-gray-600 hover:text-red-500 font-bold btn-bounce">-</button>
                         <span class="px-2 text-sm font-bold w-6 text-center">${item.cantidad}</span>
-                        <button onclick="modificarCantidad(${index}, 'suma')" class="px-2 py-1 text-gray-600 hover:text-green-500 font-bold">+</button>
+                        <button onclick="modificarCantidad(${index}, 'suma')" class="px-2 py-1 text-gray-600 hover:text-green-500 font-bold btn-bounce">+</button>
                     </div>
 
                     <div class="text-right font-black text-stone-900 w-16">

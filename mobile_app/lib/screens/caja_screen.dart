@@ -4,6 +4,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
+import '../widgets/bouncing_widget.dart';
+import '../widgets/pulsing_coffee_loader.dart';
+import '../widgets/fade_in_slide.dart';
 
 class CajaScreen extends StatefulWidget {
   const CajaScreen({super.key});
@@ -419,16 +422,19 @@ class _CajaScreenState extends State<CajaScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _showGastoDialog,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.redAccent,
-                        side: const BorderSide(color: Colors.redAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: BouncingWidget(
+                      onTap: _showGastoDialog,
+                      child: OutlinedButton.icon(
+                        onPressed: _showGastoDialog,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        icon: const FaIcon(FontAwesomeIcons.handHoldingDollar, size: 14),
+                        label: const Text('REGISTRAR GASTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.handHoldingDollar, size: 14),
-                      label: const Text('REGISTRAR GASTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                     ),
                   ),
                 ],
@@ -447,15 +453,18 @@ class _CajaScreenState extends State<CajaScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _cerrarCaja,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  BouncingWidget(
+                    onTap: _cerrarCaja,
+                    child: ElevatedButton(
+                      onPressed: _cerrarCaja,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 0.5, fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 0.5, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -511,15 +520,18 @@ class _CajaScreenState extends State<CajaScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _abrirCaja,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  BouncingWidget(
+                    onTap: _abrirCaja,
+                    child: ElevatedButton(
+                      onPressed: _abrirCaja,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('ABRIR CAJA', style: TextStyle(letterSpacing: 1.0, fontSize: 12)),
                     ),
-                    child: const Text('ABRIR CAJA', style: TextStyle(letterSpacing: 1.0, fontSize: 12)),
                   ),
                 ],
               ),
@@ -585,33 +597,36 @@ class _CajaScreenState extends State<CajaScreen> {
           final diffText = diff >= 0 ? '+Bs. ${diff.toStringAsFixed(2)}' : 'Bs. ${diff.toStringAsFixed(2)}';
           final diffColor = diff >= 0 ? const Color(0xFF10B981) : Colors.redAccent;
 
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Turno #${h['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
-                Text(
-                  diffText,
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: diffColor),
-                ),
-              ],
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          return FadeInSlide(
+            index: idx,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Text('Turno #${h['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                   Text(
-                    'Apertura: ${h['apertura']} | Cierre: ${h['cierre']}',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Efectivo Inicial: Bs. ${saldoInicial.toStringAsFixed(2)} | Final: Bs. ${saldoFinal.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                    diffText,
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: diffColor),
                   ),
                 ],
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Apertura: ${h['apertura']} | Cierre: ${h['cierre']}',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Efectivo Inicial: Bs. ${saldoInicial.toStringAsFixed(2)} | Final: Bs. ${saldoFinal.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -624,7 +639,7 @@ class _CajaScreenState extends State<CajaScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: PulsingCoffeeLoader(message: 'Cargando estado de caja...')),
       );
     }
 
@@ -634,27 +649,20 @@ class _CajaScreenState extends State<CajaScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildStateCard(),
+            FadeInSlide(index: 0, child: _buildStateCard()),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'HISTORIAL DE TURNOS DE CAJA',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted),
-                ),
-              ],
+            FadeInSlide(
+              index: 1,
+              child: Row(
+                children: [
+                  const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 14, color: AppTheme.accentColor),
+                  const SizedBox(width: 8),
+                  Text('Historial de Turnos'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.0, color: AppTheme.textMuted)),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
-            _buildHistoryList(),
+            FadeInSlide(index: 2, child: _buildHistoryList()),
           ],
         ),
       ),
