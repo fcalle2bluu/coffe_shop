@@ -95,9 +95,9 @@ REGLAS DE RESPUESTA:
 5. Puedes formatear tus respuestas usando negritas (**texto**) y viñetas para que la lectura sea atractiva. Si necesitas mostrar datos estructurados, utiliza formato de tablas de Markdown (ej. | Producto | Cantidad | Total |).
 `;
 
-        // 3. Consultar a Gemini 2.5 Flash
+        // 3. Consultar a Gemini
         const model = genAI.getGenerativeModel({ 
-            model: 'gemini-2.5-flash',
+            model: 'gemini-flash-latest',
             systemInstruction: systemInstruction
         });
 
