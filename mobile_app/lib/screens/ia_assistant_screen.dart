@@ -526,8 +526,8 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
               onPressed: () => _preguntarSugerencia(sug['label'] as String),
               backgroundColor: AppTheme.secondaryDark,
               side: BorderSide(color: Colors.white.withOpacity(0.05)),
-              avatar: Icon(
-                sug['icon'] as IconData,
+              avatar: FaIcon(
+                sug['icon'] as FaIconData?,
                 size: 10,
                 color: AppTheme.accentColor,
               ),
