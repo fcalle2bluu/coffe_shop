@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Café La Paz - Gestión de Usuarios</title>
+    <title>Café La Paz - Libro Diario</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -37,10 +37,32 @@
     </script>
 
     <style>
-        .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .excel-table th {
+            background-color: #203764;
+            color: #ffffff;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+        }
+        .excel-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        .excel-account-debe {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .excel-account-haber {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -100,17 +122,17 @@
             <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
                 <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
             </a>
-            <a href="usuarios.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
+            <a href="usuarios.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión Usuarios</span>
-            </a>
-            <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
             </a>
             <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
             </a>
             <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
                 <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+            </a>
+            <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
+                <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
             </a>
             <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-mug-hot w-5 text-center text-orange-500/60"></i> <span>Informe General</span>
@@ -130,107 +152,87 @@
         <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100"><i class="fa-solid fa-bars"></i></button>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Gestión de Usuarios</h1>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Libro Diario Contable</h1>
             </div>
-            <button onclick="abrirModalUsuario()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 text-sm group">
-                <i class="fa-solid fa-user-plus group-hover:scale-110 transition-transform"></i> Registrar Nuevo Usuario
-            </button>
+            
+            <!-- FILTROS DE FECHA -->
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <select id="filtroMes" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl pl-3 pr-8 py-2.5 outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors">
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[9px]"></i>
+                </div>
+                <div class="relative">
+                    <select id="filtroAnio" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl pl-3 pr-8 py-2.5 outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors">
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[9px]"></i>
+                </div>
+                <button onclick="cargarLibroDiario()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-rotate"></i> Filtrar
+                </button>
+            </div>
         </header>
 
         <div class="flex-1 overflow-y-auto">
-            <div class="max-w-7xl mx-auto p-6">
-                <!-- SECCION USUARIOS -->
-                <section class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
-                    <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 italic tracking-tight uppercase">
-                                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                                    <i class="fa-solid fa-users-gear text-sm"></i>
-                                </div>
-                                Gestión de Personal y Accesos
-                            </h2>
-                            <p class="text-xs text-slate-400 font-medium ml-13">Administra los roles, permisos individuales y códigos de acceso de tu equipo.</p>
-                        </div>
-                    </div>
+            <div class="max-w-7xl mx-auto p-6 space-y-6">
+                
+                <!-- EXCEL CONTAINER -->
+                <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden p-8 flex flex-col items-center">
                     
-                    <div class="p-8">
-                        <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-inner-soft">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-50/50">
-                                    <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
-                                        <th class="px-6 py-4">Colaborador / Identidad</th>
-                                        <th class="px-6 py-4 text-center">Rol en el Sistema</th>
-                                        <th class="px-6 py-4 text-center">PIN / Acceso</th>
-                                        <th class="px-6 py-4 text-center">Permisos (Funciones Especiales)</th>
-                                        <th class="px-6 py-4 text-center">Estado</th>
-                                        <th class="px-6 py-4 text-right">Controles Externos</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-usuarios" class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td colspan="6" class="text-center py-20 text-slate-300 italic">
-                                            <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block text-indigo-500"></i>
-                                            Sincronizando base de datos de personal...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <!-- EXCEL HEADER STYLING -->
+                    <div class="text-center font-bold font-sans space-y-1 mb-8 w-full max-w-4xl border-b pb-6 border-slate-100">
+                        <h2 class="text-lg underline text-slate-900 tracking-wider">LIBRO DIARIO</h2>
+                        <h3 class="text-sm text-slate-700 uppercase" id="excelEmpresa">CAFÉ LA PAZ S.R.L.</h3>
+                        <p class="text-xs text-slate-500">EXPRESADO EN BOLIVIANOS (BS)</p>
+                        <div class="inline-block bg-slate-900 text-white font-mono text-xs px-5 py-1.5 rounded-xl mt-2 tracking-widest" id="excelPeriodo">
+                            ABRIL - 2026
                         </div>
                     </div>
-                </section>
+
+                    <!-- EXCEL SHEET TABLE -->
+                    <div class="w-full overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full border-collapse excel-table font-mono">
+                            <thead>
+                                <tr>
+                                    <th class="w-32">FECHA</th>
+                                    <th class="w-16">N°</th>
+                                    <th class="text-left">DETALLE</th>
+                                    <th class="w-32 text-right">DEBE</th>
+                                    <th class="w-32 text-right">HABER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="libroDiarioCuerpo">
+                                <tr>
+                                    <td colspan="5" class="text-center py-20 text-slate-400 italic font-sans">
+                                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 text-indigo-500 block"></i>
+                                        Generando asientos del libro diario contable...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
-
-    <!-- MODAL: REGISTRO USUARIO -->
-    <div id="modalUsuario" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div class="bg-indigo-600 p-8 text-white relative border-b border-indigo-700">
-                <button onclick="cerrarModalUsuario()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
-                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
-                    <i class="fa-solid fa-user-plus text-2xl"></i>
-                </div>
-                <h3 class="text-2xl font-black italic tracking-tight uppercase leading-tight">Registrar Nuevo Usuario</h3>
-                <p class="text-indigo-100/70 text-sm mt-1">Configura las credenciales de un nuevo colaborador.</p>
-            </div>
-            <div class="p-8 space-y-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre Completo</label>
-                        <input type="text" id="userNombre" placeholder="Nombre Apellido" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Usuario (Login)</label>
-                            <input type="text" id="userUsername" placeholder="colaborador1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">PIN de Acceso</label>
-                            <input type="password" id="userPin" placeholder="****" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-center tracking-widest font-black">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Rol del Sistema</label>
-                        <div class="relative">
-                            <select id="userRol" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none appearance-none cursor-pointer font-semibold">
-                                <option value="CAJERO">Colaborador / Cajero (Ventas)</option>
-                                <option value="ADMIN">Administrador (Acceso Total)</option>
-                                <option value="ALMACEN">Encargado de Logística</option>
-                            </select>
-                            <i class="fa-solid fa-caret-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 pt-4">
-                    <button onclick="cerrarModalUsuario()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">Descartar</button>
-                    <button onclick="guardarNuevoUsuario()" id="btnGuardarUser" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                        Autorizar Usuario
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
         function toggleSidebar() {
@@ -265,9 +267,14 @@
             if (rolActual === 'CAJERO') {
                 document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
             }
+            
+            // Establecer mes y año actual por defecto
+            const fecha = new Date();
+            document.getElementById('filtroMes').value = fecha.getMonth() + 1;
+            document.getElementById('filtroAnio').value = fecha.getFullYear();
         });
     </script>
-    <script src="js/usuarios.js"></script>
+    <script src="js/libro_diario.js"></script>
     <script src="js/security_guard.js"></script>
 </body>
 </html>

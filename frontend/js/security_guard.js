@@ -56,7 +56,7 @@
             hasAccess = localStorage.getItem('perm_auditoria') === 'true';
         } else if (pageName.includes('parametros.html') || pageName.includes('usuarios.html')) {
             hasAccess = localStorage.getItem('perm_parametros') === 'true';
-        } else if (pageName.includes('informe_general.html')) {
+        } else if (pageName.includes('informe_general.html') || pageName.includes('libro_diario.html')) {
             hasAccess = localStorage.getItem('perm_informe') === 'true';
         }
 
@@ -114,6 +114,11 @@
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
+            if (href.includes('libro_diario.html')) {
+                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
+            }
         });
 
         // Ocultar u mostrar otros elementos marcados como solo-admin en la página si tiene el permiso correspondiente
@@ -124,7 +129,7 @@
             if (pageName.includes('proveedores') && localStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
             if (pageName.includes('inventario') && localStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
             if ((pageName.includes('parametros') || pageName.includes('usuarios')) && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
-            if (pageName.includes('informe_general') && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
+            if ((pageName.includes('informe_general') || pageName.includes('libro_diario')) && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
             // Filtrar para no tocar la barra lateral (aside)
             const elementosNoSidebar = Array.from(document.querySelectorAll('.solo-admin')).filter(el => !el.closest('aside'));

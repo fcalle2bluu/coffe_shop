@@ -16,6 +16,7 @@ import 'proveedores_screen.dart';
 import 'auditoria_screen.dart';
 import 'parametros_screen.dart';
 import 'usuarios_screen.dart';
+import 'libro_diario_screen.dart';
 import 'ia_assistant_screen.dart';
 import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
@@ -424,6 +425,15 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
         'icon': FontAwesomeIcons.gears,
       });
       _screens.add(const ParametrosScreen());
+    }
+
+    // 7.5. Libro Diario (Admin o con permiso de informe o parametros)
+    if (_isAdmin || _permInforme || _permParametros) {
+      _menuItems.add({
+        'title': 'Libro Diario',
+        'icon': FontAwesomeIcons.book,
+      });
+      _screens.add(const LibroDiarioScreen());
     }
 
     // 8. Asistente IA (Solo Admin)
