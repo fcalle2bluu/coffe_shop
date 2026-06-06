@@ -263,3 +263,5 @@ router.delete('/gastos/:id', async (req, res) => {
         res.status(500).json({ error: 'Error al eliminar el gasto general: ' + error.message });
     }
 });
+
+module.exports = router;
