@@ -10,32 +10,16 @@ if (apiKey) {
     genAI = new GoogleGenerativeAI(apiKey);
 }
 
-const systemInstruction = `
-Eres un asistente de base de datos PostgreSQL experto para el sistema de gestión de "Café La Paz".
-Tu única tarea es tomar una pregunta en lenguaje natural hecha por un administrador y generar una única consulta SQL de tipo SELECT válida para PostgreSQL que recupere la información solicitada.
-
-REGLAS CRÍTICAS:
-1. Genera ÚNICAMENTE una consulta SELECT de solo lectura. Bajo ninguna circunstancia generes comandos como INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, TRUNCATE, GRANT, REVOKE o REPLACE.
-2. Devuelve ÚNICAMENTE la consulta SQL en texto plano. No la envuelvas en bloques de código markdown como \`\`\`sql ... \`\`\`. No incluyas explicaciones, comentarios, ni símbolos adicionales.
-3. Si la pregunta no se puede responder con una consulta a las tablas disponibles o no tiene sentido, devuelve una cadena vacía.
-4. Para fechas:
-   - Para hoy, usa DATE(fecha_columna) = CURRENT_DATE (ej. DATE(fecha_venta) = CURRENT_DATE para ventas de hoy).
-   - Para este mes, usa EXTRACT(MONTH FROM fecha_columna) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM fecha_columna) = EXTRACT(YEAR FROM CURRENT_DATE).
-
-ESQUEMA DE LA BASE DE DATOS (PÚBLICO):
-- usuarios (id, nombre, username, pin, rol, activo, perm_stock, perm_compras, perm_proveedores, perm_auditoria, perm_parametros, perm_informe)
-- cajas (id, usuario_id, saldo_inicial, saldo_final, fecha_apertura, fecha_cierre)
-- gastos_caja (id, caja_id, usuario_id, monto, descripcion, fecha)
-- ventas (id, caja_id, total, metodo_pago, fecha_venta, usuario_id) -- metodo_pago: 'EFECTIVO', 'QR', 'TARJETA', 'CONSUME_LO_NUESTRO'
-- detalle_ventas (id, venta_id, producto_id, cantidad, precio_unitario, subtotal)
-- productos (id, nombre, precio_venta, categoria_id, imagen_url, activo)
-- compras (id, proveedor_id, total, foto_url, fecha)
-- detalle_compras (compra_id, insumo_id, cantidad, costo_unitario, subtotal)
-- insumos (id, nombre, unidad_medida, stock_actual, stock_minimo, activo, imagen_url)
-- proveedores (id, nombre, telefono, lugar, otros)
-- pedidos_compra (id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, fecha, imagen_url) -- estado: 'PENDIENTE', 'COMPRADO', 'RECHAZADO'
-- lotes_insumos (id, compra_id, insumo_id, fecha_vencimiento, stock_lote)
-`;
+// Helper para ejecutar consultas seguras y tolerar fallas de tablas/columnas
+const ejecutarQuerySegura = async (sql, params = []) => {
+    try {
+        const res = await pool.query(sql, params);
+        return res.rows;
+    } catch (err) {
+        console.error(`🚨 Error al ejecutar consulta segura [${sql}]:`, err.message);
+        return []; // Retorna un array vacío para no quebrar la petición global
+    }
+};
 
 router.post('/consultar', async (req, res) => {
     const { mensaje } = req.body;
@@ -48,78 +32,92 @@ router.post('/consultar', async (req, res) => {
         return res.status(500).json({ error: 'La IA no está configurada en el servidor. Falta la clave GEMINI_API_KEY.' });
     }
 
-    let sql = '';
     try {
-        // 1. Generar la consulta SQL con Gemini
+        // 1. Obtener snapshot completo de la Base de Datos en tiempo real
+        console.log(`🤖 Recopilando snapshot de la base de datos para responder a: "${mensaje}"`);
+        
+        const [
+            usuarios,
+            cajas,
+            gastos,
+            ventas,
+            detalleVentas,
+            productos,
+            compras,
+            detalleCompras,
+            insumos,
+            proveedores,
+            pedidos,
+            lotes
+        ] = await Promise.all([
+            ejecutarQuerySegura('SELECT id, nombre, username, rol, activo FROM usuarios'),
+            ejecutarQuerySegura("SELECT id, usuario_id, saldo_inicial, saldo_final, TO_CHAR(fecha_apertura, 'YYYY-MM-DD HH24:MI') as fecha_apertura, TO_CHAR(fecha_cierre, 'YYYY-MM-DD HH24:MI') as fecha_cierre FROM cajas WHERE fecha_apertura >= NOW() - INTERVAL '30 days' ORDER BY fecha_apertura DESC"),
+            ejecutarQuerySegura("SELECT id, caja_id, usuario_id, monto, descripcion, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM gastos_caja WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, caja_id, total, metodo_pago, TO_CHAR(fecha_venta, 'YYYY-MM-DD HH24:MI') as fecha_venta, usuario_id FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '30 days' ORDER BY fecha_venta DESC"),
+            ejecutarQuerySegura("SELECT dv.id, dv.venta_id, dv.producto_id, dv.cantidad, dv.precio_unitario, dv.subtotal FROM detalle_ventas dv JOIN ventas v ON dv.venta_id = v.id WHERE v.fecha_venta >= NOW() - INTERVAL '30 days'"),
+            ejecutarQuerySegura('SELECT id, nombre, precio_venta, categoria_id, activo FROM productos'),
+            ejecutarQuerySegura("SELECT id, proveedor_id, total, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM compras WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT dc.compra_id, dc.insumo_id, dc.cantidad, dc.costo_unitario, dc.subtotal FROM detalle_compras dc JOIN compras c ON dc.compra_id = c.id WHERE c.fecha >= NOW() - INTERVAL '30 days'"),
+            ejecutarQuerySegura('SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo FROM insumos'),
+            ejecutarQuerySegura('SELECT id, nombre, telefono, lugar, otros FROM proveedores'),
+            ejecutarQuerySegura("SELECT id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM pedidos_compra WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, compra_id, insumo_id, TO_CHAR(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento, stock_lote FROM lotes_insumos")
+        ]);
+
+        const dbSnapshot = {
+            usuarios,
+            cajas,
+            gastos_caja: gastos,
+            ventas,
+            detalle_ventas: detalleVentas,
+            productos,
+            compras,
+            detalle_compras: detalleCompras,
+            insumos,
+            proveedores,
+            pedidos_compra: pedidos,
+            lotes_insumos: lotes
+        };
+
+        // 2. Construir instrucciones dinámicas inyectando los datos
+        const systemInstruction = `
+Eres "Moka", el asistente virtual inteligente y analista de negocios experto de la cafetería "Café La Paz".
+Tu propósito es ayudar a los administradores a entender el estado de su negocio, resumir información y responder dudas generales.
+
+Tienes acceso completo a los datos actuales del sistema en formato JSON (últimos 30 días para datos históricos):
+${JSON.stringify(dbSnapshot)}
+
+REGLAS DE RESPUESTA:
+1. Responde de forma clara, profesional y en español.
+2. Si te preguntan sobre el negocio (ventas, stock, gastos, compras, proveedores, personal), analiza con mucho cuidado los datos JSON proporcionados para calcular totales, promedios, listados o conclusiones con precisión.
+3. Si los datos requeridos no existen en el JSON o están vacíos, indícalo de manera amable (ej. "Actualmente no hay ventas registradas en los últimos 30 días").
+4. Si el usuario te pregunta sobre cualquier otro tema general no relacionado con la cafetería (ej. cultura general, historia, consejos, recetas o ayuda general), responde amablemente utilizando tus conocimientos generales sin restricción alguna.
+5. Puedes formatear tus respuestas usando negritas (**texto**) y viñetas para que la lectura sea atractiva. Si necesitas mostrar datos estructurados, utiliza formato de tablas de Markdown (ej. | Producto | Cantidad | Total |).
+`;
+
+        // 3. Consultar a Gemini 2.5 Flash
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-2.5-flash',
             systemInstruction: systemInstruction
         });
 
         const prompt = `Pregunta del administrador: ${mensaje}`;
-        const sqlResult = await model.generateContent(prompt);
-        sql = sqlResult.response.text().trim();
+        const responseResult = await model.generateContent(prompt);
+        const mensajeIa = responseResult.response.text().trim();
 
-        // Limpieza de posibles tags de Markdown por si acaso la IA ignora las instrucciones
-        sql = sql.replace(/^```sql/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
-
-        // Si la IA devolvió vacío
-        if (sql === '') {
-            return res.json({
-                success: true,
-                mensajeIa: 'No pude comprender tu pregunta o no está relacionada con la gestión de datos de la cafetería. ¿Podrías reestructurarla?',
-                sql: '',
-                filas: []
-            });
-        }
-
-        // 2. Filtro estricto de seguridad anti-vandalismo (Escritura/Modificación)
-        const sqlLower = sql.toLowerCase();
-        const palabrasClavePeligrosas = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'revoke', 'replace'];
-        const esPeligrosa = palabrasClavePeligrosas.some(word => {
-            const regex = new RegExp(`\\b${word}\\b`, 'i');
-            return regex.test(sqlLower);
-        });
-
-        if (esPeligrosa || !sqlLower.includes('select')) {
-            console.warn(`🚨 Intento de consulta bloqueada por seguridad. SQL generado: "${sql}"`);
-            return res.status(400).json({ error: 'Lo siento, no puedo realizar esa consulta por motivos de seguridad.' });
-        }
-
-        // 3. Ejecutar la consulta SQL en la Base de Datos
-        console.log(`🤖 Ejecutando consulta generada por IA: "${sql}"`);
-        const dbRes = await pool.query(sql);
-        const filas = dbRes.rows;
-
-        // 4. Redactar una explicación amigable con Gemini
-        const modelExplicacion = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        const promptExplicacion = `
-Un usuario administrador de la cafetería "Café La Paz" hizo la siguiente pregunta: "${mensaje}"
-Para responderla, consultamos la base de datos y obtuvimos los siguientes resultados en formato JSON:
-${JSON.stringify(filas)}
-
-Por favor, redacta una respuesta conversacional, amigable y clara en español que explique estos datos directamente al administrador. 
-Si los datos están vacíos, indícalo de manera amable y profesional.
-No menciones tecnicismos de base de datos como "filas", "JSON", "tablas" o "SQL".
-Puedes usar formato de texto o viñetas de Markdown para organizar la información.
-`;
-
-        const explicacionRes = await modelExplicacion.generateContent(promptExplicacion);
-        const mensajeIa = explicacionRes.response.text().trim();
-
+        // 4. Responder al cliente
         res.json({
             success: true,
             mensajeIa,
-            sql,
-            filas
+            sql: null, // Excluido en esta arquitectura
+            filas: []   // Excluido en esta arquitectura
         });
 
     } catch (error) {
         console.error('Error en el asistente de IA:', error);
         res.status(500).json({ 
             error: 'Ocurrió un error al procesar tu consulta con el Asistente IA.',
-            detalles: error.message,
-            sql: sql || ''
+            detalles: error.message
         });
     }
 });

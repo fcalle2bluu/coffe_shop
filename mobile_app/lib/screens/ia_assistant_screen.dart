@@ -142,15 +142,15 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
     // Mapeo amigable para el backend para respuestas más naturales y precisas
     String consulta = sugerencia;
     if (sugerencia == "Ventas de Hoy") {
-      consulta = "¿Cuáles son las ventas totales y por método de pago de hoy?";
+      consulta = "¿Cuáles son las ventas totales de hoy?";
     } else if (sugerencia == "Producto Estrella") {
-      consulta = "¿Cuáles son los 3 productos más vendidos con su cantidad y subtotal total?";
+      consulta = "¿Cuáles son los productos más vendidos hoy y cuánto dinero generaron?";
     } else if (sugerencia == "Alerta de Stock Bajo") {
-      consulta = "¿Qué insumos tienen stock actual menor o igual a su stock mínimo y cuál es el stock faltante?";
+      consulta = "¿Qué insumos están por debajo de su stock mínimo de alerta?";
     } else if (sugerencia == "Gastos del Mes") {
-      consulta = "¿Cuánto se ha gastado en total este mes y cuáles son los gastos registrados?";
+      consulta = "¿Cuáles son los gastos acumulados en el último mes?";
     } else if (sugerencia == "Lista de Cajeros") {
-      consulta = "¿Qué usuarios tienen rol de CAJERO y están activos actualmente?";
+      consulta = "¿Qué cajeros están activos hoy en el sistema?";
     }
 
     _enviarMensaje(consulta);
@@ -193,7 +193,7 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: PulsingCoffeeLoader(
-                  message: 'Moka está consultando la base de datos...',
+                  message: 'Moka está analizando el negocio...',
                 ),
               ),
 
@@ -272,37 +272,17 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  _buildFormattedText(msg.text, isUser),
                   
-                  // Render de Tabla si viene en la respuesta
+                  // Renderizado inteligente del contenido del mensaje (Párrafos + Tablas Markdown)
+                  ..._buildMessageContent(msg.text, isUser),
+                  
+                  // Render de Tabla si viene en la respuesta legada
                   if (msg.rows != null && msg.rows!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _buildDynamicTable(msg.rows!),
-                  ] else if (msg.rows != null && msg.rows!.isEmpty && msg.sql != null && !msg.isError) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.03),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: Row(
-                        children: [
-                          const FaIcon(FontAwesomeIcons.circleInfo, size: 12, color: Colors.blueAccent),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'La consulta no devolvió registros en este momento.',
-                              style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textMuted),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                   
-                  // Render de SQL si está presente
+                  // Render de SQL si está presente de forma legada
                   if (msg.sql != null && msg.sql!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _buildCollapsibleSql(msg.sql!),
@@ -338,8 +318,76 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
     );
   }
 
+  // Desglosa el mensaje detectando tablas escritas en Markdown y las renderiza como DataTables
+  List<Widget> _buildMessageContent(String text, bool isUser) {
+    final List<Widget> widgets = [];
+    final List<String> lines = text.split('\n');
+    
+    List<String> currentTableHeaders = [];
+    List<List<String>> currentTableRows = [];
+    bool parsingTable = false;
+    
+    List<String> currentParagraphLines = [];
+    
+    void flushParagraph() {
+      if (currentParagraphLines.isNotEmpty) {
+        final paragraphText = currentParagraphLines.join('\n').trim();
+        if (paragraphText.isNotEmpty) {
+          widgets.add(_buildFormattedParagraph(paragraphText, isUser));
+        }
+        currentParagraphLines.clear();
+      }
+    }
+    
+    void flushTable() {
+      if (parsingTable && currentTableHeaders.isNotEmpty) {
+        widgets.add(const SizedBox(height: 10));
+        widgets.add(_buildTableFromMarkdown(currentTableHeaders, currentTableRows));
+        widgets.add(const SizedBox(height: 10));
+        currentTableHeaders.clear();
+        currentTableRows.clear();
+        parsingTable = false;
+      }
+    }
+    
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      
+      if (line.startsWith('|') && line.endsWith('|')) {
+        // Encontró una línea que pertenece a una tabla Markdown
+        flushParagraph(); // Cerramos cualquier párrafo anterior acumulado
+        
+        final rawCells = line.split('|');
+        final cellsClean = <String>[];
+        for (int j = 1; j < rawCells.length - 1; j++) {
+          cellsClean.add(rawCells[j].trim());
+        }
+        
+        if (line.contains('---') || line.contains('- -')) {
+          // Saltar línea separadora
+          continue;
+        }
+        
+        if (!parsingTable) {
+          parsingTable = true;
+          currentTableHeaders = cellsClean;
+        } else {
+          currentTableRows.add(cellsClean);
+        }
+      } else {
+        flushTable(); // Cerramos cualquier tabla anterior
+        currentParagraphLines.add(lines[i]);
+      }
+    }
+    
+    flushParagraph();
+    flushTable();
+    
+    return widgets;
+  }
+
   // Generador inteligente de texto con soporte simple para negritas (**texto**)
-  Widget _buildFormattedText(String text, bool isUser) {
+  Widget _buildFormattedParagraph(String text, bool isUser) {
     final List<TextSpan> spans = [];
     final regExp = RegExp(r'\*\*(.*?)\*\*');
     
@@ -361,19 +409,75 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
       spans.add(TextSpan(text: text.substring(start)));
     }
     
-    return RichText(
-      text: TextSpan(
-        style: GoogleFonts.outfit(
-          fontSize: 13.5,
-          height: 1.4,
-          color: isUser ? Colors.white : AppTheme.textLight,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: RichText(
+        text: TextSpan(
+          style: GoogleFonts.outfit(
+            fontSize: 13.5,
+            height: 1.4,
+            color: isUser ? Colors.white : AppTheme.textLight,
+          ),
+          children: spans,
         ),
-        children: spans,
       ),
     );
   }
 
-  // Genera un scrollable horizontal DataTable para ver resultados de BD
+  // Renderiza una tabla desde celdas crudas Markdown de forma responsiva en scroll horizontal
+  Widget _buildTableFromMarkdown(List<String> headers, List<List<String>> rows) {
+    if (headers.isEmpty) return const SizedBox.shrink();
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.primaryDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.white.withOpacity(0.04)),
+          dataRowMinHeight: 32,
+          dataRowMaxHeight: 42,
+          horizontalMargin: 12,
+          columnSpacing: 16,
+          dividerThickness: 0.5,
+          columns: headers.map((col) {
+            return DataColumn(
+              label: Text(
+                col.toUpperCase(),
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.accentColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            );
+          }).toList(),
+          rows: rows.map((row) {
+            return DataRow(
+              cells: row.map((cell) {
+                return DataCell(
+                  Text(
+                    cell,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: AppTheme.textLight,
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  // Genera un scrollable horizontal DataTable para ver resultados de BD legados
   Widget _buildDynamicTable(List<dynamic> rows) {
     final List<String> columns = (rows[0] as Map<String, dynamic>).keys.toList();
 
@@ -459,7 +563,7 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
     );
   }
 
-  // Genera un panel colapsable que esconde la query SQL ejecutada
+  // Genera un panel colapsable que esconde la query SQL ejecutada de forma legada
   Widget _buildCollapsibleSql(String sql) {
     return Container(
       decoration: BoxDecoration(

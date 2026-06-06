@@ -41,15 +41,15 @@ async function preguntarSugerencia(btn) {
     // Mapeo amigable para el backend para que sea más natural y preciso
     let consulta = texto;
     if (texto === "Ventas de Hoy") {
-        consulta = "¿Cuáles son las ventas totales y por método de pago de hoy?";
+        consulta = "¿Cuáles son las ventas totales de hoy?";
     } else if (texto === "Producto Estrella") {
-        consulta = "¿Cuáles son los 3 productos más vendidos con su cantidad y subtotal total?";
+        consulta = "¿Cuáles son los productos más vendidos hoy y cuánto dinero generaron?";
     } else if (texto === "Alerta de Stock Bajo") {
-        consulta = "¿Qué insumos tienen stock actual menor o igual a su stock mínimo y cuál es el stock faltante?";
+        consulta = "¿Qué insumos están por debajo de su stock mínimo de alerta?";
     } else if (texto === "Gastos del Mes") {
-        consulta = "¿Cuánto se ha gastado en total este mes y cuáles son los gastos registrados?";
+        consulta = "¿Cuáles son los gastos acumulados en el último mes?";
     } else if (texto === "Lista de Cajeros") {
-        consulta = "¿Qué usuarios tienen rol de CAJERO y están activos actualmente?";
+        consulta = "¿Qué cajeros están activos hoy en el sistema?";
     }
 
     await enviarMensaje(consulta);
@@ -140,19 +140,12 @@ function agregarBurbujaIa(mensajeHtml, filas, sql, esError = false) {
             </div>
     `;
     
-    // Si hay filas de base de datos, construir tabla interactiva
+    // Si hay filas de base de datos (por si acaso vinieran en respuestas legadas), construir tabla
     if (filas && filas.length > 0) {
         contentHtml += construirTablaHtml(filas);
-    } else if (filas && filas.length === 0 && !esError && sql) {
-        contentHtml += `
-            <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-slate-500 text-xs">
-                <i class="fa-solid fa-circle-info text-blue-500"></i>
-                <span>La consulta no devolvió ningún registro en este momento.</span>
-            </div>
-        `;
     }
     
-    // Si viene la consulta SQL, mostrarla en un visor colapsable de código
+    // Si viene la consulta SQL (por si acaso viniera de respuestas legadas), mostrarla
     if (sql) {
         contentHtml += `
             <div class="mt-4 pt-3 border-t border-slate-200/80">
@@ -174,7 +167,7 @@ function agregarBurbujaIa(mensajeHtml, filas, sql, esError = false) {
     chatMessages.appendChild(div);
 }
 
-// Construye una tabla HTML responsiva y estilizada a partir del array de filas
+// Construye una tabla HTML responsiva y estilizada a partir del array de filas (legadas)
 function construirTablaHtml(filas) {
     if (!filas || filas.length === 0) return '';
     
@@ -182,7 +175,6 @@ function construirTablaHtml(filas) {
     
     let thead = '';
     columnas.forEach(col => {
-        // Formatear el encabezado: Reemplazar guiones bajos por espacios y capitalizar
         const label = col.replace(/_/g, ' ').toUpperCase();
         thead += `<th class="px-4 py-2 text-left font-bold text-[10px] tracking-widest text-slate-500 uppercase">${label}</th>`;
     });
@@ -192,8 +184,6 @@ function construirTablaHtml(filas) {
         let rowHtml = '';
         columnas.forEach(col => {
             let valor = fila[col];
-            
-            // Formatear valores especiales (fechas, monedas) de forma óptima
             if (valor === null || valor === undefined) {
                 valor = '<span class="text-slate-400 italic">null</span>';
             } else if (typeof valor === 'boolean') {
@@ -201,13 +191,10 @@ function construirTablaHtml(filas) {
             } else if (!isNaN(valor) && (col.toLowerCase().includes('total') || col.toLowerCase().includes('monto') || col.toLowerCase().includes('precio') || col.toLowerCase().includes('saldo') || col.toLowerCase().includes('subtotal') || col.toLowerCase().includes('costo'))) {
                 valor = `Bs. ${parseFloat(valor).toFixed(2)}`;
             } else if (typeof valor === 'string' && (valor.includes('T') && valor.includes('Z') && !isNaN(Date.parse(valor)))) {
-                // Formatear fecha ISO
                 valor = new Date(valor).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
             }
-            
             rowHtml += `<td class="px-4 py-2 font-medium">${valor}</td>`;
         });
-        
         const rowClass = index % 2 === 0 ? 'bg-white hover:bg-slate-50/50' : 'bg-slate-50 hover:bg-slate-100/50';
         tbody += `<tr class="${rowClass} transition-colors border-b border-slate-100">${rowHtml}</tr>`;
     });
@@ -238,19 +225,58 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
-// Formateador simple de Markdown (Negritas y viñetas) para renderizar amigablemente
+// Formateador robusto de Markdown (Tablas, Negritas y viñetas) para renderizar amigablemente
 function formatMarkdown(text) {
     if (!text) return '';
     let formatted = escapeHTML(text);
     
-    // 1. Negrita (**texto**)
+    // 1. Parsear tablas de Markdown (| Col 1 | Col 2 |)
+    const lines = formatted.split('\n');
+    let inTable = false;
+    let tableHeaders = [];
+    let tableRows = [];
+    let processedLines = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        // Detectar si la línea es parte de una tabla Markdown
+        if (line.startsWith('|') && line.endsWith('|')) {
+            // Extraer las celdas removiendo la primera y la última barra vacías
+            let cells = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+            
+            if (!inTable) {
+                inTable = true;
+                tableHeaders = cells;
+                // Ignorar la línea divisoria (---)
+                if (i + 1 < lines.length && lines[i+1].trim().startsWith('|') && lines[i+1].includes('---')) {
+                    i++;
+                }
+            } else {
+                tableRows.push(cells);
+            }
+        } else {
+            if (inTable) {
+                processedLines.push(construirTablaHtmlDesdeMarkdown(tableHeaders, tableRows));
+                inTable = false;
+                tableHeaders = [];
+                tableRows = [];
+            }
+            processedLines.push(line);
+        }
+    }
+    if (inTable) {
+        processedLines.push(construirTablaHtmlDesdeMarkdown(tableHeaders, tableRows));
+    }
+
+    formatted = processedLines.join('\n');
+
+    // 2. Negrita (**texto**)
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // 2. Viñetas (* item o - item)
-    // Convertir líneas con asterisco en listas ul/li
-    const lines = formatted.split('\n');
+    // 3. Viñetas (* item o - item)
+    const linesFinal = formatted.split('\n');
     let inList = false;
-    const finalLines = lines.map(line => {
+    const finalLines = linesFinal.map(line => {
         const match = line.match(/^(\s*)[*\-]\s+(.*)$/);
         if (match) {
             let res = '';
@@ -275,6 +301,42 @@ function formatMarkdown(text) {
     }
     
     return finalLines.join('\n');
+}
+
+// Helper para construir tablas HTML dinámicas a partir del parsing de Markdown
+function construirTablaHtmlDesdeMarkdown(headers, rows) {
+    if (!headers || headers.length === 0) return '';
+    
+    let thead = '<tr>';
+    headers.forEach(h => {
+        thead += `<th class="px-4 py-2 text-left font-bold text-[10px] tracking-widest text-slate-500 uppercase">${h}</th>`;
+    });
+    thead += '</tr>';
+
+    let tbody = '';
+    rows.forEach((row, index) => {
+        let tr = '';
+        row.forEach(cell => {
+            tr += `<td class="px-4 py-2 font-medium">${cell}</td>`;
+        });
+        const rowClass = index % 2 === 0 ? 'bg-white hover:bg-slate-50/50' : 'bg-slate-50 hover:bg-slate-100/50';
+        tbody += `<tr class="${rowClass} transition-colors border-b border-slate-100">${tr}</tr>`;
+    });
+
+    return `
+        <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200/80 shadow-premium bg-white max-w-full">
+            <table class="w-full text-xs text-left text-slate-700 border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[10px]">
+                        ${thead}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tbody}
+                </tbody>
+            </table>
+        </div>
+    `;
 }
 
 // Desplazar el chat suavemente hasta la última línea
