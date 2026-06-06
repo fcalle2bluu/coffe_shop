@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import '../widgets/bouncing_widget.dart';
@@ -340,6 +341,137 @@ class _CajaScreenState extends State<CajaScreen> {
     );
   }
 
+  Widget _buildVentasChart(double efectivo, double qr, double tarjeta, double consume) {
+    final double total = efectivo + qr + tarjeta + consume;
+    if (total <= 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.01),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.04)),
+        ),
+        child: const Center(
+          child: Text(
+            'No hay transacciones registradas en este turno para graficar.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppTheme.textMuted, fontSize: 10.5, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.01),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'DISTRIBUCIÓN DE MÉTODOS DE PAGO',
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.textLight, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 100,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 24,
+                      sections: [
+                        if (efectivo > 0)
+                          PieChartSectionData(
+                            color: const Color(0xFF10B981),
+                            value: efectivo,
+                            title: '${(efectivo / total * 100).toStringAsFixed(0)}%',
+                            radius: 20,
+                            titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        if (qr > 0)
+                          PieChartSectionData(
+                            color: Colors.blueAccent,
+                            value: qr,
+                            title: '${(qr / total * 100).toStringAsFixed(0)}%',
+                            radius: 20,
+                            titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        if (tarjeta > 0)
+                          PieChartSectionData(
+                            color: Colors.purpleAccent,
+                            value: tarjeta,
+                            title: '${(tarjeta / total * 100).toStringAsFixed(0)}%',
+                            radius: 20,
+                            titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        if (consume > 0)
+                          PieChartSectionData(
+                            color: Colors.orangeAccent,
+                            value: consume,
+                            title: '${(consume / total * 100).toStringAsFixed(0)}%',
+                            radius: 20,
+                            titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLegendItem('Efectivo', efectivo, const Color(0xFF10B981)),
+                    const SizedBox(height: 6),
+                    _buildLegendItem('QR Transfer.', qr, Colors.blueAccent),
+                    const SizedBox(height: 6),
+                    _buildLegendItem('Consume Nuestro', consume, Colors.orangeAccent),
+                    const SizedBox(height: 6),
+                    _buildLegendItem('Tarjeta POS', tarjeta, Colors.purpleAccent),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, double value, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 9, color: AppTheme.textMuted, fontWeight: FontWeight.w700),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Text(
+          'Bs. ${value.toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 9, color: AppTheme.textLight, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStateCard() {
     if (_isCajaAbierta) {
       final username = _cajaActiva?['usuario_nombre'] ?? 'Cajero';
@@ -414,6 +546,11 @@ class _CajaScreenState extends State<CajaScreen> {
               // Efectivo en Cajón (Esperado)
               _buildBigEfectivoCard('Efectivo en Cajón', _efectivoEsperado, _totalGastos),
               
+              const SizedBox(height: 16),
+
+              // Distribución Gráfica
+              _buildVentasChart(ventasEfectivo, ventasQr, ventasTarjeta, _totalConsumeLoNuestro),
+
               const Divider(color: Colors.white10, height: 24),
               
               // Acciones del Turno

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import 'main_navigation.dart';
@@ -103,6 +104,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           await prefs.setString('perm_parametros', (user['perm_parametros'] ?? false).toString());
           await prefs.setString('perm_informe', (user['perm_informe'] ?? false).toString());
 
+          // Registrar token de dispositivo FCM de forma asíncrona
+          _registerFCMToken(user['id']);
+
           if (!mounted) return;
           
           // Animación de entrada al dashboard
@@ -127,6 +131,37 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       setState(() => _errorMessage = 'Error de conexión con el servidor.');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _registerFCMToken(int userId) async {
+    try {
+      final fcm = FirebaseMessaging.instance;
+      // Solicitar permisos de notificación
+      await fcm.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      final token = await fcm.getToken();
+      if (token != null) {
+        print('FCM Token obtenido: $token');
+        final response = await ApiConfig.post('/auth/registrar-token', {
+          'usuario_id': userId,
+          'token': token,
+        });
+        if (response.statusCode == 200) {
+          print('FCM Token registrado con éxito en el backend.');
+        } else {
+          print('FCM Token falló al registrarse en el backend: ${response.body}');
+        }
+      }
+    } catch (e) {
+      print('FCM desactivado o error al registrar token: $e');
     }
   }
 

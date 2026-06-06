@@ -138,6 +138,21 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Gastos Caja:', gastoCajaErr.message);
     }
 
+    // 5.9 Creación de tabla de Dispositivos Tokens (FCM)
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS dispositivo_tokens (
+                id SERIAL PRIMARY KEY,
+                usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                token TEXT UNIQUE NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('✅ Tabla dispositivo_tokens verificada/creada.');
+    } catch (tokenErr) {
+        console.log('Info Tabla Dispositivo Tokens:', tokenErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');

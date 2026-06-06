@@ -112,4 +112,27 @@ router.get('/check-permissions', async (req, res) => {
     }
 });
 
+// Registrar o actualizar token de dispositivo FCM
+router.post('/registrar-token', async (req, res) => {
+    const { usuario_id, token } = req.body;
+    if (!usuario_id || !token) {
+        return res.status(400).json({ error: 'Falta ID de usuario o token de dispositivo' });
+    }
+
+    try {
+        // Guardar o actualizar (Upsert) el token para este usuario
+        const query = `
+            INSERT INTO dispositivo_tokens (usuario_id, token, updated_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (token) DO UPDATE 
+            SET usuario_id = EXCLUDED.usuario_id, updated_at = NOW()
+        `;
+        await pool.query(query, [usuario_id, token]);
+        res.json({ success: true, message: 'Token de dispositivo registrado con éxito' });
+    } catch (err) {
+        console.error('Error al registrar token de dispositivo:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
