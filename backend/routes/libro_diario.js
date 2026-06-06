@@ -32,9 +32,9 @@ router.get('/', async (req, res) => {
     try {
         // 1. Obtener ventas del mes/año
         const queryVentas = `
-            SELECT v.id, v.total, v.metodo_pago, v.fecha,
-                   TO_CHAR(v.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
-                   EXTRACT(DOW FROM v.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
+            SELECT v.id, v.total, v.metodo_pago, v.fecha_venta,
+                   TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   EXTRACT(DOW FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    (
                        SELECT string_agg(p.nombre || ' (x' || dv.cantidad || ')', ', ')
                        FROM detalle_ventas dv
@@ -42,8 +42,8 @@ router.get('/', async (req, res) => {
                        WHERE dv.venta_id = v.id
                    ) as detalle_items
             FROM ventas v
-            WHERE EXTRACT(MONTH FROM v.fecha AT TIME ZONE 'America/La_Paz') = $1
-              AND EXTRACT(YEAR FROM v.fecha AT TIME ZONE 'America/La_Paz') = $2
+            WHERE EXTRACT(MONTH FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $2
         `;
         const resVentas = await pool.query(queryVentas, [mes, anio]);
 
@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
             movimientos.push({
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
-                fecha_raw: new Date(v.fecha),
+                fecha_raw: new Date(v.fecha_venta),
                 glosa: `Ventas registradas en POS. Pagos en ${metodo}. S/F.${itemsDetalle}`,
                 cuentas: [
                     { nombre: cuentaDebe, tipo: 'DEBE', importe: total },
