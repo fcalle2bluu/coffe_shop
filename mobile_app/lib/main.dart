@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'config/theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
@@ -19,6 +20,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   // Asegurar inicialización de bindings para plugins nativos
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar formateo de fechas en español
+  try {
+    await initializeDateFormatting('es_ES', null);
+  } catch (e) {
+    print('Error al inicializar locale: $e');
+  }
   
   // Inicializar Firebase de forma segura (tolerancia a fallos por falta de config)
   try {
