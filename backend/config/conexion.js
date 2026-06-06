@@ -105,6 +105,18 @@ pool.query('SELECT NOW()', async (err, res) => {
     } catch (histErr2) {
         console.log('Info Migración Historial 2:', histErr2.message);
     }
+
+    // Migración de ubicaciones antiguas con formato "📍 Lat: X, Lon: Y" al nuevo formato "📍 Lugar de Acceso | X,Y"
+    try {
+        await pool.query(`
+            UPDATE historial_accesos 
+            SET ubicacion = '📍 Lugar de Acceso | ' || regexp_replace(ubicacion, '.*Lat:[[:space:]]*([0-9.-]+),[[:space:]]*Lon:[[:space:]]*([0-9.-]+).*', '\\1,\\2')
+            WHERE ubicacion LIKE '%Lat:%' OR ubicacion LIKE '%Lon:%';
+        `);
+        console.log('✅ Migración de ubicaciones antiguas completada.');
+    } catch (migUbicacionErr) {
+        console.log('Info Migración Ubicaciones Historial:', migUbicacionErr.message);
+    }
     
     // 5. Branding Global
     try {

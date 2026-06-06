@@ -97,7 +97,6 @@
             </div>
             
             <!-- Decorative circle -->
-            <div class="absolute -top-10 -right-10 w-40 h-40 bg-orange-500/5 rounded-full blur-3xl"></div>
         </div>
 
         <p class="text-center text-slate-400 text-[10px] mt-10 font-bold uppercase tracking-widest">
@@ -105,7 +104,107 @@
         </p>
     </div>
 
+    <!-- Geolocalización Forzada - Overlay a pantalla completa -->
+    <div id="location-gate-overlay" class="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="glass-login max-w-md w-full rounded-[2.5rem] p-10 shadow-premium relative text-center overflow-hidden">
+            <!-- Pulsing location icon -->
+            <div class="flex justify-center mb-6">
+                <div class="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20 animate-pulse">
+                    <i class="fa-solid fa-location-dot text-4xl text-orange-500"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 leading-tight tracking-tight uppercase italic mb-4">Ubicación Requerida</h2>
+            <p id="location-instructions" class="text-slate-500 text-sm mb-8">
+                Para ingresar a Café La Paz, debes activar el GPS y conceder el permiso de ubicación en tu navegador. Esto nos permite auditar la seguridad de las transacciones y accesos.
+            </p>
+            <div id="location-alert" class="hidden bg-rose-50 text-rose-600 text-xs font-bold p-4 rounded-xl text-center mb-6 animate-in slide-in-from-top-2">
+                Permiso denegado. Por favor, activa los permisos de ubicación en la barra de direcciones de tu navegador.
+            </div>
+            <button id="btnRequestLocation" onclick="solicitarPermisoUbicacion()" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                <i class="fa-solid fa-circle-check"></i> Permitir Ubicación
+            </button>
+        </div>
+    </div>
+
     <script>
+        let globalLat = null;
+        let globalLon = null;
+
+        function ocultarBloqueoUbicacion() {
+            document.getElementById('location-gate-overlay').classList.add('hidden');
+        }
+
+        function mostrarBloqueoUbicacion(errorCode) {
+            document.getElementById('location-gate-overlay').classList.remove('hidden');
+            const alertEl = document.getElementById('location-alert');
+            const btnEl = document.getElementById('btnRequestLocation');
+            alertEl.classList.remove('hidden');
+            
+            if (errorCode === 1) { // PERMISSION_DENIED
+                alertEl.innerHTML = `
+                    <p class="font-black mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ACCESO DENEGADO</p>
+                    <p class="font-normal opacity-90">Has denegado el permiso de ubicación. Por favor, haz clic en el icono de candado o configuración en la barra de direcciones de tu navegador y activa los permisos de ubicación para Café La Paz.</p>
+                `;
+                btnEl.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Reintentar Solicitud';
+            } else if (errorCode === 2) { // POSITION_UNAVAILABLE
+                alertEl.innerHTML = `
+                    <p class="font-black mb-1"><i class="fa-solid fa-circle-info mr-1"></i> UBICACIÓN NO DISPONIBLE</p>
+                    <p class="font-normal opacity-90">No se pudo determinar la ubicación de tu dispositivo. Asegúrate de tener activado el GPS o ubicación en tu sistema operativo.</p>
+                `;
+                btnEl.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Reintentar Solicitud';
+            } else if (errorCode === 3) { // TIMEOUT
+                alertEl.innerHTML = `
+                    <p class="font-black mb-1"><i class="fa-solid fa-clock mr-1"></i> TIEMPO DE ESPERA AGOTADO</p>
+                    <p class="font-normal opacity-90">La solicitud de ubicación tardó demasiado. Por favor, reintenta.</p>
+                `;
+                btnEl.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Reintentar Solicitud';
+            } else {
+                alertEl.innerHTML = `
+                    <p class="font-black mb-1"><i class="fa-solid fa-ban mr-1"></i> NO COMPATIBLE</p>
+                    <p class="font-normal opacity-90">Tu navegador no soporta la geolocalización o esta función está desactivada.</p>
+                `;
+                btnEl.classList.add('hidden');
+            }
+        }
+
+        async function solicitarPermisoUbicacion() {
+            const btnEl = document.getElementById('btnRequestLocation');
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Solicitando ubicación...';
+            
+            return new Promise((resolve) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            globalLat = position.coords.latitude;
+                            globalLon = position.coords.longitude;
+                            ocultarBloqueoUbicacion();
+                            btnEl.disabled = false;
+                            btnEl.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> Permitir Ubicación';
+                            resolve(true);
+                        },
+                        (error) => {
+                            console.warn("Geolocalización rechazada o fallida:", error.message);
+                            mostrarBloqueoUbicacion(error.code);
+                            btnEl.disabled = false;
+                            btnEl.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-2"></i> Reintentar Solicitud';
+                            resolve(false);
+                        },
+                        { timeout: 8000, enableHighAccuracy: true }
+                    );
+                } else {
+                    mostrarBloqueoUbicacion(-1);
+                    btnEl.disabled = false;
+                    resolve(false);
+                }
+            });
+        }
+
+        // Ejecutar solicitud al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            solicitarPermisoUbicacion();
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -114,50 +213,22 @@
             const btnSubmit = document.getElementById('btnSubmit');
             const mensajeError = document.getElementById('mensaje-error');
 
+            if (!globalLat || !globalLon) {
+                const conPermiso = await solicitarPermisoUbicacion();
+                if (!conPermiso) {
+                    return;
+                }
+            }
+
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             mensajeError.classList.add('hidden');
-
-            let lat = null;
-            let lon = null;
-
-            const obtenerCoordenadas = () => {
-                return new Promise((resolve) => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                resolve({
-                                    lat: position.coords.latitude,
-                                    lon: position.coords.longitude
-                                });
-                            },
-                            (error) => {
-                                console.warn("Geolocalización rechazada o no disponible:", error.message);
-                                resolve(null);
-                            },
-                            { timeout: 4000, enableHighAccuracy: true }
-                        );
-                    } else {
-                        resolve(null);
-                    }
-                });
-            };
-
-            try {
-                const coords = await obtenerCoordenadas();
-                if (coords) {
-                    lat = coords.lat;
-                    lon = coords.lon;
-                }
-            } catch (err) {
-                console.error("Fallo al obtener localización:", err);
-            }
 
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, pin, lat, lon })
+                    body: JSON.stringify({ username, pin, lat: globalLat, lon: globalLon })
                 });
 
                 const data = await response.json();

@@ -64,16 +64,17 @@ router.post('/login', async (req, res) => {
                     const locData = await response.json();
                     if (locData && locData.address) {
                         const addr = locData.address;
-                        const road = addr.road || addr.suburb || '';
+                        const road = addr.road || addr.suburb || addr.neighbourhood || '';
                         const city = addr.city || addr.town || addr.village || 'La Paz';
                         const country = addr.country || 'Bolivia';
-                        ubicacion = `📍 ${road}${road ? ', ' : ''}${city}, ${country}`;
+                        const placeName = `${road}${road ? ', ' : ''}${city}, ${country}`;
+                        ubicacion = `📍 ${placeName} | ${lat},${lon}`;
                     } else {
-                        ubicacion = `📍 Lat: ${parseFloat(lat).toFixed(4)}, Lon: ${parseFloat(lon).toFixed(4)}`;
+                        ubicacion = `📍 Lugar de Acceso | ${lat},${lon}`;
                     }
                 } catch (geoErr) {
                     console.error('Error al realizar reverse geocoding:', geoErr.message);
-                    ubicacion = `📍 Lat: ${parseFloat(lat).toFixed(4)}, Lon: ${parseFloat(lon).toFixed(4)}`;
+                    ubicacion = `📍 Lugar de Acceso | ${lat},${lon}`;
                 }
             } else if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '0.0.0.0') {
                 // Intentar obtener ubicación por IP (Solo si no es localhost)

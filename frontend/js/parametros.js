@@ -351,10 +351,45 @@ async function cargarHistorial() {
                     <i class="fa-regular fa-clock mr-1 opacity-50"></i> ${h.fecha_formateada}
                 </td>
                 <td class="px-6 py-4 text-xs">
-                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 text-amber-700 font-bold border border-amber-100">
-                        <i class="fa-solid fa-location-dot text-[10px]"></i>
-                        ${h.ubicacion || 'Desconocida'}
-                    </span>
+                    ${(() => {
+                        if (!h.ubicacion) {
+                            return `
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 text-slate-400 font-bold border border-slate-100">
+                                    <i class="fa-solid fa-location-dot text-[10px]"></i>
+                                    Desconocida
+                                </span>
+                            `;
+                        }
+                        
+                        let text = h.ubicacion;
+                        let coords = '';
+                        if (h.ubicacion.includes('|')) {
+                            const parts = h.ubicacion.split('|');
+                            text = parts[0].trim();
+                            coords = parts[1].trim();
+                        } else {
+                            // Check if it's the old coordinates format like "📍 Lat: -16.4948, Lon: -68.1528"
+                            const match = h.ubicacion.match(/Lat:\s*([-\d.]+),\s*Lon:\s*([-\d.]+)/i);
+                            if (match) {
+                                coords = `${match[1]},${match[2]}`;
+                                text = "Lugar de Acceso (GPS)";
+                            }
+                        }
+                        
+                        if (text.startsWith('📍')) {
+                            text = text.substring(2).trim();
+                        }
+                        
+                        const query = coords ? coords : text;
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+                        
+                        return `
+                            <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 font-bold border border-orange-100 hover:bg-orange-100 hover:text-orange-800 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm">
+                                <i class="fa-solid fa-map-location-dot text-[11px]"></i>
+                                <span>${text}</span>
+                            </a>
+                        `;
+                    })()}
                 </td>
                 <td class="px-6 py-4 text-xs font-mono text-slate-400">
                     <div class="flex flex-col">

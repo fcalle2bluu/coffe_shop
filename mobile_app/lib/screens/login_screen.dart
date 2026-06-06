@@ -15,7 +15,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _usernameController = TextEditingController();
   final FocusNode _usernameFocus = FocusNode();
   String _pin = '';
@@ -24,23 +24,122 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  // Variables para control forzado de ubicación
+  bool _checkingLocation = true;
+  bool _locationGranted = false;
+  String _locationStatusMessage = '';
+  bool _isPermissionPermanentlyDenied = false;
+  bool _isServiceDisabled = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
     _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
     _fadeController.forward();
+    _checkLocationState();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _usernameController.dispose();
     _usernameFocus.dispose();
     _fadeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkLocationState();
+    }
+  }
+
+  Future<void> _checkLocationState() async {
+    setState(() {
+      _checkingLocation = true;
+    });
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationGranted = false;
+          _isServiceDisabled = true;
+          _checkingLocation = false;
+          _locationStatusMessage = 'Los servicios de ubicación (GPS) del dispositivo están desactivados.';
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+        setState(() {
+          _locationGranted = true;
+          _isServiceDisabled = false;
+          _isPermissionPermanentlyDenied = false;
+          _checkingLocation = false;
+        });
+      } else {
+        setState(() {
+          _locationGranted = false;
+          _isServiceDisabled = false;
+          _isPermissionPermanentlyDenied = (permission == LocationPermission.deniedForever);
+          _checkingLocation = false;
+          _locationStatusMessage = _isPermissionPermanentlyDenied
+              ? 'El permiso de ubicación está denegado permanentemente en la configuración de tu celular.'
+              : 'El sistema requiere tu ubicación en tiempo real para poder iniciar sesión y registrar el acceso.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _locationGranted = false;
+        _checkingLocation = false;
+        _locationStatusMessage = 'Error al verificar la ubicación: $e';
+      });
+    }
+  }
+
+  Future<void> _requestLocationPermission() async {
+    try {
+      if (_isServiceDisabled) {
+        await Geolocator.openLocationSettings();
+        await _checkLocationState();
+        return;
+      }
+
+      if (_isPermissionPermanentlyDenied) {
+        await Geolocator.openAppSettings();
+        await _checkLocationState();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+        setState(() {
+          _locationGranted = true;
+          _isPermissionPermanentlyDenied = false;
+          _isServiceDisabled = false;
+        });
+      } else {
+        setState(() {
+          _locationGranted = false;
+          _isPermissionPermanentlyDenied = (permission == LocationPermission.deniedForever);
+          _locationStatusMessage = _isPermissionPermanentlyDenied
+              ? 'El permiso de ubicación está denegado permanentemente en la configuración de tu celular.'
+              : 'El sistema requiere tu ubicación en tiempo real para poder iniciar sesión y registrar el acceso.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error al solicitar ubicación: $e';
+      });
+    }
   }
 
   void _onKeyPress(String val) {
@@ -58,28 +157,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     });
-
-    if (_pin.length >= 4 && _usernameController.text.trim().isNotEmpty) {
-      // Auto submit o esperar a que el usuario presione el botón?
-      // Mejor esperar al botón o enviar si es longitud completa
-    }
   }
 
   Future<Map<String, double>?> _getCoordinates() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return null;
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
-      }
-
-      if (permission == LocationPermission.deniedForever) return null;
-
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
+        desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 4),
       );
       return {
@@ -243,6 +326,143 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
+
+    if (_checkingLocation) {
+      return Scaffold(
+        body: Container(
+          color: AppTheme.primaryDark,
+          child: const Center(
+            child: CircularProgressIndicator(color: AppTheme.accentColor),
+          ),
+        ),
+      );
+    }
+
+    if (!_locationGranted) {
+      return Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF0F172A), // Slate 900
+                Color(0xFF020617), // Slate 950
+              ],
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+              child: Container(
+                width: isTablet ? 450 : double.infinity,
+                padding: const EdgeInsets.all(32.0),
+                decoration: BoxDecoration(
+                  color: AppTheme.secondaryDark.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.accentColor.withOpacity(0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: const FaIcon(
+                        FontAwesomeIcons.locationDot,
+                        size: 36,
+                        color: AppTheme.accentColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Ubicación Obligatoria',
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _locationStatusMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textMuted,
+                        height: 1.5,
+                      ),
+                    ),
+                    if (_isPermissionPermanentlyDenied || _isServiceDisabled) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          _isServiceDisabled
+                              ? 'Por favor, activa el GPS en los ajustes de tu dispositivo para continuar.'
+                              : 'Por favor, otorga el permiso de ubicación en los ajustes de la aplicación.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: _requestLocationPermission,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(55),
+                        backgroundColor: AppTheme.accentColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const FaIcon(FontAwesomeIcons.circleCheck, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isServiceDisabled
+                                ? 'ACTIVAR GPS EN AJUSTES'
+                                : (_isPermissionPermanentlyDenied ? 'ABRIR CONFIGURACIÓN APP' : 'CONCEDER PERMISO'),
+                            style: const TextStyle(
+                              fontFamily: 'Outfit',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Stack(
