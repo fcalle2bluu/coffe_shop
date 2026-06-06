@@ -131,16 +131,44 @@ router.post('/cerrar', async (req, res) => {
 router.get('/historial', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, saldo_inicial, saldo_final, 
-                   TO_CHAR(fecha_apertura AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as apertura,
-                   TO_CHAR(fecha_cierre AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as cierre,
-                   (saldo_final - saldo_inicial) as diferencia
-            FROM cajas 
-            WHERE fecha_cierre IS NOT NULL
-            ORDER BY id DESC LIMIT 50
+            SELECT 
+                c.id, 
+                c.saldo_inicial, 
+                c.saldo_final, 
+                u.nombre as usuario_nombre,
+                TO_CHAR(c.fecha_apertura AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as apertura,
+                TO_CHAR(c.fecha_cierre AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as cierre,
+                COALESCE(v.total_efectivo, 0) as ventas_efectivo,
+                COALESCE(v.total_qr, 0) as ventas_qr,
+                COALESCE(v.total_tarjeta, 0) as ventas_tarjeta,
+                COALESCE(v.total_consume_lo_nuestro, 0) as ventas_cln,
+                COALESCE(g.total_gastos, 0) as total_gastos,
+                (c.saldo_final - (c.saldo_inicial + COALESCE(v.total_efectivo, 0) - COALESCE(g.total_gastos, 0))) as diferencia
+            FROM cajas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            LEFT JOIN (
+                SELECT 
+                    caja_id,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) as total_efectivo,
+                    COALESCE(SUM(CASE WHEN metodo_pago IN ('QR', 'QR DIGITAL') THEN total ELSE 0 END), 0) as total_qr,
+                    COALESCE(SUM(CASE WHEN metodo_pago IN ('TARJETA', 'TARJETA DE DÉBITO/CRÉDITO') THEN total ELSE 0 END), 0) as total_tarjeta,
+                    COALESCE(SUM(CASE WHEN metodo_pago IN ('CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO') THEN total ELSE 0 END), 0) as total_consume_lo_nuestro
+                FROM ventas
+                GROUP BY caja_id
+            ) v ON c.id = v.caja_id
+            LEFT JOIN (
+                SELECT 
+                    caja_id,
+                    COALESCE(SUM(monto), 0) as total_gastos
+                FROM gastos_caja
+                GROUP BY caja_id
+            ) g ON c.id = g.caja_id
+            WHERE c.fecha_cierre IS NOT NULL
+            ORDER BY c.id DESC LIMIT 50
         `);
         res.json(result.rows);
     } catch (error) {
+        console.error('Error al obtener historial de cajas:', error);
         res.status(500).json({ error: 'Error al cargar historial' });
     }
 });

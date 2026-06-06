@@ -3,11 +3,40 @@
 const usuarioId = localStorage.getItem('usuario_id');
 const usuarioRol = localStorage.getItem('usuario_rol');
 let listadoInsumosGlobal = [];
+let listadoAdminsGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarPedidos();
     cargarInsumosCatalogo();
+    cargarAdministradores();
 });
+
+// Helper para limpiar y formatear números de teléfono de Bolivia para WhatsApp
+function formatWhatsAppPhone(phone) {
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
+    if (cleaned.length === 8 && (cleaned.startsWith('6') || cleaned.startsWith('7'))) {
+        cleaned = '591' + cleaned;
+    }
+    return cleaned;
+}
+
+// Cargar la lista de administradores del sistema para WhatsApp
+async function cargarAdministradores() {
+    try {
+        const res = await fetch('/api/parametros/usuarios');
+        const users = await res.json();
+        listadoAdminsGlobal = users.filter(u => 
+            (u.rol === 'ADMIN' || u.rol === 'ADMINISTRADOR') && 
+            u.activo && 
+            u.telefono && 
+            u.telefono.trim() !== ''
+        );
+    } catch(e) {
+        console.error("Error al cargar administradores para WhatsApp:", e);
+    }
+}
 
 // 1. Cargar la lista de insumos reales para el select del nuevo Pedido
 async function cargarInsumosCatalogo() {
@@ -115,6 +144,26 @@ function abrirModalNuevo() {
         select.innerHTML += `<option value="${ins.id}" data-unidad="${ins.unidad_medida}">${ins.nombre}</option>`;
     });
 
+    // Añadir opción para insumo personalizado
+    select.innerHTML += `<option value="OTRO">-- OTRO (Especificar por teclado) --</option>`;
+
+    // Limpiar input de insumo personalizado
+    document.getElementById('divInsumoOtro').classList.add('hidden');
+    document.getElementById('inpInsumoOtro').value = '';
+
+    // Cargar administradores en el select de WhatsApp
+    const adminSelect = document.getElementById('inpNotificarAdmin');
+    if (adminSelect) {
+        adminSelect.innerHTML = '<option value="">-- No notificar --</option>';
+        listadoAdminsGlobal.forEach(adm => {
+            adminSelect.innerHTML += `<option value="${adm.telefono}">${adm.nombre} (${adm.telefono})</option>`;
+        });
+        // Seleccionar por defecto el primero si existe
+        if (listadoAdminsGlobal.length > 0) {
+            adminSelect.selectedIndex = 1;
+        }
+    }
+
     document.getElementById('inpCantidad').value = '';
     document.getElementById('inpNotas').value = '';
     document.getElementById('lblUnidadNuevo').innerText = 'Unidad';
@@ -137,8 +186,15 @@ function actualizarUnidadNuevoPedido() {
     const select = document.getElementById('inpInsumo');
     const option = select.options[select.selectedIndex];
     if(option && option.value) {
-        document.getElementById('lblUnidadNuevo').innerText = option.getAttribute('data-unidad');
+        if (option.value === 'OTRO') {
+            document.getElementById('divInsumoOtro').classList.remove('hidden');
+            document.getElementById('lblUnidadNuevo').innerText = 'unid';
+        } else {
+            document.getElementById('divInsumoOtro').classList.add('hidden');
+            document.getElementById('lblUnidadNuevo').innerText = option.getAttribute('data-unidad');
+        }
     } else {
+        document.getElementById('divInsumoOtro').classList.add('hidden');
         document.getElementById('lblUnidadNuevo').innerText = 'Unidad';
     }
 }
@@ -192,14 +248,25 @@ async function subirFotoPedido(event) {
 
 async function guardarPedido() {
     const selectInsumo = document.getElementById('inpInsumo');
-    const insumo_id = selectInsumo.value;
-    const insumo_nombre = insumo_id ? selectInsumo.options[selectInsumo.selectedIndex].text : '';
+    let insumo_id = selectInsumo.value;
+    let insumo_nombre = '';
+    
+    if (insumo_id === 'OTRO') {
+        insumo_id = null;
+        insumo_nombre = document.getElementById('inpInsumoOtro').value.trim();
+        if (!insumo_nombre) {
+            return alert("Debes ingresar el nombre del insumo especial.");
+        }
+    } else {
+        insumo_nombre = insumo_id ? selectInsumo.options[selectInsumo.selectedIndex].text : '';
+    }
+    
     const cantidad = parseFloat(document.getElementById('inpCantidad').value);
     const notas = document.getElementById('inpNotas').value.trim();
     const imagen_url = document.getElementById('inpPedidoFotoUrl').value || null;
 
-    if(!insumo_id || !cantidad || cantidad <= 0) {
-        return alert("Debes seleccionar el insumo y una cantidad válida mayor a 0.");
+    if((insumo_id === null && !insumo_nombre) || !cantidad || cantidad <= 0) {
+        return alert("Debes seleccionar/ingresar el insumo y una cantidad válida mayor a 0.");
     }
 
     const btn = document.getElementById('btnGuardar');
@@ -224,6 +291,24 @@ async function guardarPedido() {
         
         if(!res.ok) throw new Error("Error al guardar");
         
+        // Redirigir a WhatsApp si se seleccionó un administrador
+        const adminSelect = document.getElementById('inpNotificarAdmin');
+        if (adminSelect && adminSelect.value) {
+            const adminPhone = formatWhatsAppPhone(adminSelect.value);
+            const solicitante = localStorage.getItem('usuario_nombre') || 'Un cajero';
+            const unidad = document.getElementById('lblUnidadNuevo').innerText;
+            const notesStr = notas ? `\n*Notas:* ${notas}` : '';
+            
+            const texto = encodeURIComponent(
+                `*Nuevo Pedido Interno* ☕\n\n` +
+                `Hola, he registrado un requerimiento de compra:\n` +
+                `• *Insumo:* ${insumo_nombre}\n` +
+                `• *Cantidad:* ${cantidad} ${unidad}\n` +
+                `• *Solicitado por:* ${solicitante}${notesStr}`
+            );
+            window.open(`https://wa.me/${adminPhone}?text=${texto}`, '_blank');
+        }
+
         cerrarModalNuevo(); 
         cargarPedidos(); 
     } catch(e) {

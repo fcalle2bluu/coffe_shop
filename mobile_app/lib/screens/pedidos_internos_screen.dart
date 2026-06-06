@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import '../widgets/bouncing_widget.dart';
@@ -30,6 +31,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
   final _notasController = TextEditingController();
   final _imagenUrlController = TextEditingController();
   bool _isUploadingImage = false;
+
+  // New state variables for WhatsApp & Custom items
+  List<dynamic> _administradores = [];
+  String? _selectedAdminPhone;
+  String _userName = '';
+  bool _isCustom = false;
+  final _customNameController = TextEditingController();
 
   // Dispatch dialog state
   final _despacharCantidadController = TextEditingController();
@@ -77,6 +85,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     _loadUserSession().then((_) {
       _loadPedidos();
       _loadInsumos();
+      _loadAdministradores();
     });
   }
 
@@ -85,6 +94,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     _cantidadController.dispose();
     _notasController.dispose();
     _imagenUrlController.dispose();
+    _customNameController.dispose();
     _despacharCantidadController.dispose();
     super.dispose();
   }
@@ -93,9 +103,47 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _userId = prefs.getInt('usuario_id') ?? 1;
+      _userName = prefs.getString('usuario_nombre') ?? 'Un cajero';
       _userRol = prefs.getString('usuario_rol') ?? 'CAJERO';
       _isAdmin = _userRol.toUpperCase() == 'ADMIN' || _userRol.toUpperCase() == 'ADMINISTRADOR';
     });
+  }
+
+  Future<void> _loadAdministradores() async {
+    try {
+      final res = await ApiConfig.get('/parametros/usuarios');
+      if (res.statusCode == 200) {
+        final List<dynamic> users = jsonDecode(res.body);
+        setState(() {
+          _administradores = users.where((u) {
+            final rol = (u['rol'] ?? '').toString().toUpperCase();
+            final isAdm = rol == 'ADMIN' || rol == 'ADMINISTRADOR';
+            final isActivo = u['activo'] == true;
+            final tel = (u['telefono'] ?? '').toString().trim();
+            return isAdm && isActivo && tel.isNotEmpty;
+          }).toList();
+          if (_administradores.isNotEmpty) {
+            _selectedAdminPhone = _administradores.first['telefono']?.toString();
+          } else {
+            _selectedAdminPhone = '';
+          }
+        });
+      }
+    } catch (e) {
+      print('Error al cargar administradores para WhatsApp: $e');
+    }
+  }
+
+  String _formatWhatsAppPhone(String phone) {
+    if (phone.isEmpty) return '';
+    String cleaned = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleaned.startsWith('00')) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.length == 8 && (cleaned.startsWith('6') || cleaned.startsWith('7'))) {
+      cleaned = '591' + cleaned;
+    }
+    return cleaned;
   }
 
   Future<void> _loadPedidos() async {
@@ -128,7 +176,6 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
   }
 
   Future<void> _crearPedido() async {
-    if (_selectedInsumoId == null) return;
     final qty = double.tryParse(_cantidadController.text) ?? 0.0;
     final notas = _notasController.text.trim();
     final imageUrl = _imagenUrlController.text.trim();
@@ -140,7 +187,31 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
       return;
     }
 
-    final matchedInsumo = _insumos.firstWhere((element) => element['id'] == _selectedInsumoId);
+    int? insumoId;
+    String insumoNombre = '';
+    String unit = 'unid';
+
+    if (_isCustom) {
+      insumoNombre = _customNameController.text.trim();
+      if (insumoNombre.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Introduce el nombre del insumo personalizado')),
+        );
+        return;
+      }
+      insumoId = null;
+    } else {
+      if (_selectedInsumoId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selecciona un insumo o marca la opción de insumo personalizado')),
+        );
+        return;
+      }
+      final matchedInsumo = _insumos.firstWhere((element) => element['id'] == _selectedInsumoId);
+      insumoId = _selectedInsumoId;
+      insumoNombre = matchedInsumo['nombre'] ?? '';
+      unit = matchedInsumo['unidad_medida'] ?? 'unid';
+    }
 
     Navigator.pop(context);
     setState(() => _isLoading = true);
@@ -148,17 +219,36 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     try {
       final res = await ApiConfig.post('/pedidos_internos', {
         'usuario_id': _userId,
-        'insumo_id': _selectedInsumoId,
-        'insumo_nombre': matchedInsumo['nombre'],
+        'insumo_id': insumoId,
+        'insumo_nombre': insumoNombre,
         'cantidad': qty,
         'notas': notas,
         'imagen_url': imageUrl.isNotEmpty ? imageUrl : null,
       });
 
       if (res.statusCode == 201) {
+        // Redirigir a WhatsApp si se seleccionó un administrador
+        if (_selectedAdminPhone != null && _selectedAdminPhone!.trim().isNotEmpty) {
+          final adminPhone = _formatWhatsAppPhone(_selectedAdminPhone!);
+          final notesStr = notas.isNotEmpty ? '\n*Notas:* $notas' : '';
+          final text = '*Nuevo Pedido Interno* ☕\n\n'
+              'Hola, he registrado un requerimiento de compra:\n'
+              '• *Insumo:* $insumoNombre\n'
+              '• *Cantidad:* $qty $unit\n'
+              '• *Solicitado por:* $_userName$notesStr';
+
+          final url = Uri.parse('https://wa.me/$adminPhone?text=${Uri.encodeComponent(text)}');
+          try {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            print('Error al abrir WhatsApp: $e');
+          }
+        }
+
         _cantidadController.clear();
         _notasController.clear();
         _imagenUrlController.clear();
+        _customNameController.clear();
         _loadPedidos();
       } else {
         throw Exception('Error al registrar pedido');
@@ -301,50 +391,155 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
   }
 
   void _showAddDialog() {
-    if (_insumos.isEmpty) return;
-    _selectedInsumoId = _insumos.first['id'];
+    if (_insumos.isNotEmpty && _selectedInsumoId == null) {
+      _selectedInsumoId = _insumos.first['id'];
+    }
     _cantidadController.clear();
     _notasController.clear();
     _imagenUrlController.clear();
+    _customNameController.clear();
+    _isCustom = false;
+
+    if (_administradores.isNotEmpty) {
+      _selectedAdminPhone = _administradores.first['telefono']?.toString();
+    } else {
+      _selectedAdminPhone = '';
+    }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           scrollable: true,
-          title: const Text('Nueva Solicitud de Insumo'),
+          title: const Text(
+            'Nueva Solicitud de Insumo',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<int>(
-                value: _selectedInsumoId,
-                decoration: const InputDecoration(labelText: 'Insumo / Ingrediente'),
-                items: _insumos
-                    .map((i) => DropdownMenuItem<int>(
-                          value: i['id'],
-                          child: Text('${i['nombre']} (${i['unidad_medida']})'),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  setDialogState(() => _selectedInsumoId = val);
-                },
+              // Switch for Custom/Catalog Insumo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Insumo Especial (No en catálogo)',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  Switch(
+                    value: _isCustom,
+                    activeColor: AppTheme.accentColor,
+                    onChanged: (val) {
+                      setDialogState(() {
+                        _isCustom = val;
+                      });
+                    },
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              
+              if (_isCustom) ...[
+                TextField(
+                  controller: _customNameController,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del Insumo Especial',
+                    labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                    hintText: 'Ej: Servilletas de papel, tazas, etc.',
+                  ),
+                ),
+              ] else ...[
+                if (_insumos.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No hay insumos en catálogo. Activa la opción personalizada.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<int>(
+                    isExpanded: true,
+                    value: _selectedInsumoId,
+                    decoration: const InputDecoration(
+                      labelText: 'Insumo / Ingrediente',
+                      labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                    ),
+                    items: _insumos
+                        .map((i) => DropdownMenuItem<int>(
+                              value: i['id'],
+                              child: Text(
+                                '${i['nombre']} (${i['unidad_medida']})',
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setDialogState(() => _selectedInsumoId = val);
+                    },
+                  ),
+              ],
               const SizedBox(height: 12),
               TextField(
                 controller: _cantidadController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Cantidad Solicitada'),
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Cantidad Solicitada',
+                  labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _notasController,
                 maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Notas / Observaciones'),
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Notas / Observaciones',
+                  labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Dropdown for WhatsApp notification
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: _selectedAdminPhone ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Notificar Admin por WhatsApp',
+                  labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: '',
+                    child: Text(
+                      '-- No notificar --',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                  ..._administradores.map((adm) {
+                    return DropdownMenuItem<String>(
+                      value: adm['telefono']?.toString() ?? '',
+                      child: Text(
+                        '${adm['nombre']} (${adm['telefono']})',
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (val) {
+                  setDialogState(() {
+                    _selectedAdminPhone = val;
+                  });
+                },
               ),
               const SizedBox(height: 16),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Foto de Respaldo', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                child: Text('Foto de Respaldo', style: TextStyle(fontSize: 14, color: AppTheme.textLight, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 8),
               Row(
@@ -353,13 +548,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.camera, setDialogState),
-                      icon: const Icon(Icons.camera_alt, size: 16, color: AppTheme.accentColor),
-                      label: const Text('Cámara', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.camera_alt, size: 20, color: AppTheme.accentColor),
+                      label: const Text('Cámara', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -367,13 +562,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _isUploadingImage ? null : () => _pickAndUploadImage(ImageSource.gallery, setDialogState),
-                      icon: const Icon(Icons.photo_library, size: 16, color: AppTheme.accentColor),
-                      label: const Text('Galería', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.photo_library, size: 20, color: AppTheme.accentColor),
+                      label: const Text('Galería', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -381,7 +576,11 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _imagenUrlController,
-                decoration: const InputDecoration(labelText: 'URL de la Foto (Opcional)'),
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'URL de la Foto (Opcional)',
+                  labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                ),
                 onChanged: (val) {
                   setDialogState(() {});
                 },
@@ -464,14 +663,17 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-            BouncingWidget(
-              onTap: _crearPedido,
-              child: TextButton(
-                onPressed: _crearPedido,
-                child: const Text('Enviar Solicitud'),
+            ElevatedButton(
+              onPressed: _crearPedido,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              child: const Text('Enviar Solicitud', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -483,25 +685,26 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     Color bg = Colors.white10;
     Color text = AppTheme.textMuted;
     if (estado == 'PENDIENTE') {
-      bg = Colors.amber.withOpacity(0.08);
+      bg = Colors.amber.withOpacity(0.15);
       text = Colors.amber;
     } else if (estado == 'COMPRADO') {
-      bg = const Color(0xFF10B981).withOpacity(0.08);
+      bg = const Color(0xFF10B981).withOpacity(0.15);
       text = const Color(0xFF10B981);
     } else if (estado == 'RECHAZADO') {
-      bg = Colors.redAccent.withOpacity(0.08);
+      bg = Colors.redAccent.withOpacity(0.15);
       text = Colors.redAccent;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: text.withOpacity(0.4), width: 1.5),
       ),
       child: Text(
         estado,
-        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: text, letterSpacing: 0.5),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: text, letterSpacing: 0.5),
       ),
     );
   }
@@ -511,19 +714,16 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     return Scaffold(
       floatingActionButton: _isAdmin
           ? null
-          : BouncingWidget(
-              onTap: _showAddDialog,
-              child: FloatingActionButton.extended(
-                onPressed: _showAddDialog,
-                backgroundColor: AppTheme.accentColor,
-                icon: const Icon(Icons.send, size: 16, color: Colors.white),
-                label: const Text('PEDIR INSUMO', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
+          : FloatingActionButton.extended(
+              onPressed: _showAddDialog,
+              backgroundColor: AppTheme.accentColor,
+              icon: const Icon(Icons.send, size: 20, color: Colors.white),
+              label: const Text('PEDIR INSUMO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
       body: _isLoading
           ? const Center(child: PulsingCoffeeLoader(message: 'Cargando solicitudes...'))
           : _pedidos.isEmpty
-              ? const Center(child: Text('No hay solicitudes de insumos.', style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textMuted)))
+              ? const Center(child: Text('No hay solicitudes de insumos.', style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textMuted, fontSize: 18)))
               : RefreshIndicator(
                   onRefresh: () async {
                     _loadPedidos();
@@ -550,134 +750,169 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (hasImage) ...[
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.network(
-                                        imageUrl!,
-                                        width: 70,
-                                        height: 70,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => Container(
-                                          width: 70,
-                                          height: 70,
-                                          color: Colors.black26,
-                                          child: const Icon(Icons.broken_image_outlined, color: Colors.white24, size: 20),
-                                        ),
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return Container(
-                                            width: 70,
-                                            height: 70,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (hasImage) ...[
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.network(
+                                          imageUrl!,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            width: 80,
+                                            height: 80,
                                             color: Colors.black26,
-                                            child: const Center(
-                                              child: SizedBox(
-                                                width: 16,
-                                                height: 16,
-                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                  ],
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                p['insumo_nombre'] ?? 'Insumo',
-                                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            _buildStateBadge(estado),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Cantidad: $qty $unidad',
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textLight),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (p['notas'] != null && p['notas'].toString().trim().isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Notas: ${p['notas']}',
-                                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
-                                ),
-                              ],
-                              const Divider(color: Colors.white10, height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Solicitado por: ${p['solicitante']}', style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted)),
-                                      Text('Fecha: ${p['fecha_pedido']}', style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-                                    ],
-                                  ),
-                                  
-                                  // Acciones de Cajero / Admin
-                                  if (estado == 'PENDIENTE') ...[
-                                    if (_isAdmin)
-                                      Row(
-                                        children: [
-                                          BouncingWidget(
-                                            onTap: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
-                                            child: TextButton(
-                                              onPressed: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
-                                              child: const Text('Rechazar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                                            ),
+                                            child: const Icon(Icons.broken_image_outlined, color: Colors.white24, size: 30),
                                           ),
-                                          const SizedBox(width: 8),
-                                          BouncingWidget(
-                                            onTap: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
-                                            child: ElevatedButton(
-                                              onPressed: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppTheme.accentColor,
-                                                foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                                minimumSize: Size.zero,
-                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return Container(
+                                              width: 80,
+                                              height: 80,
+                                              color: Colors.black26,
+                                              child: const Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                                ),
                                               ),
-                                              child: const Text('Entregar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                            ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                    ],
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  p['insumo_nombre'] ?? 'Insumo',
+                                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              _buildStateBadge(estado),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Cantidad: $qty $unidad',
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.orangeAccent),
                                           ),
                                         ],
-                                      )
-                                    else
-                                      BouncingWidget(
-                                        onTap: () => _eliminarPedido(p['id']),
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
-                                          onPressed: () => _eliminarPedido(p['id']),
-                                        ),
-                                      )
-                                  ]
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (p['notes'] != null && p['notes'].toString().trim().isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    ),
+                                    child: Text(
+                                      'Notas: ${p['notes']}',
+                                      style: const TextStyle(fontSize: 14, color: Colors.white, fontStyle: FontStyle.italic),
+                                    ),
+                                  ),
+                                ] else if (p['notas'] != null && p['notas'].toString().trim().isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    ),
+                                    child: Text(
+                                      'Notas: ${p['notas']}',
+                                      style: const TextStyle(fontSize: 14, color: Colors.white, fontStyle: FontStyle.italic),
+                                    ),
+                                  ),
                                 ],
-                              )
-                            ],
+                                const Divider(color: Colors.white10, height: 24),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Solicitado por: ${p['solicitante']}',
+                                            style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Fecha: ${p['fecha_pedido']}',
+                                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    
+                                    // Acciones de Cajero / Admin
+                                    if (estado == 'PENDIENTE') ...[
+                                      if (_isAdmin)
+                                        Row(
+                                          children: [
+                                            TextButton(
+                                              onPressed: () => _cambiarEstadoPedido(p['id'], 'RECHAZADO'),
+                                              style: TextButton.styleFrom(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              ),
+                                              child: const Text('Rechazar', style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () => _despacharPedido(p['id'], qty, p['insumo_id'] ?? 0),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                              child: const Text('Entregar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        TextButton.icon(
+                                          onPressed: () => _eliminarPedido(p['id']),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          ),
+                                          icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+                                          label: const Text('Eliminar', style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                                        )
+                                    ]
+                                  ],
+                                )
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
                     },
                   ),
                 ),

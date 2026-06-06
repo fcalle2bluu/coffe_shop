@@ -94,8 +94,8 @@
             <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
             </a>
-            <a href="usuarios.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión Usuarios</span>
+            <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión de Empleados</span>
             </a>
             <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
@@ -156,6 +156,11 @@
                     <select id="inpInsumo" class="w-full border rounded px-3 py-2 text-sm focus:ring-orange-500 outline-none border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors font-bold text-gray-700" onchange="actualizarUnidadNuevoPedido()"></select>
                 </div>
                 
+                <div id="divInsumoOtro" class="hidden">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Nombre del Insumo Especial</label>
+                    <input type="text" id="inpInsumoOtro" placeholder="Ej: Servilletas de papel, tazas, etc." class="w-full border rounded px-3 py-2 text-sm focus:ring-orange-500 outline-none border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors font-bold">
+                </div>
+                
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Cantidad Necesaria</label>
                     <div class="flex">
@@ -167,6 +172,13 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Notas Adicionales (Opcional)</label>
                     <textarea id="inpNotas" rows="2" placeholder="Ej: Es muy urgente..." class="w-full border rounded px-3 py-2 text-sm focus:ring-orange-500 outline-none border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Notificar Administrador por WhatsApp</label>
+                    <select id="inpNotificarAdmin" class="w-full border rounded px-3 py-2 text-sm focus:ring-orange-500 outline-none border-gray-300 text-stone-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors font-bold text-gray-700">
+                        <option value="">-- No notificar --</option>
+                    </select>
                 </div>
 
                 <div>

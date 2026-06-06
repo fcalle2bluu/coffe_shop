@@ -559,19 +559,16 @@ class _CajaScreenState extends State<CajaScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: BouncingWidget(
-                      onTap: _showGastoDialog,
-                      child: OutlinedButton.icon(
-                        onPressed: _showGastoDialog,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.redAccent,
-                          side: const BorderSide(color: Colors.redAccent),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        icon: const FaIcon(FontAwesomeIcons.handHoldingDollar, size: 14),
-                        label: const Text('REGISTRAR GASTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    child: OutlinedButton.icon(
+                      onPressed: _showGastoDialog,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
+                      icon: const FaIcon(FontAwesomeIcons.handHoldingDollar, size: 14),
+                      label: const Text('REGISTRAR GASTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                     ),
                   ),
                 ],
@@ -590,18 +587,15 @@ class _CajaScreenState extends State<CajaScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  BouncingWidget(
-                    onTap: _cerrarCaja,
-                    child: ElevatedButton(
-                      onPressed: _cerrarCaja,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 0.5, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ElevatedButton(
+                    onPressed: _cerrarCaja,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
+                    child: const Text('CERRAR CAJA', style: TextStyle(letterSpacing: 0.5, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -657,18 +651,15 @@ class _CajaScreenState extends State<CajaScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  BouncingWidget(
-                    onTap: _abrirCaja,
-                    child: ElevatedButton(
-                      onPressed: _abrirCaja,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accentColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text('ABRIR CAJA', style: TextStyle(letterSpacing: 1.0, fontSize: 12)),
+                  ElevatedButton(
+                    onPressed: _abrirCaja,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
+                    child: const Text('ABRIR CAJA', style: TextStyle(letterSpacing: 1.0, fontSize: 12)),
                   ),
                 ],
               ),
@@ -705,6 +696,41 @@ class _CajaScreenState extends State<CajaScreen> {
     );
   }
 
+  Widget _buildHistoryStatCard(String title, double value, Color bgColor, Color textColor, {String? subtitle}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: textColor.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: textColor, letterSpacing: 0.5),
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Bs. ${value.toStringAsFixed(2)}',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textColor),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 7.2, color: textColor.withOpacity(0.85), fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistoryList() {
     if (_historialCajas.isEmpty) {
       return const Card(
@@ -720,55 +746,152 @@ class _CajaScreenState extends State<CajaScreen> {
       );
     }
 
-    return Card(
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _historialCajas.length,
-        separatorBuilder: (context, idx) => const Divider(color: Colors.white10, height: 1),
-        itemBuilder: (context, idx) {
-          final h = _historialCajas[idx];
-          final saldoInicial = double.tryParse(h['saldo_inicial'].toString()) ?? 0.0;
-          final saldoFinal = double.tryParse(h['saldo_final'].toString()) ?? 0.0;
-          final diff = double.tryParse(h['diferencia'].toString()) ?? 0.0;
-          final diffText = diff >= 0 ? '+Bs. ${diff.toStringAsFixed(2)}' : 'Bs. ${diff.toStringAsFixed(2)}';
-          final diffColor = diff >= 0 ? const Color(0xFF10B981) : Colors.redAccent;
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _historialCajas.length,
+      separatorBuilder: (context, idx) => const SizedBox(height: 12),
+      itemBuilder: (context, idx) {
+        final h = _historialCajas[idx];
+        final saldoInicial = double.tryParse(h['saldo_inicial']?.toString() ?? '0.0') ?? 0.0;
+        final saldoFinal = double.tryParse(h['saldo_final']?.toString() ?? '0.0') ?? 0.0;
+        final ventasEfectivo = double.tryParse(h['ventas_efectivo']?.toString() ?? '0.0') ?? 0.0;
+        final ventasQr = double.tryParse(h['ventas_qr']?.toString() ?? '0.0') ?? 0.0;
+        final ventasTarjeta = double.tryParse(h['ventas_tarjeta']?.toString() ?? '0.0') ?? 0.0;
+        final ventasCln = double.tryParse(h['ventas_cln']?.toString() ?? '0.0') ?? 0.0;
+        final totalGastos = double.tryParse(h['total_gastos']?.toString() ?? '0.0') ?? 0.0;
+        final diff = double.tryParse(h['diferencia']?.toString() ?? '0.0') ?? 0.0;
 
-          return FadeInSlide(
-            index: idx,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        final totalDigital = ventasQr + ventasTarjeta + ventasCln;
+        final efectivoEsperado = saldoInicial + ventasEfectivo - totalGastos;
+
+        final diffSign = diff > 0.01 ? '+' : '';
+        final diffColor = diff > 0.01 
+            ? const Color(0xFF10B981) 
+            : (diff < -0.01 ? Colors.redAccent : AppTheme.textMuted);
+        final diffLabel = diff > 0.01 
+            ? 'Sobrante' 
+            : (diff < -0.01 ? 'Faltante' : 'Cuadrado');
+
+        return FadeInSlide(
+          index: idx,
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Turno #${h['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
-                  Text(
-                    diffText,
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: diffColor),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Turno #${h['id']}',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.textLight),
+                      ),
+                      Text(
+                        'Cajero: ${h['usuario_nombre'] ?? 'Desconocido'}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.accentColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Apertura: ${h['apertura']}',
+                        style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                      ),
+                      Text(
+                        'Cierre: ${h['cierre']}',
+                        style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.white10, height: 20),
+
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.6,
+                    children: [
+                      _buildHistoryStatCard('Fondo Inicial', saldoInicial, Colors.blueAccent.withOpacity(0.08), Colors.blueAccent),
+                      _buildHistoryStatCard('Ventas Efectivo', ventasEfectivo, const Color(0xFF10B981).withOpacity(0.08), const Color(0xFF10B981)),
+                      _buildHistoryStatCard(
+                        'Ventas Digitales',
+                        totalDigital,
+                        Colors.purpleAccent.withOpacity(0.08),
+                        Colors.purpleAccent,
+                        subtitle: 'QR: ${ventasQr.toStringAsFixed(0)} | T: ${ventasTarjeta.toStringAsFixed(0)} | C: ${ventasCln.toStringAsFixed(0)}',
+                      ),
+                      _buildHistoryStatCard('Gastos Turno', totalGastos, Colors.redAccent.withOpacity(0.08), Colors.redAccent),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orangeAccent.withOpacity(0.12)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'EFECTIVO EN CAJÓN (REAL):',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                            ),
+                            Text(
+                              'Bs. ${saldoFinal.toStringAsFixed(2)}',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.orangeAccent),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Efectivo Esperado:',
+                              style: TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                            ),
+                            Text(
+                              'Bs. ${efectivoEsperado.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 10.5, color: AppTheme.textLight, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Diferencia / Descuadre:',
+                              style: TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                            ),
+                            Text(
+                              '$diffSign Bs. ${diff.toStringAsFixed(2)} ($diffLabel)',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: diffColor),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Apertura: ${h['apertura']} | Cierre: ${h['cierre']}',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Efectivo Inicial: Bs. ${saldoInicial.toStringAsFixed(2)} | Final: Bs. ${saldoFinal.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

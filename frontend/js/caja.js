@@ -7,8 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarHistorial();
     
     if(localStorage.getItem('usuario_rol') === 'ADMIN') {
-        const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
-        if(secAuditoria) secAuditoria.classList.remove('hidden');
         cargarHistorialVentasAdmin();
     }
 });
@@ -88,29 +86,86 @@ async function cargarHistorial() {
 
         historial.forEach(turno => {
             const diferencia = parseFloat(turno.diferencia);
-            const colorDif = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
+            const ventasEfectivo = parseFloat(turno.ventas_efectivo || 0);
+            const ventasQr = parseFloat(turno.ventas_qr || 0);
+            const ventasTarjeta = parseFloat(turno.ventas_tarjeta || 0);
+            const ventasCln = parseFloat(turno.ventas_cln || 0);
+            const totalGastos = parseFloat(turno.total_gastos || 0);
+            const saldoInicial = parseFloat(turno.saldo_inicial || 0);
+            const saldoFinal = parseFloat(turno.saldo_final || 0);
+
+            const totalDigital = ventasQr + ventasTarjeta + ventasCln;
+            const efectivoEsperado = saldoInicial + ventasEfectivo - totalGastos;
+
+            let colorDif = '';
+            let labelDif = '';
+            let signoDif = '';
+
+            if (diferencia > 0.01) {
+                colorDif = 'text-green-600 bg-green-50 border-green-200';
+                labelDif = 'Sobrante';
+                signoDif = '+';
+            } else if (diferencia < -0.01) {
+                colorDif = 'text-red-600 bg-red-50 border-red-200';
+                labelDif = 'Faltante';
+                signoDif = '';
+            } else {
+                colorDif = 'text-stone-600 bg-stone-50 border-stone-200';
+                labelDif = 'Cuadrado';
+                signoDif = '';
+            }
             
             tbody.innerHTML += `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start border-b border-gray-100 pb-2 mb-2">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-5 flex flex-col hover:shadow-md transition-all duration-300">
+                    <!-- Cabecera de Tarjeta -->
+                    <div class="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
                         <div>
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Apertura</span>
-                            <span class="font-bold text-stone-800 text-sm"><i class="fa-regular fa-clock text-green-500 mr-1"></i>${turno.apertura}</span>
+                            <span class="text-[14px] font-black text-stone-850 block mb-0.5">Turno #${turno.id}</span>
+                            <span class="text-[10px] text-gray-500 font-bold block"><i class="fa-solid fa-user-check mr-1 text-slate-400"></i>Cajero: ${turno.usuario_nombre || 'Desconocido'}</span>
                         </div>
-                        <div class="text-right">
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Cierre</span>
-                            <span class="font-bold text-stone-800 text-sm"><i class="fa-solid fa-lock text-red-500 mr-1"></i>${turno.cierre}</span>
+                        <div class="text-right text-xs">
+                            <div class="text-stone-600 font-semibold mb-0.5"><span class="text-gray-400 font-bold text-[9px] uppercase tracking-wider mr-1">Apertura:</span> ${turno.apertura}</div>
+                            <div class="text-stone-600 font-semibold"><span class="text-gray-400 font-bold text-[9px] uppercase tracking-wider mr-1">Cierre:</span> ${turno.cierre}</div>
                         </div>
                     </div>
                     
-                    <div class="flex justify-between mt-1">
-                        <div>
-                            <span class="text-[10px] text-gray-500 block uppercase">Fondo Inicial</span>
-                            <span class="font-medium text-gray-700">Bs. ${turno.saldo_inicial}</span>
+                    <!-- Desglose de 5 Columnas en Rejilla -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center mt-1">
+                        <!-- Fondo Inicial -->
+                        <div class="bg-blue-50 border border-blue-100/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-blue-800 uppercase tracking-wide">Fondo Inicial</span>
+                            <span class="font-extrabold text-blue-900 text-sm mt-1">Bs. ${saldoInicial.toFixed(2)}</span>
                         </div>
-                        <div class="text-right">
-                            <span class="text-[10px] text-gray-500 block uppercase">Cierre Efectivo</span>
-                            <span class="font-black text-lg ${colorDif}">Bs. ${turno.saldo_final}</span>
+                        <!-- Ventas Efectivo -->
+                        <div class="bg-green-50 border border-green-100/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-green-800 uppercase tracking-wide">Ventas Efectivo</span>
+                            <span class="font-extrabold text-green-900 text-sm mt-1">Bs. ${ventasEfectivo.toFixed(2)}</span>
+                        </div>
+                        <!-- Ventas Digitales -->
+                        <div class="bg-purple-50 border border-purple-100/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-purple-800 uppercase tracking-wide">Ventas Digitales</span>
+                            <span class="font-extrabold text-purple-900 text-sm mt-1">Bs. ${totalDigital.toFixed(2)}</span>
+                            <span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: ${ventasQr.toFixed(2)} | Tarj: ${ventasTarjeta.toFixed(2)} | CLN: ${ventasCln.toFixed(2)}</span>
+                        </div>
+                        <!-- Gastos del Turno -->
+                        <div class="bg-red-50 border border-red-100/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-red-800 uppercase tracking-wide">Gastos Turno</span>
+                            <span class="font-extrabold text-red-900 text-sm mt-1">Bs. ${totalGastos.toFixed(2)}</span>
+                        </div>
+                        <!-- Efectivo en Cajón -->
+                        <div class="col-span-2 sm:col-span-1 bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-amber-800 uppercase tracking-wide">Efectivo Cajón</span>
+                            <span class="font-extrabold text-amber-900 text-sm mt-1">Bs. ${saldoFinal.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen y Descuadre al Pie -->
+                    <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-3 border-t border-gray-100 text-xs gap-2 shrink-0">
+                        <div class="text-gray-500 font-semibold">
+                            Esperado en Caja: <strong class="text-stone-800">Bs. ${efectivoEsperado.toFixed(2)}</strong>
+                        </div>
+                        <div class="px-3 py-1 rounded-full border text-[11px] font-black tracking-wide ${colorDif}">
+                            Diferencia: ${signoDif}Bs. ${diferencia.toFixed(2)} (${labelDif})
                         </div>
                     </div>
                 </div>
@@ -384,5 +439,49 @@ async function procesarRegistroGasto() {
         cargarEstadoCaja();
     } catch (error) {
         alert("Error: " + error.message);
+    }
+}
+
+function cambiarPestaña(tabId) {
+    const secTurnoActual = document.getElementById('seccion-turno-actual-container');
+    const secHistorial = document.getElementById('seccion-historial-turnos');
+    const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
+
+    const btnTurno = document.getElementById('tab-turno-actual');
+    const btnHistorial = document.getElementById('tab-historial-turnos');
+    const btnAuditoria = document.getElementById('tab-auditoria');
+
+    const activeClasses = ['bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10'];
+    const inactiveClasses = ['text-slate-600', 'hover:bg-slate-50'];
+
+    if (secTurnoActual) secTurnoActual.classList.add('hidden');
+    if (secHistorial) secHistorial.classList.add('hidden');
+    if (secAuditoria) secAuditoria.classList.add('hidden');
+
+    [btnTurno, btnHistorial, btnAuditoria].forEach(btn => {
+        if (btn) {
+            activeClasses.forEach(cls => btn.classList.remove(cls));
+            inactiveClasses.forEach(cls => btn.classList.add(cls));
+        }
+    });
+
+    if (tabId === 'turno-actual') {
+        if (secTurnoActual) secTurnoActual.classList.remove('hidden');
+        if (btnTurno) {
+            inactiveClasses.forEach(cls => btnTurno.classList.remove(cls));
+            activeClasses.forEach(cls => btnTurno.classList.add(cls));
+        }
+    } else if (tabId === 'historial-turnos') {
+        if (secHistorial) secHistorial.classList.remove('hidden');
+        if (btnHistorial) {
+            inactiveClasses.forEach(cls => btnHistorial.classList.remove(cls));
+            activeClasses.forEach(cls => btnHistorial.classList.add(cls));
+        }
+    } else if (tabId === 'auditoria') {
+        if (secAuditoria) secAuditoria.classList.remove('hidden');
+        if (btnAuditoria) {
+            inactiveClasses.forEach(cls => btnAuditoria.classList.remove(cls));
+            activeClasses.forEach(cls => btnAuditoria.classList.add(cls));
+        }
     }
 }

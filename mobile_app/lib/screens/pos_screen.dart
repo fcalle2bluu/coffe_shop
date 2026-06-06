@@ -481,17 +481,14 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   Widget _buildPaymentMethodButton(String method, FaIconData icon) {
-    return BouncingWidget(
-      onTap: () => _confirmPayment(method),
-      child: ElevatedButton.icon(
-        onPressed: () => _confirmPayment(method),
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-          alignment: Alignment.centerLeft,
-        ),
-        icon: FaIcon(icon, size: 16, color: AppTheme.accentColor),
-        label: Text(method, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+    return ElevatedButton.icon(
+      onPressed: () => _confirmPayment(method),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        alignment: Alignment.centerLeft,
       ),
+      icon: FaIcon(icon, size: 16, color: AppTheme.accentColor),
+      label: Text(method, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -860,17 +857,14 @@ class _PosScreenState extends State<PosScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  BouncingWidget(
-                    onTap: _cart.isEmpty ? null : _checkout,
-                    child: ElevatedButton(
-                      onPressed: _cart.isEmpty ? null : _checkout,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(55),
-                        backgroundColor: AppTheme.accentColor,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('PROCESAR VENTA', style: TextStyle(letterSpacing: 1.5)),
+                  ElevatedButton(
+                    onPressed: _cart.isEmpty ? null : _checkout,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(55),
+                      backgroundColor: AppTheme.accentColor,
+                      foregroundColor: Colors.white,
                     ),
+                    child: const Text('PROCESAR VENTA', style: TextStyle(letterSpacing: 1.5)),
                   ),
                 ],
               ),

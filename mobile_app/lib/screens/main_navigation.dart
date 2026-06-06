@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import 'login_screen.dart';
@@ -178,6 +179,38 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
 
       _buildMenu();
     });
+    _registerFCMToken(_userId);
+  }
+
+  Future<void> _registerFCMToken(int userId) async {
+    try {
+      final fcm = FirebaseMessaging.instance;
+      // Solicitar permisos de notificación
+      await fcm.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      final token = await fcm.getToken();
+      if (token != null) {
+        print('FCM Token obtenido en MainNavigation: $token');
+        final response = await ApiConfig.post('/auth/registrar-token', {
+          'usuario_id': userId,
+          'token': token,
+        });
+        if (response.statusCode == 200) {
+          print('FCM Token registrado con éxito en el backend (MainNavigation).');
+        } else {
+          print('FCM Token falló al registrarse en el backend (MainNavigation): ${response.body}');
+        }
+      }
+    } catch (e) {
+      print('FCM desactivado o error al registrar token en MainNavigation: $e');
+    }
   }
 
   void _startNotificationService() {
@@ -415,7 +448,7 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     // 7. Parámetros (Admin o con permiso)
     if (_isAdmin || _permParametros) {
       _menuItems.add({
-        'title': 'Gestión Usuarios',
+        'title': 'Gestión Empleados',
         'icon': FontAwesomeIcons.usersGear,
       });
       _screens.add(const UsuariosScreen());

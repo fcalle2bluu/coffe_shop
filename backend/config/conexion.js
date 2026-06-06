@@ -68,7 +68,11 @@ pool.query('SELECT NOW()', async (err, res) => {
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_proveedores BOOLEAN DEFAULT FALSE;',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_auditoria BOOLEAN DEFAULT FALSE;',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_parametros BOOLEAN DEFAULT FALSE;',
-        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_informe BOOLEAN DEFAULT FALSE;'
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS perm_informe BOOLEAN DEFAULT FALSE;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ci VARCHAR(50);',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS salario NUMERIC(10, 2) DEFAULT 0.00;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_url TEXT;'
     ];
 
     for (const sql of userMigrations) {
@@ -123,6 +127,43 @@ pool.query('SELECT NOW()', async (err, res) => {
         await pool.query("UPDATE parametros SET nombre_empresa = 'Café La Paz' WHERE id = 1;");
     } catch (paramErr) {
         console.log('Info Migración Parametros:', paramErr.message);
+    }
+
+    // Migración de Parametros para Salarios y Descuentos
+    const paramMigrations = [
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS hora_entrada_patron TIME DEFAULT \'08:30:00\';',
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_minuto_retraso NUMERIC(10, 2) DEFAULT 1.00;',
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_falta_dia NUMERIC(10, 2) DEFAULT 50.00;',
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS dias_laborables INT DEFAULT 26;'
+    ];
+    for (const sql of paramMigrations) {
+        try {
+            await pool.query(sql);
+        } catch (migErr) {
+            console.log('Info Migración Parametros Sueldos:', migErr.message);
+        }
+    }
+
+    // Tabla Pagos de Salarios
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS pagos_salarios (
+                id SERIAL PRIMARY KEY,
+                usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                mes INT NOT NULL,
+                anio INT NOT NULL,
+                salario_base NUMERIC(10, 2) NOT NULL,
+                descuento_retrasos NUMERIC(10, 2) NOT NULL,
+                descuento_faltas NUMERIC(10, 2) NOT NULL,
+                salario_neto NUMERIC(10, 2) NOT NULL,
+                fecha_pago TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                glosa TEXT NOT NULL,
+                UNIQUE (usuario_id, mes, anio)
+            );
+        `);
+        console.log('✅ Tabla pagos_salarios verificada/creada.');
+    } catch (pagoSalErr) {
+        console.log('Info Tabla Pagos Salarios:', pagoSalErr.message);
     }
 
     // 5.5 Migración de Proveedores
