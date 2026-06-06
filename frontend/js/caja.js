@@ -442,7 +442,7 @@ async function procesarRegistroGasto() {
     }
 }
 
-function cambiarPestaña(tabId) {
+function cambiarPestana(tabId) {
     const secTurnoActual = document.getElementById('seccion-turno-actual-container');
     const secHistorial = document.getElementById('seccion-historial-turnos');
     const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
