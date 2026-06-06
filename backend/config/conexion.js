@@ -153,6 +153,24 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Dispositivo Tokens:', tokenErr.message);
     }
 
+    // 5.95 Creación de tabla de Asistencia (QR)
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS asistencia (
+                id SERIAL PRIMARY KEY,
+                usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+                hora_entrada TIMESTAMP NOT NULL,
+                hora_salida TIMESTAMP,
+                horas_trabajadas NUMERIC(5, 2),
+                UNIQUE (usuario_id, fecha)
+            );
+        `);
+        console.log('✅ Tabla asistencia verificada/creada.');
+    } catch (asistenciaErr) {
+        console.log('Info Tabla Asistencia:', asistenciaErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');
