@@ -485,6 +485,7 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
                 ],
               ),
             ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
