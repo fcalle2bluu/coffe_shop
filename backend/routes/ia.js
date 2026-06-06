@@ -48,7 +48,8 @@ router.post('/consultar', async (req, res) => {
             insumos,
             proveedores,
             pedidos,
-            lotes
+            lotes,
+            asistencia
         ] = await Promise.all([
             ejecutarQuerySegura('SELECT id, nombre, username, rol, activo FROM usuarios'),
             ejecutarQuerySegura("SELECT id, usuario_id, saldo_inicial, saldo_final, TO_CHAR(fecha_apertura, 'YYYY-MM-DD HH24:MI') as fecha_apertura, TO_CHAR(fecha_cierre, 'YYYY-MM-DD HH24:MI') as fecha_cierre FROM cajas WHERE fecha_apertura >= NOW() - INTERVAL '30 days' ORDER BY fecha_apertura DESC"),
@@ -61,7 +62,8 @@ router.post('/consultar', async (req, res) => {
             ejecutarQuerySegura('SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo FROM insumos'),
             ejecutarQuerySegura('SELECT id, nombre, telefono, lugar, otros FROM proveedores'),
             ejecutarQuerySegura("SELECT id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM pedidos_compra WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
-            ejecutarQuerySegura("SELECT id, compra_id, insumo_id, TO_CHAR(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento, stock_lote FROM lotes_insumos")
+            ejecutarQuerySegura("SELECT id, compra_id, insumo_id, TO_CHAR(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento, stock_lote FROM lotes_insumos"),
+            ejecutarQuerySegura("SELECT a.id, a.usuario_id, u.nombre as empleado, TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha, TO_CHAR(a.hora_entrada, 'HH24:MI') as entrada, TO_CHAR(a.hora_salida, 'HH24:MI') as salida, a.horas_trabajadas FROM asistencia a JOIN usuarios u ON a.usuario_id = u.id WHERE a.fecha >= NOW() - INTERVAL '30 days' ORDER BY a.fecha DESC, a.hora_entrada DESC")
         ]);
 
         const dbSnapshot = {
@@ -76,7 +78,8 @@ router.post('/consultar', async (req, res) => {
             insumos,
             proveedores,
             pedidos_compra: pedidos,
-            lotes_insumos: lotes
+            lotes_insumos: lotes,
+            asistencia
         };
 
         // 2. Construir instrucciones dinámicas inyectando los datos
