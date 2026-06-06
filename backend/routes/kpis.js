@@ -84,5 +84,48 @@ router.get('/stats-avanzadas', async (req, res) => {
     }
 });
 
+// [NUEVO] Productos más vendidos con filtro de tiempo
+router.get('/productos-mas-vendidos', async (req, res) => {
+    const { filtro } = req.query;
+    
+    let query = `
+        SELECT p.nombre, 
+               COALESCE(SUM(dv.cantidad), 0) as total_vendido
+        FROM detalle_ventas dv
+        JOIN productos p ON dv.producto_id = p.id
+        JOIN ventas v ON dv.venta_id = v.id
+    `;
+    
+    const conditions = [];
+
+    if (filtro === 'hoy') {
+        conditions.push(`DATE(v.fecha_venta) = CURRENT_DATE`);
+    } else if (filtro === 'semana') {
+        conditions.push(`v.fecha_venta >= CURRENT_DATE - INTERVAL '7 days'`);
+    } else if (filtro === 'mes') {
+        conditions.push(`v.fecha_venta >= CURRENT_DATE - INTERVAL '30 days'`);
+    } else if (filtro === 'anio') {
+        conditions.push(`v.fecha_venta >= CURRENT_DATE - INTERVAL '365 days'`);
+    }
+
+    if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += `
+        GROUP BY p.nombre
+        ORDER BY total_vendido DESC
+        LIMIT 10
+    `;
+
+    try {
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener productos más vendidos:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de productos más vendidos' });
+    }
+});
+
 // Exportamos el router para que server.js lo pueda usar
 module.exports = router;

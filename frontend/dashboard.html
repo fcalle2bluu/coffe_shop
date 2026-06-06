@@ -133,10 +133,30 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual (Ventas vs Compras)</h2>
-                <div class="relative h-72">
-                    <canvas id="miGrafico"></canvas>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Rendimiento Mensual (Ventas vs Compras) -->
+                <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual (Ventas vs Compras)</h2>
+                    <div class="relative h-72">
+                        <canvas id="miGrafico"></canvas>
+                    </div>
+                </div>
+
+                <!-- Productos Más Vendidos -->
+                <div class="bg-white rounded-lg shadow p-6 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-base font-bold text-gray-800">Productos Más Vendidos</h2>
+                        <select id="filtro-top-productos" onchange="actualizarTopProductos()" class="text-[10px] font-semibold px-2 py-1 bg-gray-50 border rounded-lg focus:outline-none focus:border-accent text-slate-700">
+                            <option value="todos">Histórico</option>
+                            <option value="hoy">Hoy</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Últimos 30 días</option>
+                            <option value="anio">Este Año</option>
+                        </select>
+                    </div>
+                    <div class="relative flex-1 min-h-[250px]">
+                        <canvas id="chartTopProductos"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -212,7 +232,69 @@
             cargarIndicadoresBase();
             cargarGraficosAvanzados();
             renderGraficoRendimiento();
+            cargarTopProductos();
         };
+
+        let chartTopProdInst = null;
+
+        async function cargarTopProductos() {
+            const filtro = document.getElementById('filtro-top-productos').value;
+            try {
+                const res = await fetch(`/api/kpis/productos-mas-vendidos?filtro=${filtro}`);
+                const data = await res.json();
+                
+                const labels = data.map(p => p.nombre);
+                const values = data.map(p => parseFloat(p.total_vendido));
+                
+                const ctx = document.getElementById('chartTopProductos').getContext('2d');
+                
+                if (chartTopProdInst) {
+                    chartTopProdInst.destroy();
+                }
+                
+                chartTopProdInst = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#f97316',
+                                '#f97316cc',
+                                '#ea580c',
+                                '#ea580ccc',
+                                '#fb923c',
+                                '#fdba74',
+                                '#fed7aa',
+                                '#ffedd5',
+                                '#94a3b8',
+                                '#cbd5e1'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 8,
+                                    font: { size: 9 }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error al cargar productos más vendidos:", e);
+            }
+        }
+
+        function actualizarTopProductos() {
+            cargarTopProductos();
+        }
 
         async function cargarIndicadoresBase() {
             try {
