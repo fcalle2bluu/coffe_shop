@@ -48,7 +48,7 @@ router.put('/', async (req, res) => {
 router.get('/usuarios', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, nombre, username, rol, activo, 
+            SELECT id, nombre, username, pin, rol, activo, 
                    perm_stock, perm_compras, perm_proveedores, 
                    perm_auditoria, perm_parametros, perm_informe 
             FROM usuarios 

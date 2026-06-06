@@ -119,6 +119,9 @@
             <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
                 <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
             </a>
+            <a href="usuarios.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión Usuarios</span>
+            </a>
                     <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
                 <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
             </a>
@@ -286,50 +289,7 @@
                     </div>
                 </div>
 
-                <!-- USER MANAGEMENT: CENTERED & FULL WIDTH -->
-                <section id="seccion-usuarios" class="pt-8 pb-20">
-                    <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
-                        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 italic tracking-tight uppercase">
-                                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                                        <i class="fa-solid fa-users-gear text-sm"></i>
-                                    </div>
-                                    Gestión de Personal y Accesos
-                                </h2>
-                                <p class="text-xs text-slate-400 font-medium ml-13">Administra los roles, permisos y códigos de acceso de tu equipo.</p>
-                            </div>
-                            <button onclick="abrirModalUsuario()" class="bg-indigo-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-2 group">
-                                <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
-                                Registrar Nuevo Usuario
-                            </button>
-                        </div>
-                        
-                        <div class="p-8">
-                            <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-inner-soft">
-                                <table class="w-full text-left">
-                                    <thead class="bg-slate-50/50">
-                                        <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
-                                            <th class="px-6 py-4">Colaborador / Identidad</th>
-                                            <th class="px-6 py-4 text-center">Rol en el Sistema</th>
-                                            <th class="px-6 py-4 text-center">Permisos (Funciones Admin)</th>
-                                            <th class="px-6 py-4 text-center">Estado</th>
-                                            <th class="px-6 py-4 text-right">Controles Externos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="lista-usuarios" class="divide-y divide-slate-100">
-                                        <tr>
-                                            <td colspan="4" class="text-center py-20 text-slate-300 italic">
-                                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block"></i>
-                                                Sincronizando base de datos de personal...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>                <!-- BITÁCORA DE ACCESOS -->
+                                <!-- BITÁCORA DE ACCESOS -->
                 <section id="seccion-historial" class="pt-8 pb-20">
                     <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
                         <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -365,55 +325,7 @@
             </div>
         </div>
     </main>
-    <!-- MODAL: REGISTRO USUARIO -->
-    <div id="modalUsuario" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div class="bg-indigo-600 p-8 text-white relative">
-                <button onclick="cerrarModalUsuario()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
-                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
-                    <i class="fa-solid fa-user-plus text-2xl"></i>
-                </div>
-                <h3 class="text-2xl font-black italic tracking-tight uppercase leading-tight">Registrar Nuevo Usuario</h3>
-                <p class="text-indigo-100/70 text-sm mt-1">Configura las credenciales de un nuevo colaborador.</p>
-            </div>
-            <div class="p-8 space-y-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre Completo</label>
-                        <input type="text" id="userNombre" placeholder="Nombre Apellido" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Usuario (Login)</label>
-                            <input type="text" id="userUsername" placeholder="colaborador1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">PIN de Acceso</label>
-                            <input type="password" id="userPin" placeholder="****" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-center tracking-widest font-black">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Permisos del Sistema</label>
-                        <div class="relative">
-                            <select id="userRol" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none appearance-none cursor-pointer font-semibold">
-                                <option value="CAJERO">Colaborador / Cajero (Ventas)</option>
-                                <option value="ADMIN">Administrador (Acceso Total)</option>
-                                <option value="ALMACEN">Encargado de Logística</option>
-                            </select>
-                            <i class="fa-solid fa-caret-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="flex gap-4 pt-4">
-                    <button onclick="cerrarModalUsuario()" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">Descartar</button>
-                    <button onclick="guardarNuevoUsuario()" id="btnGuardarUser" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
-                        Autorizar Usuario
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="js/parametros.js?v=2.2"></script>
     <script>

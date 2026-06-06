@@ -15,6 +15,7 @@ import 'compras_screen.dart';
 import 'proveedores_screen.dart';
 import 'auditoria_screen.dart';
 import 'parametros_screen.dart';
+import 'usuarios_screen.dart';
 import 'ia_assistant_screen.dart';
 import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
@@ -412,6 +413,12 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
 
     // 7. Parámetros (Admin o con permiso)
     if (_isAdmin || _permParametros) {
+      _menuItems.add({
+        'title': 'Gestión Usuarios',
+        'icon': FontAwesomeIcons.usersGear,
+      });
+      _screens.add(const UsuariosScreen());
+
       _menuItems.add({
         'title': 'Parámetros',
         'icon': FontAwesomeIcons.gears,

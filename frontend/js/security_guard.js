@@ -54,7 +54,7 @@
             hasAccess = localStorage.getItem('perm_proveedores') === 'true';
         } else if (pageName.includes('inventario.html')) {
             hasAccess = localStorage.getItem('perm_auditoria') === 'true';
-        } else if (pageName.includes('parametros.html')) {
+        } else if (pageName.includes('parametros.html') || pageName.includes('usuarios.html')) {
             hasAccess = localStorage.getItem('perm_parametros') === 'true';
         } else if (pageName.includes('informe_general.html')) {
             hasAccess = localStorage.getItem('perm_informe') === 'true';
@@ -104,6 +104,11 @@
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
+            if (href.includes('usuarios.html')) {
+                const hasPerm = localStorage.getItem('perm_parametros') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
+            }
             if (href.includes('informe_general.html')) {
                 const hasPerm = localStorage.getItem('perm_informe') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
@@ -118,7 +123,7 @@
             if (pageName.includes('compras') && localStorage.getItem('perm_compras') === 'true') keepSoloAdmin = true;
             if (pageName.includes('proveedores') && localStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
             if (pageName.includes('inventario') && localStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
-            if (pageName.includes('parametros') && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
+            if ((pageName.includes('parametros') || pageName.includes('usuarios')) && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
             if (pageName.includes('informe_general') && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
             // Filtrar para no tocar la barra lateral (aside)
