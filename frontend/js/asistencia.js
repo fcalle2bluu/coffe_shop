@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('print-fecha-reporte').innerText = `Generado el: ${new Date().toLocaleDateString('es-ES', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     })}`;
+
+    // Auto-actualizar silenciosamente cada 5 segundos
+    setInterval(() => {
+        cargarHistorialAsistencia(true);
+    }, 5000);
 });
 
 // Calcula el token del día en base a la zona horaria de Bolivia (GMT-4) y carga la imagen QR
@@ -105,7 +110,8 @@ async function cargarEmpleados() {
 }
 
 // Recupera y renderiza las asistencias filtradas de la base de datos
-async function cargarHistorialAsistencia() {
+async function cargarHistorialAsistencia(silent) {
+    const esSilencioso = silent === true;
     const empleado = document.getElementById('filtro-empleado').value;
     const anio = document.getElementById('filtro-anio').value;
     const mes = document.getElementById('filtro-mes').value;
@@ -117,7 +123,9 @@ async function cargarHistorialAsistencia() {
     if (dia) url += `&dia=${dia}`;
     
     const tbody = document.getElementById('tabla-asistencia-body');
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-slate-400 font-semibold">Cargando marcaciones...</td></tr>';
+    if (!esSilencioso) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-slate-400 font-semibold">Cargando marcaciones...</td></tr>';
+    }
     
     try {
         const res = await fetch(url);
@@ -154,7 +162,9 @@ async function cargarHistorialAsistencia() {
         });
     } catch (error) {
         console.error('Error al cargar historial de asistencia:', error);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500 font-semibold">Error al cargar el historial de asistencia.</td></tr>';
+        if (!esSilencioso) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500 font-semibold">Error al cargar el historial de asistencia.</td></tr>';
+        }
     }
 }
 
