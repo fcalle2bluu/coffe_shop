@@ -383,6 +383,8 @@ async function cargarHistorial() {
 
 function detectarDispositivo(ua) {
     if (!ua) return 'Desconocido';
+    if (ua.includes('CafeLaPazApp')) return 'Aplicación Móvil';
+    
     let browser = 'Web';
     let os = 'Sistema';
 

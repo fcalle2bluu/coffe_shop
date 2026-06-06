@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:geolocator/geolocator.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import 'main_navigation.dart';
@@ -64,6 +65,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  Future<Map<String, double>?> _getCoordinates() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+
+      if (permission == LocationPermission.deniedForever) return null;
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 4),
+      );
+      return {
+        'lat': position.latitude,
+        'lon': position.longitude,
+      };
+    } catch (e) {
+      print('Error al obtener geolocalización: $e');
+      return null;
+    }
+  }
+
   Future<void> _login() async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
@@ -81,10 +109,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _errorMessage = '';
     });
 
+    double? lat;
+    double? lon;
+    try {
+      final coords = await _getCoordinates();
+      if (coords != null) {
+        lat = coords['lat'];
+        lon = coords['lon'];
+      }
+    } catch (e) {
+      print('Fallo al obtener coordenadas: $e');
+    }
+
     try {
       final response = await ApiConfig.post('/auth/login', {
         'username': username,
         'pin': _pin,
+        if (lat != null) 'lat': lat,
+        if (lon != null) 'lon': lon,
       });
 
       if (response.statusCode == 200) {

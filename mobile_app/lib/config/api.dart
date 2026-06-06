@@ -11,7 +11,10 @@ class ApiConfig {
     try {
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CafeLaPazApp/1.0',
+        },
       );
       print('Response Status: ${response.statusCode}');
       return response;
@@ -29,7 +32,10 @@ class ApiConfig {
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CafeLaPazApp/1.0',
+        },
         body: jsonEncode(body),
       );
       print('Response Status: ${response.statusCode}');
@@ -48,7 +54,10 @@ class ApiConfig {
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CafeLaPazApp/1.0',
+        },
         body: jsonEncode(body),
       );
       print('Response Status: ${response.statusCode}');
@@ -66,7 +75,10 @@ class ApiConfig {
     try {
       final response = await http.delete(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CafeLaPazApp/1.0',
+        },
       );
       print('Response Status: ${response.statusCode}');
       return response;
@@ -82,6 +94,7 @@ class ApiConfig {
     print('UPLOAD: $url with file $filePath');
     try {
       final request = http.MultipartRequest('POST', url);
+      request.headers['User-Agent'] = 'CafeLaPazApp/1.0';
       request.files.add(await http.MultipartFile.fromPath('imagen', filePath));
       
       final streamedResponse = await request.send();

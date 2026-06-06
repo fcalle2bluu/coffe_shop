@@ -46,14 +46,37 @@ router.post('/login', async (req, res) => {
 
         // Registrar en historial de accesos (Auditoría Avanzada)
         try {
+            const { lat, lon } = req.body;
             const userAgent = req.headers['user-agent'] || 'Desconocido';
             const ipRaw = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '0.0.0.0';
             const ip = ipRaw.split(',')[0].trim(); // La IP real es la primera en x-forwarded-for
             
             let ubicacion = 'Desconocida';
             
-            // Intentar obtener ubicación por IP (Solo si no es localhost)
-            if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '0.0.0.0') {
+            if (lat && lon) {
+                // Reverse geocoding con Nominatim (OSM)
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+                        headers: {
+                            'User-Agent': 'CafeLaPazApp/1.0'
+                        }
+                    });
+                    const locData = await response.json();
+                    if (locData && locData.address) {
+                        const addr = locData.address;
+                        const road = addr.road || addr.suburb || '';
+                        const city = addr.city || addr.town || addr.village || 'La Paz';
+                        const country = addr.country || 'Bolivia';
+                        ubicacion = `📍 ${road}${road ? ', ' : ''}${city}, ${country}`;
+                    } else {
+                        ubicacion = `📍 Lat: ${parseFloat(lat).toFixed(4)}, Lon: ${parseFloat(lon).toFixed(4)}`;
+                    }
+                } catch (geoErr) {
+                    console.error('Error al realizar reverse geocoding:', geoErr.message);
+                    ubicacion = `📍 Lat: ${parseFloat(lat).toFixed(4)}, Lon: ${parseFloat(lon).toFixed(4)}`;
+                }
+            } else if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '0.0.0.0') {
+                // Intentar obtener ubicación por IP (Solo si no es localhost)
                 try {
                     const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city`);
                     const locData = await response.json();

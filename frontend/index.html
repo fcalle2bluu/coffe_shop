@@ -118,11 +118,46 @@
             btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             mensajeError.classList.add('hidden');
 
+            let lat = null;
+            let lon = null;
+
+            const obtenerCoordenadas = () => {
+                return new Promise((resolve) => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                resolve({
+                                    lat: position.coords.latitude,
+                                    lon: position.coords.longitude
+                                });
+                            },
+                            (error) => {
+                                console.warn("Geolocalización rechazada o no disponible:", error.message);
+                                resolve(null);
+                            },
+                            { timeout: 4000, enableHighAccuracy: true }
+                        );
+                    } else {
+                        resolve(null);
+                    }
+                });
+            };
+
+            try {
+                const coords = await obtenerCoordenadas();
+                if (coords) {
+                    lat = coords.lat;
+                    lon = coords.lon;
+                }
+            } catch (err) {
+                console.error("Fallo al obtener localización:", err);
+            }
+
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, pin })
+                    body: JSON.stringify({ username, pin, lat, lon })
                 });
 
                 const data = await response.json();

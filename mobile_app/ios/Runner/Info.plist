@@ -70,5 +70,7 @@
 	<string>Esta aplicación requiere acceso a la cámara para tomar fotos de recibos y productos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Esta aplicación requiere acceso a la galería para seleccionar fotos de recibos y productos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esta aplicación requiere acceso a tu ubicación para registrar el lugar desde donde inicias tu turno de trabajo.</string>
 </dict>
 </plist>
