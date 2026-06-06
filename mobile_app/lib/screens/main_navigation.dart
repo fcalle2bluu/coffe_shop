@@ -14,6 +14,7 @@ import 'compras_screen.dart';
 import 'proveedores_screen.dart';
 import 'auditoria_screen.dart';
 import 'parametros_screen.dart';
+import 'ia_assistant_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -300,6 +301,15 @@ class _MainNavigationState extends State<MainNavigation> {
         'icon': FontAwesomeIcons.gears,
       });
       _screens.add(const ParametrosScreen());
+    }
+
+    // 8. Asistente IA (Solo Admin)
+    if (_isAdmin) {
+      _menuItems.add({
+        'title': 'Asistente IA',
+        'icon': FontAwesomeIcons.brain,
+      });
+      _screens.add(const IaAssistantScreen());
     }
   }
 

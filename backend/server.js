@@ -30,6 +30,7 @@ const rutasAuth = require('./routes/auth');
 const rutasProveedores = require('./routes/proveedores'); // <--- NUEVA RUTA IMPORTADA
 const rutasPedidosInternos = require('./routes/pedidos_internos');
 const rutasUpload = require('./routes/upload');
+const rutasIa = require('./routes/ia');
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
@@ -47,6 +48,7 @@ app.use('/api/compras', rutasCompras);
 app.use('/api/proveedores', rutasProveedores); // <--- NUEVA RUTA ACTIVADA
 app.use('/api/pedidos_internos', rutasPedidosInternos);
 app.use('/api/upload', rutasUpload);
+app.use('/api/ia', rutasIa);
 
 // ==========================================
 // 5. ARCHIVOS ESTÁTICOS (FRONTEND)
