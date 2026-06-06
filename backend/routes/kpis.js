@@ -127,5 +127,84 @@ router.get('/productos-mas-vendidos', async (req, res) => {
     }
 });
 
+// Endpoint Gerencial para Semáforo y Punto de Equilibrio
+router.get('/gerencial', async (req, res) => {
+    try {
+        const queryVentas = `
+            SELECT COALESCE(SUM(total), 0) AS total 
+            FROM ventas 
+            WHERE EXTRACT(MONTH FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `;
+        const queryCompras = `
+            SELECT COALESCE(SUM(total), 0) AS total 
+            FROM compras 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `;
+        const queryGastosCaja = `
+            SELECT COALESCE(SUM(monto), 0) AS total 
+            FROM gastos_caja 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `;
+        const queryGastosGenerales = `
+            SELECT COALESCE(SUM(monto), 0) AS total 
+            FROM gastos_generales 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `;
+        const queryGastosFijos = `
+            SELECT COALESCE(SUM(monto), 0) AS total 
+            FROM gastos_generales 
+            WHERE categoria = 'Gastos Fijos'
+              AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `;
+
+        const [ventasRes, comprasRes, gastosCajaRes, gastosGeneralesRes, gastosFijosRes] = await Promise.all([
+            pool.query(queryVentas),
+            pool.query(queryCompras),
+            pool.query(queryGastosCaja),
+            pool.query(queryGastosGenerales),
+            pool.query(queryGastosFijos)
+        ]);
+
+        const ingresos = parseFloat(ventasRes.rows[0].total) || 0;
+        const egresosCompras = parseFloat(comprasRes.rows[0].total) || 0;
+        const egresosCaja = parseFloat(gastosCajaRes.rows[0].total) || 0;
+        const egresosGenerales = parseFloat(gastosGeneralesRes.rows[0].total) || 0;
+        
+        const egresos = egresosCompras + egresosCaja + egresosGenerales;
+        const balance = ingresos - egresos;
+
+        // Semáforo: Rojo si negativo, Amarillo si neutro o ganancia muy baja (< 200), Verde si > 200
+        let semaforoColor = 'VERDE';
+        if (balance < 0) {
+            semaforoColor = 'ROJO';
+        } else if (balance <= 200) {
+            semaforoColor = 'AMARILLO';
+        }
+
+        // Punto de Equilibrio: comparamos Gastos Fijos con Ingresos
+        const gastosFijosTarget = parseFloat(gastosFijosRes.rows[0].total) || 1000.00;
+        const cubiertoPorcentaje = gastosFijosTarget > 0 
+            ? Math.min(Math.round((ingresos / gastosFijosTarget) * 100), 100) 
+            : 100;
+
+        res.json({
+            ingresos: ingresos.toFixed(2),
+            egresos: egresos.toFixed(2),
+            balance: balance.toFixed(2),
+            semaforoColor: semaforoColor,
+            gastosFijos: gastosFijosTarget.toFixed(2),
+            puntoEquilibrioPorcentaje: cubiertoPorcentaje
+        });
+    } catch (error) {
+        console.error('Error al generar KPI gerencial:', error);
+        res.status(500).json({ error: 'Error al generar KPI gerencial: ' + error.message });
+    }
+});
+
 // Exportamos el router para que server.js lo pueda usar
 module.exports = router;

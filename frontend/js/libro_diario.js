@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Establecer mes y año actual por defecto antes de cargar para evitar conflictos
+    const fecha = new Date();
+    const filtroMes = document.getElementById('filtroMes');
+    const filtroAnio = document.getElementById('filtroAnio');
+    if (filtroMes) filtroMes.value = fecha.getMonth() + 1;
+    if (filtroAnio) filtroAnio.value = fecha.getFullYear();
+
     cargarEmpresa();
     cargarLibroDiario();
 });
@@ -166,4 +173,58 @@ async function cargarLibroDiario() {
 
 function formatearMonto(valor) {
     return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor);
+}
+
+// Lógica de modal y registro de gastos generales
+function abrirModalGasto() {
+    const modal = document.getElementById('modalGasto');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Fecha actual por defecto en formato YYYY-MM-DD
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('gastoFecha').value = hoy;
+    }
+}
+
+function cerrarModalGasto() {
+    const modal = document.getElementById('modalGasto');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    const form = document.getElementById('formGasto');
+    if (form) form.reset();
+}
+
+async function guardarGastoGeneral(event) {
+    event.preventDefault();
+    const descripcion = document.getElementById('gastoDescripcion').value.trim();
+    const monto = parseFloat(document.getElementById('gastoMonto').value);
+    const metodo_pago = document.getElementById('gastoMetodoPago').value;
+    const categoria = document.getElementById('gastoCategoria').value;
+    const fecha = document.getElementById('gastoFecha').value;
+
+    if (!descripcion || isNaN(monto) || monto <= 0) {
+        alert('Por favor introduce una descripción válida y un monto mayor que cero.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/libro-diario/gastos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ descripcion, monto, metodo_pago, categoria, fecha })
+        });
+        
+        if (res.ok) {
+            alert('Gasto registrado con éxito');
+            cerrarModalGasto();
+            cargarLibroDiario();
+        } else {
+            const err = await res.json();
+            alert('Error al registrar gasto: ' + (err.error || 'Desconocido'));
+        }
+    } catch (e) {
+        console.error('Error al guardar gasto general:', e);
+        alert('Error al conectar con el servidor contable.');
+    }
 }

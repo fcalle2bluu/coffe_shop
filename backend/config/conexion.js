@@ -150,6 +150,23 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Gastos Caja:', gastoCajaErr.message);
     }
 
+    // 5.85 Creación de tabla de Gastos Generales (para el Libro Diario)
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS gastos_generales (
+                id SERIAL PRIMARY KEY,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                descripcion TEXT NOT NULL,
+                monto NUMERIC(10, 2) NOT NULL,
+                categoria VARCHAR(100) NOT NULL,
+                metodo_pago VARCHAR(50) NOT NULL DEFAULT 'BANCO BISA'
+            );
+        `);
+        console.log('✅ Tabla gastos_generales verificada/creada.');
+    } catch (gastoGenErr) {
+        console.log('Info Tabla Gastos Generales:', gastoGenErr.message);
+    }
+
     // 5.9 Creación de tabla de Dispositivos Tokens (FCM)
     try {
         await pool.query(`

@@ -75,6 +75,131 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
     }
   }
 
+  Future<void> _mostrarDialogoRegistrarGasto() async {
+    final formKey = GlobalKey<FormState>();
+    final descController = TextEditingController();
+    final montoController = TextEditingController();
+    String selectedCategoria = 'Gastos Operativos';
+    String selectedMetodo = 'BANCO BISA';
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: AppTheme.secondaryDark,
+              title: const Text('Registrar Gasto Contable', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold)),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: descController,
+                        decoration: const InputDecoration(labelText: 'Descripción'),
+                        style: const TextStyle(color: Colors.white),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Requerido' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: montoController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Monto (Bs.)'),
+                        style: const TextStyle(color: Colors.white),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) return 'Requerido';
+                          if (double.tryParse(val) == null || double.parse(val) <= 0) return 'Monto no válido';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedCategoria,
+                        decoration: const InputDecoration(labelText: 'Categoría Contable'),
+                        dropdownColor: AppTheme.secondaryDark,
+                        style: const TextStyle(color: Colors.white),
+                        items: const [
+                          DropdownMenuItem(value: 'Gastos Operativos', child: Text('Gastos Operativos')),
+                          DropdownMenuItem(value: 'Gastos Fijos', child: Text('Gastos Fijos')),
+                          DropdownMenuItem(value: 'Costos de Producción/Insumos', child: Text('Costos de Prod / Insumos')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setStateDialog(() => selectedCategoria = val);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedMetodo,
+                        decoration: const InputDecoration(labelText: 'Método de Pago'),
+                        dropdownColor: AppTheme.secondaryDark,
+                        style: const TextStyle(color: Colors.white),
+                        items: const [
+                          DropdownMenuItem(value: 'BANCO BISA', child: Text('BANCO BISA')),
+                          DropdownMenuItem(value: 'CAJA CHICA', child: Text('CAJA CHICA')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setStateDialog(() => selectedMetodo = val);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.pop(context);
+                      setState(() => _isLoading = true);
+                      try {
+                        final res = await ApiConfig.post('/libro-diario/gastos', {
+                          'descripcion': descController.text.trim(),
+                          'monto': double.parse(montoController.text),
+                          'categoria': selectedCategoria,
+                          'metodo_pago': selectedMetodo,
+                        });
+                        
+                        if (res.statusCode == 200 || res.statusCode == 201) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Gasto registrado con éxito.')),
+                          );
+                          _loadLibroDiario();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Error al guardar el gasto.')),
+                          );
+                          setState(() => _isLoading = false);
+                        }
+                      } catch (e) {
+                        print('Error al registrar gasto móvil: $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Error de conexión al guardar el gasto.')),
+                        );
+                        setState(() => _isLoading = false);
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -360,8 +485,12 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
                 ],
               ),
             ),
-          ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _mostrarDialogoRegistrarGasto,
+        backgroundColor: AppTheme.accentColor,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

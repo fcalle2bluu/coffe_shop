@@ -139,6 +139,41 @@
                 </div>
             </div>
 
+            <!-- CONTROL GERENCIAL (LIBRO DIARIO) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Tarjeta del Semáforo -->
+                <div class="bg-white rounded-2xl shadow-premium p-6 flex items-center justify-between border border-slate-100 overflow-hidden relative">
+                    <div class="space-y-2">
+                        <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Semáforo Contable</p>
+                        <h3 class="text-xl font-bold text-slate-800" id="semaforo-estado">Evaluando balance...</h3>
+                        <p class="text-xs text-slate-400 font-medium">Balance neto del mes actual: <span id="semaforo-balance" class="font-bold text-slate-700">Bs. 0.00</span></p>
+                    </div>
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl transition-all duration-300 shadow-md" id="semaforo-indicador">
+                        <i class="fa-solid fa-traffic-light"></i>
+                    </div>
+                </div>
+
+                <!-- Tarjeta del Punto de Equilibrio -->
+                <div class="bg-white rounded-2xl shadow-premium p-6 border border-slate-100 flex flex-col justify-between">
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Punto de Equilibrio</p>
+                        <div class="flex justify-between items-center text-xs text-slate-500 font-bold">
+                            <span>Ingresos vs Gastos Fijos (Objetivo)</span>
+                            <span id="punto-equilibrio-porc">0%</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner-soft">
+                            <div id="punto-equilibrio-barra" class="bg-gradient-to-r from-orange-500 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 mt-2 font-medium">
+                            <span>Ingresos: <strong id="punto-equilibrio-ingresos" class="text-slate-600">Bs. 0.00</strong></span>
+                            <span>Fijos: <strong id="punto-equilibrio-fijos" class="text-slate-600">Bs. 0.00</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Rendimiento Mensual (Ventas vs Compras) -->
                 <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
@@ -239,7 +274,63 @@
             cargarGraficosAvanzados();
             renderGraficoRendimiento();
             cargarTopProductos();
+            cargarKpisGerenciales();
         };
+
+        async function cargarKpisGerenciales() {
+            try {
+                const res = await fetch('/api/kpis/gerencial');
+                if (!res.ok) throw new Error('Error al cargar KPIs gerenciales');
+                const data = await res.json();
+                
+                const balance = parseFloat(data.balance);
+                const ingresos = parseFloat(data.ingresos);
+                const egresos = parseFloat(data.egresos);
+                const gastosFijos = parseFloat(data.gastosFijos);
+                const porcentaje = parseInt(data.puntoEquilibrioPorcentaje);
+                
+                // Actualizar Semáforo
+                const semEstado = document.getElementById('semaforo-estado');
+                const semBalance = document.getElementById('semaforo-balance');
+                const semIndicador = document.getElementById('semaforo-indicador');
+                
+                if (semBalance) {
+                    semBalance.innerText = `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(balance)}`;
+                }
+                
+                if (semEstado && semIndicador) {
+                    if (data.semaforoColor === 'ROJO') {
+                        semEstado.innerText = 'Déficit / Pérdidas';
+                        semEstado.className = 'text-xl font-bold text-red-600';
+                        semIndicador.className = 'w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl transition-all duration-300 shadow-md bg-red-500 shadow-red-500/20';
+                    } else if (data.semaforoColor === 'AMARILLO') {
+                        semEstado.innerText = 'Punto de Equilibrio Crítico';
+                        semEstado.className = 'text-xl font-bold text-amber-500';
+                        semIndicador.className = 'w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl transition-all duration-300 shadow-md bg-amber-500 shadow-amber-500/20';
+                    } else {
+                        semEstado.innerText = 'Superávit / Ganancias';
+                        semEstado.className = 'text-xl font-bold text-emerald-600';
+                        semIndicador.className = 'w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl transition-all duration-300 shadow-md bg-emerald-500 shadow-emerald-500/20';
+                    }
+                }
+                
+                // Actualizar Punto de Equilibrio
+                const pePorc = document.getElementById('punto-equilibrio-porc');
+                const peBarra = document.getElementById('punto-equilibrio-barra');
+                const peIngresos = document.getElementById('punto-equilibrio-ingresos');
+                const peFijos = document.getElementById('punto-equilibrio-fijos');
+                
+                if (pePorc) pePorc.innerText = `${porcentaje}%`;
+                if (peBarra) peBarra.style.width = `${porcentaje}%`;
+                if (peIngresos) peIngresos.innerText = `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(ingresos)}`;
+                if (peFijos) peFijos.innerText = `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(gastosFijos)}`;
+                
+            } catch (e) {
+                console.error("Error al cargar KPIs gerenciales:", e);
+                const semEstado = document.getElementById('semaforo-estado');
+                if (semEstado) semEstado.innerText = 'Error al cargar balance';
+            }
+        }
 
         let chartTopProdInst = null;
 

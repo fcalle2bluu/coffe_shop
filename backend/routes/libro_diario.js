@@ -66,10 +66,34 @@ router.get('/', async (req, res) => {
         `;
         const resCompras = await pool.query(queryCompras, [mes, anio]);
 
-        // 3. Combinar y estructurar movimientos
+        // 3. Obtener gastos de caja del mes/año
+        const queryGastosCaja = `
+            SELECT gc.id, gc.monto, gc.descripcion, gc.fecha,
+                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
+                   u.nombre as usuario_nombre
+            FROM gastos_caja gc
+            LEFT JOIN usuarios u ON gc.usuario_id = u.id
+            WHERE EXTRACT(MONTH FROM gc.fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM gc.fecha AT TIME ZONE 'America/La_Paz') = $2
+        `;
+        const resGastosCaja = await pool.query(queryGastosCaja, [mes, anio]);
+
+        // 4. Obtener gastos generales contables del mes/año
+        const queryGastosGenerales = `
+            SELECT gg.id, gg.monto, gg.descripcion, gg.fecha, gg.categoria, gg.metodo_pago,
+                   TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   EXTRACT(DOW FROM gg.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num
+            FROM gastos_generales gg
+            WHERE EXTRACT(MONTH FROM gg.fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM gg.fecha AT TIME ZONE 'America/La_Paz') = $2
+        `;
+        const resGastosGenerales = await pool.query(queryGastosGenerales, [mes, anio]);
+
+        // 5. Combinar y estructurar movimientos
         const movimientos = [];
 
-        // Mapear Ventas
+        // Mapear Ventas (Ingresos)
         resVentas.rows.forEach(v => {
             const total = parseFloat(v.total) || 0;
             const metodo = (v.metodo_pago || 'EFECTIVO').toUpperCase();
@@ -96,7 +120,7 @@ router.get('/', async (req, res) => {
             });
         });
 
-        // Mapear Compras
+        // Mapear Compras (Egresos)
         resCompras.rows.forEach(c => {
             const total = parseFloat(c.total) || 0;
             
@@ -120,10 +144,50 @@ router.get('/', async (req, res) => {
             });
         });
 
-        // 4. Ordenar cronológicamente (antiguos primero)
+        // Mapear Gastos de Caja (Egresos)
+        resGastosCaja.rows.forEach(gc => {
+            const total = parseFloat(gc.monto) || 0;
+            const diaSemana = diasSemana[parseInt(gc.dia_semana_num)] || 'S/D';
+            const fechaDiario = formatearFechaDiario(gc.fecha_diario);
+            const cajero = gc.usuario_nombre ? ` Cajero: ${gc.usuario_nombre}.` : '';
+
+            movimientos.push({
+                fecha: fechaDiario,
+                dia_semana: diaSemana,
+                fecha_raw: new Date(gc.fecha),
+                glosa: `Gasto de Caja Chica (Cierre Turno).${cajero} Detalle: ${gc.descripcion}`,
+                cuentas: [
+                    { nombre: 'GASTOS OPERATIVOS', tipo: 'DEBE', importe: total },
+                    { nombre: 'CAJA CHICA', tipo: 'HABER', importe: total }
+                ]
+            });
+        });
+
+        // Mapear Gastos Generales (Egresos)
+        resGastosGenerales.rows.forEach(gg => {
+            const total = parseFloat(gg.monto) || 0;
+            const categoria = (gg.categoria || 'Gastos Operativos').toUpperCase();
+            const metodoPago = (gg.metodo_pago || 'BANCO BISA').toUpperCase();
+
+            const diaSemana = diasSemana[parseInt(gg.dia_semana_num)] || 'S/D';
+            const fechaDiario = formatearFechaDiario(gg.fecha_diario);
+
+            movimientos.push({
+                fecha: fechaDiario,
+                dia_semana: diaSemana,
+                fecha_raw: new Date(gg.fecha),
+                glosa: `Gasto general registrado: ${gg.descripcion}`,
+                cuentas: [
+                    { nombre: categoria, tipo: 'DEBE', importe: total },
+                    { nombre: metodoPago, tipo: 'HABER', importe: total }
+                ]
+            });
+        });
+
+        // 6. Ordenar cronológicamente (antiguos primero)
         movimientos.sort((a, b) => a.fecha_raw - b.fecha_raw);
 
-        // 5. Asignar números correlativos de asiento (1-based)
+        // 7. Asignar números correlativos de asiento (1-based)
         const asientos = movimientos.map((mov, index) => {
             return {
                 asiento_nro: index + 1,
@@ -147,4 +211,55 @@ router.get('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+// Registrar un Gasto General
+router.post('/gastos', async (req, res) => {
+    const { descripcion, monto, categoria, metodo_pago, fecha } = req.body;
+    if (!descripcion || !monto || !categoria) {
+        return res.status(400).json({ error: 'Faltan datos obligatorios (descripción, monto, categoría)' });
+    }
+    try {
+        const query = fecha 
+            ? 'INSERT INTO gastos_generales (descripcion, monto, categoria, metodo_pago, fecha) VALUES ($1, $2, $3, $4, $5)'
+            : 'INSERT INTO gastos_generales (descripcion, monto, categoria, metodo_pago) VALUES ($1, $2, $3, $4)';
+        const params = fecha 
+            ? [descripcion, monto, categoria, metodo_pago || 'BANCO BISA', fecha]
+            : [descripcion, monto, categoria, metodo_pago || 'BANCO BISA'];
+
+        await pool.query(query, params);
+        res.status(201).json({ success: true, message: 'Gasto general registrado correctamente' });
+    } catch (error) {
+        console.error('Error al registrar gasto general:', error);
+        res.status(500).json({ error: 'Error al registrar el gasto general: ' + error.message });
+    }
+});
+
+// Obtener lista de gastos generales registrados
+router.get('/gastos', async (req, res) => {
+    const { mes, anio } = req.query;
+    try {
+        let query = 'SELECT *, TO_CHAR(fecha, \'YYYY-MM-DD\') as fecha_formateada FROM gastos_generales';
+        const params = [];
+        if (mes && anio) {
+            query += ' WHERE EXTRACT(MONTH FROM fecha) = $1 AND EXTRACT(YEAR FROM fecha) = $2';
+            params.push(parseInt(mes), parseInt(anio));
+        }
+        query += ' ORDER BY fecha DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener gastos generales:', error);
+        res.status(500).json({ error: 'Error al obtener gastos generales: ' + error.message });
+    }
+});
+
+// Eliminar un gasto general
+router.delete('/gastos/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM gastos_generales WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Gasto general eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar gasto general:', error);
+        res.status(500).json({ error: 'Error al eliminar el gasto general: ' + error.message });
+    }
+});
