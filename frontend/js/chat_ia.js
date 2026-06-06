@@ -82,7 +82,11 @@ async function enviarMensaje(mensaje) {
         if (loadingDiv) loadingDiv.classList.add('hidden');
         
         if (!res.ok) {
-            agregarBurbujaIa(`Error: ${data.error || 'No se pudo procesar la consulta.'}`, null, null, true);
+            let errorMsg = `Error: ${data.error || 'No se pudo procesar la consulta.'}`;
+            if (data.detalles) {
+                errorMsg += `\n\nDetalles técnicos: ${data.detalles}`;
+            }
+            agregarBurbujaIa(errorMsg, null, data.sql || null, true);
         } else if (data.success) {
             agregarBurbujaIa(data.mensajeIa, data.filas, data.sql);
         }

@@ -48,6 +48,7 @@ router.post('/consultar', async (req, res) => {
         return res.status(500).json({ error: 'La IA no está configurada en el servidor. Falta la clave GEMINI_API_KEY.' });
     }
 
+    let sql = '';
     try {
         // 1. Generar la consulta SQL con Gemini
         const model = genAI.getGenerativeModel({ 
@@ -57,7 +58,7 @@ router.post('/consultar', async (req, res) => {
 
         const prompt = `Pregunta del administrador: ${mensaje}`;
         const sqlResult = await model.generateContent(prompt);
-        let sql = sqlResult.response.text().trim();
+        sql = sqlResult.response.text().trim();
 
         // Limpieza de posibles tags de Markdown por si acaso la IA ignora las instrucciones
         sql = sql.replace(/^```sql/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
@@ -115,7 +116,11 @@ Puedes usar formato de texto o viñetas de Markdown para organizar la informaci�
 
     } catch (error) {
         console.error('Error en el asistente de IA:', error);
-        res.status(500).json({ error: 'Ocurrió un error al procesar tu consulta con el Asistente IA.' });
+        res.status(500).json({ 
+            error: 'Ocurrió un error al procesar tu consulta con el Asistente IA.',
+            detalles: error.message,
+            sql: sql || ''
+        });
     }
 });
 

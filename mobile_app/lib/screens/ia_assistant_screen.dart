@@ -92,21 +92,31 @@ class _IaAssistantScreenState extends State<IaAssistantScreen> {
               ),
             );
           } else {
+            String errorMsg = data['error'] ?? 'Ocurrió un error inesperado al procesar la respuesta.';
+            if (data['detalles'] != null) {
+              errorMsg += '\n\nDetalles técnicos: ${data['detalles']}';
+            }
             _messages.add(
               ChatMessage(
-                text: data['error'] ?? 'Ocurrió un error inesperado al procesar la respuesta.',
+                text: errorMsg,
                 isUser: false,
                 isError: true,
+                sql: data['sql'],
               ),
             );
           }
         } else {
           final data = jsonDecode(res.body);
+          String errorMsg = data['error'] ?? 'Error de servidor (${res.statusCode})';
+          if (data['detalles'] != null) {
+            errorMsg += '\n\nDetalles técnicos: ${data['detalles']}';
+          }
           _messages.add(
             ChatMessage(
-              text: data['error'] ?? 'Error de servidor (${res.statusCode})',
+              text: errorMsg,
               isUser: false,
               isError: true,
+              sql: data['sql'],
             ),
           );
         }
