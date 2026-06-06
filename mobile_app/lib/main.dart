@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'config/theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
+import 'screens/splash_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -63,7 +64,7 @@ class CafeLaPazApp extends StatelessWidget {
       title: 'Café La Paz POS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: hasActiveSession ? const MainNavigation() : const LoginScreen(),
+      home: SplashAnimationScreen(hasActiveSession: hasActiveSession),
     );
   }
 }
