@@ -23,6 +23,16 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
   String _selectedRol = 'CAJERO';
   bool _obscurePinInDialog = true;
 
+  // Controllers for Edit User Dialog
+  final _editNombreController = TextEditingController();
+  final _editUsernameController = TextEditingController();
+  final _editPinController = TextEditingController();
+  final _editTelefonoController = TextEditingController();
+  final _editCiController = TextEditingController();
+  final _editSalarioController = TextEditingController();
+  String _editSelectedRol = 'CAJERO';
+  bool _obscureEditPinInDialog = true;
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +44,12 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
     _usrNombreController.dispose();
     _usrUsernameController.dispose();
     _usrPinController.dispose();
+    _editNombreController.dispose();
+    _editUsernameController.dispose();
+    _editPinController.dispose();
+    _editTelefonoController.dispose();
+    _editCiController.dispose();
+    _editSalarioController.dispose();
     super.dispose();
   }
 
@@ -252,6 +268,146 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
     );
   }
 
+  Future<void> _actualizarUsuario(int id, dynamic originalUser) async {
+    final nombre = _editNombreController.text.trim();
+    final username = _editUsernameController.text.trim();
+    final pin = _editPinController.text.trim();
+    final telefono = _editTelefonoController.text.trim();
+    final ci = _editCiController.text.trim();
+    final salarioText = _editSalarioController.text.trim();
+
+    if (nombre.isEmpty || username.isEmpty || pin.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nombre, usuario y PIN son obligatorios')),
+      );
+      return;
+    }
+
+    Navigator.pop(context);
+    setState(() => _isLoading = true);
+
+    try {
+      final res = await ApiConfig.put('/parametros/usuarios/$id', {
+        'nombre': nombre,
+        'username': username,
+        'pin': pin,
+        'rol': _editSelectedRol,
+        'telefono': telefono,
+        'ci': ci,
+        'salario': double.tryParse(salarioText) ?? 0.0,
+        'foto_url': originalUser['foto_url'] ?? '',
+      });
+
+      if (res.statusCode == 200) {
+        _loadUsuarios();
+      } else {
+        final err = jsonDecode(res.body);
+        throw Exception(err['error'] ?? 'Error al actualizar');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+      );
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showEditUserDialog(dynamic user) {
+    _editNombreController.text = user['nombre'] ?? '';
+    _editUsernameController.text = user['username'] ?? '';
+    _editPinController.text = user['pin'] ?? '';
+    _editTelefonoController.text = user['telefono'] ?? '';
+    _editCiController.text = user['ci'] ?? '';
+    _editSalarioController.text = (user['salario'] ?? '0').toString();
+    _editSelectedRol = user['rol'] ?? 'CAJERO';
+    _obscureEditPinInDialog = true;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Editar Personal'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _editNombreController,
+                  decoration: const InputDecoration(labelText: 'Nombre Completo'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _editUsernameController,
+                  decoration: const InputDecoration(labelText: 'Identificador (Login)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _editPinController,
+                  keyboardType: TextInputType.number,
+                  obscureText: _obscureEditPinInDialog,
+                  decoration: InputDecoration(
+                    labelText: 'PIN de Seguridad (Números)',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureEditPinInDialog ? Icons.visibility : Icons.visibility_off,
+                        color: AppTheme.textMuted,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          _obscureEditPinInDialog = !_obscureEditPinInDialog;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _editSelectedRol,
+                  decoration: const InputDecoration(labelText: 'Rol'),
+                  items: const [
+                    DropdownMenuItem(value: 'ADMINISTRADOR', child: Text('ADMINISTRADOR')),
+                    DropdownMenuItem(value: 'CAJERO', child: Text('CAJERO')),
+                    DropdownMenuItem(value: 'ALMACEN', child: Text('ENCARGADO ALMACÉN')),
+                  ],
+                  onChanged: (val) {
+                    setDialogState(() => _editSelectedRol = val!);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _editTelefonoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Teléfono (WhatsApp)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _editCiController,
+                  decoration: const InputDecoration(labelText: 'Cédula de Identidad (CI)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _editSalarioController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Salario Mensual (Bs.)'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+            TextButton(
+              onPressed: () => _actualizarUsuario(user['id'], user),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPermissionSwitchTile(dynamic user, String field, String title, String subtitle, bool val) {
     return SwitchListTile(
       value: val,
@@ -399,6 +555,15 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                                   style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: activo ? const Color(0xFF10B981) : AppTheme.textMuted),
                                 ),
                               ),
+                              if (u['telefono'] != null && u['telefono'].toString().trim().isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.phone, size: 11, color: AppTheme.textMuted),
+                                const SizedBox(width: 3),
+                                Text(
+                                  u['telefono'].toString(),
+                                  style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -414,6 +579,11 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                                 const Text('Controles de Cuenta:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted)),
                                 Row(
                                   children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: AppTheme.accentColor, size: 18),
+                                      tooltip: 'Editar Colaborador',
+                                      onPressed: () => _showEditUserDialog(u),
+                                    ),
                                     IconButton(
                                       icon: FaIcon(
                                         activo ? FontAwesomeIcons.toggleOn : FontAwesomeIcons.toggleOff,
