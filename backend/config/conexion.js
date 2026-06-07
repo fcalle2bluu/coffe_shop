@@ -255,6 +255,18 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Seed Usuarios:', seedErr.message);
     }
 
+    // 7. Asegurar número de teléfono para administradores (78777010)
+    try {
+        await pool.query(`
+            UPDATE usuarios 
+            SET telefono = '78777010' 
+            WHERE username = 'admin' OR rol = 'ADMINISTRADOR' OR rol = 'ADMIN';
+        `);
+        console.log('✅ Teléfono de administradores actualizado a 78777010.');
+    } catch (telErr) {
+        console.log('Info Actualización Teléfono Admin:', telErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

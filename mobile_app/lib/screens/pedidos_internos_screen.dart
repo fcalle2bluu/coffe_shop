@@ -422,10 +422,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Insumo Especial (No en catálogo)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                  const Expanded(
+                    child: Text(
+                      'Insumo Especial (No en catálogo)',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Switch(
                     value: _isCustom,
                     activeColor: AppTheme.accentColor,
