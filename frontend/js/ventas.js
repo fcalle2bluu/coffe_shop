@@ -63,24 +63,29 @@ function renderizarCatalogo(filtro = '') {
     }
 
     categorias.forEach(cat => {
+        const catCleanId = cat.replace(/[^a-zA-Z0-9]/g, '_');
+        const isCollapsed = (filtro === ''); // Colapsado por defecto si no hay filtro de búsqueda
+        
         // Renderizar el encabezado de categoría
-        contenedor.innerHTML += `
-            <div class="col-span-full mt-6 first:mt-2 mb-2">
-                <h3 class="text-xs font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
-                    <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>
-                    ${cat}
-                    <span class="text-[10px] text-slate-400 font-medium font-mono">(${productosPorCategoria[cat].length})</span>
-                </h3>
+        const headerHtml = `
+            <div class="col-span-full mt-4 first:mt-1 mb-1 border-b border-gray-100 pb-1">
+                <button onclick="toggleCategoriaCollapse('${catCleanId}')" class="w-full text-left focus:outline-none flex items-center justify-between hover:opacity-80 transition-opacity py-1">
+                    <h3 class="text-xs font-black text-stone-500 uppercase tracking-widest flex items-center gap-2 select-none">
+                        <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>
+                        ${cat}
+                        <span class="text-[10px] text-slate-400 font-medium font-mono">(${productosPorCategoria[cat].length})</span>
+                    </h3>
+                    <i id="icon-cat-${catCleanId}" class="fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-slate-400 text-xs transition-transform duration-300"></i>
+                </button>
             </div>
         `;
 
-        // Renderizar cada producto de esta categoría
+        let productsHtml = '';
         productosPorCategoria[cat].forEach(prod => {
             prodIndex++;
             const delayClass = `delay-${Math.min(prodIndex, 12)}`;
-            contenedor.innerHTML += `
+            productsHtml += `
                 <div onclick="agregarAlCarrito(${prod.id})" class="animate-fade-in-up ${delayClass} bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all select-none flex flex-col justify-between overflow-hidden relative min-h-[160px] btn-bounce">
-                    
                     <!-- Imagen -->
                     <div class="h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b border-gray-100 relative overflow-hidden">
                         ${prod.imagen_url ? 
@@ -111,6 +116,14 @@ function renderizarCatalogo(filtro = '') {
                 </div>
             `;
         });
+
+        const subgridHtml = `
+            <div id="grid-cat-${catCleanId}" class="col-span-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 transition-all duration-300 pb-2 ${isCollapsed ? 'hidden' : ''}">
+                ${productsHtml}
+            </div>
+        `;
+
+        contenedor.innerHTML += headerHtml + subgridHtml;
     });
     
     // Ocultar botones '.solo-admin' dentro del catálogo si el rol actual es CAJERO
@@ -488,5 +501,22 @@ async function verificarEstadoCaja() {
         }
     } catch (e) {
         console.error("Error al verificar estado de caja:", e);
+    }
+}
+
+// Alternar la visibilidad de los productos de una categoría en el POS
+function toggleCategoriaCollapse(catId) {
+    const el = document.getElementById(`grid-cat-${catId}`);
+    const icon = document.getElementById(`icon-cat-${catId}`);
+    if (el && icon) {
+        if (el.classList.contains('hidden')) {
+            el.classList.remove('hidden');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            el.classList.add('hidden');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
     }
 }

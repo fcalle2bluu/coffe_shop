@@ -341,6 +341,45 @@ class _CajaScreenState extends State<CajaScreen> {
     );
   }
 
+  Widget _buildVentasNetasCard(double efectivo, double qr, double tarjeta, double cln, double gastos) {
+    final double netas = efectivo + qr + tarjeta + cln - gastos;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF14B8A6).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF14B8A6).withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'VENTAS NETAS',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF14B8A6), letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Suma (Efectivo + QR + Billeteras) - Gastos',
+                  style: TextStyle(fontSize: 9, color: AppTheme.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Bs. ${netas.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF14B8A6)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVentasChart(double efectivo, double qr, double tarjeta, double consume) {
     final double total = efectivo + qr + tarjeta + consume;
     if (total <= 0) {
@@ -542,6 +581,10 @@ class _CajaScreenState extends State<CajaScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              
+              // Ventas Netas Card
+              _buildVentasNetasCard(ventasEfectivo, ventasQr, ventasTarjeta, _totalConsumeLoNuestro, _totalGastos),
+              const SizedBox(height: 12),
               
               // Efectivo en Cajón (Esperado)
               _buildBigEfectivoCard('Efectivo en Cajón', _efectivoEsperado, _totalGastos),
@@ -831,6 +874,10 @@ class _CajaScreenState extends State<CajaScreen> {
                       _buildHistoryStatCard('Gastos Turno', totalGastos, Colors.redAccent.withOpacity(0.08), Colors.redAccent),
                     ],
                   ),
+                  const SizedBox(height: 12),
+
+                  // Ventas Netas Card
+                  _buildVentasNetasCard(ventasEfectivo, ventasQr, ventasTarjeta, ventasCln, totalGastos),
                   const SizedBox(height: 12),
 
                   Container(

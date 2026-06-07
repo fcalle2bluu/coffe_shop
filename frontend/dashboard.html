@@ -398,7 +398,7 @@
                 const res = await fetch('/api/kpis');
                 const data = await res.json();
                 document.getElementById('kpi-ventas-dia').innerText = `Bs. ${data.ventasDia}`;
-                document.getElementById('kpi-ventas-mes').innerText = `Bs. ${data.comprasMes}`; 
+                document.getElementById('kpi-ventas-mes').innerText = `Bs. ${data.ventasMes}`; 
                 document.getElementById('kpi-productos').innerText = data.productos;
                 document.getElementById('kpi-proveedores').innerText = data.proveedores;
             } catch (e) { console.error("Error KPIs", e); }

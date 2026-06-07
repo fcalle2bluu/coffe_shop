@@ -46,6 +46,10 @@ async function cargarEstadoCaja() {
             document.getElementById('res-gastos').innerText = `Bs. ${parseFloat(data.total_gastos || 0).toFixed(2)}`;
             const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0);
             document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)}</span>`;
+            
+            const ventasNetas = parseFloat(data.ventas.total_efectivo) + totalDigital - parseFloat(data.total_gastos || 0);
+            document.getElementById('res-netas').innerText = `Bs. ${ventasNetas.toFixed(2)}`;
+            
             document.getElementById('res-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
             
             panelResumen.classList.remove('hidden');
@@ -129,8 +133,8 @@ async function cargarHistorial() {
                         </div>
                     </div>
                     
-                    <!-- Desglose de 5 Columnas en Rejilla -->
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center mt-1">
+                    <!-- Desglose de 6 Columnas en Rejilla -->
+                    <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center mt-1">
                         <!-- Fondo Inicial -->
                         <div class="bg-blue-50 border border-blue-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-blue-800 uppercase tracking-wide">Fondo Inicial</span>
@@ -152,8 +156,14 @@ async function cargarHistorial() {
                             <span class="text-[9px] font-black text-red-800 uppercase tracking-wide">Gastos Turno</span>
                             <span class="font-extrabold text-red-900 text-sm mt-1">Bs. ${totalGastos.toFixed(2)}</span>
                         </div>
+                        <!-- Ventas Netas -->
+                        <div class="bg-teal-50 border border-teal-100/60 p-2 rounded-xl flex flex-col justify-between">
+                            <span class="text-[9px] font-black text-teal-800 uppercase tracking-wide">Ventas Netas</span>
+                            <span class="font-extrabold text-teal-900 text-sm mt-1">Bs. ${(ventasEfectivo + totalDigital - totalGastos).toFixed(2)}</span>
+                            <span class="text-[8px] font-bold text-teal-700 block mt-1 leading-tight">Efec + Dig - Gastos</span>
+                        </div>
                         <!-- Efectivo en Cajón -->
-                        <div class="col-span-2 sm:col-span-1 bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex flex-col justify-between">
+                        <div class="bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-amber-800 uppercase tracking-wide">Efectivo Cajón</span>
                             <span class="font-extrabold text-amber-900 text-sm mt-1">Bs. ${saldoFinal.toFixed(2)}</span>
                         </div>

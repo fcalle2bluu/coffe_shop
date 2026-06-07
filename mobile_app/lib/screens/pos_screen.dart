@@ -27,6 +27,7 @@ class _PosScreenState extends State<PosScreen> {
   bool _isLoading = true;
   bool _isAdmin = false;
   String _searchQuery = '';
+  final Set<String> _expandedCategories = {};
   int? _selectedCajaId;
 
   // Controllers for Product dialog
@@ -567,189 +568,207 @@ class _PosScreenState extends State<PosScreen> {
         padding: const EdgeInsets.only(bottom: 80),
         children: groups.keys.map((catName) {
           final prods = groups[catName]!;
+          final isExpanded = _searchQuery.isNotEmpty || _expandedCategories.contains(catName);
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0, left: 4.0),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentColor,
-                        borderRadius: BorderRadius.circular(2),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    if (_expandedCategories.contains(catName)) {
+                      _expandedCategories.remove(catName);
+                    } else {
+                      _expandedCategories.add(catName);
+                    }
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            catName.toUpperCase(),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '(${prods.length})',
+                            style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.normal),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      catName.toUpperCase(),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: AppTheme.textMuted),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '(${prods.length})',
-                      style: const TextStyle(fontSize: 10, color: Colors.white24, fontWeight: FontWeight.normal),
-                    ),
-                  ],
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        color: AppTheme.textMuted,
+                        size: 18,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isTablet ? 3 : 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: isTablet ? 1.05 : 0.85,
-                ),
-                itemCount: prods.length,
-                itemBuilder: (context, idx) {
-                  final p = prods[idx];
-                  final inCartQty = _cart[p.id] ?? 0;
-                  return FadeInSlide(
-                    index: idx,
-                    child: BouncingWidget(
-                      onTap: () => _addToCart(p),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondaryDark,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: inCartQty > 0 ? AppTheme.accentColor : Colors.white.withOpacity(0.04),
-                            width: inCartQty > 0 ? 1.5 : 1,
+              if (isExpanded) ...[
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isTablet ? 3 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isTablet ? 1.05 : 0.85,
+                  ),
+                  itemCount: prods.length,
+                  itemBuilder: (context, idx) {
+                    final p = prods[idx];
+                    final inCartQty = _cart[p.id] ?? 0;
+                    return FadeInSlide(
+                      index: idx,
+                      child: BouncingWidget(
+                        onTap: () => _addToCart(p),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryDark,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: inCartQty > 0 ? AppTheme.accentColor : Colors.white.withOpacity(0.04),
+                              width: inCartQty > 0 ? 1.5 : 1,
+                            ),
                           ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 6,
-                                  child: Container(
-                                    width: double.infinity,
-                                    color: Colors.white.withOpacity(0.02),
-                                    child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
-                                        ? Image.network(
-                                            p.imagenUrl!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Container(
-                                                color: Colors.black12,
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.broken_image_outlined,
-                                                    color: Colors.white24,
-                                                    size: 24,
+                          clipBehavior: Clip.antiAlias,
+                          child: Stack(
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 6,
+                                    child: Container(
+                                      width: double.infinity,
+                                      color: Colors.white.withOpacity(0.02),
+                                      child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
+                                          ? Image.network(
+                                              p.imagenUrl!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  color: Colors.black12,
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.broken_image_outlined,
+                                                      color: Colors.white24,
+                                                      size: 24,
+                                                    ),
                                                   ),
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              color: Colors.white.withOpacity(0.02),
+                                              child: const Center(
+                                                child: FaIcon(
+                                                  FontAwesomeIcons.mugHot,
+                                                  color: Colors.white24,
+                                                  size: 32,
                                                 ),
-                                              );
-                                            },
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) return child;
-                                              return const Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        : Container(
-                                            color: Colors.white.withOpacity(0.02),
-                                            child: Center(
-                                              child: FaIcon(
-                                                FontAwesomeIcons.mugHot,
-                                                color: Colors.white.withOpacity(0.15),
-                                                size: 24,
                                               ),
                                             ),
-                                          ),
+                                    ),
                                   ),
-                                ),
-                                Expanded(
-                                  flex: 5,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(10.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          p.nombre,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Bs. ${p.precioVenta.toStringAsFixed(2)}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                                  Expanded(
+                                    flex: 4,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            p.nombre,
+                                            style: const TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
                                             ),
-                                            if (inCartQty > 0)
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: AppTheme.accentColor.withOpacity(0.15),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  'x$inCartQty',
-                                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
-                                                ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Bs. ${p.precioVenta.toStringAsFixed(2)}',
+                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
                                               ),
-                                          ],
+                                              if (inCartQty > 0)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: AppTheme.accentColor.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    'x$inCartQty',
+                                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Admin controls inside card
+                              if (_isAdmin)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                          icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 11, color: Colors.white70),
+                                          onPressed: () => _showProductDialog(product: p),
+                                        ),
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                          icon: const FaIcon(FontAwesomeIcons.trashCan, size: 11, color: Colors.redAccent),
+                                          onPressed: () => _deleteProduct(p),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                            // Admin controls inside card
-                            if (_isAdmin)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                        icon: const FaIcon(FontAwesomeIcons.solidPenToSquare, size: 11, color: Colors.white70),
-                                        onPressed: () => _showProductDialog(product: p),
-                                      ),
-                                      IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                        icon: const FaIcon(FontAwesomeIcons.trashCan, size: 11, color: Colors.redAccent),
-                                        onPressed: () => _deleteProduct(p),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
           );
         }).toList(),

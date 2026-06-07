@@ -15,11 +15,20 @@ router.get('/', async (req, res) => {
             WHERE DATE(fecha_venta) = CURRENT_DATE
         `);
         
+        // Ventas del mes
+        const ventasMesResult = await pool.query(`
+            SELECT COALESCE(SUM(total), 0) AS total 
+            FROM ventas 
+            WHERE EXTRACT(MONTH FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
+        `);
+
         // Compras del mes
         const comprasResult = await pool.query(`
             SELECT COALESCE(SUM(total), 0) AS total 
             FROM compras 
-            WHERE EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM CURRENT_DATE)
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_DATE)
         `);
 
         // Total de Proveedores
@@ -37,6 +46,7 @@ router.get('/', async (req, res) => {
         // Enviamos todo al Frontend
         res.json({
             ventasDia: parseFloat(ventasResult.rows[0].total).toFixed(2),
+            ventasMes: parseFloat(ventasMesResult.rows[0].total).toFixed(2),
             comprasMes: parseFloat(comprasResult.rows[0].total).toFixed(2),
             proveedores: proveedoresResult.rows[0].total,
             productos: productosResult.rows[0].total

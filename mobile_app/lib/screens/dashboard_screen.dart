@@ -38,7 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (kpisRes.statusCode == 200) {
         final data = jsonDecode(kpisRes.body);
         _ventasDia = data['ventasDia']?.toString() ?? '0.00';
-        _ventasMes = data['comprasMes']?.toString() ?? '0.00';
+        _ventasMes = data['ventasMes']?.toString() ?? '0.00';
         _totalProductos = int.tryParse(data['productos']?.toString() ?? '0') ?? 0;
         _totalProveedores = int.tryParse(data['proveedores']?.toString() ?? '0') ?? 0;
       }
