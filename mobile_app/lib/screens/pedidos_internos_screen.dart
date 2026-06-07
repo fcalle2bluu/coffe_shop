@@ -34,7 +34,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
 
   // New state variables for WhatsApp & Custom items
   List<dynamic> _administradores = [];
-  String? _selectedAdminPhone;
+  int? _selectedAdminId;
   String _userName = '';
   bool _isCustom = false;
   final _customNameController = TextEditingController();
@@ -120,12 +120,13 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
             final isAdm = rol == 'ADMIN' || rol == 'ADMINISTRADOR';
             final isActivo = u['activo'] == true;
             final tel = (u['telefono'] ?? '').toString().trim();
-            return isAdm && isActivo && tel.isNotEmpty;
+            final hasId = u['id'] != null;
+            return isAdm && isActivo && tel.isNotEmpty && hasId;
           }).toList();
           if (_administradores.isNotEmpty) {
-            _selectedAdminPhone = _administradores.first['telefono']?.toString();
+            _selectedAdminId = int.tryParse(_administradores.first['id']?.toString() ?? '');
           } else {
-            _selectedAdminPhone = '';
+            _selectedAdminId = null;
           }
         });
       }
@@ -228,20 +229,29 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
 
       if (res.statusCode == 201) {
         // Redirigir a WhatsApp si se seleccionó un administrador
-        if (_selectedAdminPhone != null && _selectedAdminPhone!.trim().isNotEmpty) {
-          final adminPhone = _formatWhatsAppPhone(_selectedAdminPhone!);
-          final notesStr = notas.isNotEmpty ? '\n*Notas:* $notas' : '';
-          final text = '*Nuevo Pedido Interno* ☕\n\n'
-              'Hola, he registrado un requerimiento de compra:\n'
-              '• *Insumo:* $insumoNombre\n'
-              '• *Cantidad:* $qty $unit\n'
-              '• *Solicitado por:* $_userName$notesStr';
+        if (_selectedAdminId != null) {
+          final matchedAdmin = _administradores.firstWhere(
+            (element) => int.tryParse(element['id']?.toString() ?? '') == _selectedAdminId,
+            orElse: () => null,
+          );
+          if (matchedAdmin != null && matchedAdmin['telefono'] != null) {
+            final telStr = matchedAdmin['telefono'].toString().trim();
+            if (telStr.isNotEmpty) {
+              final adminPhone = _formatWhatsAppPhone(telStr);
+              final notesStr = notas.isNotEmpty ? '\n*Notas:* $notas' : '';
+              final text = '*Nuevo Pedido Interno* ☕\n\n'
+                  'Hola, he registrado un requerimiento de compra:\n'
+                  '• *Insumo:* $insumoNombre\n'
+                  '• *Cantidad:* $qty $unit\n'
+                  '• *Solicitado por:* $_userName$notesStr';
 
-          final url = Uri.parse('https://wa.me/$adminPhone?text=${Uri.encodeComponent(text)}');
-          try {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-          } catch (e) {
-            print('Error al abrir WhatsApp: $e');
+              final url = Uri.parse('https://wa.me/$adminPhone?text=${Uri.encodeComponent(text)}');
+              try {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } catch (e) {
+                print('Error al abrir WhatsApp: $e');
+              }
+            }
           }
         }
 
@@ -401,9 +411,9 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
     _isCustom = false;
 
     if (_administradores.isNotEmpty) {
-      _selectedAdminPhone = _administradores.first['telefono']?.toString();
+      _selectedAdminId = int.tryParse(_administradores.first['id']?.toString() ?? '');
     } else {
-      _selectedAdminPhone = '';
+      _selectedAdminId = null;
     }
 
     showDialog(
@@ -507,24 +517,25 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
               const SizedBox(height: 12),
               
               // Dropdown for WhatsApp notification
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<int?>(
                 isExpanded: true,
-                value: _selectedAdminPhone ?? '',
+                value: _selectedAdminId,
                 decoration: const InputDecoration(
                   labelText: 'Notificar Admin por WhatsApp',
                   labelStyle: TextStyle(fontSize: 16, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
                 ),
                 items: [
-                  const DropdownMenuItem<String>(
-                    value: '',
+                  const DropdownMenuItem<int?>(
+                    value: null,
                     child: Text(
                       '-- No notificar --',
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                   ..._administradores.map((adm) {
-                    return DropdownMenuItem<String>(
-                      value: adm['telefono']?.toString() ?? '',
+                    final adminId = int.tryParse(adm['id']?.toString() ?? '');
+                    return DropdownMenuItem<int?>(
+                      value: adminId,
                       child: Text(
                         '${adm['nombre']} (${adm['telefono']})',
                         style: const TextStyle(fontSize: 16, color: Colors.white),
@@ -535,7 +546,7 @@ class _PedidosInternosScreenState extends State<PedidosInternosScreen> {
                 ],
                 onChanged: (val) {
                   setDialogState(() {
-                    _selectedAdminPhone = val;
+                    _selectedAdminId = val;
                   });
                 },
               ),
