@@ -127,6 +127,10 @@
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
+            if (href.includes('asistencia.html')) {
+                if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
+                else el.style.display = 'flex';
+            }
         });
 
         // Ocultar u mostrar otros elementos marcados como solo-admin en la página si tiene el permiso correspondiente

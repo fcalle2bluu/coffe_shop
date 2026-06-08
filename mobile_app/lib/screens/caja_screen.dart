@@ -26,6 +26,7 @@ class _CajaScreenState extends State<CajaScreen> {
   double _totalGastos = 0.0;
   double _totalConsumeLoNuestro = 0.0;
   List<dynamic> _historialCajas = [];
+  String _rolActual = '';
 
   final _montoInicialController = TextEditingController();
   final _montoFinalController = TextEditingController();
@@ -50,8 +51,10 @@ class _CajaScreenState extends State<CajaScreen> {
   Future<void> _loadCajaStatus() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      _rolActual = prefs.getString('usuario_rol') ?? '';
+
       final res = await ApiConfig.get('/caja/estado');
-      final histRes = await ApiConfig.get('/caja/historial');
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -73,9 +76,16 @@ class _CajaScreenState extends State<CajaScreen> {
         });
       }
 
-      if (histRes.statusCode == 200) {
+      if (_rolActual.toUpperCase() != 'CAJERO') {
+        final histRes = await ApiConfig.get('/caja/historial');
+        if (histRes.statusCode == 200) {
+          setState(() {
+            _historialCajas = jsonDecode(histRes.body);
+          });
+        }
+      } else {
         setState(() {
-          _historialCajas = jsonDecode(histRes.body);
+          _historialCajas = [];
         });
       }
     } catch (e) {
@@ -957,19 +967,21 @@ class _CajaScreenState extends State<CajaScreen> {
           padding: const EdgeInsets.all(16.0),
           children: [
             FadeInSlide(index: 0, child: _buildStateCard()),
-            const SizedBox(height: 24),
-            FadeInSlide(
-              index: 1,
-              child: Row(
-                children: [
-                  const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 14, color: AppTheme.accentColor),
-                  const SizedBox(width: 8),
-                  Text('Historial de Turnos'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.0, color: AppTheme.textMuted)),
-                ],
+            if (_rolActual.toUpperCase() != 'CAJERO') ...[
+              const SizedBox(height: 24),
+              FadeInSlide(
+                index: 1,
+                child: Row(
+                  children: [
+                    const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 14, color: AppTheme.accentColor),
+                    const SizedBox(width: 8),
+                    Text('Historial de Turnos'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.0, color: AppTheme.textMuted)),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            FadeInSlide(index: 2, child: _buildHistoryList()),
+              const SizedBox(height: 12),
+              FadeInSlide(index: 2, child: _buildHistoryList()),
+            ],
           ],
         ),
       ),

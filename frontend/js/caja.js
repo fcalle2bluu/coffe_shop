@@ -4,9 +4,13 @@ let efectivoEsperadoEnCaja = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarEstadoCaja();
-    cargarHistorial();
     
-    if(localStorage.getItem('usuario_rol') === 'ADMIN') {
+    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    if (rolActual !== 'CAJERO') {
+        cargarHistorial();
+    }
+    
+    if (rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR') {
         cargarHistorialVentasAdmin();
     }
 });

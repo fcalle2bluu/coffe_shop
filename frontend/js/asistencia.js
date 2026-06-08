@@ -17,29 +17,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Generar el Token y cargar el Código QR
     inicializarQR();
 
-    // 3. Inicializar los filtros y cargar los datos
-    inicializarFiltros();
-    cargarEmpleados();
-    cargarHistorialAsistencia();
+    const esCajero = rolActual && rolActual.toUpperCase() === 'CAJERO';
 
-    // Registrar manejadores de filtros
-    document.getElementById('filtro-empleado').addEventListener('change', cargarHistorialAsistencia);
-    document.getElementById('filtro-anio').addEventListener('change', cargarHistorialAsistencia);
-    document.getElementById('filtro-mes').addEventListener('change', () => {
-        actualizarDiasDelMes();
+    if (!esCajero) {
+        // 3. Inicializar los filtros y cargar los datos
+        inicializarFiltros();
+        cargarEmpleados();
         cargarHistorialAsistencia();
-    });
-    document.getElementById('filtro-dia').addEventListener('change', cargarHistorialAsistencia);
-    
-    // Inyectar fecha actual en el reporte de impresión
-    document.getElementById('print-fecha-reporte').innerText = `Generado el: ${new Date().toLocaleDateString('es-ES', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-    })}`;
 
-    // Auto-actualizar silenciosamente cada 5 segundos
-    setInterval(() => {
-        cargarHistorialAsistencia(true);
-    }, 5000);
+        // Registrar manejadores de filtros
+        document.getElementById('filtro-empleado').addEventListener('change', cargarHistorialAsistencia);
+        document.getElementById('filtro-anio').addEventListener('change', cargarHistorialAsistencia);
+        document.getElementById('filtro-mes').addEventListener('change', () => {
+            actualizarDiasDelMes();
+            cargarHistorialAsistencia();
+        });
+        document.getElementById('filtro-dia').addEventListener('change', cargarHistorialAsistencia);
+        
+        // Inyectar fecha actual en el reporte de impresión
+        const printFechaReporte = document.getElementById('print-fecha-reporte');
+        if (printFechaReporte) {
+            printFechaReporte.innerText = `Generado el: ${new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+            })}`;
+        }
+
+        // Auto-actualizar silenciosamente cada 5 segundos
+        setInterval(() => {
+            cargarHistorialAsistencia(true);
+        }, 5000);
+    } else {
+        // Ocultar tarjeta de historial de marcaciones
+        const tarjetaHistorial = document.getElementById('tarjeta-historial-asistencia');
+        if (tarjetaHistorial) {
+            tarjetaHistorial.style.display = 'none';
+        }
+        // Expandir tarjeta de código QR a 3 columnas para centrarla elegantemente
+        const tarjetaQR = document.getElementById('tarjeta-qr-asistencia');
+        if (tarjetaQR) {
+            tarjetaQR.className = "lg:col-span-3 bg-white rounded-2xl border border-gray-200/60 shadow-premium p-6 flex flex-col items-center justify-center text-center no-print";
+        }
+    }
 });
 
 // Calcula el token del día en base a la zona horaria de Bolivia (GMT-4) y carga la imagen QR

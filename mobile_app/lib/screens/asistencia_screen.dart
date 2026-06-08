@@ -572,78 +572,79 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
             ),
           ),
 
-          const SizedBox(height: 24),
-
-          // Historial Personal
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Mis Marcaciones Recientes (Últimos 30 días)',
-              style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+          if (_userRol.toUpperCase() != 'CAJERO') ...[
+            const SizedBox(height: 24),
+            // Historial Personal
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Mis Marcaciones Recientes (Últimos 30 días)',
+                style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-          Expanded(
-            child: _historial.isEmpty
-                ? Center(
-                    child: Text(
-                      'No tienes registros de marcaciones.',
-                      style: GoogleFonts.outfit(color: AppTheme.textMuted),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _historial.length,
-                    itemBuilder: (context, index) {
-                      final r = _historial[index];
-                      final hasSalida = r['salida'] != null;
+            Expanded(
+              child: _historial.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No tienes registros de marcaciones.',
+                        style: GoogleFonts.outfit(color: AppTheme.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _historial.length,
+                      itemBuilder: (context, index) {
+                        final r = _historial[index];
+                        final hasSalida = r['salida'] != null;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text(
-                            'Fecha: ${r['fecha']}',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.login, size: 10, color: Colors.greenAccent),
-                                const SizedBox(width: 4),
-                                Text('Entrada: ${r['entrada']}', style: GoogleFonts.outfit(fontSize: 11)),
-                                const SizedBox(width: 14),
-                                Icon(Icons.logout, size: 10, color: hasSalida ? Colors.redAccent : Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Salida: ${hasSalida ? r['salida'] : 'Pendiente'}',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 11,
-                                    color: hasSalida ? AppTheme.textLight : Colors.greenAccent,
-                                    fontWeight: hasSalida ? FontWeight.normal : FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            title: Text(
+                              'Fecha: ${r['fecha']}',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
-                          ),
-                          trailing: r['horas_trabajadas'] != null
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${double.parse(r['horas_trabajadas'].toString()).toStringAsFixed(2)} hrs',
-                                      style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: AppTheme.accentColor, fontSize: 12),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.login, size: 10, color: Colors.greenAccent),
+                                  const SizedBox(width: 4),
+                                  Text('Entrada: ${r['entrada']}', style: GoogleFonts.outfit(fontSize: 11)),
+                                  const SizedBox(width: 14),
+                                  Icon(Icons.logout, size: 10, color: hasSalida ? Colors.redAccent : Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Salida: ${hasSalida ? r['salida'] : 'Pendiente'}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 11,
+                                      color: hasSalida ? AppTheme.textLight : Colors.greenAccent,
+                                      fontWeight: hasSalida ? FontWeight.normal : FontWeight.bold,
                                     ),
-                                    Text('Trabajado', style: GoogleFonts.outfit(fontSize: 8, color: AppTheme.textMuted)),
-                                  ],
-                                )
-                              : const Icon(Icons.lock_clock, size: 18, color: Colors.grey),
-                        ),
-                      );
-                    },
-                  ),
-          ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            trailing: r['horas_trabajadas'] != null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${double.parse(r['horas_trabajadas'].toString()).toStringAsFixed(2)} hrs',
+                                        style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: AppTheme.accentColor, fontSize: 12),
+                                      ),
+                                      Text('Trabajado', style: GoogleFonts.outfit(fontSize: 8, color: AppTheme.textMuted)),
+                                    ],
+                                  )
+                                : const Icon(Icons.lock_clock, size: 18, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ],
       ),
     );
