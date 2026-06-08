@@ -233,4 +233,37 @@ router.get('/gastos/:caja_id', async (req, res) => {
     }
 });
 
+// 8. Modificar método de pago de una venta (Solo Administradores)
+router.put('/ventas/:id/metodo-pago', async (req, res) => {
+    const { id } = req.params;
+    const { metodo_pago, editor_rol } = req.body;
+
+    // Validar rol de administrador
+    if (editor_rol !== 'ADMINISTRADOR' && editor_rol !== 'ADMIN') {
+        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden modificar los métodos de pago de ventas.' });
+    }
+
+    if (!metodo_pago) {
+        return res.status(400).json({ error: 'Falta el método de pago.' });
+    }
+
+    // Normalizar el método de pago
+    const metodoNormalizado = metodo_pago.toUpperCase();
+    const metodosPermitidos = ['EFECTIVO', 'QR', 'TARJETA', 'CONSUME LO NUESTRO'];
+    if (!metodosPermitidos.includes(metodoNormalizado)) {
+        return res.status(400).json({ error: 'Método de pago no válido.' });
+    }
+
+    try {
+        await pool.query(
+            'UPDATE ventas SET metodo_pago = $1 WHERE id = $2',
+            [metodoNormalizado, id]
+        );
+        res.json({ success: true, mensaje: 'Método de pago de venta actualizado con éxito.' });
+    } catch (error) {
+        console.error('Error al actualizar método de pago de venta:', error);
+        res.status(500).json({ error: 'Error al actualizar el método de pago en el servidor.' });
+    }
+});
+
 module.exports = router;

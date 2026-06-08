@@ -344,17 +344,41 @@ async function cargarHistorialVentasAdmin() {
                                 <tbody>
                 `;
                 
+                const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+                const esAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
+
                 dataCajero.lista.forEach(venta => {
                     const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
                                        (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
                                        (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
                                        '<i class="fa-solid fa-credit-card text-purple-600 mr-1"></i>';
 
+                    let tdMetodoPago = '';
+                    if (esAdmin) {
+                        tdMetodoPago = `
+                            <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">
+                                <div class="flex items-center gap-1.5">
+                                    ${iconMetodo}
+                                    <select onchange="actualizarMetodoPago(${venta.venta_id}, this.value)" class="bg-transparent text-stone-700 font-black border-none outline-none cursor-pointer focus:ring-0 text-[10px] uppercase py-0.5">
+                                        <option value="EFECTIVO" ${venta.metodo_pago === 'EFECTIVO' ? 'selected' : ''}>EFECTIVO</option>
+                                        <option value="QR" ${['QR', 'QR DIGITAL'].includes(venta.metodo_pago) ? 'selected' : ''}>QR</option>
+                                        <option value="TARJETA" ${['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(venta.metodo_pago) ? 'selected' : ''}>TARJETA</option>
+                                        <option value="CONSUME LO NUESTRO" ${['CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(venta.metodo_pago) ? 'selected' : ''}>CONSUME LO NUESTRO</option>
+                                    </select>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        tdMetodoPago = `
+                            <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${iconMetodo} ${venta.metodo_pago}</td>
+                        `;
+                    }
+
                     htmlMes += `
                                     <tr class="border-b border-gray-100 hover:bg-orange-50 transition-colors">
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
-                                        <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${iconMetodo} ${venta.metodo_pago}</td>
+                                        ${tdMetodoPago}
                                         <td class="px-4 py-1.5 text-right font-black text-stone-900">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
                                     </tr>
                     `;
@@ -493,5 +517,30 @@ function cambiarPestana(tabId) {
             inactiveClasses.forEach(cls => btnAuditoria.classList.remove(cls));
             activeClasses.forEach(cls => btnAuditoria.classList.add(cls));
         }
+    }
+}
+
+async function actualizarMetodoPago(ventaId, nuevoMetodo) {
+    const editor_rol = localStorage.getItem('usuario_rol');
+    try {
+        const res = await fetch(`/api/caja/ventas/${ventaId}/metodo-pago`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                metodo_pago: nuevoMetodo,
+                editor_rol: editor_rol
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al cambiar método de pago');
+
+        // Recargar vistas para refrescar totales y estados
+        cargarHistorialVentasAdmin();
+        cargarEstadoCaja();
+        cargarHistorial();
+    } catch (error) {
+        alert("Error al actualizar método de pago: " + error.message);
+        cargarHistorialVentasAdmin();
     }
 }
