@@ -83,9 +83,60 @@ router.get('/stats-avanzadas', async (req, res) => {
             ORDER BY hora ASC
         `);
 
+        // 3. Rendimiento Mensual (Ventas vs Compras/Gastos de los últimos 6 meses)
+        const rendimientoResult = await pool.query(`
+            SELECT 
+                EXTRACT(MONTH FROM m.month) AS mes,
+                EXTRACT(YEAR FROM m.month) AS anio,
+                COALESCE(v.total, 0) AS ventas,
+                COALESCE(c.total, 0) AS compras,
+                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos
+            FROM (
+                SELECT generate_series(
+                    CURRENT_DATE - INTERVAL '6 months',
+                    CURRENT_DATE,
+                    INTERVAL '1 month'
+                )::date AS month
+            ) m
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM fecha_venta) AS mes, 
+                    EXTRACT(YEAR FROM fecha_venta) AS anio,
+                    SUM(total) AS total
+                FROM ventas
+                GROUP BY mes, anio
+            ) v ON EXTRACT(MONTH FROM m.month) = v.mes AND EXTRACT(YEAR FROM m.month) = v.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM fecha) AS mes, 
+                    EXTRACT(YEAR FROM fecha) AS anio,
+                    SUM(total) AS total
+                FROM compras
+                GROUP BY mes, anio
+            ) c ON EXTRACT(MONTH FROM m.month) = c.mes AND EXTRACT(YEAR FROM m.month) = c.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM fecha) AS mes, 
+                    EXTRACT(YEAR FROM fecha) AS anio,
+                    SUM(monto) AS total
+                FROM gastos_caja
+                GROUP BY mes, anio
+            ) g_caja ON EXTRACT(MONTH FROM m.month) = g_caja.mes AND EXTRACT(YEAR FROM m.month) = g_caja.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM fecha) AS mes, 
+                    EXTRACT(YEAR FROM fecha) AS anio,
+                    SUM(monto) AS total
+                FROM gastos_generales
+                GROUP BY mes, anio
+            ) g_gen ON EXTRACT(MONTH FROM m.month) = g_gen.mes AND EXTRACT(YEAR FROM m.month) = g_gen.anio
+            ORDER BY anio ASC, mes ASC
+        `);
+
         res.json({
             bcg: bcgResult.rows,
-            horas: horasResult.rows
+            horas: horasResult.rows,
+            rendimiento: rendimientoResult.rows
         });
 
     } catch (error) {

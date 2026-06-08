@@ -304,7 +304,6 @@
             } else {
                 cargarIndicadoresBase();
                 cargarGraficosAvanzados();
-                renderGraficoRendimiento();
                 cargarTopProductos();
                 cargarKpisGerenciales();
             }
@@ -392,16 +391,16 @@
                         datasets: [{
                             data: values,
                             backgroundColor: [
-                                '#f97316',
-                                '#f97316cc',
-                                '#ea580c',
-                                '#ea580ccc',
-                                '#fb923c',
-                                '#fdba74',
-                                '#fed7aa',
-                                '#ffedd5',
-                                '#94a3b8',
-                                '#cbd5e1'
+                                '#0d9488', // Teal
+                                '#4f46e5', // Indigo
+                                '#f97316', // Orange
+                                '#0284c7', // Sky Blue
+                                '#e11d48', // Rose
+                                '#7c3aed', // Purple
+                                '#d97706', // Amber
+                                '#db2777', // Pink
+                                '#06b6d4', // Cyan
+                                '#84cc16'  // Lime
                             ],
                             borderWidth: 1
                         }]
@@ -447,6 +446,7 @@
                 dataHorasRaw = data.horas;
                 renderBCG(data.bcg);
                 renderHoras(data.horas);
+                renderGraficoRendimiento(data.rendimiento);
             } catch (e) { console.error("Error Stats", e); }
         }
 
@@ -532,19 +532,83 @@
             chartHorasInst.update();
         }
 
-        function renderGraficoRendimiento() {
+        function renderGraficoRendimiento(rendimiento) {
+            if (!rendimiento || !Array.isArray(rendimiento)) return;
+
+            const mesNombres = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            
+            // Mapear los datos de la base de datos
+            const labels = rendimiento.map(r => `${mesNombres[parseInt(r.mes)]} ${r.anio}`);
+            const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
+            const comprasData = rendimiento.map(r => (parseFloat(r.compras) || 0) + (parseFloat(r.gastos) || 0)); // Compras + Gastos = Total Egresos
+            const beneficioData = rendimiento.map(r => {
+                const v = parseFloat(r.ventas) || 0;
+                const c = parseFloat(r.compras) || 0;
+                const g = parseFloat(r.gastos) || 0;
+                return v - (c + g);
+            });
+
             const ctx = document.getElementById('miGrafico').getContext('2d');
             new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
-                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'],
+                    labels: labels,
                     datasets: [
-                        { type: 'line', label: 'Beneficio', data: [400, 400, 1000, 700, 2000, 1600, 2700], borderColor: '#22c55e', fill: false },
-                        { type: 'bar', label: 'Ventas', data: [1200, 1900, 3000, 2500, 3200, 4100, 4800], backgroundColor: '#ea580c' },
-                        { type: 'bar', label: 'Compras', data: [800, 1500, 2000, 1800, 1200, 2500, 2100], backgroundColor: '#f97316' }
+                        { 
+                            label: 'Ingresos (Ventas)', 
+                            data: ventasData, 
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                            fill: true, 
+                            tension: 0.4 
+                        },
+                        { 
+                            label: 'Egresos (Compras + Gastos)', 
+                            data: comprasData, 
+                            borderColor: '#ef4444', 
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                            fill: true, 
+                            tension: 0.4 
+                        },
+                        { 
+                            label: 'Beneficio Neto', 
+                            data: beneficioData, 
+                            borderColor: '#3b82f6', 
+                            backgroundColor: 'transparent', 
+                            fill: false, 
+                            tension: 0.4,
+                            borderWidth: 3,
+                            borderDash: [5, 5]
+                        }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10, weight: 'bold' }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) { return 'Bs. ' + value; }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10, weight: 'bold' }
+                            }
+                        }
+                    }
+                }
             });
         }
 
