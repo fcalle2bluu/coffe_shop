@@ -6,8 +6,38 @@ const pool = require('../config/conexion');
 // GET /api/comandas/debug-db
 router.get('/debug-db', async (req, res) => {
     try {
-        const result = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'comandas'");
-        res.json(result.rows);
+        const searchPath = await pool.query("SHOW search_path");
+        const cols = await pool.query(`
+            SELECT table_schema, table_name, column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'comandas'
+        `);
+        
+        let selectErr = null;
+        let selectResult = null;
+        try {
+            const sel = await pool.query("SELECT * FROM comandas LIMIT 1");
+            selectResult = sel.rows;
+        } catch (e) {
+            selectErr = e.message;
+        }
+
+        // Intentar agregar la columna por si acaso no está en el schema correcto
+        let alterResult = null;
+        try {
+            await pool.query("ALTER TABLE comandas ADD COLUMN IF NOT EXISTS estado VARCHAR(50) DEFAULT 'CREADA'");
+            alterResult = "ALTER TABLE succeeded";
+        } catch (e) {
+            alterResult = "ALTER TABLE failed: " + e.message;
+        }
+
+        res.json({
+            searchPath: searchPath.rows,
+            columns: cols.rows,
+            selectResult,
+            selectErr,
+            alterResult
+        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
