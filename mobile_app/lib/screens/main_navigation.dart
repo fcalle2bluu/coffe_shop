@@ -22,6 +22,7 @@ import 'ia_assistant_screen.dart';
 import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
 import 'venta_mesa_screen.dart';
+import 'recetas_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -424,6 +425,15 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
         'icon': FontAwesomeIcons.boxesStacked,
       });
       _screens.add(const StockScreen());
+    }
+
+    // 3.5. Recetas (Visible para Admins, Cajeros y Meseros)
+    if (_isAdmin || _userRol == 'CAJERO' || _userRol == 'MESERO') {
+      _menuItems.add({
+        'title': 'Recetas',
+        'icon': FontAwesomeIcons.bookOpen,
+      });
+      _screens.add(const RecetasScreen());
     }
 
     // 4. Compras (Admin o con permiso)

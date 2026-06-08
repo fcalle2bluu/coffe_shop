@@ -48,6 +48,8 @@
         let hasAccess = true;
         if (pageName.includes('almacen_stock.html') || pageName.includes('almacen_movimientos.html')) {
             hasAccess = localStorage.getItem('perm_stock') === 'true';
+        } else if (pageName.includes('recetas.html')) {
+            hasAccess = localStorage.getItem('perm_stock') === 'true' || localStorage.getItem('perm_auditoria') === 'true';
         } else if (pageName.includes('compras.html') || pageName.includes('compras_reporte.html')) {
             hasAccess = localStorage.getItem('perm_compras') === 'true';
         } else if (pageName.includes('proveedores.html')) {
@@ -77,6 +79,12 @@
                 if (parentLi) parentLi.style.display = 'none';
                 else el.style.display = 'none';
                 return;
+            }
+
+            if (href.includes('recetas.html')) {
+                const hasPerm = localStorage.getItem('perm_stock') === 'true' || localStorage.getItem('perm_auditoria') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
 
             if (href.includes('almacen_stock.html')) {

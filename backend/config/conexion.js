@@ -343,6 +343,628 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Actualización Teléfono Admin:', telErr.message);
     }
 
+    // 8. Crear tablas de Recetas e Ingredientes de Recetas
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS recetas (
+                id SERIAL PRIMARY KEY,
+                producto_id INT REFERENCES productos(id) ON DELETE SET NULL,
+                nombre VARCHAR(255) UNIQUE NOT NULL,
+                preparacion TEXT,
+                porciones VARCHAR(100)
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ingrediente_recetas (
+                id SERIAL PRIMARY KEY,
+                receta_id INT REFERENCES recetas(id) ON DELETE CASCADE,
+                insumo_id INT REFERENCES insumos(id) ON DELETE SET NULL,
+                nombre_ingrediente VARCHAR(255) NOT NULL,
+                cantidad NUMERIC(10, 2) NOT NULL,
+                unidad_medida VARCHAR(50) NOT NULL
+            );
+        `);
+        console.log('✅ Tablas recetas e ingrediente_recetas creadas/verificadas.');
+    } catch (recetaSchemaErr) {
+        console.log('Info Tabla Recetas Schema:', recetaSchemaErr.message);
+    }
+
+    // 9. Sembrar productos de coctelería faltantes
+    try {
+        const cocteles = [
+            { nombre: 'Mojito', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Sex on the beach', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Chuflay', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Te con te', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Sucumbe', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Laguna azul', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Luz de luna', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Coquito spring', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Illimani', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
+            { nombre: 'Bailey de café', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' }
+        ];
+        for (const c of cocteles) {
+            const check = await pool.query('SELECT id FROM productos WHERE LOWER(nombre) = LOWER($1)', [c.nombre]);
+            if (check.rows.length === 0) {
+                await pool.query('INSERT INTO productos (nombre, precio, categoria, activo) VALUES ($1, $2, $3, true)', [c.nombre, c.precio, c.categoria]);
+                console.log(`🍹 Producto de coctelería creado: ${c.nombre}`);
+            }
+        }
+    } catch (coctelErr) {
+        console.log('Error al sembrar cocteles:', coctelErr.message);
+    }
+
+    // 10. Sembrar insumos necesarios faltantes
+    try {
+        const insumosToSeed = [
+            { nombre: 'Cocoa', unidad: 'Kg' },
+            { nombre: 'Polvo de hornear', unidad: 'Kg' },
+            { nombre: 'Sal', unidad: 'Kg' },
+            { nombre: 'Leche entera', unidad: 'Litro' },
+            { nombre: 'Esencia de frutilla', unidad: 'Litro' },
+            { nombre: 'Colorante red velvet', unidad: 'Litro' },
+            { nombre: 'Crema de leche', unidad: 'Litro' },
+            { nombre: 'Queso crema', unidad: 'Kg' },
+            { nombre: 'Mantequilla', unidad: 'Kg' },
+            { nombre: 'Caramelina', unidad: 'Kg' },
+            { nombre: 'Manjar', unidad: 'Kg' },
+            { nombre: 'Chocolate cobertura', unidad: 'Kg' },
+            { nombre: 'Cereza en almíbar', unidad: 'Kg' },
+            { nombre: 'Esencia de vainilla', unidad: 'Litro' },
+            { nombre: 'Café en grano', unidad: 'Kg' },
+            { nombre: 'Mermelada', unidad: 'Kg' },
+            { nombre: 'Canela', unidad: 'Kg' },
+            { nombre: 'Nuez moscada molida', unidad: 'Kg' },
+            { nombre: 'Almendra triturada', unidad: 'Kg' },
+            { nombre: 'Azúcar morena', unidad: 'Kg' },
+            { nombre: 'Aceite', unidad: 'Litro' },
+            { nombre: 'Zanahoria rallada', unidad: 'Kg' },
+            { nombre: 'Bicarbonato', unidad: 'Kg' },
+            { nombre: 'Vinagre blanco', unidad: 'Litro' },
+            { nombre: 'Limon', unidad: 'Kg' },
+            { nombre: 'Arándanos', unidad: 'Kg' },
+            { nombre: 'Azucar Impalpable', unidad: 'Kg' },
+            { nombre: 'Galletas de oreo', unidad: 'unidades' },
+            { nombre: 'Leche condensada', unidad: 'unidades' },
+            { nombre: 'Leche evaporada', unidad: 'unidades' },
+            { nombre: 'Fécula de yuca', unidad: 'Kg' },
+            { nombre: 'Queso chaqueño', unidad: 'Kg' },
+            { nombre: 'Queso criollo', unidad: 'Kg' },
+            { nombre: 'Galletas maría', unidad: 'Kg' },
+            { nombre: 'Gelatina sin sabor', unidad: 'Kg' },
+            { nombre: 'Maracuyá (extracto)', unidad: 'Litro' },
+            { nombre: 'Maracuyá con semilla', unidad: 'unidades' },
+            { nombre: 'Levadura', unidad: 'Kg' },
+            { nombre: 'Agua', unidad: 'Litro' },
+            { nombre: 'Hielo', unidad: 'unidades' },
+            { nombre: 'Vodka', unidad: 'Botella' },
+            { nombre: 'Hierba buena', unidad: 'unidades' },
+            { nombre: 'Almibar', unidad: 'Litro' },
+            { nombre: 'Jarry limonero', unidad: 'Litro' },
+            { nombre: 'Granadina', unidad: 'Botella' },
+            { nombre: 'Jugo de naranja', unidad: 'Litro' },
+            { nombre: 'Ginger ale', unidad: 'Botella' },
+            { nombre: 'Sultana', unidad: 'Kg' },
+            { nombre: 'Blue curacao', unidad: 'Botella' },
+            { nombre: 'Menta Tres Plumas', unidad: 'Botella' },
+            { nombre: 'Ron blanco', unidad: 'Botella' },
+            { nombre: 'Baileys', unidad: 'Botella' }
+        ];
+
+        for (const ins of insumosToSeed) {
+            const check = await pool.query('SELECT id FROM insumos WHERE LOWER(nombre) = LOWER($1)', [ins.nombre]);
+            if (check.rows.length === 0) {
+                await pool.query('INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo, activo) VALUES ($1, $2, 0.00, 5.00, true)', [ins.nombre, ins.unidad]);
+                console.log(`📦 Insumo creado: ${ins.nombre} (${ins.unidad})`);
+            }
+        }
+    } catch (insumoErr) {
+        console.log('Error al sembrar insumos:', insumoErr.message);
+    }
+
+    // 11. Sembrar recetas y sus ingredientes
+    try {
+        const checkCount = await pool.query('SELECT COUNT(*) FROM recetas');
+        if (parseInt(checkCount.rows[0].count) === 0) {
+            console.log('📖 Sembrando recetas de productos y cócteles...');
+            const recetasData = [
+                {
+                    nombre: 'Torta Red velvet',
+                    productoNombre: 'Porcion de torta de Red Velvet',
+                    productoNombreAlt: 'Torta Entera Red Velvet',
+                    preparacion: 'Biscocho: Mezclar harina, cocoa, polvo de hornear y sal. Batir huevos, azúcar y agregar leche, colorante red velvet y esencia de frutilla. Incorporar secos y hornear a 180°C. Relleno y Cobertura: Batir queso crema, crema de leche (animal y vegetal) y azúcar.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 400, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Cocoa', cantidad: 2, unidad: 'cucharadas', insumoNombre: 'Cocoa' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 240, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Esencia de frutilla', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Esencia de frutilla' },
+                        { nombre: 'Colorante red velvet', cantidad: 10, unidad: 'ml.', insumoNombre: 'Colorante red velvet' },
+                        { nombre: 'Queso crema', cantidad: 200, unidad: 'gr.', insumoNombre: 'Queso crema' },
+                        { nombre: 'Crema de leche (animal)', cantidad: 200, unidad: 'ml.', insumoNombre: 'Crema de leche' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de chocolate',
+                    productoNombre: 'Porción de Torta Chocolate',
+                    productoNombreAlt: 'Torta Entera Chocolate',
+                    preparacion: 'Biscocho: Mezclar secos. Batir huevos con azúcar, agregar leche y caramelina. Incorporar secos y hornear. Ganash: Derretir chocolate cobertura con crema de leche animal y mantequilla.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 350, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Cocoa', cantidad: 4, unidad: 'cucharadas', insumoNombre: 'Cocoa' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 300, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Caramelina', cantidad: 30, unidad: 'gr.', insumoNombre: 'Caramelina' },
+                        { nombre: 'Chocolate cobertura', cantidad: 1000, unidad: 'gr.', insumoNombre: 'Chocolate cobertura' },
+                        { nombre: 'Crema de leche (animal)', cantidad: 1500, unidad: 'ml.', insumoNombre: 'Crema de leche' },
+                        { nombre: 'Mantequilla', cantidad: 100, unidad: 'gr.', insumoNombre: 'Mantequilla' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de vainilla',
+                    productoNombre: 'Mini Torta',
+                    productoNombreAlt: null,
+                    preparacion: 'Mezclar harina, polvo de hornear y sal. Batir huevos, azúcar y esencia de vainilla. Agregar leche e incorporar harina. Hornear.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 400, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 240, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Esencia de vainilla', cantidad: 2, unidad: 'cucharaditas', insumoNombre: 'Esencia de vainilla' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de moka',
+                    productoNombre: 'Porcion de Torta de Moka',
+                    productoNombreAlt: 'Torta Entera Moka',
+                    preparacion: 'Mezclar harina, polvo de hornear y sal. Batir huevos, azúcar, agregar café destilado y leche. Incorporar secos y hornear.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 400, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 240, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Café destilado', cantidad: 60, unidad: 'gr.', insumoNombre: 'Café en grano' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de frutilla',
+                    productoNombre: 'Porcion de Torta de Frutilla',
+                    productoNombreAlt: null,
+                    preparacion: 'Batir los huevos con azúcar y esencia de frutilla. Incorporar leche y harina con polvo de hornear. Hornear. Rellenar con mermelada de frutilla y crema batida.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 400, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 240, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Esencia de frutilla', cantidad: 2, unidad: 'cucharaditas', insumoNombre: 'Esencia de frutilla' },
+                        { nombre: 'Mermelada de frutilla', cantidad: 150, unidad: 'gr.', insumoNombre: 'Mermelada' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de zanahoria',
+                    productoNombre: 'Porcion de Torta de Zanahoria',
+                    productoNombreAlt: 'Torta Entera Zanahoria',
+                    preparacion: 'Mezclar harina, polvo de hornear, sal, canela, nuez moscada y almendras trituradas. Batir huevos con azúcar morena, agregar aceite y zanahoria rallada. Unir todo y hornear. Relleno: Batir queso crema y crema de leche.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 200, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 2, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 0.5, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Canela molida', cantidad: 2, unidad: 'cucharaditas', insumoNombre: 'Canela' },
+                        { nombre: 'Nuez moscada molida', cantidad: 0.25, unidad: 'cucharadita', insumoNombre: 'Nuez moscada molida' },
+                        { nombre: 'Almendra triturada', cantidad: 35, unidad: 'gr.', insumoNombre: 'Almendra triturada' },
+                        { nombre: 'Azúcar morena', cantidad: 150, unidad: 'gr.', insumoNombre: 'Azúcar morena' },
+                        { nombre: 'Aceite', cantidad: 200, unidad: 'ml.', insumoNombre: 'Aceite' },
+                        { nombre: 'Huevo', cantidad: 3, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Zanahoria rallada', cantidad: 250, unidad: 'gr.', insumoNombre: 'Zanahoria rallada' },
+                        { nombre: 'Queso crema', cantidad: 1, unidad: 'bote', insumoNombre: 'Queso crema' },
+                        { nombre: 'Crema de leche', cantidad: 500, unidad: 'ml.', insumoNombre: 'Crema de leche' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de arándano',
+                    productoNombre: 'Porcion de Torta Arandanos',
+                    productoNombreAlt: 'Torta Entera Arándano',
+                    preparacion: 'Mezclar harina, bicarbonato y sal. Batir aceite, azúcar y huevos. Incorporar leche entera, vinagre, vainilla, ralladura de limón y arándanos. Hornear. Cobertura: Batir mantequilla con azúcar impalpable.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 300, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Bicarbonato', cantidad: 6, unidad: 'gr.', insumoNombre: 'Bicarbonato' },
+                        { nombre: 'Vinagre blanco', cantidad: 20, unidad: 'gr.', insumoNombre: 'Vinagre blanco' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'pizca', insumoNombre: 'Sal' },
+                        { nombre: 'Leche entera', cantidad: 250, unidad: 'ml.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Esencia de vainilla', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Esencia de vainilla' },
+                        { nombre: 'Ralladura de limón', cantidad: 5, unidad: 'unidades', insumoNombre: 'Limon' },
+                        { nombre: 'Aceite', cantidad: 120, unidad: 'ml.', insumoNombre: 'Aceite' },
+                        { nombre: 'Arándanos', cantidad: 200, unidad: 'gr.', insumoNombre: 'Arándanos' },
+                        { nombre: 'Azúcar', cantidad: 250, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Huevo', cantidad: 3, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Mantequilla regia', cantidad: 200, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Azúcar en polvo', cantidad: 200, unidad: 'gr.', insumoNombre: 'Azucar Impalpable' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de oreo',
+                    productoNombre: 'Porción de Torta Chocolate',
+                    productoNombreAlt: null,
+                    preparacion: 'Preparar bizcocho de chocolate. Rellenar y cubrir con crema de oreo y decorar con galletas oreo.',
+                    porciones: '12 y 20 personas',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 350, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Cocoa', cantidad: 4, unidad: 'cucharadas', insumoNombre: 'Cocoa' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 300, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Caramelina', cantidad: 40, unidad: 'gr.', insumoNombre: 'Caramelina' },
+                        { nombre: 'Galletas de oreo', cantidad: 8, unidad: 'unidades', insumoNombre: 'Galletas de oreo' }
+                    ]
+                },
+                {
+                    nombre: 'Torta de 3 leches',
+                    productoNombre: 'Porcion de Torta de Tres Leches',
+                    productoNombreAlt: 'Torta Entera 3 leches',
+                    preparacion: 'Bizcocho: Batir huevos con azúcar y vainilla. Agregar leche e incorporar harina y hornear. Humedecer: Mezclar leche condensada, leche evaporada y leche entera. Bañar el bizcocho.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 400, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 4, unidad: 'cucharaditas', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 10, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 1240, unidad: 'ml.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 300, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Esencia de vainilla', cantidad: 2, unidad: 'cucharaditas', insumoNombre: 'Esencia de vainilla' },
+                        { nombre: 'Leche condensada', cantidad: 0.5, unidad: 'unidades', insumoNombre: 'Leche condensada' },
+                        { nombre: 'Leche evaporada', cantidad: 0.5, unidad: 'unidades', insumoNombre: 'Leche evaporada' }
+                    ]
+                },
+                {
+                    nombre: 'Muffin',
+                    productoNombre: 'Galleta',
+                    productoNombreAlt: null,
+                    preparacion: 'Batir mantequilla con azúcar. Añadir huevos y batir bien. Agregar harina tamizada con polvo de hornear, crema de leche y esencia de vainilla. Hornear en pirotines.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 250, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 15, unidad: 'gr.', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'pizca', insumoNombre: 'Sal' },
+                        { nombre: 'Azúcar', cantidad: 100, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Huevo', cantidad: 4, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Mantequilla', cantidad: 100, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Crema de leche', cantidad: 200, unidad: 'ml.', insumoNombre: 'Crema de leche' },
+                        { nombre: 'Esencia de vainilla', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Esencia de vainilla' }
+                    ]
+                },
+                {
+                    nombre: 'Cheescake de maracuyá',
+                    productoNombre: 'Chescake de Maracuya',
+                    productoNombreAlt: 'Torta Entera Maracuya',
+                    preparacion: 'Base: Mezclar galletas María trituradas con mantequilla. Relleno: Batir crema de leche, queso crema y leche condensada. Incorporar gelatina hidratada y extracto de maracuyá. Enmoldar y refrigerar. Cobertura: Decorar con maracuyá con semilla.',
+                    porciones: 'Pequeño y grande',
+                    ingredientes: [
+                        { nombre: 'Galletas maría', cantidad: 300, unidad: 'gr.', insumoNombre: 'Galletas maría' },
+                        { nombre: 'Mantequilla', cantidad: 200, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Crema de leche', cantidad: 350, unidad: 'ml.', insumoNombre: 'Crema de leche' },
+                        { nombre: 'Queso crema', cantidad: 1, unidad: 'bote', insumoNombre: 'Queso crema' },
+                        { nombre: 'Leche condensada', cantidad: 1, unidad: 'caja', insumoNombre: 'Leche condensada' },
+                        { nombre: 'Gelatina sin sabor', cantidad: 150, unidad: 'gr.', insumoNombre: 'Gelatina sin sabor' },
+                        { nombre: 'Maracuyá (extracto)', cantidad: 150, unidad: 'gr.', insumoNombre: 'Maracuyá (extracto)' },
+                        { nombre: 'Maracuyá con semilla', cantidad: 3, unidad: 'unidades', insumoNombre: 'Maracuyá con semilla' },
+                        { nombre: 'Azúcar', cantidad: 150, unidad: 'gr.', insumoNombre: 'Azucar Blanca' }
+                    ]
+                },
+                {
+                    nombre: 'Pie de limón',
+                    productoNombre: 'Pie de Limon',
+                    productoNombreAlt: null,
+                    preparacion: 'Masa: Mezclar mantequilla regia, azúcar impalpable, harina de trigo y huevos. Forrar el molde. Relleno: Batir leche condensada con zumo de limón, verter sobre la masa. Decorar con merengue y tiras de limón.',
+                    porciones: 'Preparación entera',
+                    ingredientes: [
+                        { nombre: 'Mantequilla regia', cantidad: 800, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Azúcar impalpable', cantidad: 500, unidad: 'gr.', insumoNombre: 'Azucar Impalpable' },
+                        { nombre: 'Harina de trigo', cantidad: 1250, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Huevo', cantidad: 3, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche condensada', cantidad: 1, unidad: 'caja', insumoNombre: 'Leche condensada' },
+                        { nombre: 'Zumo de limón', cantidad: 150, unidad: 'ml.', insumoNombre: 'Limon' }
+                    ]
+                },
+                {
+                    nombre: 'Cuñapé',
+                    productoNombre: 'Cuñape',
+                    productoNombreAlt: null,
+                    preparacion: 'Mezclar la fécula de yuca con el queso chaqueño rallado. Añadir margarina, azúcar, sal y polvo de hornear. Incorporar el huevo y la leche de a poco. Formar bolitas y hornear a alta temperatura.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Fécula de yuca', cantidad: 400, unidad: 'gr.', insumoNombre: 'Fécula de yuca' },
+                        { nombre: 'Queso chaqueño', cantidad: 400, unidad: 'gr.', insumoNombre: 'Queso chaqueño' },
+                        { nombre: 'Margarina', cantidad: 30, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Azúcar', cantidad: 15, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Sal', cantidad: 5, unidad: 'gr.', insumoNombre: 'Sal' },
+                        { nombre: 'Polvo de hornear', cantidad: 10, unidad: 'gr.', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Huevo', cantidad: 1, unidad: 'unidad', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 60, unidad: 'ml.', insumoNombre: 'Leche entera' }
+                    ]
+                },
+                {
+                    nombre: 'Empanadas de queso',
+                    productoNombre: 'Empanada de Queso',
+                    productoNombreAlt: null,
+                    preparacion: 'Masa: Mezclar harina, polvo de hornear, sal, azúcar y mantequilla. Agregar huevos e incorporar leche hasta lograr masa homogénea. Relleno: Mezclar queso criollo picado con huevo y rellenar.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 700, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 15, unidad: 'gr.', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 5, unidad: 'gr.', insumoNombre: 'Sal' },
+                        { nombre: 'Azúcar', cantidad: 100, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Mantequilla', cantidad: 100, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Huevo', cantidad: 3, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Queso criollo', cantidad: 240, unidad: 'gr.', insumoNombre: 'Queso criollo' }
+                    ]
+                },
+                {
+                    nombre: 'Rollos de queso',
+                    productoNombre: 'Rollo de Queso',
+                    productoNombreAlt: null,
+                    preparacion: 'Preparar la masa de empanadas. Rellenar con queso criollo abundante. Enrollar, cortar, pintar con huevo y hornear.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 700, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Polvo de hornear', cantidad: 15, unidad: 'gr.', insumoNombre: 'Polvo de hornear' },
+                        { nombre: 'Sal', cantidad: 5, unidad: 'gr.', insumoNombre: 'Sal' },
+                        { nombre: 'Azúcar', cantidad: 100, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Mantequilla', cantidad: 100, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Huevo', cantidad: 3, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Queso criollo', cantidad: 300, unidad: 'gr.', insumoNombre: 'Queso criollo' }
+                    ]
+                },
+                {
+                    nombre: 'Pan de canela',
+                    productoNombre: 'Rollo de Queso',
+                    productoNombreAlt: null,
+                    preparacion: 'Hacer masa levada con harina, sal, huevo, leche entera, azúcar, mantequilla y levadura. Estirar en rectángulo, pintar con mantequilla, espolvorear canela y azúcar morena. Enrollar, cortar y hornear. Frossing: Mezclar queso crema y crema de leche.',
+                    porciones: '10 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 600, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Sal', cantidad: 2, unidad: 'gr.', insumoNombre: 'Sal' },
+                        { nombre: 'Huevo', cantidad: 2, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Leche entera', cantidad: 250, unidad: 'gr.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Azúcar', cantidad: 50, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Mantequilla', cantidad: 270, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Levadura seca', cantidad: 10, unidad: 'gr.', insumoNombre: 'Levadura' },
+                        { nombre: 'Canela molida', cantidad: 16, unidad: 'gr.', insumoNombre: 'Canela' },
+                        { nombre: 'Azúcar morena', cantidad: 90, unidad: 'gr.', insumoNombre: 'Azúcar morena' }
+                    ]
+                },
+                {
+                    nombre: 'Brownie',
+                    productoNombre: 'Brownie de Chocolate',
+                    productoNombreAlt: null,
+                    preparacion: 'Derretir mantequilla con chocolate cobertura. Incorporar azúcar morena y azúcar blanca, luego los huevos y batir. Incorporar la harina de trigo, cocoa y sal. Hornear.',
+                    porciones: '6 unidades',
+                    ingredientes: [
+                        { nombre: 'Azúcar morena', cantidad: 150, unidad: 'gr.', insumoNombre: 'Azúcar morena' },
+                        { nombre: 'Azúcar blanca', cantidad: 150, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Huevo', cantidad: 4, unidad: 'unidades', insumoNombre: 'Huevos' },
+                        { nombre: 'Esencia de vainilla', cantidad: 0.5, unidad: 'cucharadita', insumoNombre: 'Esencia de vainilla' },
+                        { nombre: 'Chocolate cobertura', cantidad: 100, unidad: 'gr.', insumoNombre: 'Chocolate cobertura' },
+                        { nombre: 'Mantequilla', cantidad: 250, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Harina de trigo', cantidad: 120, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Cocoa', cantidad: 50, unidad: 'gr.', insumoNombre: 'Cocoa' },
+                        { nombre: 'Sal', cantidad: 1, unidad: 'cucharadita', insumoNombre: 'Sal' }
+                    ]
+                },
+                {
+                    nombre: 'Croissant',
+                    productoNombre: 'Rollo de Queso',
+                    productoNombreAlt: null,
+                    preparacion: 'Amasar harina, sal, azúcar, mantequilla, levadura fresca y agua. Laminar con pliegues sucesivos usando mantequilla extra fría. Formar cuernos y hornear.',
+                    porciones: '12 unidades',
+                    ingredientes: [
+                        { nombre: 'Harina de trigo', cantidad: 500, unidad: 'gr.', insumoNombre: 'Harina' },
+                        { nombre: 'Sal', cantidad: 10, unidad: 'gr.', insumoNombre: 'Sal' },
+                        { nombre: 'Azúcar', cantidad: 60, unidad: 'gr.', insumoNombre: 'Azucar Blanca' },
+                        { nombre: 'Mantequilla', cantidad: 350, unidad: 'gr.', insumoNombre: 'Mantequilla' },
+                        { nombre: 'Levadura fresca', cantidad: 20, unidad: 'gr.', insumoNombre: 'Levadura' },
+                        { nombre: 'Agua', cantidad: 240, unidad: 'ml.', insumoNombre: 'Agua' }
+                    ]
+                },
+                {
+                    nombre: 'Mojito',
+                    productoNombre: 'Mojito',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso de mojito colocar la hierba buena, almibar y el zumo de limon. Machacar, agregar 5 o 6 cubos de hielo, vodka y agua gaseada. Decorar con rodaja de limon.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Hielo', cantidad: 6, unidad: 'cubos', insumoNombre: 'Hielo' },
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Hierba buena', cantidad: 2, unidad: 'ramas', insumoNombre: 'Hierba buena' },
+                        { nombre: 'Agua con gas', cantidad: 150, unidad: 'ml.', insumoNombre: 'Agua Con Gas 500ml' },
+                        { nombre: 'Almibar de azucar', cantidad: 1, unidad: 'onzas', insumoNombre: 'Almibar' },
+                        { nombre: 'Zumo de limon', cantidad: 1, unidad: 'onzas', insumoNombre: 'Limon' }
+                    ]
+                },
+                {
+                    nombre: 'Sex on the beach',
+                    productoNombre: 'Sex on the beach',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso con hielo agregar la granadina, vodka y jugo de naranja. Decorar con ramita de menta.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Granadina', cantidad: 0.5, unidad: 'onzas', insumoNombre: 'Granadina' },
+                        { nombre: 'Jugo de naranja', cantidad: 150, unidad: 'ml.', insumoNombre: 'Jugo de naranja' },
+                        { nombre: 'Hielo', cantidad: 5, unidad: 'cubos', insumoNombre: 'Hielo' }
+                    ]
+                },
+                {
+                    nombre: 'Chuflay',
+                    productoNombre: 'Chuflay',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso con hielo, agregar vodka y completar con ginger ale cantidad necesaria.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Hielo', cantidad: 5, unidad: 'cubos', insumoNombre: 'Hielo' },
+                        { nombre: 'Ginger ale', cantidad: 200, unidad: 'ml.', insumoNombre: 'Ginger ale' }
+                    ]
+                },
+                {
+                    nombre: 'Te con te',
+                    productoNombre: 'Te con te',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso agregar el vodka, zumo de limon, almibar y sultana infusionada. Servir caliente.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Zumo de limon', cantidad: 0.5, unidad: 'unidades', insumoNombre: 'Limon' },
+                        { nombre: 'Almibar', cantidad: 1, unidad: 'onzas', insumoNombre: 'Almibar' },
+                        { nombre: 'Sultana infusionada', cantidad: 10, unidad: 'gr.', insumoNombre: 'Sultana' }
+                    ]
+                },
+                {
+                    nombre: 'Sucumbe',
+                    productoNombre: 'Sucumbe',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso añadir leche, canela, vodka y azúcar. Calentar con la lanceta hasta disolver el azúcar. Servir y decorar con espuma de leche y canela en polvo.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Leche entera', cantidad: 200, unidad: 'ml.', insumoNombre: 'Leche entera' },
+                        { nombre: 'Canela', cantidad: 1, unidad: 'unidad', insumoNombre: 'Canela' },
+                        { nombre: 'Azúcar', cantidad: 2, unidad: 'cucharadas', insumoNombre: 'Azucar Blanca' }
+                    ]
+                },
+                {
+                    nombre: 'Laguna azul',
+                    productoNombre: 'Laguna azul',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso con hielo agregar el vodka, blue curacao, zumo de limon, azúcar y llenar con agua gaseada. Decorar con rodaja de limon.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Blue curacao', cantidad: 1, unidad: 'onzas', insumoNombre: 'Blue curacao' },
+                        { nombre: 'Hielo', cantidad: 6, unidad: 'cubos', insumoNombre: 'Hielo' },
+                        { nombre: 'Agua con gas', cantidad: 150, unidad: 'ml.', insumoNombre: 'Agua Con Gas 500ml' },
+                        { nombre: 'Zumo de limon', cantidad: 0.5, unidad: 'onzas', insumoNombre: 'Limon' }
+                    ]
+                },
+                {
+                    nombre: 'Luz de luna',
+                    productoNombre: 'Luz de luna',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso con hielo agregar vodka y menta tres plumas. Llenar con agua gaseada. Decorar con rodaja de limon.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Vodka', cantidad: 2, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Tres plumas menta', cantidad: 1, unidad: 'onzas', insumoNombre: 'Menta Tres Plumas' },
+                        { nombre: 'Agua con gas', cantidad: 150, unidad: 'ml.', insumoNombre: 'Agua Con Gas 500ml' },
+                        { nombre: 'Hielo', cantidad: 6, unidad: 'cubos', insumoNombre: 'Hielo' }
+                    ]
+                },
+                {
+                    nombre: 'Coquito spring',
+                    productoNombre: 'Coquito spring',
+                    productoNombreAlt: null,
+                    preparacion: 'En un vaso con hielo verter el almíbar de maracuyá, granadina, blue curacao, vodka y llenar con agua carbonatada.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Almíbar de maracuyá', cantidad: 1, unidad: 'onzas', insumoNombre: 'Almibar' },
+                        { nombre: 'Granadina', cantidad: 0.5, unidad: 'onzas', insumoNombre: 'Granadina' },
+                        { nombre: 'Blue curacao', cantidad: 0.5, unidad: 'onzas', insumoNombre: 'Blue curacao' },
+                        { nombre: 'Vodka', cantidad: 1, unidad: 'onzas', insumoNombre: 'Vodka' },
+                        { nombre: 'Agua carbonatada', cantidad: 150, unidad: 'ml.', insumoNombre: 'Agua Con Gas 500ml' },
+                        { nombre: 'Hielo', cantidad: 6, unidad: 'cubos', insumoNombre: 'Hielo' }
+                    ]
+                },
+                {
+                    nombre: 'Illimani',
+                    productoNombre: 'Illimani',
+                    productoNombreAlt: null,
+                    preparacion: 'En un shaker verter hielo, ron, leche evaporada, espresso y baileys de café. Agitar durante 5 a 7 minutos. Verter en vaso de Martini y decorar con tres granos de café.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Leche evaporada', cantidad: 1.5, unidad: 'onzas', insumoNombre: 'Leche evaporada' },
+                        { nombre: 'Ron blanco', cantidad: 1, unidad: 'onzas', insumoNombre: 'Ron blanco' },
+                        { nombre: 'Espresso', cantidad: 10, unidad: 'gr.', insumoNombre: 'Café en grano' },
+                        { nombre: 'Baileys', cantidad: 1, unidad: 'onzas', insumoNombre: 'Baileys' },
+                        { nombre: 'Hielo', cantidad: 5, unidad: 'cubos', insumoNombre: 'Hielo' }
+                    ]
+                },
+                {
+                    nombre: 'Bailey de café',
+                    productoNombre: 'Bailey de café',
+                    productoNombreAlt: null,
+                    preparacion: 'En un shaker verter leche evaporada, ron blanco, expreso doble, almíbar, leche entera y hielos. Agitar de 5 a 7 minutos y verter en el vaso. Decorar con granos de café.',
+                    porciones: '1 persona',
+                    ingredientes: [
+                        { nombre: 'Leche evaporada', cantidad: 1, unidad: 'onzas', insumoNombre: 'Leche evaporada' },
+                        { nombre: 'Ron blanco', cantidad: 1, unidad: 'onzas', insumoNombre: 'Ron blanco' },
+                        { nombre: 'Leche entera', cantidad: 0.5, unidad: 'onzas', insumoNombre: 'Leche entera' },
+                        { nombre: 'Expreso doble', cantidad: 20, unidad: 'gr.', insumoNombre: 'Café en grano' },
+                        { nombre: 'Almíbar', cantidad: 1, unidad: 'onzas', insumoNombre: 'Almibar' },
+                        { nombre: 'Hielo', cantidad: 5, unidad: 'cubos', insumoNombre: 'Hielo' }
+                    ]
+                }
+            ];
+
+            for (const r of recetasData) {
+                let productoId = null;
+                if (r.productoNombre) {
+                    const prodRes = await pool.query(
+                        'SELECT id FROM productos WHERE LOWER(nombre) = LOWER($1) OR LOWER(nombre) = LOWER($2)',
+                        [r.productoNombre, r.productoNombreAlt || r.productoNombre]
+                    );
+                    if (prodRes.rows.length > 0) {
+                        productoId = prodRes.rows[0].id;
+                    }
+                }
+
+                const recipeRes = await pool.query(
+                    'INSERT INTO recetas (producto_id, nombre, preparacion, porciones) VALUES ($1, $2, $3, $4) RETURNING id',
+                    [productoId, r.nombre, r.preparacion, r.porciones]
+                );
+                const recetaId = recipeRes.rows[0].id;
+
+                for (const ing of r.ingredientes) {
+                    const insRes = await pool.query(
+                        'SELECT id FROM insumos WHERE LOWER(nombre) = LOWER($1)',
+                        [ing.insumoNombre]
+                    );
+                    let insumoId = null;
+                    if (insRes.rows.length > 0) {
+                        insumoId = insRes.rows[0].id;
+                    }
+
+                    await pool.query(
+                        'INSERT INTO ingrediente_recetas (receta_id, insumo_id, nombre_ingrediente, cantidad, unidad_medida) VALUES ($1, $2, $3, $4, $5)',
+                        [recetaId, insumoId, ing.nombre, ing.cantidad, ing.unidad]
+                    );
+                }
+            }
+            console.log('✅ Recetas y sus ingredientes sembrados con éxito.');
+        }
+    } catch (recetaSeedErr) {
+        console.log('Error al sembrar recetas:', recetaSeedErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
