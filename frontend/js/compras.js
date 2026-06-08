@@ -199,8 +199,10 @@ function comprimirImagen(file, maxWidth = 1024, maxHeight = 1024, quality = 0.7)
 async function ejecutarCompraRapida() {
     const proveedor_id = document.getElementById('selProveedor').value;
     const insumo_id = document.getElementById('selInsumo').value;
-    const cantidad = parseFloat(document.getElementById('inpContenido').value) || 0;
-    const costo = parseFloat(document.getElementById('inpCosto').value) || 0;
+    const cantidadRaw = document.getElementById('inpContenido').value || '';
+    const costoRaw = document.getElementById('inpCosto').value || '';
+    const cantidad = parseFloat(cantidadRaw.replace(',', '.')) || 0;
+    const costo = parseFloat(costoRaw.replace(',', '.')) || 0;
     const vencimiento = document.getElementById('inpVence').value || null;
     
     // Archivos de Factura

@@ -175,3 +175,80 @@ function formatearFechaIso(fechaIso) {
     if (partes.length < 3) return fechaIso;
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
+
+// --- MODAL DE ASISTENCIA MANUAL ---
+function abrirModalAsistenciaManual() {
+    const modal = document.getElementById('modalAsistenciaManual');
+    
+    // Rellenar select de empleados
+    const selEmpleado = document.getElementById('manual-empleado');
+    selEmpleado.innerHTML = '<option value="" disabled selected>-- Selecciona un empleado --</option>';
+    
+    // Obtener los empleados cargados en el filtro
+    const filtro = document.getElementById('filtro-empleado');
+    const options = Array.from(filtro.options).filter(o => o.value !== '');
+    options.forEach(o => {
+        selEmpleado.innerHTML += `<option value="${o.value}">${o.innerText}</option>`;
+    });
+
+    // Rellenar fecha con la fecha local de hoy en Bolivia
+    const ahora = new Date();
+    const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+    const horaBolivia = new Date(utc + (3600000 * -4));
+    const yyyy = horaBolivia.getFullYear();
+    const mm = String(horaBolivia.getMonth() + 1).padStart(2, '0');
+    const dd = String(horaBolivia.getDate()).padStart(2, '0');
+    document.getElementById('manual-fecha').value = `${yyyy}-${mm}-${dd}`;
+    
+    // Reset de horas
+    document.getElementById('manual-entrada').value = '';
+    document.getElementById('manual-salida').value = '';
+    
+    modal.classList.remove('hidden');
+}
+
+function cerrarModalAsistenciaManual() {
+    document.getElementById('modalAsistenciaManual').classList.add('hidden');
+}
+
+async function guardarAsistenciaManual() {
+    const usuario_id = document.getElementById('manual-empleado').value;
+    const fecha = document.getElementById('manual-fecha').value;
+    const hora_entrada = document.getElementById('manual-entrada').value;
+    const hora_salida = document.getElementById('manual-salida').value;
+    const editor_rol = localStorage.getItem('usuario_rol');
+
+    if (!usuario_id) return alert('Por favor, selecciona un empleado.');
+    if (!fecha) return alert('Por favor, selecciona una fecha.');
+    if (!hora_entrada) return alert('Por favor, introduce la hora de entrada.');
+
+    const btn = document.getElementById('btnGuardarManual');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Guardando...';
+
+    try {
+        const res = await fetch('/api/asistencia/manual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuario_id,
+                fecha,
+                hora_entrada,
+                hora_salida: hora_salida || null,
+                editor_rol
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error en servidor');
+
+        alert(data.mensaje || 'Registro guardado correctamente.');
+        cerrarModalAsistenciaManual();
+        cargarHistorialAsistencia();
+    } catch (error) {
+        alert('Error al guardar asistencia manual: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk text-[10px]"></i> Guardar Registro';
+    }
+}

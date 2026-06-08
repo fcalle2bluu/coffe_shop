@@ -182,9 +182,14 @@
                             <h3 class="text-base font-bold text-slate-800">Historial de Marcaciones</h3>
                             <p class="text-xs text-slate-500 font-medium">Consulta el registro de entrada, salida y horas cumplidas por tu personal.</p>
                         </div>
-                        <button onclick="window.print()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow shadow-orange-600/30 flex items-center gap-2 shrink-0">
-                            <i class="fa-solid fa-print"></i> Imprimir Reporte
-                        </button>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="abrirModalAsistenciaManual()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-[10px]"></i> Registrar Manual
+                            </button>
+                            <button onclick="window.print()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow shadow-orange-600/30 flex items-center gap-2">
+                                <i class="fa-solid fa-print"></i> Imprimir Reporte
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filtros de fecha (no-print) -->
@@ -290,6 +295,48 @@
             if (reloj) reloj.innerText = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }, 1000);
     </script>
+    
+    <!-- Modal Asistencia Manual -->
+    <div id="modalAsistenciaManual" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-premium border border-slate-200 w-full max-w-md overflow-hidden flex flex-col transform transition-all duration-300 scale-95 opacity-0 animate-fadeIn duration-200">
+            <div class="bg-slate-950 p-5 flex justify-between items-center text-white shrink-0">
+                <h3 class="text-sm font-black uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-user-pen text-orange-500"></i> Registrar Asistencia Manual</h3>
+                <button onclick="cerrarModalAsistenciaManual()" class="text-slate-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Empleado / Personal *</label>
+                    <select id="manual-empleado" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
+                        <option value="" disabled selected>-- Selecciona un empleado --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Fecha de Turno *</label>
+                    <input type="date" id="manual-fecha" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Entrada *</label>
+                        <input type="time" id="manual-entrada" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Salida (Opcional)</label>
+                        <input type="time" id="manual-salida" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
+                    </div>
+                </div>
+                
+                <div class="text-[10px] text-slate-400 bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-start gap-2.5 font-medium leading-relaxed">
+                    <i class="fa-solid fa-circle-info text-orange-500 mt-0.5 text-xs"></i>
+                    <span>Si dejas la Hora de Salida vacía, el turno quedará marcado como <strong class="text-emerald-600 font-bold uppercase">En Turno</strong>. Si el empleado ya tenía un registro en esta fecha, este se sobreescribirá.</span>
+                </div>
+
+                <button onclick="guardarAsistenciaManual()" id="btnGuardarManual" class="w-full bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-widest py-3 rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-[10px]"></i> Guardar Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/security_guard.js"></script>
 </body>
 </html>
