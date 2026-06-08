@@ -427,8 +427,8 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       _screens.add(const StockScreen());
     }
 
-    // 3.5. Recetas (Visible para Admins, Cajeros y Meseros)
-    if (_isAdmin || _userRol == 'CAJERO' || _userRol == 'MESERO') {
+    // 3.5. Recetas (Visible solo para Administradores)
+    if (_isAdmin) {
       _menuItems.add({
         'title': 'Recetas',
         'icon': FontAwesomeIcons.bookOpen,
