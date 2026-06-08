@@ -241,6 +241,82 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Asistencia:', asistenciaErr.message);
     }
 
+    // 5.97 Creación de tabla de Comandas y Detalle de Comandas
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS comandas (
+                id SERIAL PRIMARY KEY,
+                mesa VARCHAR(50) NOT NULL,
+                usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                caja_id INT,
+                estado VARCHAR(50) DEFAULT 'CREADA',
+                total NUMERIC(10, 2) DEFAULT 0.00,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        try {
+            await pool.query('ALTER TABLE comandas ALTER COLUMN mesa TYPE VARCHAR(50);');
+        } catch (alterErr) {
+            // Silencioso
+        }
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS detalle_comandas (
+                id SERIAL PRIMARY KEY,
+                comanda_id INT NOT NULL REFERENCES comandas(id) ON DELETE CASCADE,
+                producto_id INT NOT NULL REFERENCES productos(id) ON DELETE CASCADE,
+                cantidad INT NOT NULL,
+                precio_unitario NUMERIC(10, 2) NOT NULL,
+                subtotal NUMERIC(10, 2) NOT NULL
+            );
+        `);
+        console.log('✅ Tablas comandas y detalle_comandas verificadas/creadas.');
+    } catch (comandasErr) {
+        console.log('Info Tablas Comandas:', comandasErr.message);
+    }
+
+    // 5.98 Creación de tabla de Mesas y Poblamiento Inicial
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS mesas (
+                id SERIAL PRIMARY KEY,
+                numero VARCHAR(50) UNIQUE NOT NULL,
+                piso VARCHAR(50) NOT NULL DEFAULT 'PLANTA_BAJA',
+                pos_x DOUBLE PRECISION DEFAULT 10.0,
+                pos_y DOUBLE PRECISION DEFAULT 10.0,
+                activo BOOLEAN DEFAULT TRUE
+            );
+        `);
+        console.log('✅ Tabla mesas verificada/creada.');
+
+        const checkMesas = await pool.query('SELECT COUNT(*) FROM mesas');
+        if (parseInt(checkMesas.rows[0].count) === 0) {
+            console.log('🍽️ Poblando mesas por defecto (1-10)...');
+            const defaultMesas = [
+                { num: '1', piso: 'PLANTA_BAJA', x: 15, y: 20 },
+                { num: '2', piso: 'PLANTA_BAJA', x: 45, y: 20 },
+                { num: '3', piso: 'PLANTA_BAJA', x: 75, y: 20 },
+                { num: '4', piso: 'PLANTA_BAJA', x: 30, y: 60 },
+                { num: '5', piso: 'PLANTA_BAJA', x: 60, y: 60 },
+                { num: '6', piso: 'PLANTA_ALTA', x: 15, y: 20 },
+                { num: '7', piso: 'PLANTA_ALTA', x: 45, y: 20 },
+                { num: '8', piso: 'PLANTA_ALTA', x: 75, y: 20 },
+                { num: '9', piso: 'PLANTA_ALTA', x: 30, y: 60 },
+                { num: '10', piso: 'PLANTA_ALTA', x: 60, y: 60 }
+            ];
+            for (let m of defaultMesas) {
+                await pool.query(
+                    'INSERT INTO mesas (numero, piso, pos_x, pos_y) VALUES ($1, $2, $3, $4)',
+                    [m.num, m.piso, m.x, m.y]
+                );
+            }
+        }
+    } catch (mesasErr) {
+        console.log('Info Tabla Mesas:', mesasErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');

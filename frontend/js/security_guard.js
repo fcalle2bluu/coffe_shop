@@ -39,7 +39,7 @@
     const isAdmin = rol === 'ADMINISTRADOR' || rol === 'ADMIN';
 
     if (!rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !isAdmin) {
-        if (pageName === 'dashboard.html') {
+        if (pageName === 'dashboard.html' && rol !== 'CAJERO' && rol !== 'MESERO') {
             window.location.href = 'ventas.html';
             return;
         }
@@ -72,7 +72,7 @@
         document.querySelectorAll('aside nav a').forEach(el => {
             const href = el.getAttribute('href') || '';
             
-            if (href.includes('dashboard.html') && rol === 'CAJERO') {
+            if (href.includes('dashboard.html') && rol === 'CAJERO' && false) {
                 const parentLi = el.closest('li');
                 if (parentLi) parentLi.style.display = 'none';
                 else el.style.display = 'none';

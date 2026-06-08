@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
+import 'parametros_mesas_screen.dart';
 
 class ParametrosScreen extends StatefulWidget {
   const ParametrosScreen({super.key});
@@ -163,6 +164,48 @@ class _ParametrosScreenState extends State<ParametrosScreen> {
                           controller: _msgInfController,
                           maxLines: 2,
                           decoration: const InputDecoration(labelText: 'Mensaje Inferior (Pie de Página)'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Distribución de Mesas',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Outfit',
+                          ),
+                        ),
+                        const Divider(color: Colors.white10, height: 24),
+                        const Text(
+                          'Diseña la distribución visual de las mesas del salón. Podrás arrastrarlas y soltarlas con tu dedo para cambiar la posición visual en los salones de Planta Baja y Primer Piso.',
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ParametrosMesasScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.grid_view_rounded),
+                          label: const Text('DISEÑAR DISTRIBUCIÓN DE MESAS'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            side: BorderSide(color: AppTheme.accentColor),
+                            foregroundColor: AppTheme.accentColor,
+                          ),
                         ),
                       ],
                     ),

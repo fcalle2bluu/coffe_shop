@@ -84,6 +84,9 @@
             <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
                 <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
             </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-utensils w-5 text-center text-orange-500/60"></i> <span>Venta por Mesa</span>
+            </a>
             <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
                 <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
             </a>
@@ -120,7 +123,9 @@
         </header>
 
         <div class="flex-1 overflow-y-auto p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <!-- SECCIÓN KPIs ADMIN ONLY -->
+            <div id="seccion-kpis-admin" class="space-y-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
                     <p class="text-sm text-gray-500 font-semibold">Ventas Hoy</p>
                     <p class="text-2xl font-bold text-gray-800" id="kpi-ventas-dia">Bs. 0.00</p>
@@ -226,6 +231,25 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- Fin seccion-kpis-admin -->
+
+            <!-- DISPONIBILIDAD DE MESAS (Visible para todos) -->
+            <div class="bg-white rounded-2xl shadow-premium p-6 border border-slate-100 mb-6">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-utensils text-orange-500"></i>
+                        <span>Mesas Disponibles</span>
+                    </h2>
+                    <span class="text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600">Total: 10 Mesas</span>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-4" id="contenedor-mesas-dashboard">
+                    <!-- Cargando... -->
+                    <div class="col-span-full py-8 text-center text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando mesas...
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -266,15 +290,24 @@
                 if(rolElem) rolElem.innerText = rolActual;
             }
 
-            if (rolActual === 'CAJERO') {
+            if (rolActual === 'CAJERO' || rolActual === 'MESERO') {
                 document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
             }
 
-            cargarIndicadoresBase();
-            cargarGraficosAvanzados();
-            renderGraficoRendimiento();
-            cargarTopProductos();
-            cargarKpisGerenciales();
+            const isAdmin = (rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN');
+            if (!isAdmin) {
+                const adminPanel = document.getElementById('seccion-kpis-admin');
+                if (adminPanel) adminPanel.style.display = 'none';
+            } else {
+                cargarIndicadoresBase();
+                cargarGraficosAvanzados();
+                renderGraficoRendimiento();
+                cargarTopProductos();
+                cargarKpisGerenciales();
+            }
+
+            cargarMesasDashboard();
+            setInterval(cargarMesasDashboard, 15000); // Refrescar mesas cada 15 segundos
         };
 
         async function cargarKpisGerenciales() {
@@ -510,6 +543,92 @@
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
+        }
+
+        async function cargarMesasDashboard() {
+            const contenedor = document.getElementById('contenedor-mesas-dashboard');
+            if (!contenedor) return;
+            try {
+                const res = await fetch('/api/comandas/mesas-estado');
+                if (!res.ok) throw new Error('Error al cargar estado de mesas');
+                const mesas = await res.json();
+                
+                contenedor.innerHTML = '';
+                
+                // Agrupar mesas por piso
+                const mesasPorPiso = {
+                    'PLANTA_BAJA': [],
+                    'PLANTA_ALTA': []
+                };
+                
+                mesas.forEach(m => {
+                    const pisoKey = m.piso || 'PLANTA_BAJA';
+                    if (!mesasPorPiso[pisoKey]) mesasPorPiso[pisoKey] = [];
+                    mesasPorPiso[pisoKey].push(m);
+                });
+
+                const labelsPisos = {
+                    'PLANTA_BAJA': 'Planta Baja',
+                    'PLANTA_ALTA': 'Primer Piso (Arriba)'
+                };
+
+                // Modificar clase de contenedor a vertical flex
+                contenedor.className = "col-span-full space-y-6";
+
+                for (const pisoKey in mesasPorPiso) {
+                    const listaMesas = mesasPorPiso[pisoKey];
+                    if (listaMesas.length === 0) continue;
+
+                    const tituloPiso = labelsPisos[pisoKey] || pisoKey;
+                    
+                    let mesasHtml = '';
+                    listaMesas.forEach(m => {
+                        const esOcupada = m.estado === 'ocupada';
+                        const colorBg = esOcupada ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200';
+                        const colorText = esOcupada ? 'text-rose-800 animate-pulse' : 'text-emerald-800';
+                        const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
+                        const icon = esOcupada ? 'fa-circle-dot animate-pulse' : 'fa-circle-check';
+                        
+                        const totalPed = esOcupada ? `<p class="text-[11px] text-rose-600 font-black mt-1.5">Bs. ${m.comanda.total}</p>` : '';
+                        const mesero = (esOcupada && m.comanda.mesero_nombre) ? `<p class="text-[9px] text-slate-400 font-bold truncate mt-0.5">${m.comanda.mesero_nombre}</p>` : '';
+
+                        mesasHtml += `
+                            <div class="border rounded-2xl p-4 flex flex-col items-center justify-between text-center shadow-sm select-none transition-all hover:shadow-md ${colorBg}">
+                                <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black mb-2 ${badgeColor}">
+                                    ${m.mesa}
+                                </span>
+                                <div class="flex-grow flex flex-col justify-center overflow-hidden w-full">
+                                    <span class="text-xs font-black uppercase tracking-wider ${colorText}">
+                                        Mesa ${m.mesa}
+                                    </span>
+                                    <span class="text-[9px] text-slate-500 font-bold mt-1 flex items-center justify-center gap-1">
+                                        <i class="fa-solid ${icon} text-[8px]"></i>
+                                        ${esOcupada ? 'Ocupada' : 'Libre'}
+                                    </span>
+                                    ${totalPed}
+                                    ${mesero}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    contenedor.innerHTML += `
+                        <div>
+                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-orange-500"></i>
+                                ${tituloPiso}
+                                <span class="text-[10px] text-slate-400 font-bold font-mono">(${listaMesas.length})</span>
+                            </h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                ${mesasHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error("Error cargando mesas:", e);
+                contenedor.innerHTML = `<div class="col-span-full py-4 text-center text-red-500 font-bold">Error al cargar disponibilidad de mesas.</div>`;
+            }
         }
     </script>
     <script src="js/security_guard.js"></script>

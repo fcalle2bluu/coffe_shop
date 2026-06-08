@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import '../widgets/pulsing_coffee_loader.dart';
@@ -24,6 +25,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _totalProveedores = 0;
 
   List<dynamic> _topProductos = [];
+  
+  // Nuevas variables para rol y mesas
+  String _userRol = 'CAJERO';
+  bool _isAdmin = false;
+  List<dynamic> _mesas = [];
 
   @override
   void initState() {
@@ -34,19 +40,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _cargarDatos() async {
     setState(() => _isLoading = true);
     try {
-      final kpisRes = await ApiConfig.get('/kpis');
-      if (kpisRes.statusCode == 200) {
-        final data = jsonDecode(kpisRes.body);
-        _ventasDia = data['ventasDia']?.toString() ?? '0.00';
-        _ventasMes = data['ventasMes']?.toString() ?? '0.00';
-        _totalProductos = int.tryParse(data['productos']?.toString() ?? '0') ?? 0;
-        _totalProveedores = int.tryParse(data['proveedores']?.toString() ?? '0') ?? 0;
+      final prefs = await SharedPreferences.getInstance();
+      _userRol = prefs.getString('usuario_rol') ?? 'CAJERO';
+      _isAdmin = _userRol.toUpperCase() == 'ADMIN' || _userRol.toUpperCase() == 'ADMINISTRADOR';
+      
+      if (_isAdmin) {
+        final kpisRes = await ApiConfig.get('/kpis');
+        if (kpisRes.statusCode == 200) {
+          final data = jsonDecode(kpisRes.body);
+          _ventasDia = data['ventasDia']?.toString() ?? '0.00';
+          _ventasMes = data['ventasMes']?.toString() ?? '0.00';
+          _totalProductos = int.tryParse(data['productos']?.toString() ?? '0') ?? 0;
+          _totalProveedores = int.tryParse(data['proveedores']?.toString() ?? '0') ?? 0;
+        }
+        await _cargarTopProductos();
       }
-      await _cargarTopProductos();
+      await _cargarEstadoMesas();
     } catch (e) {
       print('Error al cargar datos del dashboard: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _cargarEstadoMesas() async {
+    try {
+      final res = await ApiConfig.get('/comandas/mesas-estado');
+      if (res.statusCode == 200) {
+        setState(() {
+          _mesas = jsonDecode(res.body);
+        });
+      }
+    } catch (e) {
+      print('Error al cargar estado de mesas: $e');
     }
   }
 
@@ -112,117 +138,237 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.5,
+                    // --- SECCIÓN DE MESAS (Todos los roles) ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildKpiCard('Ventas Hoy', 'Bs. $_ventasDia', FontAwesomeIcons.cashRegister, const Color(0xFFF97316)),
-                        _buildKpiCard('Ventas Mes', 'Bs. $_ventasMes', FontAwesomeIcons.calendarCheck, const Color(0xFF10B981)),
-                        _buildKpiCard('Productos', '$_totalProductos', FontAwesomeIcons.boxesStacked, const Color(0xFF3B82F6)),
-                        _buildKpiCard('Proveedores', '$_totalProveedores', FontAwesomeIcons.truck, const Color(0xFF8B5CF6)),
+                        Text(
+                          'Estado de Mesas',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryDark,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.greenAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text('Libre', style: GoogleFonts.outfit(fontSize: 10, color: AppTheme.textMuted)),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.redAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text('Con Pedido', style: GoogleFonts.outfit(fontSize: 10, color: AppTheme.textMuted)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Productos Más Vendidos',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                    const SizedBox(height: 12),
+                    
+                    _mesas.isEmpty
+                        ? Container(
+                            height: 100,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Cargando estado de mesas...',
+                              style: GoogleFonts.outfit(color: AppTheme.textMuted),
+                            ),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_mesas.where((m) => m['piso'] == 'PLANTA_BAJA').isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.layers_outlined, size: 14, color: AppTheme.accentColor),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'PLANTA BAJA (${_mesas.where((m) => m['piso'] == 'PLANTA_BAJA').length})',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.black,
+                                          color: AppTheme.textMuted,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const FaIcon(FontAwesomeIcons.fire, size: 16, color: AppTheme.accentColor),
+                                _buildMesasGrid(_mesas.where((m) => m['piso'] == 'PLANTA_BAJA').toList()),
+                                const SizedBox(height: 16),
                               ],
-                            ),
-                            const SizedBox(height: 12),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _buildFilterChip('hoy', 'Hoy'),
-                                  _buildFilterChip('semana', 'Semana'),
-                                  _buildFilterChip('mes', 'Últimos 30 días'),
-                                  _buildFilterChip('todos', 'Histórico'),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            if (_topProductos.isEmpty)
-                              Container(
-                                height: 200,
-                                alignment: Alignment.center,
-                                child: Text(
-                                  'No hay registros de ventas para este período.',
-                                  style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 13),
-                                ),
-                              )
-                            else ...[
-                              SizedBox(
-                                height: 180,
-                                child: PieChart(
-                                  PieChartData(
-                                    sectionsSpace: 3,
-                                    centerSpaceRadius: 35,
-                                    sections: _buildChartSections(),
+                              if (_mesas.where((m) => m['piso'] == 'PLANTA_ALTA').isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.layers_outlined, size: 14, color: AppTheme.accentColor),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'PRIMER PISO (${_mesas.where((m) => m['piso'] == 'PLANTA_ALTA').length})',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.black,
+                                          color: AppTheme.textMuted,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              Column(
-                                children: List.generate(_topProductos.length, (index) {
-                                  final p = _topProductos[index];
-                                  final color = _chartColors[index % _chartColors.length];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: color,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            p['nombre'] as String,
-                                            style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textLight),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${double.parse(p['total_vendido'].toString()).toStringAsFixed(0)} u.',
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.textMuted,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                              ),
+                                _buildMesasGrid(_mesas.where((m) => m['piso'] == 'PLANTA_ALTA').toList()),
+                              ],
                             ],
-                          ],
+                          ),
+                    
+                    // --- SECCIÓN ADMINISTRATIVA (Solo Admins) ---
+                    if (_isAdmin) ...[
+                      const SizedBox(height: 28),
+                      Text(
+                        'Resumen Financiero',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.5,
+                        children: [
+                          _buildKpiCard('Ventas Hoy', 'Bs. $_ventasDia', FontAwesomeIcons.cashRegister, const Color(0xFFF97316)),
+                          _buildKpiCard('Ventas Mes', 'Bs. $_ventasMes', FontAwesomeIcons.calendarCheck, const Color(0xFF10B981)),
+                          _buildKpiCard('Productos', '$_totalProductos', FontAwesomeIcons.boxesStacked, const Color(0xFF3B82F6)),
+                          _buildKpiCard('Proveedores', '$_totalProveedores', FontAwesomeIcons.truck, const Color(0xFF8B5CF6)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Productos Más Vendidos',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const FaIcon(FontAwesomeIcons.fire, size: 16, color: AppTheme.accentColor),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    _buildFilterChip('hoy', 'Hoy'),
+                                    _buildFilterChip('semana', 'Semana'),
+                                    _buildFilterChip('mes', 'Últimos 30 días'),
+                                    _buildFilterChip('todos', 'Histórico'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              if (_topProductos.isEmpty)
+                                Container(
+                                  height: 200,
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'No hay registros de ventas para este período.',
+                                    style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 13),
+                                  ),
+                                )
+                              else ...[
+                                SizedBox(
+                                  height: 180,
+                                  child: PieChart(
+                                    PieChartData(
+                                      sectionsSpace: 3,
+                                      centerSpaceRadius: 35,
+                                      sections: _buildChartSections(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Column(
+                                  children: List.generate(_topProductos.length, (index) {
+                                    final p = _topProductos[index];
+                                    final color = _chartColors[index % _chartColors.length];
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: color,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              p['nombre'] as String,
+                                              style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textLight),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${double.parse(p['total_vendido'].toString()).toStringAsFixed(0)} u.',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -308,6 +454,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMesasGrid(List<dynamic> list) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.5,
+      ),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final mesaInfo = list[index];
+        final numMesa = mesaInfo['mesa'];
+        final estado = mesaInfo['estado']; // 'libre' o 'ocupada'
+        final comanda = mesaInfo['comanda'];
+        final isLibre = estado == 'libre';
+        
+        return Card(
+          color: AppTheme.secondaryDark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isLibre 
+                  ? Colors.greenAccent.withOpacity(0.15) 
+                  : Colors.redAccent.withOpacity(0.15),
+              width: 1.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Mesa $numMesa',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    FaIcon(
+                      isLibre ? FontAwesomeIcons.chair : FontAwesomeIcons.utensils,
+                      size: 16,
+                      color: isLibre ? Colors.greenAccent : Colors.redAccent,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                if (isLibre)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.greenAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'LIBRE',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.greenAccent,
+                      ),
+                    ),
+                  )
+                else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          comanda != null ? '${comanda['estado']}' : 'OCUPADA',
+                          style: GoogleFonts.outfit(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        comanda != null ? 'Bs. ${double.parse(comanda['total'].toString()).toStringAsFixed(2)}' : '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (comanda != null && comanda['mesero_nombre'] != null)
+                    Text(
+                      'Atiende: ${comanda['mesero_nombre']}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 9,
+                        color: AppTheme.textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

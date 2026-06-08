@@ -244,6 +244,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                   items: const [
                     DropdownMenuItem(value: 'ADMINISTRADOR', child: Text('ADMINISTRADOR')),
                     DropdownMenuItem(value: 'CAJERO', child: Text('CAJERO')),
+                    DropdownMenuItem(value: 'MESERO', child: Text('MESERO')),
                     DropdownMenuItem(value: 'ALMACEN', child: Text('ENCARGADO ALMACÉN')),
                   ],
                   onChanged: (val) {
@@ -367,6 +368,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                   items: const [
                     DropdownMenuItem(value: 'ADMINISTRADOR', child: Text('ADMINISTRADOR')),
                     DropdownMenuItem(value: 'CAJERO', child: Text('CAJERO')),
+                    DropdownMenuItem(value: 'MESERO', child: Text('MESERO')),
                     DropdownMenuItem(value: 'ALMACEN', child: Text('ENCARGADO ALMACÉN')),
                   ],
                   onChanged: (val) {

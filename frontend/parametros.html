@@ -113,6 +113,9 @@
             <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
                 <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
             </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-utensils w-5 text-center text-orange-500/60"></i> <span>Venta por Mesa</span>
+            </a>
             <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
                 <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
             </a>
@@ -325,12 +328,97 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- DISTRIBUCIÓN DE MESAS -->
+                <section class="pt-8 pb-20">
+                    <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 italic tracking-tight uppercase">
+                                    <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                        <i class="fa-solid fa-map text-sm"></i>
+                                    </div>
+                                    Distribución y Plano de Mesas
+                                </h2>
+                                <p class="text-xs text-slate-400 font-medium ml-13">Agrega mesas y arrástralas con el ratón o el dedo para ordenar la distribución física de tu local.</p>
+                            </div>
+                            <button onclick="abrirModalNuevaMesa()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 text-xs self-start md:self-auto btn-bounce">
+                                <i class="fa-solid fa-plus"></i> Añadir Mesa
+                            </button>
+                        </div>
+                        <div class="p-8">
+                            <!-- Selector de pisos -->
+                            <div class="flex border-b border-slate-200 mb-6">
+                                <button onclick="cambiarPisoLienzo('PLANTA_BAJA')" id="btn-lienzo-pb" class="px-6 py-3 border-b-2 border-indigo-600 text-indigo-600 font-bold text-sm transition-all focus:outline-none">
+                                    <i class="fa-solid fa-layer-group mr-2"></i> Planta Baja
+                                </button>
+                                <button onclick="cambiarPisoLienzo('PLANTA_ALTA')" id="btn-lienzo-pa" class="px-6 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none">
+                                    <i class="fa-solid fa-building mr-2"></i> Primer Piso (Arriba)
+                                </button>
+                            </div>
+
+                            <!-- Lienzo interactivo Drag & Drop -->
+                            <div class="relative w-full h-[500px] border border-slate-200 rounded-2xl bg-slate-900 overflow-hidden shadow-inner-soft" id="contenedor-lienzo" style="touch-action: none;">
+                                <!-- Grid de fondo -->
+                                <div class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"></div>
+                                
+                                <!-- Zona de mesas -->
+                                <div class="absolute inset-0 select-none" id="lienzo-mesas">
+                                    <!-- Cargado dinámicamente con JS -->
+                                </div>
+                            </div>
+                            <p class="mt-3 text-[11px] text-slate-400 italic"><i class="fa-solid fa-circle-info mr-1"></i> Las posiciones se guardan automáticamente en tiempo real en cuanto sueltas la mesa.</p>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </div>
     </main>
 
+    <!-- MODAL CREAR/EDITAR MESA -->
+    <div id="modalMesaConfig" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border-t-4 border-indigo-500 flex flex-col animate-scale-in">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-indigo-500"></i>
+                    <span id="tituloModalMesa">Nueva Mesa</span>
+                </h3>
+                <button onclick="cerrarModalMesaConfig()" class="text-gray-400 hover:text-red-500 transition-colors btn-bounce"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <input type="hidden" id="modalMesaId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Identificador de la Mesa</label>
+                    <input type="text" id="modalMesaNumero" placeholder="Ej: 11, 2B, VIP-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Ubicación / Piso</label>
+                    <select id="modalMesaPiso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none appearance-none cursor-pointer">
+                        <option value="PLANTA_BAJA">Planta Baja</option>
+                        <option value="PLANTA_ALTA">Primer Piso (Arriba)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="cerrarModalMesaConfig()" class="w-1/2 px-4 py-2.5 bg-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-200 transition-colors text-sm btn-bounce">Cancelar</button>
+                <button onclick="guardarMesaConfig()" class="w-1/2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm btn-bounce flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Guardar
+                </button>
+            </div>
+            
+            <div id="btnEliminarMesaContainer" class="mt-4 pt-4 border-t border-slate-100 flex justify-center hidden">
+                <button onclick="eliminarMesaConfig()" class="text-red-500 hover:text-red-700 text-xs font-bold transition-all btn-bounce">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Desactivar Mesa
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/parametros.js?v=2.2"></script>
+    <script src="js/parametros_mesas.js?v=1.0"></script>
     <script>
         // === GUARDIA DE SEGURIDAD ESTRICTA ===
         const rolUsuarioAutenticado = localStorage.getItem('usuario_rol');

@@ -21,6 +21,7 @@ import 'libro_diario_screen.dart';
 import 'ia_assistant_screen.dart';
 import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
+import 'venta_mesa_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -372,13 +373,20 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     _menuItems.clear();
     _screens.clear();
 
-    // 0. Dashboard para Administradores
-    if (_isAdmin) {
+    // 0. Dashboard para Todos los Usuarios
+    _menuItems.add({
+      'title': 'Dashboard',
+      'icon': FontAwesomeIcons.chartLine,
+    });
+    _screens.add(const DashboardScreen());
+
+    // 0.5 Venta por Mesa (Visible para Admins, Cajeros y Meseros)
+    if (_isAdmin || _userRol == 'CAJERO' || _userRol == 'MESERO') {
       _menuItems.add({
-        'title': 'Dashboard',
-        'icon': FontAwesomeIcons.chartLine,
+        'title': 'Venta por Mesa',
+        'icon': FontAwesomeIcons.utensils,
       });
-      _screens.add(const DashboardScreen());
+      _screens.add(const VentaMesaScreen());
     }
 
     // 1. Siempre visible: Punto de Venta
