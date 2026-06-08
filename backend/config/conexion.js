@@ -345,6 +345,7 @@ pool.query('SELECT NOW()', async (err, res) => {
 
     // 8. Crear tablas de Recetas e Ingredientes de Recetas
     try {
+        await pool.query(`DROP TABLE IF EXISTS ingrediente_recetas, recetas CASCADE;`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS recetas (
                 id SERIAL PRIMARY KEY,
