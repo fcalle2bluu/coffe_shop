@@ -42,7 +42,7 @@ function actualizarKPIs() {
 
     // Insumos sin stock (insumos de recetas que tienen stock actual <= 0)
     // Para contar esto de forma aproximada, haremos un fetch de insumos en background
-    fetch('/api/inventario')
+    fetch('/api/almacen/insumos')
         .then(res => res.json())
         .then(insumos => {
             const sinStock = insumos.filter(i => parseFloat(i.stock_actual) <= 0).length;
