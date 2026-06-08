@@ -3,6 +3,16 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
+// GET /api/comandas/debug-db
+router.get('/debug-db', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'comandas'");
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // 1. Obtener todas las comandas activas (CREADA, ENTREGADA)
 router.get('/', async (req, res) => {
     try {
