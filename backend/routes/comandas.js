@@ -3,50 +3,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// GET /api/comandas/debug-db
-router.get('/debug-db', async (req, res) => {
-    try {
-        const triggers = await pool.query(`
-            SELECT 
-                trigger_name, 
-                event_manipulation, 
-                event_object_table, 
-                action_statement, 
-                action_orientation
-            FROM information_schema.triggers
-        `);
 
-        const pgTriggers = await pool.query(`
-            SELECT tgname, relname, tgtype
-            FROM pg_trigger 
-            JOIN pg_class ON pg_trigger.tgrelid = pg_class.oid 
-            WHERE relname IN ('comandas', 'detalle_comandas')
-        `);
-
-        const pgRules = await pool.query(`
-            SELECT tablename, rulename, definition 
-            FROM pg_rules 
-            WHERE tablename = 'comandas'
-        `);
-
-        // Check columns of all tables in the DB to see if any other table has a column issue
-        const allTablesCols = await pool.query(`
-            SELECT table_name, column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_schema = 'public' AND table_name IN ('comandas', 'detalle_comandas', 'ventas', 'detalle_ventas')
-            ORDER BY table_name, column_name
-        `);
-
-        res.json({
-            triggers: triggers.rows,
-            pgTriggers: pgTriggers.rows,
-            pgRules: pgRules.rows,
-            allTablesCols: allTablesCols.rows
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
 
 // 1. Obtener todas las comandas activas (CREADA, ENTREGADA)
 router.get('/', async (req, res) => {
@@ -177,7 +134,7 @@ router.post('/', async (req, res) => {
 
         // Obtener caja abierta (si existe)
         const cajaRes = await client.query(`
-            SELECT id FROM cajas WHERE estado = 'ABIERTA' LIMIT 1
+            SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1
         `);
         const cajaId = cajaRes.rows.length > 0 ? cajaRes.rows[0].id : null;
 
@@ -204,16 +161,7 @@ router.post('/', async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error al crear comanda:', error);
-        res.status(500).json({ 
-            error: 'Error interno al guardar comanda: ' + error.message, 
-            stack: error.stack, 
-            table: error.table, 
-            schema: error.schema,
-            detail: error.detail,
-            hint: error.hint,
-            query: error.query,
-            where: error.where
-        });
+        res.status(500).json({ error: 'Error interno al guardar comanda: ' + error.message });
     } finally {
         client.release();
     }
@@ -275,7 +223,7 @@ router.post('/:id/pagar', async (req, res) => {
 
         // Obtener caja abierta para el cobro
         const cajaRes = await client.query(`
-            SELECT id FROM cajas WHERE estado = 'ABIERTA' LIMIT 1
+            SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1
         `);
         if (cajaRes.rows.length === 0) {
             await client.query('ROLLBACK');
