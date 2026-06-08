@@ -199,7 +199,16 @@ router.post('/', async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error al crear comanda:', error);
-        res.status(500).json({ error: 'Error interno al guardar comanda: ' + error.message });
+        res.status(500).json({ 
+            error: 'Error interno al guardar comanda: ' + error.message, 
+            stack: error.stack, 
+            table: error.table, 
+            schema: error.schema,
+            detail: error.detail,
+            hint: error.hint,
+            query: error.query,
+            where: error.where
+        });
     } finally {
         client.release();
     }
