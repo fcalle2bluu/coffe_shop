@@ -372,21 +372,21 @@ pool.query('SELECT NOW()', async (err, res) => {
     // 9. Sembrar productos de coctelería faltantes
     try {
         const cocteles = [
-            { nombre: 'Mojito', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Sex on the beach', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Chuflay', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Te con te', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Sucumbe', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Laguna azul', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Luz de luna', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Coquito spring', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Illimani', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' },
-            { nombre: 'Bailey de café', precio: 25.00, categoria: 'BEBIDAS CON ALCOHOL' }
+            { nombre: 'Mojito', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Sex on the beach', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Chuflay', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Te con te', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Sucumbe', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Laguna azul', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Luz de luna', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Coquito spring', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Illimani', precio: 25.00, categoria_id: 15 },
+            { nombre: 'Bailey de café', precio: 25.00, categoria_id: 15 }
         ];
         for (const c of cocteles) {
             const check = await pool.query('SELECT id FROM productos WHERE LOWER(nombre) = LOWER($1)', [c.nombre]);
             if (check.rows.length === 0) {
-                await pool.query('INSERT INTO productos (nombre, precio, categoria, activo) VALUES ($1, $2, $3, true)', [c.nombre, c.precio, c.categoria]);
+                await pool.query('INSERT INTO productos (nombre, precio_venta, categoria_id, activo) VALUES ($1, $2, $3, true)', [c.nombre, c.precio, c.categoria_id]);
                 console.log(`🍹 Producto de coctelería creado: ${c.nombre}`);
             }
         }

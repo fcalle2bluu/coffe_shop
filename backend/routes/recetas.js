@@ -6,9 +6,10 @@ const pool = require('../config/conexion');
 router.get('/', async (req, res) => {
     try {
         const query = `
-            SELECT r.*, p.categoria, p.precio, p.imagen_url
+            SELECT r.*, c.nombre AS categoria, p.precio_venta AS precio, p.imagen_url
             FROM recetas r
             LEFT JOIN productos p ON r.producto_id = p.id
+            LEFT JOIN categorias c ON p.categoria_id = c.id
             ORDER BY r.nombre ASC
         `;
         const result = await pool.query(query);
@@ -24,9 +25,10 @@ router.get('/:id', async (req, res) => {
     try {
         const recipeId = req.params.id;
         const recipeQuery = `
-            SELECT r.*, p.categoria, p.precio, p.imagen_url
+            SELECT r.*, c.nombre AS categoria, p.precio_venta AS precio, p.imagen_url
             FROM recetas r
             LEFT JOIN productos p ON r.producto_id = p.id
+            LEFT JOIN categorias c ON p.categoria_id = c.id
             WHERE r.id = $1
         `;
         const recipeResult = await pool.query(recipeQuery, [recipeId]);
