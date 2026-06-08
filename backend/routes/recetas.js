@@ -2,64 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// GET /api/recetas/debug-db
-router.get('/debug-db', async (req, res) => {
-    try {
-        const tablesQuery = await pool.query(`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public';
-        `);
-        const tables = tablesQuery.rows.map(r => r.table_name);
-        
-        let recetasCols = null;
-        let ingredienteCols = null;
-        
-        try {
-            const rCols = await pool.query(`
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'recetas';
-            `);
-            recetasCols = rCols.rows;
-        } catch (e) {
-            recetasCols = { error: e.message };
-        }
-        
-        try {
-            const iCols = await pool.query(`
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'ingrediente_recetas';
-            `);
-            ingredienteCols = iCols.rows;
-        } catch (e) {
-            ingredienteCols = { error: e.message };
-        }
-
-        let testQueryErr = null;
-        try {
-            const testQ = await pool.query(`
-                SELECT r.*, c.nombre AS categoria, p.precio_venta AS precio, p.imagen_url
-                FROM recetas r
-                LEFT JOIN productos p ON r.producto_id = p.id
-                LEFT JOIN categorias c ON p.categoria_id = c.id
-                ORDER BY r.nombre ASC
-            `);
-        } catch (e) {
-            testQueryErr = e.message;
-        }
-
-        res.json({
-            tables,
-            recetasCols,
-            ingredienteCols,
-            testQueryErr
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message, stack: err.stack });
-    }
-});
 
 // GET /api/recetas
 router.get('/', async (req, res) => {
