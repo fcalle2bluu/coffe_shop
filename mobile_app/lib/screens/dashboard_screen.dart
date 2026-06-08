@@ -210,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         'PLANTA BAJA (${_mesas.where((m) => m['piso'] == 'PLANTA_BAJA').length})',
                                         style: GoogleFonts.outfit(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.black,
+                                          fontWeight: FontWeight.w900,
                                           color: AppTheme.textMuted,
                                           letterSpacing: 0.5,
                                         ),
@@ -232,7 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         'PRIMER PISO (${_mesas.where((m) => m['piso'] == 'PLANTA_ALTA').length})',
                                         style: GoogleFonts.outfit(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.black,
+                                          fontWeight: FontWeight.w900,
                                           color: AppTheme.textMuted,
                                           letterSpacing: 0.5,
                                         ),

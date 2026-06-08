@@ -493,7 +493,7 @@ class _ParametrosMesasScreenState extends State<ParametrosMesasScreen> {
                                               Text(
                                                 '${m['numero']}',
                                                 style: const TextStyle(
-                                                  fontWeight: FontWeight.black,
+                                                  fontWeight: FontWeight.w900,
                                                   fontSize: 12,
                                                   color: AppTheme.textLight,
                                                   fontFamily: 'Outfit',
