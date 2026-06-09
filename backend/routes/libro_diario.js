@@ -194,8 +194,13 @@ router.get('/', async (req, res) => {
             });
         });
 
-        // 6. Ordenar cronológicamente (antiguos primero)
-        movimientos.sort((a, b) => a.fecha_raw - b.fecha_raw);
+        // 6. Ordenar cronológicamente (más recientes primero por defecto)
+        const orden = (req.query.orden || 'DESC').toUpperCase();
+        if (orden === 'ASC') {
+            movimientos.sort((a, b) => a.fecha_raw - b.fecha_raw);
+        } else {
+            movimientos.sort((a, b) => b.fecha_raw - a.fecha_raw);
+        }
 
         // 7. Asignar números correlativos de asiento (1-based)
         const asientos = movimientos.map((mov, index) => {
