@@ -179,6 +179,7 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 v.id as venta_id,
+                v.usuario_id,
                 TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta,
                 v.total,
                 v.metodo_pago,

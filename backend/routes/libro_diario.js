@@ -33,8 +33,9 @@ router.get('/', async (req, res) => {
         // 1. Obtener ventas del mes/año
         const queryVentas = `
             SELECT v.id, v.total, v.metodo_pago, v.fecha_venta,
-                   TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    EXTRACT(DOW FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as dia_semana_num,
+                   u.nombre as cajero,
                    (
                        SELECT string_agg(p.nombre || ' (x' || dv.cantidad || ')', ', ')
                        FROM detalle_ventas dv
@@ -42,6 +43,7 @@ router.get('/', async (req, res) => {
                        WHERE dv.venta_id = v.id
                    ) as detalle_items
             FROM ventas v
+            LEFT JOIN usuarios u ON v.usuario_id = u.id
             WHERE EXTRACT(MONTH FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $1
               AND EXTRACT(YEAR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $2
         `;
@@ -50,7 +52,7 @@ router.get('/', async (req, res) => {
         // 2. Obtener compras del mes/año
         const queryCompras = `
             SELECT c.id, c.total, c.fecha,
-                   TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    EXTRACT(DOW FROM c.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    p.nombre as proveedor,
                    (
@@ -69,7 +71,7 @@ router.get('/', async (req, res) => {
         // 3. Obtener gastos de caja del mes/año
         const queryGastosCaja = `
             SELECT gc.id, gc.monto, gc.descripcion, gc.fecha,
-                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    u.nombre as usuario_nombre
             FROM gastos_caja gc
@@ -82,7 +84,7 @@ router.get('/', async (req, res) => {
         // 4. Obtener gastos generales contables del mes/año
         const queryGastosGenerales = `
             SELECT gg.id, gg.monto, gg.descripcion, gg.fecha, gg.categoria, gg.metodo_pago,
-                   TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY') as fecha_diario,
+                   TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    EXTRACT(DOW FROM gg.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num
             FROM gastos_generales gg
             WHERE EXTRACT(MONTH FROM gg.fecha AT TIME ZONE 'America/La_Paz') = $1
@@ -106,13 +108,13 @@ router.get('/', async (req, res) => {
 
             const diaSemana = diasSemana[parseInt(v.dia_semana_num)] || 'S/D';
             const fechaDiario = formatearFechaDiario(v.fecha_diario);
-            const itemsDetalle = v.detalle_items ? ` Venta: ${v.detalle_items}.` : '';
+            const itemsDetalle = v.detalle_items ? ` Detalle: ${v.detalle_items}.` : '';
 
             movimientos.push({
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(v.fecha_venta),
-                glosa: `Ventas registradas en POS. Pagos en ${metodo}. S/F.${itemsDetalle}`,
+                glosa: `Venta #${v.id.toString().padStart(5, '0')} (POS). Cajero: ${v.cajero || 'Desconocido'}. Pago: ${metodo}.${itemsDetalle}`,
                 cuentas: [
                     { nombre: cuentaDebe, tipo: 'DEBE', importe: total },
                     { nombre: 'VENTA', tipo: 'HABER', importe: total }
@@ -136,7 +138,7 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(c.fecha),
-                glosa: `Compra de insumos registrada en sistema.${provName}${itemsDetalle}`,
+                glosa: `Compra #${c.id.toString().padStart(5, '0')}.${provName}${itemsDetalle}`,
                 cuentas: [
                     { nombre: 'INVENTARIOS', tipo: 'DEBE', importe: total },
                     { nombre: cuentaHaber, tipo: 'HABER', importe: total }
@@ -155,7 +157,7 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gc.fecha),
-                glosa: `Gasto de Caja Chica (Cierre Turno).${cajero} Detalle: ${gc.descripcion}`,
+                glosa: `Gasto de Caja Chica (Turno #${gc.id}).${cajero} Detalle: ${gc.descripcion}`,
                 cuentas: [
                     { nombre: 'GASTOS OPERATIVOS', tipo: 'DEBE', importe: total },
                     { nombre: 'CAJA CHICA', tipo: 'HABER', importe: total }
@@ -176,7 +178,7 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gg.fecha),
-                glosa: `Gasto general registrado: ${gg.descripcion}`,
+                glosa: `Gasto general #${gg.id} - ${categoria} - Pago: ${metodoPago} - Detalle: ${gg.descripcion}`,
                 cuentas: [
                     { nombre: categoria, tipo: 'DEBE', importe: total },
                     { nombre: metodoPago, tipo: 'HABER', importe: total }

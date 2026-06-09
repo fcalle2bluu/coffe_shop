@@ -343,6 +343,7 @@ async function cargarHistorialVentasAdmin() {
                                         <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
                                         <th class="px-4 py-2 text-right">Monto</th>
+                                        <th class="px-4 py-2 text-center w-[120px] no-print">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -383,7 +384,12 @@ async function cargarHistorialVentasAdmin() {
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
                                         ${tdMetodoPago}
-                                        <td class="px-4 py-1.5 text-right font-black text-stone-900">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
+                                        <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
+                                        <td class="px-4 py-1.5 text-center whitespace-nowrap no-print">
+                                            <button onclick="abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
+                                                <i class="fa-solid fa-print"></i> Re-Imprimir
+                                            </button>
+                                        </td>
                                     </tr>
                     `;
                 });
@@ -484,10 +490,12 @@ function cambiarPestana(tabId) {
     const secTurnoActual = document.getElementById('seccion-turno-actual-container');
     const secHistorial = document.getElementById('seccion-historial-turnos');
     const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
+    const secVentasRealizadas = document.getElementById('seccion-ventas-realizadas');
 
     const btnTurno = document.getElementById('tab-turno-actual');
     const btnHistorial = document.getElementById('tab-historial-turnos');
     const btnAuditoria = document.getElementById('tab-auditoria');
+    const btnVentasRealizadas = document.getElementById('tab-ventas-realizadas');
 
     const activeClasses = ['bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10'];
     const inactiveClasses = ['text-slate-600', 'hover:bg-slate-50'];
@@ -495,8 +503,9 @@ function cambiarPestana(tabId) {
     if (secTurnoActual) secTurnoActual.classList.add('hidden');
     if (secHistorial) secHistorial.classList.add('hidden');
     if (secAuditoria) secAuditoria.classList.add('hidden');
+    if (secVentasRealizadas) secVentasRealizadas.classList.add('hidden');
 
-    [btnTurno, btnHistorial, btnAuditoria].forEach(btn => {
+    [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas].forEach(btn => {
         if (btn) {
             activeClasses.forEach(cls => btn.classList.remove(cls));
             inactiveClasses.forEach(cls => btn.classList.add(cls));
@@ -521,7 +530,130 @@ function cambiarPestana(tabId) {
             inactiveClasses.forEach(cls => btnAuditoria.classList.remove(cls));
             activeClasses.forEach(cls => btnAuditoria.classList.add(cls));
         }
+    } else if (tabId === 'ventas-realizadas') {
+        if (secVentasRealizadas) secVentasRealizadas.classList.remove('hidden');
+        if (btnVentasRealizadas) {
+            inactiveClasses.forEach(cls => btnVentasRealizadas.classList.remove(cls));
+            activeClasses.forEach(cls => btnVentasRealizadas.classList.add(cls));
+        }
+        cargarVentasRealizadas();
     }
+}
+
+async function cargarVentasRealizadas() {
+    const tbody = document.getElementById('tabla-ventas-realizadas-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando ventas del día...</td></tr>';
+
+    try {
+        const res = await fetch('/api/caja/historial-ventas-cajeros');
+        if (!res.ok) throw new Error('Error al cargar ventas');
+        const ventas = await res.json();
+
+        const loggedUserRol = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+        const loggedUserId = localStorage.getItem('usuario_id');
+
+        // Today in local Bolivia time format: YYYY-MM-DD
+        const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formatter = new Intl.DateTimeFormat('en-CA', options); // returns YYYY-MM-DD
+        const hoyBolivia = formatter.format(new Date());
+
+        const filtered = ventas.filter(v => {
+            if (!v.fecha_venta) return false;
+            const fechaParte = v.fecha_venta.split(' ')[0];
+            const matchDate = fechaParte === hoyBolivia;
+            
+            if (loggedUserRol === 'ADMIN' || loggedUserRol === 'ADMINISTRADOR') {
+                return matchDate;
+            } else {
+                return matchDate && String(v.usuario_id) === String(loggedUserId);
+            }
+        });
+
+        tbody.innerHTML = '';
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400 font-semibold">No se encontraron ventas registradas hoy.</td></tr>';
+            return;
+        }
+
+        filtered.forEach(venta => {
+            const padId = venta.venta_id.toString().padStart(5, '0');
+            const total = parseFloat(venta.total).toFixed(2);
+            
+            const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
+                               (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
+                               (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
+                               '<i class="fa-solid fa-credit-card text-purple-600 mr-1"></i>';
+
+            tbody.innerHTML += `
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 font-mono font-bold text-slate-650">#${padId}</td>
+                    <td class="px-4 py-3 text-slate-600">${venta.fecha_venta}</td>
+                    <td class="px-4 py-3 text-slate-700">${iconMetodo} ${venta.metodo_pago}</td>
+                    <td class="px-4 py-3 text-right font-bold text-slate-900 font-mono">Bs. ${total}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="abrirTicket(${venta.venta_id})" class="no-print bg-slate-150 hover:bg-orange-100 text-slate-700 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-xs">
+                            <i class="fa-solid fa-print mr-1"></i> Re-Imprimir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        console.error("Error al cargar ventas del cajero:", e);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-red-500 font-bold">Ocurrió un error al cargar las ventas.</td></tr>';
+    }
+}
+
+async function abrirTicket(id) {
+    try {
+        const res = await fetch(`/api/comprobantes/${id}`);
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error);
+
+        // Llenar datos de cabecera
+        document.getElementById('t-id').innerText = data.ticket.id.toString().padStart(4, '0');
+        document.getElementById('t-fecha').innerText = data.ticket.fecha;
+        document.getElementById('t-total').innerText = `Bs. ${data.ticket.total}`;
+        document.getElementById('t-pago').innerText = data.ticket.metodo_pago;
+
+        // Llenar productos
+        const tbodyItems = document.getElementById('t-items');
+        tbodyItems.innerHTML = '';
+        data.items.forEach(item => {
+            tbodyItems.innerHTML += `
+                <tr class="border-b border-gray-100">
+                    <td class="py-2 text-center">${item.cantidad}</td>
+                    <td class="py-2">${item.nombre}</td>
+                    <td class="py-2 text-right">Bs. ${item.subtotal}</td>
+                </tr>
+            `;
+        });
+
+        // Mostrar el modal
+        document.getElementById('modalTicket').classList.remove('hidden');
+
+    } catch (error) {
+        alert("Error al abrir ticket: " + error.message);
+    }
+}
+
+function cerrarModalTicket() {
+    document.getElementById('modalTicket').classList.add('hidden');
+}
+
+function imprimirTicket() {
+    document.body.classList.add('print-ticket');
+    window.print();
+    document.body.classList.remove('print-ticket');
+}
+
+function imprimirAuditoria() {
+    document.body.classList.add('print-auditoria');
+    window.print();
+    document.body.classList.remove('print-auditoria');
 }
 
 async function actualizarMetodoPago(ventaId, nuevoMetodo) {

@@ -38,6 +38,16 @@
         }
     </script>
 
+    <style>
+        @media print {
+            body.print-ticket * { visibility: hidden; }
+            body.print-ticket #zona-impresion,
+            body.print-ticket #zona-impresion * { visibility: visible !important; display: block !important; }
+            body.print-ticket #zona-impresion { position: absolute; left: 0; top: 0; width: 300px; padding: 0; margin: 0; font-family: monospace; }
+            .no-print { display: none !important; }
+        }
+    </style>
+
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
 <body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
@@ -201,7 +211,7 @@
             <button onclick="cerrarModalExito()" class="w-full bg-orange-600 hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg text-white font-bold py-3 rounded-lg mb-3 shadow btn-bounce">
                 Nueva Venta
             </button>
-            <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors btn-bounce">
+            <button onclick="imprimirUltimoRecibo()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors btn-bounce">
                 <i class="fa-solid fa-print mr-2"></i> Imprimir Recibo
             </button>
         </div>
@@ -306,6 +316,47 @@
             }
         });
     </script>
+    <!-- Zona de impresión oculta para recibos -->
+    <div id="zona-impresion" class="hidden">
+        <div class="text-center mb-4">
+            <h2 class="font-black text-xl tracking-widest">Café La Paz</h2>
+            <p class="text-xs">Cafetería de Especialidad</p>
+            <p class="text-xs">La Paz, Bolivia</p>
+            <p class="text-xs mt-2" id="t-fecha">--/--/---- --:--</p>
+            <h3 class="font-bold mt-1 text-lg">TICKET #<span id="t-id">0000</span></h3>
+        </div>
+        
+        <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
+        
+        <table class="w-full text-xs">
+            <thead>
+                <tr class="text-left font-bold border-b border-gray-300">
+                    <th class="py-1 text-center">CANT</th>
+                    <th class="py-1">DESC</th>
+                    <th class="py-1 text-right">IMP</th>
+                </tr>
+            </thead>
+            <tbody id="t-items">
+            </tbody>
+        </table>
+        
+        <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
+        
+        <div class="flex justify-between font-black text-sm" style="display: flex; justify-content: space-between; font-weight: bold;">
+            <span>TOTAL:</span>
+            <span id="t-total">Bs. 0.00</span>
+        </div>
+        <div class="flex justify-between text-xs mt-1" style="display: flex; justify-content: space-between;">
+            <span>PAGO:</span>
+            <span id="t-pago">EFECTIVO</span>
+        </div>
+        
+        <div class="text-center mt-6 text-xs italic">
+            <p>¡Gracias por tu compra!</p>
+            <p>Vuelve pronto a Café La Paz</p>
+        </div>
+    </div>
+
     <script src="js/security_guard.js"></script>
 </body>
 </html>

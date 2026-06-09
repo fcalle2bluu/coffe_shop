@@ -2,6 +2,7 @@
 let productosCatalogo = [];
 let carritoVenta = [];
 let totalVenta = 0;
+let ultimaVentaId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
@@ -286,6 +287,7 @@ async function procesarCobro() {
 
         if (!respuesta.ok) throw new Error(data.error || 'Error al procesar');
         const vId = data.venta_id || (data.ticket && data.ticket.id); // <--- CORRECCIÓN DE ACCESO
+        ultimaVentaId = vId;
 
         // Mostrar Modal de Éxito
         document.getElementById('info-ticket').innerText = `Ticket #${vId} | ${payload.metodo_pago}`;
@@ -303,6 +305,47 @@ function cerrarModalExito() {
     carritoVenta = [];
     actualizarTicket();
     document.getElementById('btn-cobrar').innerHTML = `COBRAR Bs. <span id="btn-total">0.00</span>`;
+    ultimaVentaId = null;
+}
+
+async function imprimirUltimoRecibo() {
+    if (!ultimaVentaId) {
+        alert("No hay ninguna venta reciente para imprimir.");
+        return;
+    }
+    try {
+        const res = await fetch(`/api/comprobantes/${ultimaVentaId}`);
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error);
+
+        // Llenar datos de cabecera
+        document.getElementById('t-id').innerText = data.ticket.id.toString().padStart(4, '0');
+        document.getElementById('t-fecha').innerText = data.ticket.fecha;
+        document.getElementById('t-total').innerText = `Bs. ${data.ticket.total}`;
+        document.getElementById('t-pago').innerText = data.ticket.metodo_pago;
+
+        // Llenar productos
+        const tbodyItems = document.getElementById('t-items');
+        tbodyItems.innerHTML = '';
+        data.items.forEach(item => {
+            tbodyItems.innerHTML += `
+                <tr class="border-b border-gray-100">
+                    <td class="py-2 text-center">${item.cantidad}</td>
+                    <td class="py-2">${item.nombre}</td>
+                    <td class="py-2 text-right">Bs. ${item.subtotal}</td>
+                </tr>
+            `;
+        });
+
+        // Imprimir
+        document.body.classList.add('print-ticket');
+        window.print();
+        document.body.classList.remove('print-ticket');
+
+    } catch (error) {
+        alert("Error al imprimir ticket: " + error.message);
+    }
 }
 
 // --- 4. ADMINISTRACIÓN DE PRODUCTOS (SOLO ADMIN) ---
