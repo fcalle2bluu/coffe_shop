@@ -114,6 +114,8 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(v.fecha_venta),
+                tipo: 'venta',
+                ref_id: v.id,
                 glosa: `Venta #${v.id.toString().padStart(5, '0')} (POS). Cajero: ${v.cajero || 'Desconocido'}. Pago: ${metodo}.${itemsDetalle}`,
                 cuentas: [
                     { nombre: cuentaDebe, tipo: 'DEBE', importe: total },
@@ -138,6 +140,8 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(c.fecha),
+                tipo: 'compra',
+                ref_id: c.id,
                 glosa: `Compra #${c.id.toString().padStart(5, '0')}.${provName}${itemsDetalle}`,
                 cuentas: [
                     { nombre: 'INVENTARIOS', tipo: 'DEBE', importe: total },
@@ -157,6 +161,8 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gc.fecha),
+                tipo: 'gasto_caja',
+                ref_id: gc.id,
                 glosa: `Gasto de Caja Chica (Turno #${gc.id}).${cajero} Detalle: ${gc.descripcion}`,
                 cuentas: [
                     { nombre: 'GASTOS OPERATIVOS', tipo: 'DEBE', importe: total },
@@ -178,6 +184,8 @@ router.get('/', async (req, res) => {
                 fecha: fechaDiario,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gg.fecha),
+                tipo: 'gasto_general',
+                ref_id: gg.id,
                 glosa: `Gasto general #${gg.id} - ${categoria} - Pago: ${metodoPago} - Detalle: ${gg.descripcion}`,
                 cuentas: [
                     { nombre: categoria, tipo: 'DEBE', importe: total },
@@ -196,6 +204,8 @@ router.get('/', async (req, res) => {
                 fecha: mov.fecha,
                 dia_semana: mov.dia_semana,
                 glosa: mov.glosa,
+                tipo: mov.tipo,
+                ref_id: mov.ref_id,
                 cuentas: mov.cuentas
             };
         });
@@ -263,6 +273,45 @@ router.delete('/gastos/:id', async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar gasto general:', error);
         res.status(500).json({ error: 'Error al eliminar el gasto general: ' + error.message });
+    }
+});
+
+// Eliminar un gasto de caja
+router.delete('/gasto-caja/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM gastos_caja WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Gasto de caja eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar gasto de caja:', error);
+        res.status(500).json({ error: 'Error al eliminar gasto de caja: ' + error.message });
+    }
+});
+
+// Eliminar una venta (asiento de venta en libro diario)
+router.delete('/venta/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Eliminar detalles primero (FK constraint)
+        await pool.query('DELETE FROM detalle_ventas WHERE venta_id = $1', [id]);
+        await pool.query('DELETE FROM ventas WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Venta eliminada correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar venta:', error);
+        res.status(500).json({ error: 'Error al eliminar la venta: ' + error.message });
+    }
+});
+
+// Eliminar una compra (asiento de compra en libro diario)
+router.delete('/compra/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM detalle_compras WHERE compra_id = $1', [id]);
+        await pool.query('DELETE FROM compras WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Compra eliminada correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar compra:', error);
+        res.status(500).json({ error: 'Error al eliminar la compra: ' + error.message });
     }
 });
 

@@ -33,7 +33,7 @@ async function cargarLibroDiario() {
 
     body.innerHTML = `
         <tr>
-            <td colspan="5" class="text-center py-20 text-slate-400 italic font-sans">
+            <td colspan="6" class="text-center py-20 text-slate-400 italic font-sans">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 text-indigo-500 block"></i>
                 Generando asientos del libro diario contable...
             </td>
@@ -53,7 +53,7 @@ async function cargarLibroDiario() {
         if (!data.asientos || data.asientos.length === 0) {
             body.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center py-20 text-slate-400 italic font-sans">
+                    <td colspan="6" class="text-center py-20 text-slate-400 italic font-sans">
                         No hay movimientos registrados (ventas o compras) para este período.
                     </td>
                 </tr>
@@ -80,6 +80,8 @@ async function cargarLibroDiario() {
             });
 
             // 1. Renderizar filas de cuentas
+            const esAdmin = ['ADMIN', 'ADMINISTRADOR'].includes((localStorage.getItem('usuario_rol') || '').toUpperCase());
+
             asiento.cuentas.forEach((cuenta, idx) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/50 transition-colors";
@@ -107,12 +109,27 @@ async function cargarLibroDiario() {
                 const debeCol = cuenta.tipo === 'DEBE' ? formatearMonto(cuenta.importe) : '';
                 const haberCol = cuenta.tipo === 'HABER' ? formatearMonto(cuenta.importe) : '';
 
+                // Columna de accion (solo en primera fila del asiento y solo para admin)
+                let accionCol = '';
+                if (idx === 0 && esAdmin) {
+                    accionCol = `
+                        <button
+                            onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)"
+                            title="Eliminar asiento"
+                            class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all"
+                        >
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    `;
+                }
+
                 tr.innerHTML = `
                     <td class="text-center font-sans">${fechaCol}</td>
                     <td class="text-center font-bold">${nroCol}</td>
                     <td class="text-left">${detalleCol}</td>
                     <td class="text-right font-bold text-slate-900">${debeCol}</td>
                     <td class="text-right font-bold text-slate-500">${haberCol}</td>
+                    <td class="text-center">${accionCol}</td>
                 `;
                 body.appendChild(tr);
             });
@@ -126,10 +143,11 @@ async function cargarLibroDiario() {
                 <td class="text-left text-xs text-slate-400 italic font-sans py-2" colspan="3">
                     Glosa: ${asiento.glosa}
                 </td>
+                <td></td>
             `;
             body.appendChild(trGlosa);
 
-            // 3. Renderizar fila de Totales de Asiento (imitando la fila de bordes de Excel)
+            // 3. Renderizar fila de Totales de Asiento
             const trTotalAsiento = document.createElement('tr');
             trTotalAsiento.className = "hover:bg-slate-50/50 transition-colors";
             trTotalAsiento.innerHTML = `
@@ -138,6 +156,7 @@ async function cargarLibroDiario() {
                 <td></td>
                 <td class="text-right font-bold text-indigo-600 border-t border-b border-dashed border-slate-300 py-2">${formatearMonto(totalAsientoDebe)}</td>
                 <td class="text-right font-bold text-indigo-600 border-t border-b border-dashed border-slate-300 py-2">${formatearMonto(totalAsientoHaber)}</td>
+                <td class="border-t border-b border-dashed border-slate-300"></td>
             `;
             body.appendChild(trTotalAsiento);
 
@@ -155,6 +174,7 @@ async function cargarLibroDiario() {
             <td class="text-left py-3 font-sans uppercase tracking-widest text-xs">SUMAS DE DEBE Y HABER</td>
             <td class="text-right py-3 text-emerald-400 font-bold">${formatearMonto(totalDebeGlobal)}</td>
             <td class="text-right py-3 text-emerald-400 font-bold">${formatearMonto(totalHaberGlobal)}</td>
+            <td></td>
         `;
         body.appendChild(trGrandTotal);
 
@@ -162,12 +182,47 @@ async function cargarLibroDiario() {
         console.error("Error cargando Libro Diario:", error);
         body.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-20">
+                <td colspan="6" class="text-center py-20">
                     <p class="text-rose-500 font-bold mb-2">⚠️ Error de conexión con el servidor contable</p>
                     <button onclick="cargarLibroDiario()" class="text-xs bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200 transition-colors tracking-tight font-black uppercase">Reintentar</button>
                 </td>
             </tr>
         `;
+    }
+}
+
+// Eliminar un asiento del Libro Diario (solo admin)
+async function eliminarAsiento(tipo, refId, btnEl) {
+    const etiquetas = {
+        venta: 'esta venta',
+        compra: 'esta compra',
+        gasto_caja: 'este gasto de caja',
+        gasto_general: 'este gasto general'
+    };
+    const label = etiquetas[tipo] || 'este asiento';
+    if (!confirm(`¿Estás seguro de eliminar ${label} del Libro Diario? Esta acción no se puede deshacer.`)) return;
+
+    const urls = {
+        venta: `/api/libro-diario/venta/${refId}`,
+        compra: `/api/libro-diario/compra/${refId}`,
+        gasto_caja: `/api/libro-diario/gasto-caja/${refId}`,
+        gasto_general: `/api/libro-diario/gastos/${refId}`
+    };
+
+    const url = urls[tipo];
+    if (!url) { alert('Tipo de asiento desconocido'); return; }
+
+    // Feedback visual
+    if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>'; }
+
+    try {
+        const res = await fetch(url, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar');
+        cargarLibroDiario();
+    } catch (e) {
+        alert('Error al eliminar asiento: ' + e.message);
+        if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fa-solid fa-trash-can text-xs"></i>'; }
     }
 }
 

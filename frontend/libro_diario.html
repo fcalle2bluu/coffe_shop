@@ -226,6 +226,7 @@
                                     <th class="text-left">DETALLE</th>
                                     <th class="w-32 text-right">DEBE</th>
                                     <th class="w-32 text-right">HABER</th>
+                                    <th class="w-12 solo-admin-th" style="display:none;"></th>
                                 </tr>
                             </thead>
                             <tbody id="libroDiarioCuerpo">
@@ -275,6 +276,12 @@
 
             if (rolActual === 'CAJERO') {
                 document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
+            }
+
+            // Mostrar columna de acciones solo para admin
+            const rolUp = (rolActual || '').toUpperCase();
+            if (rolUp === 'ADMIN' || rolUp === 'ADMINISTRADOR') {
+                document.querySelectorAll('.solo-admin-th').forEach(el => el.style.display = '');
             }
             
             // Establecer mes y año actual por defecto
