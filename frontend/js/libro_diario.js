@@ -189,7 +189,7 @@ function renderizarAsientos(asientos) {
     let totalDebeGlobal = 0;
     let totalHaberGlobal = 0;
 
-    asientos.forEach(asiento => {
+    asientos.forEach((asiento, asientoIdx) => {
         let totalAsientoDebe = 0;
         let totalAsientoHaber = 0;
 
@@ -203,76 +203,117 @@ function renderizarAsientos(asientos) {
             }
         });
 
-        // 1. Filas de cuentas
-        asiento.cuentas.forEach((cuenta, idx) => {
-            const tr = document.createElement('tr');
-            tr.className = "hover:bg-slate-50/50 transition-colors";
+        const detalleId = `detalle-asiento-${asientoIdx}`;
 
-            let fechaCol = '';
-            if (idx === 0)      fechaCol = `<span class="font-bold text-slate-700">${asiento.fecha}</span>`;
-            else if (idx === 1) fechaCol = `<span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${asiento.dia_semana}</span>`;
+        // Detectar tipo para badge de color
+        const tipoBadges = {
+            venta:         { label: 'VENTA',    cls: 'bg-emerald-100 text-emerald-700' },
+            compra:        { label: 'COMPRA',   cls: 'bg-blue-100 text-blue-700' },
+            gasto_caja:    { label: 'GASTO',    cls: 'bg-red-100 text-red-600' },
+            gasto_general: { label: 'G.GRAL',  cls: 'bg-orange-100 text-orange-600' },
+        };
+        const badge = tipoBadges[asiento.tipo] || { label: asiento.tipo?.toUpperCase() || '', cls: 'bg-slate-100 text-slate-500' };
 
-            const nroCol = idx === 0 ? `<span class="font-bold text-slate-900">${asiento.asiento_nro}</span>` : '';
+        // Acortar la glosa para la fila principal (máx 80 chars)
+        const glosaCorta = asiento.glosa && asiento.glosa.length > 80
+            ? asiento.glosa.substring(0, 80) + '…'
+            : (asiento.glosa || '');
 
-            const detalleCol = cuenta.tipo === 'DEBE'
-                ? `<span class="excel-account-debe">${cuenta.nombre}</span>`
-                : `<span class="ml-10 text-slate-500 font-bold">${cuenta.nombre}</span>`;
+        const accionAdmin = esAdmin
+            ? `<button onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)" title="Eliminar asiento" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>`
+            : '';
 
-            const debeCol  = cuenta.tipo === 'DEBE'  ? formatearMonto(parseFloat(cuenta.importe)) : '';
-            const haberCol = cuenta.tipo === 'HABER' ? formatearMonto(parseFloat(cuenta.importe)) : '';
-
-            let accionCol = '';
-            if (idx === 0 && esAdmin) {
-                accionCol = `
-                    <button
-                        onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)"
-                        title="Eliminar asiento"
-                        class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all"
-                    >
-                        <i class="fa-solid fa-trash-can text-xs"></i>
+        // ── FILA PRINCIPAL (siempre visible) ──
+        const trPrincipal = document.createElement('tr');
+        trPrincipal.className = "hover:bg-indigo-50/40 cursor-pointer transition-colors border-b border-slate-100";
+        trPrincipal.onclick = () => toggleDetalleAsiento(detalleId, trPrincipal);
+        trPrincipal.innerHTML = `
+            <td class="text-center font-sans px-3 py-2.5">
+                <span class="font-bold text-slate-700 block text-xs">${asiento.fecha}</span>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${asiento.dia_semana || ''}</span>
+            </td>
+            <td class="text-center font-bold px-2 py-2.5">
+                <span class="font-bold text-slate-900 text-xs">${asiento.asiento_nro}</span>
+            </td>
+            <td class="text-left px-3 py-2.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full ${badge.cls}">${badge.label}</span>
+                    <span class="text-xs text-slate-600 leading-snug">${glosaCorta}</span>
+                </div>
+            </td>
+            <td class="text-right font-bold text-slate-900 px-3 py-2.5 text-xs">${formatearMonto(totalAsientoDebe)}</td>
+            <td class="text-right font-bold text-slate-400 px-3 py-2.5 text-xs"></td>
+            <td class="text-center px-2 py-2.5">
+                <div class="flex items-center justify-center gap-0.5">
+                    <button title="Ver detalle" class="btn-expand-asiento text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded p-1 transition-all">
+                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
                     </button>
-                `;
-            }
+                    ${accionAdmin}
+                </div>
+            </td>
+        `;
+        body.appendChild(trPrincipal);
 
-            tr.innerHTML = `
-                <td class="text-center font-sans">${fechaCol}</td>
-                <td class="text-center font-bold">${nroCol}</td>
-                <td class="text-left">${detalleCol}</td>
-                <td class="text-right font-bold text-slate-900">${debeCol}</td>
-                <td class="text-right font-bold text-slate-500">${haberCol}</td>
-                <td class="text-center">${accionCol}</td>
-            `;
-            body.appendChild(tr);
+        // ── FILAS DE DETALLE (ocultas por defecto) ──
+        const trDetalle = document.createElement('tr');
+        trDetalle.id = detalleId;
+        trDetalle.className = "hidden bg-slate-50/70";
+
+        // Construir contenido del detalle
+        let detalleHtml = `<td colspan="6" class="px-0 py-0">
+            <table class="w-full border-collapse text-xs font-mono">`;
+
+        asiento.cuentas.forEach(cuenta => {
+            const debeVal  = cuenta.tipo === 'DEBE'  ? `<span class="font-bold text-slate-800">${formatearMonto(parseFloat(cuenta.importe))}</span>` : '';
+            const haberVal = cuenta.tipo === 'HABER' ? `<span class="font-bold text-slate-500">${formatearMonto(parseFloat(cuenta.importe))}</span>` : '';
+            const nombreSpan = cuenta.tipo === 'DEBE'
+                ? `<span class="excel-account-debe pl-8">${cuenta.nombre}</span>`
+                : `<span class="pl-20 text-slate-500 font-bold">${cuenta.nombre}</span>`;
+            detalleHtml += `
+                <tr class="border-t border-slate-200/60">
+                    <td class="w-48 px-3 py-1.5"></td>
+                    <td class="w-16 px-2 py-1.5"></td>
+                    <td class="text-left px-3 py-1.5">${nombreSpan}</td>
+                    <td class="w-32 text-right px-3 py-1.5">${debeVal}</td>
+                    <td class="w-32 text-right px-3 py-1.5">${haberVal}</td>
+                    <td class="w-12"></td>
+                </tr>`;
         });
 
-        // 2. Fila glosa
-        const trGlosa = document.createElement('tr');
-        trGlosa.className = "hover:bg-slate-50/50 transition-colors";
-        trGlosa.innerHTML = `
-            <td></td><td></td>
-            <td class="text-left text-xs text-slate-400 italic font-sans py-2" colspan="3">Glosa: ${asiento.glosa}</td>
-            <td></td>
-        `;
-        body.appendChild(trGlosa);
+        // Fila de glosa completa dentro del detalle
+        detalleHtml += `
+                <tr class="border-t border-dashed border-slate-200">
+                    <td class="px-3 py-1.5"></td>
+                    <td class="px-2 py-1.5"></td>
+                    <td colspan="3" class="text-left px-3 py-1.5 text-[11px] text-slate-400 italic font-sans">
+                        <i class="fa-solid fa-quote-left text-[8px] mr-1"></i>${asiento.glosa}
+                    </td>
+                    <td></td>
+                </tr>`;
 
-        // 3. Fila totales asiento
-        const trTotal = document.createElement('tr');
-        trTotal.className = "hover:bg-slate-50/50 transition-colors";
-        trTotal.innerHTML = `
-            <td></td><td></td><td></td>
-            <td class="text-right font-bold text-indigo-600 border-t border-b border-dashed border-slate-300 py-2">${formatearMonto(totalAsientoDebe)}</td>
-            <td class="text-right font-bold text-indigo-600 border-t border-b border-dashed border-slate-300 py-2">${formatearMonto(totalAsientoHaber)}</td>
-            <td class="border-t border-b border-dashed border-slate-300"></td>
-        `;
-        body.appendChild(trTotal);
+        // Fila de subtotales dentro del detalle
+        detalleHtml += `
+                <tr class="bg-indigo-50/60 border-t border-slate-200">
+                    <td class="px-3 py-1.5"></td>
+                    <td class="px-2 py-1.5"></td>
+                    <td class="text-right px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotales →</td>
+                    <td class="text-right px-3 py-1.5 font-bold text-indigo-600">${formatearMonto(totalAsientoDebe)}</td>
+                    <td class="text-right px-3 py-1.5 font-bold text-indigo-600">${formatearMonto(totalAsientoHaber)}</td>
+                    <td></td>
+                </tr>
+            </table>
+        </td>`;
 
-        // 4. Separador
+        trDetalle.innerHTML = detalleHtml;
+        body.appendChild(trDetalle);
+
+        // Separador
         const trSep = document.createElement('tr');
-        trSep.innerHTML = `<td class="py-2" colspan="6"></td>`;
+        trSep.innerHTML = `<td class="py-0.5" colspan="6"></td>`;
         body.appendChild(trSep);
     });
 
-    // 5. Fila totales globales
+    // Fila totales globales
     const trGrand = document.createElement('tr');
     trGrand.className = "bg-slate-900 text-white hover:bg-slate-950 transition-colors font-bold";
     trGrand.innerHTML = `
@@ -285,6 +326,21 @@ function renderizarAsientos(asientos) {
     body.appendChild(trGrand);
 }
 
+// Alterna la visibilidad del detalle de un asiento
+function toggleDetalleAsiento(detalleId, trPrincipal) {
+    const trDetalle = document.getElementById(detalleId);
+    if (!trDetalle) return;
+    const isHidden = trDetalle.classList.contains('hidden');
+    trDetalle.classList.toggle('hidden', !isHidden);
+    // Rotar el ícono del chevron
+    const chevron = trPrincipal.querySelector('.btn-expand-asiento i');
+    if (chevron) {
+        chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+        chevron.style.transition = 'transform 0.2s';
+    }
+    // Highlight fila activa
+    trPrincipal.classList.toggle('bg-indigo-50/60', isHidden);
+}
 
 
 // Eliminar un asiento del Libro Diario (solo admin)
