@@ -386,7 +386,7 @@ async function cargarHistorialVentasAdmin() {
                                         ${tdMetodoPago}
                                         <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
                                         <td class="px-4 py-1.5 text-center whitespace-nowrap no-print">
-                                            <button onclick="abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
+                                            <button onclick="window.abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
                                                 <i class="fa-solid fa-print"></i> Re-Imprimir
                                             </button>
                                         </td>
@@ -593,7 +593,7 @@ async function cargarVentasRealizadas() {
                     <td class="px-4 py-3 text-slate-700">${iconMetodo} ${venta.metodo_pago}</td>
                     <td class="px-4 py-3 text-right font-bold text-slate-900 font-mono">Bs. ${total}</td>
                     <td class="px-4 py-3 text-center">
-                        <button onclick="abrirTicket(${venta.venta_id})" class="no-print bg-slate-150 hover:bg-orange-100 text-slate-700 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-xs">
+                        <button onclick="window.abrirTicket(${venta.venta_id})" class="no-print bg-slate-150 hover:bg-orange-100 text-slate-700 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-xs">
                             <i class="fa-solid fa-print mr-1"></i> Re-Imprimir
                         </button>
                     </td>
@@ -680,3 +680,9 @@ async function actualizarMetodoPago(ventaId, nuevoMetodo) {
         cargarHistorialVentasAdmin();
     }
 }
+
+// Exponer funciones globalmente para inline onclick handlers
+window.abrirTicket = abrirTicket;
+window.cerrarModalTicket = cerrarModalTicket;
+window.imprimirTicket = imprimirTicket;
+window.imprimirAuditoria = imprimirAuditoria;

@@ -563,3 +563,5 @@ function toggleCategoriaCollapse(catId) {
         }
     }
 }
+
+window.imprimirUltimoRecibo = imprimirUltimoRecibo;
