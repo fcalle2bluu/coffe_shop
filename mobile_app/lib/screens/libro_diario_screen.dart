@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 
@@ -13,6 +14,7 @@ class LibroDiarioScreen extends StatefulWidget {
 
 class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
   bool _isLoading = true;
+  bool _isAdmin = false;
   int _selectedMes = DateTime.now().month;
   int _selectedAnio = DateTime.now().year;
   
@@ -31,7 +33,16 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
   @override
   void initState() {
     super.initState();
+    _checkAdmin();
     _loadLibroDiario();
+  }
+
+  Future<void> _checkAdmin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rol = (prefs.getString('usuario_rol') ?? '').toUpperCase();
+    setState(() {
+      _isAdmin = rol == 'ADMIN' || rol == 'ADMINISTRADOR';
+    });
   }
 
   Future<void> _loadLibroDiario() async {
@@ -200,6 +211,68 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
     );
   }
 
+  Future<void> _eliminarAsiento(String tipo, int refId) async {
+    final etiquetas = {
+      'venta': 'esta venta',
+      'compra': 'esta compra',
+      'gasto_caja': 'este gasto de caja',
+      'gasto_general': 'este gasto general',
+    };
+    final label = etiquetas[tipo] ?? 'este asiento';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar Asiento'),
+        content: Text('\u00bfEst\u00e1s seguro de eliminar $label del Libro Diario? Esta acci\u00f3n no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final urls = {
+      'venta': '/libro-diario/venta/$refId',
+      'compra': '/libro-diario/compra/$refId',
+      'gasto_caja': '/libro-diario/gasto-caja/$refId',
+      'gasto_general': '/libro-diario/gastos/$refId',
+    };
+    final url = urls[tipo];
+    if (url == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiConfig.delete(url);
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Asiento eliminado correctamente.')),
+          );
+        }
+        _loadLibroDiario();
+      } else {
+        final err = jsonDecode(res.body);
+        throw Exception(err['error'] ?? 'Error al eliminar');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString().replaceAll("Exception: ", "")}')),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -312,7 +385,7 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
                                           border: Border.all(color: AppTheme.accentColor.withOpacity(0.2)),
                                         ),
                                         child: Text(
-                                          'Asiento N° $nro',
+                                          'Asiento N\u00b0 $nro',
                                           style: const TextStyle(
                                             fontFamily: 'Outfit',
                                             fontWeight: FontWeight.bold,
@@ -321,13 +394,36 @@ class _LibroDiarioScreenState extends State<LibroDiarioScreen> {
                                           ),
                                         ),
                                       ),
-                                      Text(
-                                        '$fecha ($dia)',
-                                        style: const TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.textMuted,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '$fecha ($dia)',
+                                            style: const TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.textMuted,
+                                            ),
+                                          ),
+                                          if (_isAdmin) ...[
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () {
+                                                final tipo = (asiento['tipo'] as String?) ?? '';
+                                                final refId = (asiento['ref_id'] as int?) ?? 0;
+                                                _eliminarAsiento(tipo, refId);
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.redAccent.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                                                ),
+                                                child: const Icon(Icons.delete_outline, size: 15, color: Colors.redAccent),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ),

@@ -521,10 +521,115 @@ class _PosScreenState extends State<PosScreen> {
       });
 
       if (response.statusCode == 201) {
+        final ventaData = jsonDecode(response.body);
+        final ventaId = ventaData['id'] ?? 0;
+
+        // Guardar items del carrito para mostrar en el resumen
+        final List<Map<String, dynamic>> resumenItems = [];
+        _cart.forEach((id, qty) {
+          final p = _allProducts.firstWhere((prod) => prod.id == id);
+          resumenItems.add({
+            'nombre': p.nombre,
+            'cantidad': qty,
+            'precio': p.precioVenta,
+            'subtotal': p.precioVenta * qty,
+          });
+        });
+        final double totalFinal = _cartTotal;
+
         _clearCart();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ ¡Venta registrada exitosamente!')),
-        );
+        setState(() => _isLoading = false);
+
+        // Mostrar ticket/resumen de la venta
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppTheme.secondaryDark,
+              contentPadding: const EdgeInsets.all(20),
+              title: Column(
+                children: [
+                  const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 48),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '¡Venta Registrada!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  Text(
+                    'Ticket #${ventaId.toString().padLeft(5, '0')}',
+                    style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Divider(color: Colors.white10),
+                  ...resumenItems.map((item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${item['cantidad']}x ${item['nombre']}',
+                            style: const TextStyle(fontSize: 13, color: AppTheme.textLight),
+                          ),
+                        ),
+                        Text(
+                          'Bs. ${(item['subtotal'] as double).toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textLight),
+                        ),
+                      ],
+                    ),
+                  )),
+                  const Divider(color: Colors.white10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('TOTAL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.accentColor)),
+                      Text(
+                        'Bs. ${totalFinal.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Pago: $method',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '¡Gracias por su compra!\nCafé La Paz',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentColor,
+                    minimumSize: const Size(double.infinity, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        }
+
       } else {
         final err = jsonDecode(response.body);
         throw Exception(err['error'] ?? 'Error desconocido');
