@@ -540,71 +540,210 @@ function cambiarPestana(tabId) {
     }
 }
 
+// === VENTAS REALIZADAS ===
+let _todasLasVentas = []; // Cache de todas las ventas cargadas
+
 async function cargarVentasRealizadas() {
     const tbody = document.getElementById('tabla-ventas-realizadas-body');
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando ventas del día...</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400 font-semibold">
+        <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block text-emerald-500"></i>Cargando ventas...</td></tr>`;
+
+    const rolActual = (localStorage.getItem('usuario_rol') || '').toUpperCase();
+    const esAdmin   = rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR';
 
     try {
         const res = await fetch('/api/caja/historial-ventas-cajeros');
         if (!res.ok) throw new Error('Error al cargar ventas');
-        const ventas = await res.json();
+        _todasLasVentas = await res.json();
 
-        const loggedUserRol = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
-        const loggedUserId = localStorage.getItem('usuario_id');
+        if (esAdmin) {
+            // Mostrar filtros y tarjetas de resumen
+            const filtrosDiv   = document.getElementById('filtros-ventas-admin');
+            const resumenDiv   = document.getElementById('resumen-ventas-admin');
+            const colCajero    = document.querySelectorAll('.solo-admin-col');
+            if (filtrosDiv) filtrosDiv.classList.remove('hidden');
+            if (resumenDiv) resumenDiv.classList.remove('hidden');
+            colCajero.forEach(el => el.style.display = '');
 
-        // Today in local Bolivia time format: YYYY-MM-DD
-        const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
-        const formatter = new Intl.DateTimeFormat('en-CA', options); // returns YYYY-MM-DD
-        const hoyBolivia = formatter.format(new Date());
-
-        const filtered = ventas.filter(v => {
-            if (!v.fecha_venta) return false;
-            const fechaParte = v.fecha_venta.split(' ')[0];
-            const matchDate = fechaParte === hoyBolivia;
-            
-            if (loggedUserRol === 'ADMIN' || loggedUserRol === 'ADMINISTRADOR') {
-                return matchDate;
-            } else {
-                return matchDate && String(v.usuario_id) === String(loggedUserId);
+            // Poblar selector de cajeros
+            const cajeros = [...new Set(_todasLasVentas.map(v => v.cajero).filter(Boolean))].sort();
+            const selCajero = document.getElementById('filtroVentaCajero');
+            if (selCajero) {
+                selCajero.innerHTML = '<option value="">Todos</option>' +
+                    cajeros.map(c => `<option value="${c}">${c}</option>`).join('');
             }
-        });
 
-        tbody.innerHTML = '';
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400 font-semibold">No se encontraron ventas registradas hoy.</td></tr>';
-            return;
+            // Establecer fechas por defecto: hoy
+            const hoy = obtenerFechaBolivia();
+            const desde = document.getElementById('filtroVentaDesde');
+            const hasta = document.getElementById('filtroVentaHasta');
+            if (desde && !desde.value) desde.value = hoy;
+            if (hasta && !hasta.value) hasta.value = hoy;
+
+            aplicarFiltrosVentas();
+        } else {
+            // Cajero: solo ventas del día propias
+            const loggedUserId = localStorage.getItem('usuario_id');
+            const hoy = obtenerFechaBolivia();
+
+            const filtradas = _todasLasVentas.filter(v => {
+                if (!v.fecha_venta) return false;
+                const fecha = v.fecha_venta.split(' ')[0];
+                return fecha === hoy && String(v.usuario_id) === String(loggedUserId);
+            });
+
+            renderizarTablaVentas(filtradas, false);
         }
-
-        filtered.forEach(venta => {
-            const padId = venta.venta_id.toString().padStart(5, '0');
-            const total = parseFloat(venta.total).toFixed(2);
-            
-            const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
-                               (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
-                               (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
-                               '<i class="fa-solid fa-credit-card text-purple-600 mr-1"></i>';
-
-            tbody.innerHTML += `
-                <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3 font-mono font-bold text-slate-650">#${padId}</td>
-                    <td class="px-4 py-3 text-slate-600">${venta.fecha_venta}</td>
-                    <td class="px-4 py-3 text-slate-700">${iconMetodo} ${venta.metodo_pago}</td>
-                    <td class="px-4 py-3 text-right font-bold text-slate-900 font-mono">Bs. ${total}</td>
-                    <td class="px-4 py-3 text-center">
-                        <button onclick="window.abrirTicket(${venta.venta_id})" class="no-print bg-slate-150 hover:bg-orange-100 text-slate-700 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-xs">
-                            <i class="fa-solid fa-print mr-1"></i> Re-Imprimir
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
     } catch (e) {
-        console.error("Error al cargar ventas del cajero:", e);
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-red-500 font-bold">Ocurrió un error al cargar las ventas.</td></tr>';
+        console.error('Error ventas realizadas:', e);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-500 font-bold">Error al cargar ventas.</td></tr>`;
     }
 }
+
+function obtenerFechaBolivia() {
+    const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
+    return new Intl.DateTimeFormat('en-CA', options).format(new Date());
+}
+
+function aplicarFiltrosVentas() {
+    const desde  = document.getElementById('filtroVentaDesde')?.value || '';
+    const hasta  = document.getElementById('filtroVentaHasta')?.value || '';
+    const metodo = document.getElementById('filtroVentaMetodo')?.value || '';
+    const cajero = document.getElementById('filtroVentaCajero')?.value || '';
+
+    const filtradas = _todasLasVentas.filter(v => {
+        if (!v.fecha_venta) return false;
+        const fechaParte = v.fecha_venta.split(' ')[0];
+
+        if (desde && fechaParte < desde) return false;
+        if (hasta && fechaParte > hasta) return false;
+
+        if (metodo) {
+            const mp = (v.metodo_pago || '').toUpperCase();
+            if (metodo === 'QR' && !['QR', 'QR DIGITAL'].includes(mp)) return false;
+            if (metodo === 'TARJETA' && !['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(mp)) return false;
+            if (metodo === 'CONSUME LO NUESTRO' && !['CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(mp)) return false;
+            if (metodo === 'EFECTIVO' && mp !== 'EFECTIVO') return false;
+        }
+
+        if (cajero && v.cajero !== cajero) return false;
+
+        return true;
+    });
+
+    // Calcular totales
+    let totalG = 0, totEfec = 0, totQr = 0, totTarj = 0, totCln = 0;
+    filtradas.forEach(v => {
+        const t  = parseFloat(v.total) || 0;
+        const mp = (v.metodo_pago || '').toUpperCase();
+        totalG += t;
+        if (mp === 'EFECTIVO') totEfec += t;
+        else if (['QR', 'QR DIGITAL'].includes(mp)) totQr += t;
+        else if (['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(mp)) totTarj += t;
+        else if (['CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(mp)) totCln += t;
+    });
+
+    const promedio = filtradas.length > 0 ? totalG / filtradas.length : 0;
+
+    // Actualizar tarjetas
+    document.getElementById('rv-total-general').textContent  = `Bs. ${totalG.toFixed(2)}`;
+    document.getElementById('rv-total-count').textContent    = `${filtradas.length} venta${filtradas.length !== 1 ? 's' : ''}`;
+    document.getElementById('rv-total-efectivo').textContent = `Bs. ${totEfec.toFixed(2)}`;
+    document.getElementById('rv-total-qr').textContent       = `Bs. ${totQr.toFixed(2)}`;
+    document.getElementById('rv-total-tarjeta').textContent  = `Bs. ${totTarj.toFixed(2)}`;
+    document.getElementById('rv-total-cln').textContent      = `Bs. ${totCln.toFixed(2)}`;
+    document.getElementById('rv-promedio').textContent       = `Bs. ${promedio.toFixed(2)}`;
+
+    // Actualizar total en tfoot
+    const tfoot     = document.getElementById('tabla-ventas-tfoot');
+    const tfMetodo  = document.getElementById('rv-tfoot-metodo');
+    const tfTotal   = document.getElementById('rv-tfoot-total');
+    if (tfoot && filtradas.length > 0) {
+        tfoot.classList.remove('hidden');
+        if (tfMetodo) tfMetodo.textContent = metodo ? metodo : '';
+        if (tfTotal)  tfTotal.textContent  = `Bs. ${totalG.toFixed(2)}`;
+    } else if (tfoot) {
+        tfoot.classList.add('hidden');
+    }
+
+    renderizarTablaVentas(filtradas, true);
+}
+
+function limpiarFiltrosVentas() {
+    const hoy = obtenerFechaBolivia();
+    const desde = document.getElementById('filtroVentaDesde');
+    const hasta = document.getElementById('filtroVentaHasta');
+    if (desde) desde.value = hoy;
+    if (hasta) hasta.value = hoy;
+    const metodo = document.getElementById('filtroVentaMetodo');
+    const cajero = document.getElementById('filtroVentaCajero');
+    if (metodo) metodo.value = '';
+    if (cajero) cajero.value = '';
+    aplicarFiltrosVentas();
+}
+
+function imprimirVentasRealizadas() {
+    window.print();
+}
+
+function renderizarTablaVentas(ventas, esAdmin) {
+    const tbody = document.getElementById('tabla-ventas-realizadas-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (ventas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${esAdmin ? 6 : 5}" class="text-center p-8 text-slate-400 font-semibold">
+            <i class="fa-solid fa-receipt text-2xl mb-2 block text-slate-300"></i>
+            No hay ventas que coincidan con los filtros aplicados.</td></tr>`;
+        return;
+    }
+
+    ventas.forEach(venta => {
+        const padId = venta.venta_id.toString().padStart(5, '0');
+        const total = parseFloat(venta.total).toFixed(2);
+        const mp    = (venta.metodo_pago || '').toUpperCase();
+
+        let badgeCls = 'bg-slate-100 text-slate-600';
+        let icono    = '<i class="fa-solid fa-circle-question mr-1"></i>';
+        if (mp === 'EFECTIVO') {
+            badgeCls = 'bg-green-100 text-green-700';
+            icono    = '<i class="fa-solid fa-money-bill-wave mr-1"></i>';
+        } else if (['QR', 'QR DIGITAL'].includes(mp)) {
+            badgeCls = 'bg-blue-100 text-blue-700';
+            icono    = '<i class="fa-solid fa-qrcode mr-1"></i>';
+        } else if (['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(mp)) {
+            badgeCls = 'bg-purple-100 text-purple-700';
+            icono    = '<i class="fa-solid fa-credit-card mr-1"></i>';
+        } else if (['CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(mp)) {
+            badgeCls = 'bg-orange-100 text-orange-700';
+            icono    = '<i class="fa-solid fa-wallet mr-1"></i>';
+        }
+
+        const metodoBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${badgeCls}">${icono}${venta.metodo_pago}</span>`;
+        const cajeroCol   = esAdmin ? `<td class="px-4 py-3 text-slate-600 font-medium solo-admin-col">${venta.cajero || '-'}</td>` : '';
+
+        tbody.innerHTML += `
+            <tr class="border-b border-slate-100 hover:bg-emerald-50/30 transition-colors">
+                <td class="px-4 py-3 font-mono font-bold text-slate-500">#${padId}</td>
+                <td class="px-4 py-3 text-slate-600 whitespace-nowrap">${venta.fecha_venta}</td>
+                ${cajeroCol}
+                <td class="px-4 py-3">${metodoBadge}</td>
+                <td class="px-4 py-3 text-right font-black text-slate-900 font-mono text-sm">Bs. ${total}</td>
+                <td class="px-4 py-3 text-center no-print">
+                    <button onclick="window.abrirTicket(${venta.venta_id})"
+                        class="bg-slate-50 hover:bg-orange-100 text-slate-600 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-[10px] flex items-center gap-1.5 mx-auto">
+                        <i class="fa-solid fa-print"></i> Re-Imprimir
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+
 
 async function abrirTicket(id) {
     try {
