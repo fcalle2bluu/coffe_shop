@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         const ventasResult = await pool.query(`
             SELECT COALESCE(SUM(total), 0) AS total 
             FROM ventas 
-            WHERE DATE(fecha_venta) = CURRENT_DATE
+            WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = CURRENT_DATE AT TIME ZONE 'America/La_Paz'
         `);
         
         // Ventas del mes
@@ -75,7 +75,7 @@ router.get('/stats-avanzadas', async (req, res) => {
 
         // 2. Horas Pico (Agrupado por hora)
         const horasResult = await pool.query(`
-            SELECT EXTRACT(HOUR FROM fecha_venta) as hora, 
+            SELECT EXTRACT(HOUR FROM fecha_venta AT TIME ZONE 'America/La_Paz') as hora, 
                    COUNT(*) as ventas_cont, 
                    SUM(total) as ingresos
             FROM ventas
