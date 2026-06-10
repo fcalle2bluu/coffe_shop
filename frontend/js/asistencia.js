@@ -223,10 +223,12 @@ function abrirModalAsistenciaManual() {
     document.getElementById('manual-salida').value = '';
     
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
 function cerrarModalAsistenciaManual() {
     document.getElementById('modalAsistenciaManual').classList.add('hidden');
+    document.getElementById('modalAsistenciaManual').classList.remove('flex');
 }
 
 async function guardarAsistenciaManual() {
