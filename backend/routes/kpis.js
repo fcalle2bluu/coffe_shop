@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         const ventasResult = await pool.query(`
             SELECT COALESCE(SUM(total), 0) AS total 
             FROM ventas 
-            WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = CURRENT_DATE AT TIME ZONE 'America/La_Paz'
+            WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date
         `);
         
         // Ventas del mes
