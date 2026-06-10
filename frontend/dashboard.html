@@ -182,6 +182,24 @@
                 </div>
             </div>
 
+            <!-- 1. HORAS PICO (Full width - primero) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">🕐 Mapa de Horas Pico</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Distribución de ingresos y clientes por hora del día</p>
+                    </div>
+                    <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
+                        <button onclick="toggleHoras('bs')" id="btn-horas-bs" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600">Bs.</button>
+                        <button onclick="toggleHoras('qty')" id="btn-horas-qty" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200">Clientes</button>
+                    </div>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="chartHoras"></canvas>
+                </div>
+            </div>
+
+            <!-- 2. RENDIMIENTO MENSUAL + TOP PRODUCTOS -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Rendimiento Mensual (Ventas vs Compras) -->
                 <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
@@ -209,31 +227,20 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white rounded-lg shadow p-6 overflow-hidden">
-                    <div class="flex justify-between items-center mb-4">
+            <!-- 3. MATRIZ BCG (full width para que se vea bien) -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6 overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
                         <h2 class="text-lg font-bold text-gray-800">Matriz de Productos (BCG)</h2>
-                        <span class="text-[10px] bg-indigo-50 text-indigo-600 font-bold px-2 py-1 rounded uppercase">Estrellas vs Huesos</span>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Eje X: Cantidad vendida | Eje Y: Ingresos (Bs.)</p>
                     </div>
-                    <div class="relative h-64">
-                        <canvas id="chartBCG"></canvas>
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-2 italic">* Eje X: Cantidad vendida | Eje Y: Ingresos (Bs.)</p>
+                    <span class="text-[10px] bg-indigo-50 text-indigo-600 font-bold px-2 py-1 rounded uppercase">Estrellas vs Huesos</span>
                 </div>
-
-                <div class="bg-white rounded-lg shadow p-6 overflow-hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-gray-800">Mapa de Horas Pico</h2>
-                        <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
-                            <button onclick="toggleHoras('bs')" id="btn-horas-bs" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600">Bs.</button>
-                            <button onclick="toggleHoras('qty')" id="btn-horas-qty" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200">Clientes</button>
-                        </div>
-                    </div>
-                    <div class="relative h-64">
-                        <canvas id="chartHoras"></canvas>
-                    </div>
+                <div class="relative h-72">
+                    <canvas id="chartBCG"></canvas>
                 </div>
             </div>
+
             </div> <!-- Fin seccion-kpis-admin -->
 
             <!-- DISPONIBILIDAD DE MESAS (Visible para todos) -->
