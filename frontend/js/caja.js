@@ -502,11 +502,11 @@ function cambiarPestana(tabId) {
     const activeClasses = ['bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10'];
     const inactiveClasses = ['text-slate-600', 'hover:bg-slate-50'];
 
-    if (secTurnoActual) secTurnoActual.classList.add('hidden');
-    if (secHistorial) secHistorial.classList.add('hidden');
-    if (secAuditoria) secAuditoria.classList.add('hidden');
-    if (secVentasRealizadas) secVentasRealizadas.classList.add('hidden');
-    if (secGastos) secGastos.classList.add('hidden');
+    if (secTurnoActual) { secTurnoActual.classList.add('hidden'); secTurnoActual.style.display = 'none'; }
+    if (secHistorial) { secHistorial.classList.add('hidden'); secHistorial.style.display = 'none'; }
+    if (secAuditoria) { secAuditoria.classList.add('hidden'); secAuditoria.style.display = 'none'; }
+    if (secVentasRealizadas) { secVentasRealizadas.classList.add('hidden'); secVentasRealizadas.style.display = 'none'; }
+    if (secGastos) { secGastos.classList.add('hidden'); secGastos.style.display = 'none'; }
 
     [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas, btnGastos].forEach(btn => {
         if (btn) {
@@ -516,32 +516,32 @@ function cambiarPestana(tabId) {
     });
 
     if (tabId === 'turno-actual') {
-        if (secTurnoActual) secTurnoActual.classList.remove('hidden');
+        if (secTurnoActual) { secTurnoActual.classList.remove('hidden'); secTurnoActual.style.display = ''; }
         if (btnTurno) {
             inactiveClasses.forEach(cls => btnTurno.classList.remove(cls));
             activeClasses.forEach(cls => btnTurno.classList.add(cls));
         }
     } else if (tabId === 'historial-turnos') {
-        if (secHistorial) secHistorial.classList.remove('hidden');
+        if (secHistorial) { secHistorial.classList.remove('hidden'); secHistorial.style.display = ''; }
         if (btnHistorial) {
             inactiveClasses.forEach(cls => btnHistorial.classList.remove(cls));
             activeClasses.forEach(cls => btnHistorial.classList.add(cls));
         }
     } else if (tabId === 'auditoria') {
-        if (secAuditoria) secAuditoria.classList.remove('hidden');
+        if (secAuditoria) { secAuditoria.classList.remove('hidden'); secAuditoria.style.display = ''; }
         if (btnAuditoria) {
             inactiveClasses.forEach(cls => btnAuditoria.classList.remove(cls));
             activeClasses.forEach(cls => btnAuditoria.classList.add(cls));
         }
     } else if (tabId === 'ventas-realizadas') {
-        if (secVentasRealizadas) secVentasRealizadas.classList.remove('hidden');
+        if (secVentasRealizadas) { secVentasRealizadas.classList.remove('hidden'); secVentasRealizadas.style.display = ''; }
         if (btnVentasRealizadas) {
             inactiveClasses.forEach(cls => btnVentasRealizadas.classList.remove(cls));
             activeClasses.forEach(cls => btnVentasRealizadas.classList.add(cls));
         }
         cargarVentasRealizadas();
     } else if (tabId === 'gastos') {
-        if (secGastos) secGastos.classList.remove('hidden');
+        if (secGastos) { secGastos.classList.remove('hidden'); secGastos.style.display = ''; }
         if (btnGastos) {
             inactiveClasses.forEach(cls => btnGastos.classList.remove(cls));
             activeClasses.forEach(cls => btnGastos.classList.add(cls));
