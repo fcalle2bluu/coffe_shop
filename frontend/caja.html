@@ -237,9 +237,9 @@
         </div> <!-- Cierre de seccion-turno-actual-container -->
 
             <!-- Contenedor Sección: Historial de Turnos -->
-            <div id="seccion-historial-turnos" class="flex-1 bg-white rounded shadow border-t-4 border-stone-800 overflow-hidden flex flex-col min-h-[300px] hidden">
-                <div class="p-3 sm:p-4 border-b bg-white shrink-0"><h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Historial de Turnos</h2></div>
-                <div class="overflow-auto flex-1 p-2 sm:p-4 bg-slate-50">
+            <div id="seccion-historial-turnos" class="bg-white rounded shadow border-t-4 border-stone-800 hidden">
+                <div class="p-3 sm:p-4 border-b bg-white"><h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Historial de Turnos</h2></div>
+                <div class="p-2 sm:p-4 bg-slate-50">
                     <div id="tabla-historial" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- JS cards inserted here -->
                     </div>
@@ -247,24 +247,24 @@
             </div>
 
             <!-- Contenedor Sección: Auditoría de Ventas (Solo Admin) -->
-            <div class="bg-white rounded shadow border-t-4 border-orange-500 overflow-hidden flex flex-col min-h-[300px] hidden" id="seccion-auditoria-cajeros">
-                <div class="p-3 sm:p-4 border-b bg-white shrink-0 bg-orange-50 border-orange-100 flex justify-between items-center">
+            <div class="bg-white rounded shadow border-t-4 border-orange-500 hidden" id="seccion-auditoria-cajeros">
+                <div class="p-3 sm:p-4 border-b bg-white bg-orange-50 border-orange-100 flex justify-between items-center">
                     <h2 class="font-bold text-stone-900 text-base sm:text-lg"><i class="fa-solid fa-user-tie mr-2 text-orange-600"></i>Auditoría: Ventas por Cajero</h2>
                     <button onclick="imprimirAuditoria()" class="no-print bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 btn-bounce">
                         <i class="fa-solid fa-print"></i> Imprimir Auditoría
                     </button>
                 </div>
 
-                <div class="overflow-auto flex-1 p-0 sm:p-4 bg-gray-50" id="contenedor-ventas-cajeros">
+                <div class="p-0 sm:p-4 bg-gray-50" id="contenedor-ventas-cajeros">
                     <div class="text-center p-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>
                 </div>
             </div>
 
             <!-- Contenedor Sección: Ventas Realizadas -->
-            <div id="seccion-ventas-realizadas" class="bg-white rounded-xl shadow border-t-4 border-emerald-500 overflow-hidden flex flex-col min-h-[300px] hidden">
+            <div id="seccion-ventas-realizadas" class="bg-white rounded-xl shadow border-t-4 border-emerald-500 hidden">
 
                 <!-- Cabecera con filtros (admin) -->
-                <div class="p-4 border-b bg-emerald-50/40 border-emerald-100 shrink-0">
+                <div class="p-4 border-b bg-emerald-50/40 border-emerald-100">
                     <div class="flex flex-wrap gap-3 items-end justify-between">
                         <div>
                             <h2 class="font-bold text-slate-800 text-base sm:text-lg">
@@ -356,7 +356,7 @@
                 </div>
 
                 <!-- Tabla -->
-                <div class="overflow-auto flex-1 p-4 bg-slate-50" id="contenedor-ventas-realizadas">
+                <div class="p-4 bg-slate-50" id="contenedor-ventas-realizadas">
                     <div class="overflow-x-auto border rounded-xl shadow-inner bg-white">
                         <table class="w-full text-left text-xs border-collapse text-slate-700 min-w-[600px]">
                             <thead>
