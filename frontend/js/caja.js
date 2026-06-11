@@ -613,8 +613,17 @@ async function cargarVentasRealizadas() {
 }
 
 function obtenerFechaBolivia() {
-    const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Intl.DateTimeFormat('en-CA', options).format(new Date());
+    try {
+        const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
+        return new Intl.DateTimeFormat('en-CA', options).format(new Date());
+    } catch (e) {
+        console.warn('Timezone America/La_Paz not supported, falling back to local date:', e);
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 }
 
 function aplicarFiltrosVentas() {
@@ -840,19 +849,6 @@ window.imprimirAuditoria = imprimirAuditoria;
 let _todosLosGastos = [];
 
 async function cargarGastosDetallados() {
-    const desdeInput = document.getElementById('filtroGastoDesde');
-    const hastaInput = document.getElementById('filtroGastoHasta');
-
-    if (desdeInput && hastaInput && (!desdeInput.value || !hastaInput.value)) {
-        const hoy = new Date();
-        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        desdeInput.value = obtenerFechaBoliviaFormato(primerDia);
-        hastaInput.value = obtenerFechaBoliviaFormato(hoy);
-    }
-
-    const desde = desdeInput?.value || '';
-    const hasta = hastaInput?.value || '';
-
     const tbody = document.getElementById('tabla-gastos-detallados-body');
     if (tbody) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-semibold">
@@ -860,6 +856,19 @@ async function cargarGastosDetallados() {
     }
 
     try {
+        const desdeInput = document.getElementById('filtroGastoDesde');
+        const hastaInput = document.getElementById('filtroGastoHasta');
+
+        if (desdeInput && hastaInput && (!desdeInput.value || !hastaInput.value)) {
+            const hoy = new Date();
+            const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            desdeInput.value = obtenerFechaBoliviaFormato(primerDia);
+            hastaInput.value = obtenerFechaBoliviaFormato(hoy);
+        }
+
+        const desde = desdeInput?.value || '';
+        const hasta = hastaInput?.value || '';
+
         const url = `/api/kpis/gastos-detallados?desde=${desde}&hasta=${hasta}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Error al cargar gastos');
@@ -869,14 +878,22 @@ async function cargarGastosDetallados() {
     } catch (e) {
         console.error('Error al cargar gastos detallados:', e);
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-red-500 font-bold">Error al cargar gastos.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-red-500 font-bold">Error al cargar gastos: ${e.message}</td></tr>`;
         }
     }
 }
 
 function obtenerFechaBoliviaFormato(date) {
-    const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Intl.DateTimeFormat('en-CA', options).format(date);
+    try {
+        const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
+        return new Intl.DateTimeFormat('en-CA', options).format(date);
+    } catch (e) {
+        console.warn('Timezone America/La_Paz not supported, falling back to local time formatting:', e);
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 }
 
 function aplicarFiltrosGastos() {
