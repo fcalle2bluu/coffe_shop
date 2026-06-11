@@ -291,5 +291,49 @@ router.get('/gerencial', async (req, res) => {
     }
 });
 
+// Endpoint para ver el desglose detallado de los egresos/gastos del mes
+router.get('/breakdown', async (req, res) => {
+    try {
+        const queryCompras = `
+            SELECT COALESCE(SUM(total), 0) AS total 
+            FROM compras 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `;
+        const queryGastosCaja = `
+            SELECT COALESCE(SUM(monto), 0) AS total 
+            FROM gastos_caja 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `;
+        const queryGastosGenerales = `
+            SELECT COALESCE(SUM(monto), 0) AS total 
+            FROM gastos_generales 
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `;
+
+        const [comprasRes, gastosCajaRes, gastosGeneralesRes] = await Promise.all([
+            pool.query(queryCompras),
+            pool.query(queryGastosCaja),
+            pool.query(queryGastosGenerales)
+        ]);
+
+        const compras = parseFloat(comprasRes.rows[0].total) || 0;
+        const gastosCaja = parseFloat(gastosCajaRes.rows[0].total) || 0;
+        const gastosGenerales = parseFloat(gastosGeneralesRes.rows[0].total) || 0;
+
+        res.json({
+            compras: compras.toFixed(2),
+            gastosCaja: gastosCaja.toFixed(2),
+            gastosGenerales: gastosGenerales.toFixed(2),
+            totalEgresos: (compras + gastosCaja + gastosGenerales).toFixed(2)
+        });
+    } catch (error) {
+        console.error('Error en desglose de KPIs:', error);
+        res.status(500).json({ error: 'Error al obtener desglose de egresos' });
+    }
+});
+
 // Exportamos el router para que server.js lo pueda usar
 module.exports = router;
