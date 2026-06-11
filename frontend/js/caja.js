@@ -491,13 +491,11 @@ function cambiarPestana(tabId) {
     const secHistorial = document.getElementById('seccion-historial-turnos');
     const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
     const secVentasRealizadas = document.getElementById('seccion-ventas-realizadas');
-    const secGastos = document.getElementById('seccion-gastos');
 
     const btnTurno = document.getElementById('tab-turno-actual');
     const btnHistorial = document.getElementById('tab-historial-turnos');
     const btnAuditoria = document.getElementById('tab-auditoria');
     const btnVentasRealizadas = document.getElementById('tab-ventas-realizadas');
-    const btnGastos = document.getElementById('tab-gastos');
 
     const activeClasses = ['bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10'];
     const inactiveClasses = ['text-slate-600', 'hover:bg-slate-50'];
@@ -506,9 +504,8 @@ function cambiarPestana(tabId) {
     if (secHistorial) { secHistorial.classList.add('hidden'); secHistorial.style.display = 'none'; }
     if (secAuditoria) { secAuditoria.classList.add('hidden'); secAuditoria.style.display = 'none'; }
     if (secVentasRealizadas) { secVentasRealizadas.classList.add('hidden'); secVentasRealizadas.style.display = 'none'; }
-    if (secGastos) { secGastos.classList.add('hidden'); secGastos.style.display = 'none'; }
 
-    [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas, btnGastos].forEach(btn => {
+    [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas].forEach(btn => {
         if (btn) {
             activeClasses.forEach(cls => btn.classList.remove(cls));
             inactiveClasses.forEach(cls => btn.classList.add(cls));
@@ -540,13 +537,6 @@ function cambiarPestana(tabId) {
             activeClasses.forEach(cls => btnVentasRealizadas.classList.add(cls));
         }
         cargarVentasRealizadas();
-    } else if (tabId === 'gastos') {
-        if (secGastos) { secGastos.classList.remove('hidden'); secGastos.style.display = ''; }
-        if (btnGastos) {
-            inactiveClasses.forEach(cls => btnGastos.classList.remove(cls));
-            activeClasses.forEach(cls => btnGastos.classList.add(cls));
-        }
-        cargarGastosDetallados();
     }
 }
 
@@ -844,168 +834,6 @@ window.abrirTicket = abrirTicket;
 window.cerrarModalTicket = cerrarModalTicket;
 window.imprimirTicket = imprimirTicket;
 window.imprimirAuditoria = imprimirAuditoria;
-
-// === GASTOS DETALLADOS ===
-let _todosLosGastos = [];
-
-async function cargarGastosDetallados() {
-    const tbody = document.getElementById('tabla-gastos-detallados-body');
-    if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-semibold">
-            <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block text-red-500"></i>Cargando gastos...</td></tr>`;
-    }
-
-    try {
-        const desdeInput = document.getElementById('filtroGastoDesde');
-        const hastaInput = document.getElementById('filtroGastoHasta');
-
-        if (desdeInput && hastaInput && (!desdeInput.value || !hastaInput.value)) {
-            const hoy = new Date();
-            const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-            desdeInput.value = obtenerFechaBoliviaFormato(primerDia);
-            hastaInput.value = obtenerFechaBoliviaFormato(hoy);
-        }
-
-        const desde = desdeInput?.value || '';
-        const hasta = hastaInput?.value || '';
-
-        const url = `/api/kpis/gastos-detallados?desde=${desde}&hasta=${hasta}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Error al cargar gastos');
-        _todosLosGastos = await res.json();
-
-        filtrarYRenderizarGastos();
-    } catch (e) {
-        console.error('Error al cargar gastos detallados:', e);
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-red-500 font-bold">Error al cargar gastos: ${e.message}</td></tr>`;
-        }
-    }
-}
-
-function obtenerFechaBoliviaFormato(date) {
-    try {
-        const options = { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' };
-        return new Intl.DateTimeFormat('en-CA', options).format(date);
-    } catch (e) {
-        console.warn('Timezone America/La_Paz not supported, falling back to local time formatting:', e);
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-    }
-}
-
-function aplicarFiltrosGastos() {
-    cargarGastosDetallados();
-}
-
-function filtrarYRenderizarGastos() {
-    const tipo = document.getElementById('filtroGastoTipo')?.value || '';
-    
-    const filtrados = _todosLosGastos.filter(g => {
-        if (tipo && g.tipo !== tipo) return false;
-        return true;
-    });
-
-    // Calcular totales
-    let totalG = 0, totalCompras = 0, totalCaja = 0, totalGen = 0;
-    filtrados.forEach(g => {
-        const monto = parseFloat(g.monto) || 0;
-        totalG += monto;
-        if (g.tipo === 'Compra') totalCompras += monto;
-        else if (g.tipo === 'Caja Chica') totalCaja += monto;
-        else if (g.tipo === 'General') totalGen += monto;
-    });
-
-    // Renderizar tarjetas
-    document.getElementById('rg-total-general').textContent = `Bs. ${totalG.toFixed(2)}`;
-    document.getElementById('rg-total-count').textContent = `${filtrados.length} egreso${filtrados.length !== 1 ? 's' : ''}`;
-    document.getElementById('rg-total-compras').textContent = `Bs. ${totalCompras.toFixed(2)}`;
-    document.getElementById('rg-total-caja').textContent = `Bs. ${totalCaja.toFixed(2)}`;
-    document.getElementById('rg-total-generales').textContent = `Bs. ${totalGen.toFixed(2)}`;
-
-    // Renderizar total en tfoot
-    const tfoot = document.getElementById('tabla-gastos-tfoot');
-    const tfTotal = document.getElementById('rg-tfoot-total');
-    if (tfoot && filtrados.length > 0) {
-        tfoot.classList.remove('hidden');
-        if (tfTotal) tfTotal.textContent = `Bs. ${totalG.toFixed(2)}`;
-    } else if (tfoot) {
-        tfoot.classList.add('hidden');
-    }
-
-    // Renderizar tabla
-    const tbody = document.getElementById('tabla-gastos-detallados-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-semibold">
-            <i class="fa-solid fa-hand-holding-dollar text-2xl mb-2 block text-slate-300"></i>
-            No hay egresos en este rango de fechas o tipo.</td></tr>`;
-        return;
-    }
-
-    filtrados.forEach(g => {
-        const padId = g.id.toString().padStart(5, '0');
-        const monto = parseFloat(g.monto).toFixed(2);
-
-        let badgeCls = 'bg-slate-100 text-slate-600';
-        let icono = '<i class="fa-solid fa-circle-question mr-1"></i>';
-        if (g.tipo === 'Compra') {
-            badgeCls = 'bg-orange-100 text-orange-700';
-            icono = '<i class="fa-solid fa-cart-shopping mr-1"></i>';
-        } else if (g.tipo === 'Caja Chica') {
-            badgeCls = 'bg-red-100 text-red-700';
-            icono = '<i class="fa-solid fa-wallet mr-1"></i>';
-        } else if (g.tipo === 'General') {
-            badgeCls = 'bg-blue-100 text-blue-700';
-            icono = '<i class="fa-solid fa-gears mr-1"></i>';
-        }
-
-        const tipoBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${badgeCls}">${icono}${g.tipo}</span>`;
-
-        tbody.innerHTML += `
-            <tr class="border-b border-slate-100 hover:bg-red-50/20 transition-colors">
-                <td class="px-4 py-3 font-mono font-bold text-slate-500">#${padId}</td>
-                <td class="px-4 py-3 text-slate-600 whitespace-nowrap">${g.fecha_formateada}</td>
-                <td class="px-4 py-3">${tipoBadge}</td>
-                <td class="px-4 py-3 text-slate-600 font-semibold">${g.categoria}</td>
-                <td class="px-4 py-3 text-slate-700 break-words max-w-xs">${g.descripcion}</td>
-                <td class="px-4 py-3 text-slate-500 font-bold uppercase text-[10px]">${g.metodo_pago || '-'}</td>
-                <td class="px-4 py-3 text-right font-black text-red-600 font-mono text-sm">Bs. ${monto}</td>
-            </tr>
-        `;
-    });
-}
-
-function limpiarFiltrosGastos() {
-    const hoy = new Date();
-    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    
-    const desde = document.getElementById('filtroGastoDesde');
-    const hasta = document.getElementById('filtroGastoHasta');
-    const tipo = document.getElementById('filtroGastoTipo');
-
-    if (desde) desde.value = obtenerFechaBoliviaFormato(primerDia);
-    if (hasta) hasta.value = obtenerFechaBoliviaFormato(hoy);
-    if (tipo) tipo.value = '';
-
-    cargarGastosDetallados();
-}
-
-function imprimirGastosDetallados() {
-    document.body.classList.add('print-gastos');
-    window.print();
-    document.body.classList.remove('print-gastos');
-}
-
-// Exponer funciones globalmente
-window.aplicarFiltrosGastos = aplicarFiltrosGastos;
-window.limpiarFiltrosGastos = limpiarFiltrosGastos;
-window.imprimirGastosDetallados = imprimirGastosDetallados;
 
 // === REGISTRO DE VENTA HISTORICA (Solo Admin) ===
 function abrirModalVentaHistorica() {
