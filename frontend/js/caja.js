@@ -989,3 +989,87 @@ function imprimirGastosDetallados() {
 window.aplicarFiltrosGastos = aplicarFiltrosGastos;
 window.limpiarFiltrosGastos = limpiarFiltrosGastos;
 window.imprimirGastosDetallados = imprimirGastosDetallados;
+
+// === REGISTRO DE VENTA HISTORICA (Solo Admin) ===
+function abrirModalVentaHistorica() {
+    const totalInput = document.getElementById('inputVentaHistTotal');
+    const fechaInput = document.getElementById('inputVentaHistFecha');
+    
+    if (totalInput) totalInput.value = '';
+    
+    if (fechaInput) {
+        const ahora = new Date();
+        const offset = ahora.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(ahora - offset)).toISOString().slice(0, 16);
+        fechaInput.value = localISOTime;
+    }
+
+    cargarCajerosSelectorHistorico();
+
+    document.getElementById('modalVentaHistorica').classList.remove('hidden');
+}
+
+function cerrarModalVentaHistorica() {
+    document.getElementById('modalVentaHistorica').classList.add('hidden');
+}
+
+async function cargarCajerosSelectorHistorico() {
+    const select = document.getElementById('inputVentaHistCajero');
+    if (!select) return;
+
+    try {
+        const res = await fetch('/api/parametros/usuarios');
+        if (!res.ok) throw new Error('Error al cargar cajeros');
+        const usuarios = await res.json();
+
+        const loggedUser = localStorage.getItem('usuario_id');
+        
+        select.innerHTML = usuarios
+            .filter(u => u.activo)
+            .map(u => `<option value="${u.id}" ${String(u.id) === String(loggedUser) ? 'selected' : ''}>${u.nombre} (${u.rol})</option>`)
+            .join('');
+    } catch (e) {
+        console.error('Error cargando selector de cajeros:', e);
+        select.innerHTML = `<option value="">Error al cargar cajeros</option>`;
+    }
+}
+
+async function procesarVentaHistorica() {
+    const usuario_id = document.getElementById('inputVentaHistCajero')?.value;
+    const fecha_venta = document.getElementById('inputVentaHistFecha')?.value;
+    const metodo_pago = document.getElementById('inputVentaHistMetodo')?.value;
+    const total = document.getElementById('inputVentaHistTotal')?.value;
+
+    if (!usuario_id || !fecha_venta || !metodo_pago || !total || parseFloat(total) <= 0) {
+        alert('Por favor complete todos los campos correctamente. El total debe ser mayor a 0.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/caja/venta-historica', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuario_id,
+                total,
+                metodo_pago,
+                fecha_venta
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al registrar venta histórica');
+
+        alert('Venta histórica registrada con éxito.');
+        cerrarModalVentaHistorica();
+        
+        cargarVentasRealizadas();
+        cargarEstadoCaja();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+window.abrirModalVentaHistorica = abrirModalVentaHistorica;
+window.cerrarModalVentaHistorica = cerrarModalVentaHistorica;
+window.procesarVentaHistorica = procesarVentaHistorica;

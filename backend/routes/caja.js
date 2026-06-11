@@ -267,4 +267,26 @@ router.put('/ventas/:id/metodo-pago', async (req, res) => {
     }
 });
 
+// Endpoint para registrar una venta histórica
+router.post('/venta-historica', async (req, res) => {
+    const { usuario_id, total, metodo_pago, fecha_venta } = req.body;
+
+    if (!usuario_id || !total || parseFloat(total) <= 0 || !metodo_pago || !fecha_venta) {
+        return res.status(400).json({ error: 'Todos los campos son requeridos y el total debe ser mayor a 0.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago, fecha_venta, estado)
+            VALUES ($1, NULL, $2, $3, $4::timestamp, 'COMPLETADA')
+            RETURNING id
+        `;
+        const result = await pool.query(query, [usuario_id, total, metodo_pago, fecha_venta]);
+        res.status(201).json({ success: true, venta_id: result.rows[0].id });
+    } catch (error) {
+        console.error('Error al registrar venta histórica:', error);
+        res.status(500).json({ error: 'Error al registrar venta histórica: ' + error.message });
+    }
+});
+
 module.exports = router;

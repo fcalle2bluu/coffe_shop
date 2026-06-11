@@ -326,7 +326,9 @@
                             <button onclick="imprimirVentasRealizadas()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-1.5 no-print">
                                 <i class="fa-solid fa-print text-[10px]"></i> Imprimir
                             </button>
-                        </div>
+                            <button onclick="abrirModalVentaHistorica()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-1.5 no-print btn-bounce">
+                                <i class="fa-solid fa-plus text-[10px]"></i> Reg. Venta Histórica
+                            </button>
                     </div>
 
                     <!-- Tarjetas de resumen (solo admin) -->
@@ -613,6 +615,54 @@
             <div class="flex justify-center mt-4 space-x-2 shrink-0">
                 <button onclick="cerrarModalTicket()" class="px-4 py-2 bg-gray-300 rounded font-bold hover:bg-gray-400 transition-colors text-gray-800 text-sm">Cerrar</button>
                 <button onclick="imprimirTicket()" class="px-4 py-2 bg-orange-600 text-white font-bold rounded shadow hover:bg-orange-700 transition-all duration-200 shadow-md hover:shadow-lg transition-colors text-sm"><i class="fa-solid fa-print mr-2"></i> Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registrar Venta Histórica (Solo Admin) -->
+    <div id="modalVentaHistorica" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 sm:p-6 border-t-4 border-orange-500">
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <h3 class="text-lg font-black text-slate-800"><i class="fa-solid fa-file-invoice-dollar text-orange-500 mr-2"></i>Registrar Venta Histórica</h3>
+                <button onclick="cerrarModalVentaHistorica()" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Cajero/Usuario -->
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Cajero / Registrador *</label>
+                    <select id="inputVentaHistCajero" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 bg-white outline-none focus:border-orange-400">
+                        <!-- populated via JS -->
+                    </select>
+                </div>
+
+                <!-- Fecha y Hora -->
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Fecha y Hora de Venta *</label>
+                    <input type="datetime-local" id="inputVentaHistFecha" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 bg-white outline-none focus:border-orange-400">
+                </div>
+
+                <!-- Método de Pago -->
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Método de Pago *</label>
+                    <select id="inputVentaHistMetodo" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 bg-white outline-none focus:border-orange-400">
+                        <option value="EFECTIVO">Efectivo</option>
+                        <option value="QR">QR / Digital</option>
+                        <option value="TARJETA">Tarjeta</option>
+                        <option value="CONSUME LO NUESTRO">Consume lo Nuestro</option>
+                    </select>
+                </div>
+
+                <!-- Monto Total -->
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Monto Total (Bs.) *</label>
+                    <input type="number" id="inputVentaHistTotal" min="0.01" step="0.01" placeholder="0.00" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-lg font-black text-center text-slate-800 outline-none focus:border-orange-400">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="cerrarModalVentaHistorica()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all">Cancelar</button>
+                <button onclick="procesarVentaHistorica()" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-xs shadow-md shadow-orange-500/10 transition-all">Registrar Venta</button>
             </div>
         </div>
     </div>
