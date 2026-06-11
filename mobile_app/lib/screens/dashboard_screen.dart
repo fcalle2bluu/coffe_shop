@@ -21,6 +21,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   String _ventasDia = '0.00';
   String _ventasMes = '0.00';
+  String _gastosMes = '0.00';
   int _totalProductos = 0;
   int _totalProveedores = 0;
 
@@ -50,6 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final data = jsonDecode(kpisRes.body);
           _ventasDia = data['ventasDia']?.toString() ?? '0.00';
           _ventasMes = data['ventasMes']?.toString() ?? '0.00';
+          _gastosMes = data['gastosMes']?.toString() ?? '0.00';
           _totalProductos = int.tryParse(data['productos']?.toString() ?? '0') ?? 0;
           _totalProveedores = int.tryParse(data['proveedores']?.toString() ?? '0') ?? 0;
         }
@@ -257,18 +259,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.5,
+                      Column(
                         children: [
-                          _buildKpiCard('Ventas Hoy', 'Bs. $_ventasDia', FontAwesomeIcons.cashRegister, const Color(0xFFF97316)),
-                          _buildKpiCard('Ventas Mes', 'Bs. $_ventasMes', FontAwesomeIcons.calendarCheck, const Color(0xFF10B981)),
-                          _buildKpiCard('Productos', '$_totalProductos', FontAwesomeIcons.boxesStacked, const Color(0xFF3B82F6)),
-                          _buildKpiCard('Proveedores', '$_totalProveedores', FontAwesomeIcons.truck, const Color(0xFF8B5CF6)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AspectRatio(
+                                  aspectRatio: 1.5,
+                                  child: _buildKpiCard('Ventas Hoy', 'Bs. $_ventasDia', FontAwesomeIcons.cashRegister, const Color(0xFFF97316)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: AspectRatio(
+                                  aspectRatio: 1.5,
+                                  child: _buildKpiCard('Ventas Mes', 'Bs. $_ventasMes', FontAwesomeIcons.calendarCheck, const Color(0xFF10B981)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 85,
+                            width: double.infinity,
+                            child: _buildKpiCard('Gastos Mes', 'Bs. $_gastosMes', FontAwesomeIcons.fileInvoiceDollar, const Color(0xFFEF4444)),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AspectRatio(
+                                  aspectRatio: 1.5,
+                                  child: _buildKpiCard('Productos', '$_totalProductos', FontAwesomeIcons.boxesStacked, const Color(0xFF3B82F6)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: AspectRatio(
+                                  aspectRatio: 1.5,
+                                  child: _buildKpiCard('Proveedores', '$_totalProveedores', FontAwesomeIcons.truck, const Color(0xFF8B5CF6)),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
