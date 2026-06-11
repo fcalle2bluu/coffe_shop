@@ -317,6 +317,191 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Mesas:', mesasErr.message);
     }
 
+    // === MIGRACIONES MULTIDEPÓSITO Y PRODUCCIÓN ===
+    try {
+        // 1. Crear tabla de almacenes
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS almacenes (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(255) UNIQUE NOT NULL,
+                descripcion TEXT
+            );
+        `);
+        
+        // Sembrar almacenes por defecto
+        await pool.query(`
+            INSERT INTO almacenes (nombre, descripcion) VALUES 
+            ('Almacén Central', 'Depósito general de insumos y compras de proveedores'),
+            ('Almacén Pastelería', 'Inventario de insumos en mesa de trabajo para producción')
+            ON CONFLICT (nombre) DO NOTHING;
+        `);
+
+        // 2. Crear tabla de inventario por almacén
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS inventario_almacen (
+                id SERIAL PRIMARY KEY,
+                almacen_id INT NOT NULL REFERENCES almacenes(id) ON DELETE CASCADE,
+                insumo_id INT NOT NULL REFERENCES insumos(id) ON DELETE CASCADE,
+                stock_actual NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+                UNIQUE (almacen_id, insumo_id)
+            );
+        `);
+
+        // Migrar stock lineal existente al Almacén Central e inicializar Pastelería en 0.00
+        await pool.query(`
+            INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+            SELECT (SELECT id FROM almacenes WHERE nombre = 'Almacén Central' LIMIT 1), id, COALESCE(stock_actual, 0.00)
+            FROM insumos
+            ON CONFLICT (almacen_id, insumo_id) DO NOTHING;
+        `);
+        await pool.query(`
+            INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+            SELECT (SELECT id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1), id, 0.00
+            FROM insumos
+            ON CONFLICT (almacen_id, insumo_id) DO NOTHING;
+        `);
+
+        // 3. Crear tablas de órdenes de producción
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ordenes_produccion (
+                id SERIAL PRIMARY KEY,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                estado VARCHAR(50) NOT NULL DEFAULT 'PENDIENTE',
+                observaciones TEXT
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS detalle_orden (
+                id SERIAL PRIMARY KEY,
+                orden_id INT NOT NULL REFERENCES ordenes_produccion(id) ON DELETE CASCADE,
+                receta_id INT NOT NULL REFERENCES recetas(id) ON DELETE CASCADE,
+                cantidad NUMERIC(10, 2) NOT NULL
+            );
+        `);
+
+        // 4. Crear tablas de auditoría de pastelería
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS auditorias_pasteleria (
+                id SERIAL PRIMARY KEY,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                observaciones TEXT
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS detalle_auditoria_pasteleria (
+                id SERIAL PRIMARY KEY,
+                auditoria_id INT NOT NULL REFERENCES auditorias_pasteleria(id) ON DELETE CASCADE,
+                insumo_id INT NOT NULL REFERENCES insumos(id) ON DELETE CASCADE,
+                cantidad_teorica NUMERIC(10, 2) NOT NULL,
+                cantidad_real NUMERIC(10, 2) NOT NULL,
+                diferencia NUMERIC(10, 2) NOT NULL
+            );
+        `);
+
+        // 5. Crear Triggers de sincronización bidireccional segura
+        // Función sync_almacen_to_insumo
+        await pool.query(`
+            CREATE OR REPLACE FUNCTION sync_almacen_to_insumo()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                total NUMERIC;
+                ins_id INT;
+            BEGIN
+                IF TG_OP = 'DELETE' THEN
+                    ins_id := OLD.insumo_id;
+                ELSE
+                    ins_id := NEW.insumo_id;
+                END IF;
+
+                SELECT COALESCE(SUM(stock_actual), 0) INTO total 
+                FROM inventario_almacen 
+                WHERE insumo_id = ins_id;
+
+                PERFORM set_config('app.sync_lock', 'true', true);
+
+                UPDATE insumos 
+                SET stock_actual = total 
+                WHERE id = ins_id AND stock_actual <> total;
+
+                PERFORM set_config('app.sync_lock', 'false', true);
+
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+        `);
+
+        // Función sync_insumo_to_almacen
+        await pool.query(`
+            CREATE OR REPLACE FUNCTION sync_insumo_to_almacen()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                central_id INT;
+                pasteleria_id INT;
+                diff NUMERIC;
+            BEGIN
+                IF current_setting('app.sync_lock', true) = 'true' THEN
+                    RETURN NEW;
+                END IF;
+
+                SELECT id INTO central_id FROM almacenes WHERE nombre = 'Almacén Central' LIMIT 1;
+                SELECT id INTO pasteleria_id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1;
+
+                IF TG_OP = 'INSERT' THEN
+                    INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+                    VALUES (central_id, NEW.id, NEW.stock_actual)
+                    ON CONFLICT (almacen_id, insumo_id) DO UPDATE 
+                    SET stock_actual = EXCLUDED.stock_actual;
+
+                    INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+                    VALUES (pasteleria_id, NEW.id, 0.00)
+                    ON CONFLICT (almacen_id, insumo_id) DO NOTHING;
+                    
+                ELSIF TG_OP = 'UPDATE' THEN
+                    diff := NEW.stock_actual - OLD.stock_actual;
+                    IF diff <> 0 THEN
+                        INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+                        VALUES (central_id, NEW.id, 0.00)
+                        ON CONFLICT (almacen_id, insumo_id) DO NOTHING;
+
+                        INSERT INTO inventario_almacen (almacen_id, insumo_id, stock_actual)
+                        VALUES (pasteleria_id, NEW.id, 0.00)
+                        ON CONFLICT (almacen_id, insumo_id) DO NOTHING;
+
+                        UPDATE inventario_almacen
+                        SET stock_actual = stock_actual + diff
+                        WHERE almacen_id = central_id AND insumo_id = NEW.id;
+                    END IF;
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        `);
+
+        // Crear/Registrar Triggers
+        await pool.query(`
+            DROP TRIGGER IF EXISTS tg_inventario_almacen_sync ON inventario_almacen;
+            CREATE TRIGGER tg_inventario_almacen_sync
+            AFTER INSERT OR UPDATE OR DELETE ON inventario_almacen
+            FOR EACH ROW
+            EXECUTE FUNCTION sync_almacen_to_insumo();
+        `);
+
+        await pool.query(`
+            DROP TRIGGER IF EXISTS tg_insumos_stock_sync ON insumos;
+            CREATE TRIGGER tg_insumos_stock_sync
+            AFTER INSERT OR UPDATE OF stock_actual ON insumos
+            FOR EACH ROW
+            EXECUTE FUNCTION sync_insumo_to_almacen();
+        `);
+
+        console.log('✅ Base de Datos Multidepósito y disparadores creados/verificados.');
+    } catch (dbMultiErr) {
+        console.error('Error al configurar base de datos Multidepósito:', dbMultiErr.message);
+    }
+
     // 6. Crear un usuario administrador por defecto si no existe ninguno
     try {
         const userCheck = await pool.query('SELECT COUNT(*) FROM usuarios');

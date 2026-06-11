@@ -14,7 +14,7 @@
 
     // REGLAS PARA ENCARGADO DE LOGÍSTICA O ALMACEN
     if (rol.includes('LOGISTICA') || rol.includes('ALMACEN')) {
-        const paginasPermitidas = ['pedidos_internos.html', 'index.html', ''];
+        const paginasPermitidas = ['pedidos_internos.html', 'produccion.html', 'index.html', ''];
         
         if (!paginasPermitidas.includes(pageName)) {
             window.location.href = 'pedidos_internos.html';
@@ -22,9 +22,33 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Ocultar tabs de menú que no sean pedidos internos
+            // Ocultar tabs de menú que no sean pedidos internos o produccion
             document.querySelectorAll('aside nav a').forEach(el => {
-                if (!el.href.includes('pedidos_internos.html')) {
+                if (!el.href.includes('pedidos_internos.html') && !el.href.includes('produccion.html')) {
+                    el.style.display = 'none';
+                }
+            });
+            // Ocultar botones y elementos de admin
+            document.querySelectorAll('.solo-admin').forEach(el => {
+                el.style.display = 'none';
+            });
+        });
+        return;
+    }
+
+    // REGLAS PARA PASTELERA/PASTELERO
+    if (rol.includes('PASTELERA') || rol.includes('PASTELERO')) {
+        const paginasPermitidas = ['produccion.html', 'index.html', ''];
+        
+        if (!paginasPermitidas.includes(pageName)) {
+            window.location.href = 'produccion.html';
+            return;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Ocultar tabs de menú que no sean produccion
+            document.querySelectorAll('aside nav a').forEach(el => {
+                if (!el.href.includes('produccion.html')) {
                     el.style.display = 'none';
                 }
             });
@@ -38,7 +62,7 @@
 
     const isAdmin = rol === 'ADMINISTRADOR' || rol === 'ADMIN';
 
-    if (!rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !isAdmin) {
+    if (!rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !rol.includes('PASTELERA') && !rol.includes('PASTELERO') && !isAdmin) {
         if (pageName === 'dashboard.html' && rol !== 'CAJERO' && rol !== 'MESERO') {
             window.location.href = 'ventas.html';
             return;
@@ -92,6 +116,16 @@
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
+            if (href.includes('produccion.html')) {
+                const hasAccess = isAdmin || rol.includes('PASTELERA') || rol.includes('PASTELERO') || rol.includes('LOGISTICA') || rol.includes('ALMACEN');
+                if (!hasAccess) el.style.display = 'none';
+                else el.style.display = 'flex';
+            }
+            if (href.includes('auditoria_pasteleria.html')) {
+                const hasPerm = localStorage.getItem('perm_auditoria') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
+            }
             if (href.includes('compras.html')) {
                 const hasPerm = localStorage.getItem('perm_compras') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
@@ -140,6 +174,8 @@
             if (pageName.includes('compras') && localStorage.getItem('perm_compras') === 'true') keepSoloAdmin = true;
             if (pageName.includes('proveedores') && localStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
             if (pageName.includes('inventario') && localStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('produccion') && isAdmin) keepSoloAdmin = true;
+            if (pageName.includes('auditoria_pasteleria') && (isAdmin || localStorage.getItem('perm_auditoria') === 'true')) keepSoloAdmin = true;
             if ((pageName.includes('parametros') || pageName.includes('usuarios') || pageName.includes('empleados')) && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
             if ((pageName.includes('informe_general') || pageName.includes('libro_diario')) && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 

@@ -137,6 +137,40 @@ router.post('/', async (req, res) => {
                 INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal)
                 VALUES ($1, $2, $3, $4, $5)
             `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
+
+            // b. Backflush: Descontar de Almacén Pastelería según la receta
+            const recetaRes = await client.query('SELECT id FROM recetas WHERE producto_id = $1 LIMIT 1', [item.producto_id]);
+            if (recetaRes.rows.length > 0) {
+                const recetaId = recetaRes.rows[0].id;
+                const ingredientesRes = await client.query(
+                    'SELECT insumo_id, cantidad FROM ingrediente_recetas WHERE receta_id = $1 AND insumo_id IS NOT NULL',
+                    [recetaId]
+                );
+
+                const almacenPasteleriaRes = await client.query(
+                    "SELECT id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1"
+                );
+                const almacenPasteleriaId = almacenPasteleriaRes.rows[0]?.id;
+
+                if (almacenPasteleriaId) {
+                    for (let ing of ingredientesRes.rows) {
+                        const cantADescontar = parseFloat(item.cantidad) * parseFloat(ing.cantidad);
+
+                        // Restar del stock de Pastelería (hasta llegar a cero o al remanente, usando GREATEST(0, stock_actual - cant))
+                        await client.query(`
+                            UPDATE inventario_almacen 
+                            SET stock_actual = GREATEST(0, stock_actual - $1)
+                            WHERE almacen_id = $2 AND insumo_id = $3
+                        `, [cantADescontar, almacenPasteleriaId, ing.insumo_id]);
+
+                        // Registrar el movimiento en el historial
+                        await client.query(`
+                            INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+                            VALUES ($1, 'VENTA', $2, $3, NOW())
+                        `, [ing.insumo_id, cantADescontar, ventaId]);
+                    }
+                }
+            }
         }
 
         await client.query('COMMIT'); // ✅ Confirma y guarda todo en la BD

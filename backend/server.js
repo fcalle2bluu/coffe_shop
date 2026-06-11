@@ -36,6 +36,7 @@ const rutasLibroDiario = require('./routes/libro_diario');
 const rutasComandas = require('./routes/comandas');
 const rutasMesas = require('./routes/mesas');
 const rutasRecetas = require('./routes/recetas');
+const rutasProduccion = require('./routes/produccion');
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
@@ -59,6 +60,7 @@ app.use('/api/libro-diario', rutasLibroDiario);
 app.use('/api/comandas', rutasComandas);
 app.use('/api/mesas', rutasMesas);
 app.use('/api/recetas', rutasRecetas);
+app.use('/api/produccion', rutasProduccion);
 
 // ==========================================
 // 5. ARCHIVOS ESTÁTICOS (FRONTEND)

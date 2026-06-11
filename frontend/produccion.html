@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Producción y Masas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
+                        topbar: '#ffffff',
+                        mainBg: '#f8fafc',
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                } 
+            } 
+        }
+    </script>
+    <link rel="icon" href="favicon.png" type="image/png">
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
+            </button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+            </a>
+            <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold">
+                <i class="fa-solid fa-kitchen-set w-5 text-center text-orange-500/60"></i> <span>Producción y Masas</span>
+            </a>
+            <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-book-open w-5 text-center text-orange-500/60"></i> <span>Recetas</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-truck w-5 text-center text-orange-500/60"></i> <span>Proveedores</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-utensils w-5 text-center text-orange-500/60"></i> <span>Venta por Mesa</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
+            <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión de Empleados</span>
+            </a>
+            <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
+            </a>
+            <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+            </a>
+            <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-mug-hot w-5 text-center text-orange-500/60"></i> <span>Informe General</span>
+            </a>
+            <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-brain w-5 text-center text-orange-500/60"></i> <span>Asistente IA</span>
+            </a>
+            <a href="asistencia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-user-clock w-5 text-center text-orange-500/60"></i> <span>Asistencia QR</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
+            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Producción y Masas</h1>
+            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
+        </header>
+
+        <div class="flex-1 p-4 md:p-6 space-y-6">
+            
+            <!-- Tab Headers -->
+            <div class="flex border-b border-slate-200 bg-white p-2 rounded-xl shadow-premium shrink-0">
+                <button id="tab-plan" onclick="switchTab('plan')" class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold text-sm text-orange-600 bg-orange-50 transition-all duration-200">
+                    <i class="fa-solid fa-kitchen-set text-base"></i>
+                    <span>Plan de Producción</span>
+                </button>
+                <button id="tab-vales" onclick="switchTab('vales')" class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200">
+                    <i class="fa-solid fa-file-invoice-dollar text-base"></i>
+                    <span>Vales y Órdenes</span>
+                </button>
+                <button id="tab-auditoria" onclick="switchTab('auditoria')" class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200">
+                    <i class="fa-solid fa-scale-balanced text-base"></i>
+                    <span>Auditoría de Masas</span>
+                </button>
+            </div>
+
+            <!-- Tab Content: Plan de Producción -->
+            <div id="sec-plan" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Selector y Carrito (Lado Izquierdo) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5">
+                        <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus text-orange-500"></i> Agregar Productos a Producir
+                        </h2>
+                        
+                        <div class="flex flex-wrap sm:flex-nowrap gap-3 items-end">
+                            <div class="flex-1 min-w-[200px]">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Seleccionar Receta</label>
+                                <select id="selRecetas" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-slate-700 font-semibold">
+                                    <option value="">Cargando recetas...</option>
+                                </select>
+                            </div>
+                            <div class="w-24 sm:w-32">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cantidad</label>
+                                <input type="number" id="inpCantidadReceta" min="1" value="1" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                            </div>
+                            <button onclick="agregarAlCarritoProduccion()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all h-[38px] flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus text-xs"></i> Añadir
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Detalle de la producción -->
+                    <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5">
+                        <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-orange-500"></i> Detalle del Plan de Producción
+                        </h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-550 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                                        <th class="py-3 px-4">Producto/Receta</th>
+                                        <th class="py-3 px-4 text-center">Cantidad a Producir</th>
+                                        <th class="py-3 px-4 text-right">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-carrito-body" class="divide-y divide-slate-100 font-medium">
+                                    <tr>
+                                        <td colspan="3" class="py-8 text-center text-slate-400 italic">No hay productos agregados al plan de producción.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Observaciones</label>
+                            <textarea id="txtObservacionesPlan" placeholder="Escribe notas adicionales sobre esta orden de producción..." rows="2" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+                        </div>
+                        <div class="mt-5 flex justify-end">
+                            <button onclick="guardarOrdenProduccion()" class="bg-orange-600 hover:bg-orange-700 text-white font-black text-sm px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> Registrar Orden de Producción
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explosión de Insumos (Lado Derecho) -->
+                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5 flex flex-col min-h-[400px]">
+                    <h2 class="font-bold text-slate-800 text-lg mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-orange-500 animate-pulse"></i> Explosión de Materiales
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4 font-semibold">Cálculo en vivo de la materia prima requerida y existencias en almacenes.</p>
+                    
+                    <div class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[500px]" id="contenedor-explosion">
+                        <div class="text-center py-12 text-slate-400 italic">
+                            <i class="fa-solid fa-wand-magic-sparkles text-3xl text-slate-300 mb-2 block"></i>
+                            Agrega productos al plan para ver la explosión de ingredientes en tiempo real.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Vales y Órdenes -->
+            <div id="sec-vales" class="hidden space-y-6">
+                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5">
+                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-orange-500"></i> Órdenes de Producción Realizadas
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                                    <th class="py-3 px-4">ID</th>
+                                    <th class="py-3 px-4">Fecha y Hora</th>
+                                    <th class="py-3 px-4">Solicitante</th>
+                                    <th class="py-3 px-4">Detalles</th>
+                                    <th class="py-3 px-4">Notas</th>
+                                    <th class="py-3 px-4">Estado</th>
+                                    <th class="py-3 px-4 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-ordenes-body" class="divide-y divide-slate-100 font-medium">
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">Cargando historial de producción...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Auditoría de Masas -->
+            <div id="sec-auditoria" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Auditoría Física (Izquierda) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5">
+                        <h2 class="font-bold text-slate-800 text-lg mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-scale-unbalanced text-orange-500"></i> Auditoría Física de Balanza
+                        </h2>
+                        <p class="text-xs text-slate-400 mb-5 font-semibold">Compara el saldo del Almacén Pastelería con el conteo físico de insumos.</p>
+                        
+                        <div class="overflow-x-auto border rounded-xl shadow-inner bg-slate-50">
+                            <table class="w-full text-left text-xs border-collapse text-slate-700">
+                                <thead>
+                                    <tr class="bg-slate-900 text-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                                        <th class="px-4 py-3 rounded-tl-xl">Insumo</th>
+                                        <th class="px-4 py-3 text-center w-28">Teórico (Pastelería)</th>
+                                        <th class="px-4 py-3 text-center w-36">Peso/Conteo Real</th>
+                                        <th class="px-4 py-3 text-right rounded-tr-xl w-32">Diferencia / Merma</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-auditoria-body" class="divide-y divide-slate-100 font-medium bg-white">
+                                    <tr>
+                                        <td colspan="4" class="py-8 text-center text-slate-400 italic">Cargando inventario de pastelería...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Notas de Auditoría</label>
+                            <textarea id="txtObservacionesAuditoria" placeholder="Describe los motivos de variaciones o mermas encontradas (ej. desperdicios, pesaje fallido)..." rows="2" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"></textarea>
+                        </div>
+                        <div class="mt-5 flex justify-end">
+                            <button onclick="guardarAuditoriaPasteleria()" class="bg-orange-600 hover:bg-orange-700 text-white font-black text-sm px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Registrar Conteo Físico (Balanza)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historial de Auditorías (Derecha) -->
+                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5 flex flex-col min-h-[400px]">
+                    <h2 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-orange-500"></i> Historial de Auditorías
+                    </h2>
+                    
+                    <div class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[550px]" id="auditorias-historial-lista">
+                        <div class="text-center py-12 text-slate-400 italic">Cargando historial...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="js/security_guard.js"></script>
+    <script src="js/produccion.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
+        }
+        function cerrarSesión() {
+            localStorage.clear(); window.location.href = 'index.html';
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const n = localStorage.getItem('usuario_nombre');
+            const r = localStorage.getItem('usuario_rol');
+            if (n) {
+                document.getElementById('nombre-usuario').innerText = n;
+                document.getElementById('header-nombre-usuario').innerText = n;
+                document.getElementById('avatar-letra').innerText = n.charAt(0).toUpperCase();
+            }
+            if (r) document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${r}`;
+        });
+    </script>
+</body>
+</html>
