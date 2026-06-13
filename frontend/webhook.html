@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Café La Paz - Recetario Inteligente</title>
+    <title>Café La Paz - Webhook WhatsApp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -75,7 +75,7 @@
             <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
                 <i class="fa-solid fa-kitchen-set w-5 text-center text-orange-500/60"></i> <span>Producción y Masas</span>
             </a>
-            <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold solo-admin">
+            <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-book-open w-5 text-center text-orange-500/60"></i> <span>Recetas</span>
             </a>
             <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
@@ -96,7 +96,7 @@
             <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
                 <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
             </a>
-            <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+            <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold">
                 <i class="fa-brands fa-whatsapp w-5 text-center text-orange-500/60"></i> <span>Webhook WhatsApp</span>
             </a>
             <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
@@ -123,94 +123,136 @@
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
-            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Recetario & Desglose de Inventario</h1>
-            <div class="flex items-center shrink-0 ml-2">
-                <span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span>
-            </div>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Integración de Webhook WhatsApp</h1>
+            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-6">
-            <!-- KPIs Recetas -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-orange-500 flex justify-between items-center">
+            
+            <!-- Cards de Estado y Configuración -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Info de Configuración del Webhook -->
+                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5 flex flex-col justify-between col-span-2">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Total Recetas</p>
-                        <h3 class="text-2xl font-black text-slate-800" id="kpi-total-recetas">0</h3>
-                    </div>
-                    <i class="fa-solid fa-book-open text-3xl text-orange-100"></i>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-500 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Repostería / Pastelería</p>
-                        <h3 class="text-2xl font-black text-slate-800" id="kpi-reposteria">0</h3>
-                    </div>
-                    <i class="fa-solid fa-cake-candles text-3xl text-blue-100"></i>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-purple-500 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Bebidas con Alcohol</p>
-                        <h3 class="text-2xl font-black text-slate-800" id="kpi-cocteles">0</h3>
-                    </div>
-                    <i class="fa-solid fa-martini-glass-citrus text-3xl text-purple-100"></i>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-red-500 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Insumos sin Stock</p>
-                        <h3 class="text-2xl font-black text-red-600" id="kpi-sin-stock">0</h3>
-                    </div>
-                    <i class="fa-solid fa-circle-exclamation text-3xl text-red-100"></i>
-                </div>
-            </div>
-
-            <!-- Panel de Recetas (Buscador y Columnas) -->
-            <div class="flex flex-col lg:flex-row gap-6 items-stretch flex-1">
-                <!-- Columna Izquierda: Listado -->
-                <div class="w-full lg:w-5/12 bg-white rounded-xl shadow p-4 flex flex-col gap-4 border border-slate-200/60">
-                    <div class="flex flex-col gap-2">
-                        <div class="relative">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400"></i>
-                            <input type="text" id="buscar-receta" placeholder="Buscar receta o ingrediente..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent text-sm transition-all" oninput="filtrarRecetas()">
-                        </div>
-                        <div class="flex gap-2 overflow-x-auto pb-1 mt-1 scrollbar-none" id="filtros-categoria">
-                            <button class="px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-lg shrink-0 transition-all filter-btn" onclick="filtrarCategoria('TODOS', this)">Todos</button>
-                            <button class="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold rounded-lg shrink-0 transition-all filter-btn" onclick="filtrarCategoria('PASTELERIA', this)">Repostería</button>
-                            <button class="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold rounded-lg shrink-0 transition-all filter-btn" onclick="filtrarCategoria('BEBIDAS CON ALCOHOL', this)">Cócteles</button>
-                            <button class="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold rounded-lg shrink-0 transition-all filter-btn" onclick="filtrarCategoria('OTROS', this)">Otros</button>
-                        </div>
-                    </div>
-
-                    <!-- Lista de Recetas -->
-                    <div class="flex-1 overflow-y-auto max-h-[500px] lg:max-h-[600px] space-y-2 pr-1" id="lista-recetas">
-                        <!-- Creado Dinámicamente -->
-                        <div class="text-center py-8 text-slate-400">
-                            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-                            <p class="text-xs">Cargando recetario...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Columna Derecha: Vista Detallada -->
-                <div class="w-full lg:w-7/12 flex flex-col items-stretch">
-                    <div class="bg-white rounded-xl shadow flex-1 flex flex-col border border-slate-200/60 p-6" id="detalle-receta-card">
-                        <!-- Vista Vacía por defecto -->
-                        <div class="flex-1 flex flex-col items-center justify-center text-center text-slate-400 py-16">
-                            <div class="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mb-4">
-                                <i class="fa-solid fa-book-open text-2xl text-slate-400"></i>
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                                <i class="fa-brands fa-whatsapp text-lg"></i>
                             </div>
-                            <h3 class="font-bold text-slate-700 mb-1 text-sm sm:text-base">Ninguna Receta Seleccionada</h3>
-                            <p class="text-xs max-w-xs px-4">Selecciona una receta del listado de la izquierda para ver su preparación, ingredientes y stock en tiempo real.</p>
+                            <h2 class="font-bold text-slate-800 text-base">Configuración del Webhook Oficial de Meta</h2>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                            Para recibir y procesar los pedidos de clientes de forma automática por WhatsApp, configura los siguientes parámetros en tu portal de desarrolladores de Meta (App Dashboard > WhatsApp > Configuration).
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <span class="font-bold text-slate-400 uppercase text-[9px] tracking-wider block">Callback URL (Webhook)</span>
+                                <span id="lbl-webhook-url" class="font-mono text-slate-700 font-medium block truncate select-all mt-1">https://tu-dominio.onrender.com/api/whatsapp/webhook</span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <span class="font-bold text-slate-400 uppercase text-[9px] tracking-wider block">Verify Token (Token de Verificación)</span>
+                                <span class="font-mono text-emerald-600 font-bold block select-all mt-1">mi_token_secreto_para_webhook_123</span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <span class="font-bold text-slate-400 uppercase text-[9px] tracking-wider block">ID del Número de Teléfono (Phone ID)</span>
+                                <span class="font-mono text-slate-700 font-medium block select-all mt-1">1189224787600539</span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <span class="font-bold text-slate-400 uppercase text-[9px] tracking-wider block">ID de Cuenta Comercial (Business ID)</span>
+                                <span class="font-mono text-slate-700 font-medium block select-all mt-1">2085192052032295</span>
+                            </div>
                         </div>
                     </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span class="text-[10px] text-slate-500 font-bold">Webhook escuchando activamente peticiones entrantes.</span>
+                    </div>
+                </div>
+
+                <!-- Panel de Estadísticas -->
+                <div class="bg-slate-900 text-white rounded-xl shadow-premium p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Métricas de Pedidos</span>
+                            <span class="bg-emerald-500/10 text-emerald-400 font-black text-[10px] px-2 py-0.5 rounded-full">En Vivo</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-black text-white" id="stat-pendientes">0</span>
+                                <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider mt-1">Pendientes</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-black text-white" id="stat-preparando">0</span>
+                                <span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider mt-1">En Barra</span>
+                            </div>
+                            <div class="flex flex-col mt-2">
+                                <span class="text-3xl font-black text-white" id="stat-entregados">0</span>
+                                <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1">Entregados</span>
+                            </div>
+                            <div class="flex flex-col mt-2">
+                                <span class="text-3xl font-black text-white" id="stat-total">0</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Total Hoy</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="cargarPedidosWhatsApp()" class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 rounded-lg border border-slate-700 hover:border-slate-600 transition-all flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate" id="btn-refresh-icon"></i> Actualizar Listado
+                    </button>
                 </div>
             </div>
+
+            <!-- Tabla de Pedidos de WhatsApp -->
+            <div class="bg-white rounded-xl shadow-premium border border-slate-100 overflow-hidden flex flex-col flex-1">
+                <div class="p-4 border-b bg-slate-50/50 border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-base">Órdenes Recibidas por WhatsApp</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Gestione el estado de preparación y despacho de pedidos.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500 font-bold">Auto-recarga en 10s</span>
+                        <div class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto p-4 flex-1">
+                    <table class="w-full text-left text-xs border-collapse text-slate-700 min-w-[700px]">
+                        <thead>
+                            <tr class="bg-slate-900 text-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                                <th class="px-4 py-3 rounded-tl-xl w-12">ID</th>
+                                <th class="px-4 py-3">Teléfono Cliente</th>
+                                <th class="px-4 py-3">Producto Solicitado</th>
+                                <th class="px-4 py-3 text-center w-20">Cant.</th>
+                                <th class="px-4 py-3">Estado</th>
+                                <th class="px-4 py-3">Fecha y Hora</th>
+                                <th class="px-4 py-3 text-center rounded-tr-xl w-48">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-pedidos-body" class="divide-y divide-slate-100 font-medium">
+                            <tr>
+                                <td colspan="7" class="text-center p-8 text-slate-400 font-semibold">
+                                    <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block text-orange-500"></i>
+                                    Cargando pedidos de WhatsApp...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <script src="js/recetas.js"></script>
+    <script src="js/webhook.js"></script>
     <script>
+        // Guardia de Seguridad Básica
+        if (!localStorage.getItem('usuario_id')) {
+            window.location.href = 'index.html'; 
+        }
+
+        // Sidebar Toggle
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -223,6 +265,7 @@
             window.location.href = 'index.html';
         }
 
+        // Cargar Roles al Iniciar
         window.addEventListener('DOMContentLoaded', () => {
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
@@ -236,12 +279,17 @@
                 document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
             }
 
-            if (rolActual === 'CAJERO' || rolActual === 'MESERO') {
+            // Ocultar links de admin si es cajero
+            if (rolActual === 'CAJERO') {
                 const elementosAdmin = document.querySelectorAll('.solo-admin');
                 elementosAdmin.forEach(elemento => {
                     elemento.style.display = 'none';
                 });
             }
+
+            // Detectar la URL de la app en Render y actualizar el texto de Callback URL en pantalla
+            const host = window.location.origin;
+            document.getElementById('lbl-webhook-url').innerText = `${host}/api/whatsapp/webhook`;
         });
     </script>
     <script src="js/security_guard.js"></script>

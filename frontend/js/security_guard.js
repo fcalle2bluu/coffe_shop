@@ -84,6 +84,8 @@
             hasAccess = localStorage.getItem('perm_parametros') === 'true';
         } else if (pageName.includes('informe_general.html') || pageName.includes('libro_diario.html')) {
             hasAccess = localStorage.getItem('perm_informe') === 'true';
+        } else if (pageName.includes('webhook.html')) {
+            hasAccess = isAdmin || rol === 'CAJERO';
         }
 
         if (!hasAccess) {
@@ -162,6 +164,10 @@
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('asistencia.html')) {
+                if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
+                else el.style.display = 'flex';
+            }
+            if (href.includes('webhook.html')) {
                 if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
                 else el.style.display = 'flex';
             }

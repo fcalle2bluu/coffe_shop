@@ -1151,6 +1151,31 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Error al sembrar recetas:', recetaSeedErr.message);
     }
 
+    // Tablas de WhatsApp (Webhook y Pedidos)
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS pedidos_whatsapp (
+                id SERIAL PRIMARY KEY,
+                telefono_cliente VARCHAR(50) NOT NULL,
+                producto VARCHAR(255) NOT NULL,
+                cantidad INT NOT NULL,
+                estado VARCHAR(50) DEFAULT 'PENDIENTE',
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS whatsapp_estados (
+                telefono VARCHAR(50) PRIMARY KEY,
+                estado VARCHAR(100) NOT NULL,
+                producto_seleccionado VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('✅ Tablas pedidos_whatsapp y whatsapp_estados creadas/verificadas.');
+    } catch (waTableErr) {
+        console.error('Error al crear tablas de WhatsApp:', waTableErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
