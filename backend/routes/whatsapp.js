@@ -61,6 +61,47 @@ router.get('/webhook', (req, res) => {
     return res.sendStatus(400);
 });
 
+// Helper to get emoji numbers for a clean, premium chat experience
+function obtenerEmojiNumero(num) {
+    const emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    if (num >= 0 && num <= 10) return emojis[num];
+    return `${num}.`;
+}
+
+// Helper para mandar el menú de categorías activo
+async function enviarMenuCategorias(from) {
+    try {
+        const catRes = await pool.query(`
+            SELECT DISTINCT c.id, c.nombre 
+            FROM categorias c 
+            INNER JOIN productos p ON p.categoria_id = c.id 
+            WHERE p.activo = TRUE 
+            ORDER BY c.nombre ASC
+        `);
+        const categorias = catRes.rows;
+        
+        if (categorias.length === 0) {
+            await enviarMensajeWhatsApp(from, "¡Bienvenido a *Café La Paz*! ☕\n\nLo sentimos, no tenemos productos disponibles en este momento. Por favor, intenta de nuevo más tarde.");
+            return;
+        }
+
+        let menuText = `¡Bienvenido a *Café La Paz*! ☕\n\n¿Qué te gustaría pedir hoy? Por favor, selecciona una categoría enviando el número correspondiente:\n\n`;
+        categorias.forEach((cat, index) => {
+            menuText += `${obtenerEmojiNumero(index + 1)} ${cat.nombre}\n`;
+        });
+        
+        await pool.query(`
+            INSERT INTO whatsapp_estados (telefono, estado, producto_seleccionado, categoria_seleccionada) 
+            VALUES ($1, 'WAITING_CATEGORY', NULL, NULL)
+            ON CONFLICT (telefono) DO UPDATE SET estado = 'WAITING_CATEGORY', producto_seleccionado = NULL, categoria_seleccionada = NULL
+        `, [from]);
+
+        await enviarMensajeWhatsApp(from, menuText);
+    } catch (err) {
+        console.error('Error al enviar menú de categorías:', err.message);
+    }
+}
+
 // Endpoint POST: Recepción de mensajes entrantes
 router.post('/webhook', async (req, res) => {
     // Retornamos 200 de inmediato a Meta para confirmar recepción y evitar reenvíos
@@ -89,52 +130,109 @@ router.post('/webhook', async (req, res) => {
                 const textLower = textBody.toLowerCase();
 
                 // Consultamos el estado actual del cliente en la base de datos
-                const stateRes = await pool.query('SELECT estado, producto_seleccionado FROM whatsapp_estados WHERE telefono = $1', [from]);
+                const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada FROM whatsapp_estados WHERE telefono = $1', [from]);
                 const userState = stateRes.rows[0];
 
                 // Comandos para reiniciar o inicio de chat
                 if (!userState || ['hola', 'buen', 'tardes', 'noches', 'reset', 'menu', 'menú', 'cancelar'].some(cmd => textLower.includes(cmd))) {
-                    // Actualizar/Insertar estado inicial
-                    await pool.query(`
-                        INSERT INTO whatsapp_estados (telefono, estado) 
-                        VALUES ($1, 'WAITING_PRODUCT')
-                        ON CONFLICT (telefono) DO UPDATE SET estado = 'WAITING_PRODUCT', producto_seleccionado = NULL
-                    `, [from]);
-
-                    const welcomeText = `¡Bienvenido a *Café La Paz*! ☕\n\nMenú del día:\n1️⃣ Café Americano (Bs. 12)\n2️⃣ Capuchino (Bs. 15)\n3️⃣ Porción de Torta (Bs. 18)\n\nPor favor, responde enviando el número del producto que deseas pedir (1, 2 o 3).`;
-                    await enviarMensajeWhatsApp(from, welcomeText);
+                    await enviarMenuCategorias(from);
                     return;
                 }
 
-                // Paso 1: Esperando la selección del producto
-                if (userState.estado === 'WAITING_PRODUCT') {
-                    let producto = '';
-                    if (textBody === '1') producto = 'Café Americano';
-                    else if (textBody === '2') producto = 'Capuchino';
-                    else if (textBody === '3') producto = 'Porción de Torta';
+                // Paso 1: Esperando la selección de la categoría
+                if (userState.estado === 'WAITING_CATEGORY') {
+                    const catRes = await pool.query(`
+                        SELECT DISTINCT c.id, c.nombre 
+                        FROM categorias c 
+                        INNER JOIN productos p ON p.categoria_id = c.id 
+                        WHERE p.activo = TRUE 
+                        ORDER BY c.nombre ASC
+                    `);
+                    const categorias = catRes.rows;
+                    const opcion = parseInt(textBody);
 
-                    if (producto) {
-                        // Guardar selección y avanzar estado
+                    if (!isNaN(opcion) && opcion >= 1 && opcion <= categorias.length) {
+                        const catSeleccionada = categorias[opcion - 1];
+
+                        // Obtener productos de esa categoría
+                        const prodRes = await pool.query(`
+                            SELECT id, nombre, precio_venta 
+                            FROM productos 
+                            WHERE categoria_id = $1 AND activo = TRUE 
+                            ORDER BY nombre ASC
+                        `, [catSeleccionada.id]);
+                        const productos = prodRes.rows;
+
+                        if (productos.length === 0) {
+                            await enviarMensajeWhatsApp(from, `La categoría *${catSeleccionada.nombre}* no tiene productos disponibles. Por favor, elige otra.`);
+                            await enviarMenuCategorias(from);
+                            return;
+                        }
+
+                        // Guardar la categoría seleccionada en base de datos y avanzar de estado
                         await pool.query(`
                             UPDATE whatsapp_estados 
-                            SET estado = 'WAITING_QUANTITY', producto_seleccionado = $1 
+                            SET estado = 'WAITING_PRODUCT', categoria_seleccionada = $1, producto_seleccionado = NULL 
                             WHERE telefono = $2
-                        `, [producto, from]);
+                        `, [catSeleccionada.nombre, from]);
 
-                        const qtyText = `Excelente, has seleccionado *${producto}*.\n\n¿Qué cantidad deseas pedir?\nPor favor responde con un número entero (ej. 1, 2, 3).`;
-                        await enviarMensajeWhatsApp(from, qtyText);
+                        let prodText = `📂 Categoría: *${catSeleccionada.nombre}*\n\nPor favor, responde enviando el número del producto que deseas pedir:\n\n`;
+                        productos.forEach((prod, index) => {
+                            prodText += `${obtenerEmojiNumero(index + 1)} ${prod.nombre} (Bs. ${parseFloat(prod.precio_venta).toFixed(2)})\n`;
+                        });
+                        prodText += `\n✍️ O escribe *cancelar* para volver a la selección de categorías.`;
+
+                        await enviarMensajeWhatsApp(from, prodText);
                     } else {
-                        const errorText = `Opción no válida. ⚠️\n\nPor favor selecciona enviando solo el número del producto:\n1️⃣ Café Americano\n2️⃣ Capuchino\n3️⃣ Porción de Torta\n\nO escribe *cancelar* para salir.`;
-                        await enviarMensajeWhatsApp(from, errorText);
+                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️`);
+                        await enviarMenuCategorias(from);
                     }
                     return;
                 }
 
-                // Paso 2: Esperando la cantidad
+                // Paso 2: Esperando la selección del producto
+                if (userState.estado === 'WAITING_PRODUCT') {
+                    // Cargar productos de la categoría actual
+                    const prodRes = await pool.query(`
+                        SELECT p.id, p.nombre, p.precio_venta 
+                        FROM productos p 
+                        INNER JOIN categorias c ON p.categoria_id = c.id 
+                        WHERE c.nombre = $1 AND p.activo = TRUE 
+                        ORDER BY p.nombre ASC
+                    `, [userState.categoria_seleccionada]);
+                    const productos = prodRes.rows;
+                    const opcion = parseInt(textBody);
+
+                    if (!isNaN(opcion) && opcion >= 1 && opcion <= productos.length) {
+                        const prodSeleccionado = productos[opcion - 1];
+
+                        // Guardar producto seleccionado y avanzar estado
+                        await pool.query(`
+                            UPDATE whatsapp_estados 
+                            SET estado = 'WAITING_QUANTITY', producto_seleccionado = $1 
+                            WHERE telefono = $2
+                        `, [prodSeleccionado.nombre, from]);
+
+                        const qtyText = `Excelente, has seleccionado *${prodSeleccionado.nombre}* (Bs. ${parseFloat(prodSeleccionado.precio_venta).toFixed(2)} c/u).\n\n¿Qué cantidad deseas pedir? 🔢\nPor favor responde con un número entero (ej. 1, 2, 5).`;
+                        await enviarMensajeWhatsApp(from, qtyText);
+                    } else {
+                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️ Por favor responde con el número del producto de la lista.`);
+
+                        let prodText = `📂 Categoría: *${userState.categoria_seleccionada}*\n\nPor favor, responde enviando el número del producto que deseas pedir:\n\n`;
+                        productos.forEach((prod, index) => {
+                            prodText += `${obtenerEmojiNumero(index + 1)} ${prod.nombre} (Bs. ${parseFloat(prod.precio_venta).toFixed(2)})\n`;
+                        });
+                        prodText += `\n✍️ O escribe *cancelar* para volver a la selección de categorías.`;
+                        await enviarMensajeWhatsApp(from, prodText);
+                    }
+                    return;
+                }
+
+                // Paso 3: Esperando la cantidad
                 if (userState.estado === 'WAITING_QUANTITY') {
                     const cantidad = parseInt(textBody);
                     if (isNaN(cantidad) || cantidad <= 0) {
-                        const errorText = `Cantidad no válida. ⚠️\n\nPor favor responde con un número entero mayor a 0 (ej. 1, 2, 5).\nO escribe *cancelar* para reiniciar.`;
+                        const errorText = `Cantidad no válida. ⚠️\n\nPor favor responde con un número entero mayor a 0 (ej. 1, 2, 5).\nO escribe *cancelar* para reiniciar tu pedido.`;
                         await enviarMensajeWhatsApp(from, errorText);
                     } else {
                         const producto = userState.producto_seleccionado;
