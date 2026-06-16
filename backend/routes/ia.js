@@ -50,12 +50,28 @@ router.post('/consultar', async (req, res) => {
             pedidos,
             lotes,
             asistencia,
-            historial_accesos
+            historial_accesos,
+            // Nuevas tablas agregadas
+            categorias,
+            gastosGenerales,
+            pagosSalarios,
+            comandas,
+            detalleComandas,
+            mesas,
+            almacenes,
+            inventarioAlmacen,
+            ordenesProduccion,
+            detalleOrden,
+            auditoriasPasteleria,
+            detalleAuditoriaPasteleria,
+            recetas,
+            ingredienteRecetas,
+            parametros
         ] = await Promise.all([
             ejecutarQuerySegura('SELECT id, nombre, username, rol, activo FROM usuarios'),
             ejecutarQuerySegura("SELECT id, usuario_id, saldo_inicial, saldo_final, TO_CHAR(fecha_apertura, 'YYYY-MM-DD HH24:MI') as fecha_apertura, TO_CHAR(fecha_cierre, 'YYYY-MM-DD HH24:MI') as fecha_cierre FROM cajas WHERE fecha_apertura >= NOW() - INTERVAL '30 days' ORDER BY fecha_apertura DESC"),
             ejecutarQuerySegura("SELECT id, caja_id, usuario_id, monto, descripcion, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM gastos_caja WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
-            ejecutarQuerySegura("SELECT id, caja_id, total, metodo_pago, TO_CHAR(fecha_venta, 'YYYY-MM-DD HH24:MI') as fecha_venta, usuario_id FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '30 days' ORDER BY fecha_venta DESC"),
+            ejecutarQuerySegura("SELECT id, caja_id, total, metodo_pago, TO_CHAR(fecha_venta, 'YYYY-MM-DD HH24:MI') as fecha_venta, usuario_id, es_historica FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '30 days' ORDER BY fecha_venta DESC"),
             ejecutarQuerySegura("SELECT dv.id, dv.venta_id, dv.producto_id, dv.cantidad, dv.precio_unitario, dv.subtotal FROM detalle_ventas dv JOIN ventas v ON dv.venta_id = v.id WHERE v.fecha_venta >= NOW() - INTERVAL '30 days'"),
             ejecutarQuerySegura('SELECT id, nombre, precio_venta, categoria_id, activo FROM productos'),
             ejecutarQuerySegura("SELECT id, proveedor_id, total, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM compras WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
@@ -65,7 +81,23 @@ router.post('/consultar', async (req, res) => {
             ejecutarQuerySegura("SELECT id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM pedidos_compra WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT id, compra_id, insumo_id, TO_CHAR(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento, stock_lote FROM lotes_insumos"),
             ejecutarQuerySegura("SELECT a.id, a.usuario_id, u.nombre as empleado, TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha, TO_CHAR(a.hora_entrada, 'HH24:MI') as entrada, TO_CHAR(a.hora_salida, 'HH24:MI') as salida, a.horas_trabajadas FROM asistencia a JOIN usuarios u ON a.usuario_id = u.id WHERE a.fecha >= NOW() - INTERVAL '30 days' ORDER BY a.fecha DESC, a.hora_entrada DESC"),
-            ejecutarQuerySegura("SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, h.ubicacion, TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM historial_accesos h JOIN usuarios u ON h.usuario_id = u.id ORDER BY h.fecha DESC LIMIT 50")
+            ejecutarQuerySegura("SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, h.ubicacion, TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM historial_accesos h JOIN usuarios u ON h.usuario_id = u.id ORDER BY h.fecha DESC LIMIT 50"),
+            // Nuevas tablas:
+            ejecutarQuerySegura('SELECT id, nombre, descripcion, activo FROM categorias'),
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, descripcion, monto, categoria, metodo_pago FROM gastos_generales WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, usuario_id, mes, anio, salario_base, descuento_retrasos, descuento_faltas, salario_neto, TO_CHAR(fecha_pago, 'YYYY-MM-DD HH24:MI') as fecha_pago, glosa FROM pagos_salarios WHERE fecha_pago >= NOW() - INTERVAL '60 days' ORDER BY fecha_pago DESC"),
+            ejecutarQuerySegura("SELECT id, mesa, usuario_id, caja_id, estado, total, TO_CHAR(fecha_creacion, 'YYYY-MM-DD HH24:MI') as fecha_creacion FROM comandas WHERE fecha_creacion >= NOW() - INTERVAL '30 days' ORDER BY fecha_creacion DESC"),
+            ejecutarQuerySegura("SELECT dc.id, dc.comanda_id, dc.producto_id, dc.cantidad, dc.precio_unitario, dc.subtotal FROM detalle_comandas dc JOIN comandas c ON dc.comanda_id = c.id WHERE c.fecha_creacion >= NOW() - INTERVAL '30 days'"),
+            ejecutarQuerySegura('SELECT id, numero, piso, pos_x, pos_y, activo FROM mesas'),
+            ejecutarQuerySegura('SELECT id, nombre, descripcion FROM almacenes'),
+            ejecutarQuerySegura('SELECT id, almacen_id, insumo_id, stock_actual FROM inventario_almacen'),
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, estado, observaciones FROM ordenes_produccion WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT do.id, do.orden_id, do.receta_id, do.cantidad FROM detalle_orden do JOIN ordenes_produccion o ON do.orden_id = o.id WHERE o.fecha >= NOW() - INTERVAL '30 days'"),
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, observaciones FROM auditorias_pasteleria WHERE fecha >= NOW() - INTERVAL '30 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT dap.id, dap.auditoria_id, dap.insumo_id, dap.cantidad_teorica, dap.cantidad_real, dap.diferencia FROM detalle_auditoria_pasteleria dap JOIN auditorias_pasteleria ap ON dap.auditoria_id = ap.id WHERE ap.fecha >= NOW() - INTERVAL '30 days'"),
+            ejecutarQuerySegura('SELECT id, producto_id, nombre, preparacion, porciones FROM recetas'),
+            ejecutarQuerySegura('SELECT id, receta_id, insumo_id, nombre_ingrediente, cantidad, unidad_medida FROM ingrediente_recetas'),
+            ejecutarQuerySegura('SELECT * FROM parametros LIMIT 1')
         ]);
 
         const dbSnapshot = {
@@ -82,7 +114,23 @@ router.post('/consultar', async (req, res) => {
             pedidos_compra: pedidos,
             lotes_insumos: lotes,
             asistencia,
-            historial_accesos
+            historial_accesos,
+            // Nuevas tablas mapeadas:
+            categorias,
+            gastos_generales: gastosGenerales,
+            pagos_salarios: pagosSalarios,
+            comandas,
+            detalle_comandas: detalleComandas,
+            mesas,
+            almacenes,
+            inventario_almacen: inventarioAlmacen,
+            ordenes_produccion: ordenesProduccion,
+            detalle_orden: detalleOrden,
+            auditorias_pasteleria: auditoriasPasteleria,
+            detalle_auditoria_pasteleria: detalleAuditoriaPasteleria,
+            recetas,
+            ingrediente_recetas: ingredienteRecetas,
+            parametros
         };
 
         // 2. Construir instrucciones dinámicas inyectando los datos
@@ -103,7 +151,7 @@ REGLAS DE RESPUESTA:
 
         // 3. Consultar a Gemini
         const model = genAI.getGenerativeModel({ 
-            model: 'gemini-flash-latest',
+            model: 'gemini-1.5-flash',
             systemInstruction: systemInstruction
         });
 
