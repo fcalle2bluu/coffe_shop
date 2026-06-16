@@ -34,6 +34,7 @@ router.get('/', async (req, res) => {
         const queryVentas = `
             SELECT v.id, v.total, v.metodo_pago, v.fecha_venta,
                    TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
+                   TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    u.nombre as cajero,
                    (
@@ -53,6 +54,7 @@ router.get('/', async (req, res) => {
         const queryCompras = `
             SELECT c.id, c.total, c.fecha,
                    TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
+                   TO_CHAR(c.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM c.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    p.nombre as proveedor,
                    (
@@ -72,6 +74,7 @@ router.get('/', async (req, res) => {
         const queryGastosCaja = `
             SELECT gc.id, gc.monto, gc.descripcion, gc.fecha,
                    TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
+                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    u.nombre as usuario_nombre
             FROM gastos_caja gc
@@ -85,6 +88,7 @@ router.get('/', async (req, res) => {
         const queryGastosGenerales = `
             SELECT gg.id, gg.monto, gg.descripcion, gg.fecha, gg.categoria, gg.metodo_pago,
                    TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
+                   TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM gg.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num
             FROM gastos_generales gg
             WHERE EXTRACT(MONTH FROM gg.fecha AT TIME ZONE 'America/La_Paz') = $1
@@ -112,6 +116,7 @@ router.get('/', async (req, res) => {
 
             movimientos.push({
                 fecha: fechaDiario,
+                fecha_iso: v.fecha_iso,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(v.fecha_venta),
                 tipo: 'venta',
@@ -138,6 +143,7 @@ router.get('/', async (req, res) => {
 
             movimientos.push({
                 fecha: fechaDiario,
+                fecha_iso: c.fecha_iso,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(c.fecha),
                 tipo: 'compra',
@@ -159,6 +165,7 @@ router.get('/', async (req, res) => {
 
             movimientos.push({
                 fecha: fechaDiario,
+                fecha_iso: gc.fecha_iso,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gc.fecha),
                 tipo: 'gasto_caja',
@@ -182,6 +189,7 @@ router.get('/', async (req, res) => {
 
             movimientos.push({
                 fecha: fechaDiario,
+                fecha_iso: gg.fecha_iso,
                 dia_semana: diaSemana,
                 fecha_raw: new Date(gg.fecha),
                 tipo: 'gasto_general',
@@ -207,6 +215,7 @@ router.get('/', async (req, res) => {
             return {
                 asiento_nro: index + 1,
                 fecha: mov.fecha,
+                fecha_iso: mov.fecha_iso,
                 dia_semana: mov.dia_semana,
                 glosa: mov.glosa,
                 tipo: mov.tipo,

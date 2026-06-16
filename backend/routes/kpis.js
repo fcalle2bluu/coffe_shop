@@ -92,6 +92,8 @@ router.get('/stats-avanzadas', async (req, res) => {
                    SUM(dv.subtotal) as ingresos
             FROM detalle_ventas dv
             JOIN productos p ON dv.producto_id = p.id
+            JOIN ventas v ON dv.venta_id = v.id
+            WHERE v.es_historica = FALSE
             GROUP BY p.nombre
             ORDER BY ingresos DESC
             LIMIT 15
@@ -103,6 +105,7 @@ router.get('/stats-avanzadas', async (req, res) => {
                    COUNT(*) as ventas_cont, 
                    SUM(total) as ingresos
             FROM ventas
+            WHERE es_historica = FALSE
             GROUP BY hora
             ORDER BY hora ASC
         `);
@@ -128,6 +131,7 @@ router.get('/stats-avanzadas', async (req, res) => {
                     EXTRACT(YEAR FROM fecha_venta) AS anio,
                     SUM(total) AS total
                 FROM ventas
+                WHERE es_historica = FALSE
                 GROUP BY mes, anio
             ) v ON EXTRACT(MONTH FROM m.month) = v.mes AND EXTRACT(YEAR FROM m.month) = v.anio
             LEFT JOIN (
@@ -157,10 +161,23 @@ router.get('/stats-avanzadas', async (req, res) => {
             ORDER BY anio ASC, mes ASC
         `);
 
+        // 4. Ventas por Categoría (Nuevo para el Dashboard)
+        const categoriasResult = await pool.query(`
+            SELECT c.nombre as categoria, COALESCE(SUM(dv.subtotal), 0) as total
+            FROM detalle_ventas dv
+            JOIN productos p ON dv.producto_id = p.id
+            JOIN categorias c ON p.categoria_id = c.id
+            JOIN ventas v ON dv.venta_id = v.id
+            WHERE v.es_historica = FALSE
+            GROUP BY c.nombre
+            ORDER BY total DESC
+        `);
+
         res.json({
             bcg: bcgResult.rows,
             horas: horasResult.rows,
-            rendimiento: rendimientoResult.rows
+            rendimiento: rendimientoResult.rows,
+            categorias: categoriasResult.rows
         });
 
     } catch (error) {
@@ -181,7 +198,7 @@ router.get('/productos-mas-vendidos', async (req, res) => {
         JOIN ventas v ON dv.venta_id = v.id
     `;
     
-    const conditions = [];
+    const conditions = ['v.es_historica = FALSE'];
 
     if (filtro === 'hoy') {
         conditions.push(`DATE(v.fecha_venta) = CURRENT_DATE`);

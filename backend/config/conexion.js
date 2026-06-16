@@ -1178,6 +1178,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al crear tablas de WhatsApp:', waTableErr.message);
     }
 
+    // Migración de Ventas para Ventas Históricas
+    try {
+        await pool.query('ALTER TABLE ventas ADD COLUMN IF NOT EXISTS es_historica BOOLEAN DEFAULT false;');
+        console.log('✅ Columna es_historica en tabla ventas verificada/creada.');
+    } catch (ventasMigErr) {
+        console.error('Error al migrar ventas para es_historica:', ventasMigErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

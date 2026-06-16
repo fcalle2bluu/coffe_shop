@@ -343,7 +343,7 @@ async function cargarHistorialVentasAdmin() {
                                         <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
                                         <th class="px-4 py-2 text-right">Monto</th>
-                                        <th class="px-4 py-2 text-center w-[120px] no-print">Acciones</th>
+                                        <th class="px-4 py-2 text-center w-[220px] no-print">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -385,9 +385,15 @@ async function cargarHistorialVentasAdmin() {
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
                                         ${tdMetodoPago}
                                         <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
-                                        <td class="px-4 py-1.5 text-center whitespace-nowrap no-print">
+                                        <td class="px-4 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1.5">
                                             <button onclick="window.abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
                                                 <i class="fa-solid fa-print"></i> Re-Imprimir
+                                            </button>
+                                            <button onclick="window.toggleVentaHistorica(${venta.venta_id}, ${venta.es_historica})" 
+                                                    class="px-2 py-0.5 rounded font-bold transition-all text-[10px] ${venta.es_historica ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm shadow-orange-500/20' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}" 
+                                                    title="${venta.es_historica ? 'Marcar como Normal' : 'Marcar como Histórica'}">
+                                                <i class="fa-solid ${venta.es_historica ? 'fa-calendar-check' : 'fa-calendar-days'} mr-1"></i>
+                                                ${venta.es_historica ? 'Histórica' : 'Normal'}
                                             </button>
                                         </td>
                                     </tr>
@@ -918,3 +924,24 @@ async function procesarVentaHistorica() {
 window.abrirModalVentaHistorica = abrirModalVentaHistorica;
 window.cerrarModalVentaHistorica = cerrarModalVentaHistorica;
 window.procesarVentaHistorica = procesarVentaHistorica;
+
+async function toggleVentaHistorica(id, currentStatus) {
+    try {
+        const nuevoEstado = !currentStatus;
+        const res = await fetch(`/api/caja/ventas/${id}/historica`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ es_historica: nuevoEstado })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al cambiar tipo de venta');
+        
+        cargarHistorialVentasAdmin();
+        if (typeof cargarVentasRealizadas === 'function') {
+            cargarVentasRealizadas();
+        }
+    } catch (error) {
+        alert("Error al conmutar venta histórica: " + error.message);
+    }
+}
+window.toggleVentaHistorica = toggleVentaHistorica;

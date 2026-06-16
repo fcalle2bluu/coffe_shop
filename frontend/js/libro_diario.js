@@ -37,11 +37,95 @@ function limpiarFiltros() {
     const tipo     = document.getElementById('filtroTipo');
     const montoMin = document.getElementById('filtroMontoMin');
     const montoMax = document.getElementById('filtroMontoMax');
+    const fechaEspecifica = document.getElementById('filtroFechaEspecifica');
     if (buscador) buscador.value = '';
     if (tipo)     tipo.value = '';
     if (montoMin) montoMin.value = '';
     if (montoMax) montoMax.value = '';
+    if (fechaEspecifica) fechaEspecifica.value = '';
     filtrarYRenderizar();
+}
+
+let chartCostosGastosInstance = null;
+
+function actualizarGraficoCostosGastos(asientosFiltrados) {
+    let totalCostos = 0;
+    let totalGastos = 0;
+    
+    asientosFiltrados.forEach(asiento => {
+        asiento.cuentas.forEach(c => {
+            if (c.tipo === 'DEBE') {
+                const nombreCuenta = c.nombre.toUpperCase();
+                if (nombreCuenta === 'INVENTARIOS' || nombreCuenta.includes('COSTO')) {
+                    totalCostos += parseFloat(c.importe) || 0;
+                } else if (nombreCuenta.includes('GASTO')) {
+                    totalGastos += parseFloat(c.importe) || 0;
+                }
+            }
+        });
+    });
+    
+    const infoSpan = document.getElementById('totalesChartInfo');
+    if (infoSpan) {
+        infoSpan.textContent = `Costos: Bs. ${formatearMonto(totalCostos)} | Gastos: Bs. ${formatearMonto(totalGastos)}`;
+    }
+    
+    const canvas = document.getElementById('chartCostosGastos');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    if (chartCostosGastosInstance) {
+        chartCostosGastosInstance.destroy();
+    }
+    
+    chartCostosGastosInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Costos (Insumos)', 'Gastos (Operacionales)'],
+            datasets: [{
+                label: 'Total (Bs.)',
+                data: [totalCostos, totalGastos],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.75)', // Indigo Blue
+                    'rgba(239, 68, 68, 0.75)'   // Red Gasto
+                ],
+                borderColor: [
+                    'rgb(37, 99, 235)',
+                    'rgb(220, 38, 38)'
+                ],
+                borderWidth: 2,
+                borderRadius: 12,
+                barPercentage: 0.5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` Bs. ${formatearMonto(context.raw)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Bs. ' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 // Aplica filtros client-side y re-renderiza la tabla
@@ -50,11 +134,23 @@ function filtrarYRenderizar() {
     const tipoFiltro    = (document.getElementById('filtroTipo')?.value || '');
     const montoMin      = parseFloat(document.getElementById('filtroMontoMin')?.value) || 0;
     const montoMax      = parseFloat(document.getElementById('filtroMontoMax')?.value) || Infinity;
+    const fechaEspecifica = (document.getElementById('filtroFechaEspecifica')?.value || '');
 
     // Filtrar asientos
     let filtrados = _asientosData.filter(asiento => {
-        // Filtro por tipo
-        if (tipoFiltro && asiento.tipo !== tipoFiltro) return false;
+        // Filtro por tipo o clasificación
+        if (tipoFiltro) {
+            if (tipoFiltro === 'ingreso') {
+                if (asiento.tipo !== 'venta') return false;
+            } else if (tipoFiltro === 'egreso') {
+                if (!['compra', 'gasto_caja', 'gasto_general'].includes(asiento.tipo)) return false;
+            } else {
+                if (asiento.tipo !== tipoFiltro) return false;
+            }
+        }
+
+        // Filtro por fecha específica
+        if (fechaEspecifica && asiento.fecha_iso !== fechaEspecifica) return false;
 
         // Filtro por monto (usar el total del primer DEBE de las cuentas)
         const totalAsiento = asiento.cuentas
@@ -92,6 +188,9 @@ function filtrarYRenderizar() {
 
     // Renderizar
     renderizarAsientos(filtrados);
+    
+    // Actualizar gráfico de Costos vs Gastos
+    actualizarGraficoCostosGastos(filtrados);
 }
 
 

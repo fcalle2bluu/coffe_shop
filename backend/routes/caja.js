@@ -183,6 +183,7 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
                 TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta,
                 v.total,
                 v.metodo_pago,
+                v.es_historica,
                 u.nombre as cajero
             FROM ventas v
             LEFT JOIN usuarios u ON v.usuario_id = u.id
@@ -277,8 +278,8 @@ router.post('/venta-historica', async (req, res) => {
 
     try {
         const query = `
-            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago, fecha_venta, estado)
-            VALUES ($1, NULL, $2, $3, $4::timestamp, 'COMPLETADA')
+            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago, fecha_venta, estado, es_historica)
+            VALUES ($1, NULL, $2, $3, $4::timestamp, 'COMPLETADA', true)
             RETURNING id
         `;
         const result = await pool.query(query, [usuario_id, total, metodo_pago, fecha_venta]);
@@ -286,6 +287,23 @@ router.post('/venta-historica', async (req, res) => {
     } catch (error) {
         console.error('Error al registrar venta histórica:', error);
         res.status(500).json({ error: 'Error al registrar venta histórica: ' + error.message });
+    }
+});
+
+// Endpoint para modificar manualmente si una venta es histórica o no
+router.put('/ventas/:id/historica', async (req, res) => {
+    const { id } = req.params;
+    const { es_historica } = req.body; // true o false
+
+    try {
+        await pool.query(
+            'UPDATE ventas SET es_historica = $1 WHERE id = $2',
+            [es_historica, id]
+        );
+        res.json({ success: true, mensaje: 'Estado de venta histórica actualizado con éxito.' });
+    } catch (error) {
+        console.error('Error al actualizar es_historica de venta:', error);
+        res.status(500).json({ error: 'Error al actualizar el estado de venta histórica en el servidor.' });
     }
 });
 
