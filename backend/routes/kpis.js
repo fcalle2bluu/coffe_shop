@@ -82,6 +82,77 @@ router.get('/', async (req, res) => {
     }
 });
 
+// [NUEVO] Endpoint para Rendimiento Mensual parametrizado y con zona horaria local exacta
+router.get('/rendimiento-mensual', async (req, res) => {
+    try {
+        let meses = parseInt(req.query.meses) || 6;
+        const incluirHistoricas = req.query.incluir_historicas === 'true';
+
+        if (![3, 6, 12].includes(meses)) {
+            meses = 6;
+        }
+
+        const ventasFilter = incluirHistoricas ? '' : 'WHERE es_historica = FALSE';
+
+        const query = `
+            SELECT 
+                EXTRACT(MONTH FROM m.month) AS mes,
+                EXTRACT(YEAR FROM m.month) AS anio,
+                COALESCE(v.total, 0) AS ventas,
+                COALESCE(c.total, 0) AS compras,
+                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos
+            FROM (
+                SELECT (generate_series(
+                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz') - INTERVAL '${meses - 1} months',
+                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz'),
+                    INTERVAL '1 month'
+                ))::date AS month
+            ) m
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM (fecha_venta AT TIME ZONE 'America/La_Paz')) AS mes, 
+                    EXTRACT(YEAR FROM (fecha_venta AT TIME ZONE 'America/La_Paz')) AS anio,
+                    SUM(total) AS total
+                FROM ventas
+                ${ventasFilter}
+                GROUP BY mes, anio
+            ) v ON EXTRACT(MONTH FROM m.month) = v.mes AND EXTRACT(YEAR FROM m.month) = v.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
+                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
+                    SUM(total) AS total
+                FROM compras
+                GROUP BY mes, anio
+            ) c ON EXTRACT(MONTH FROM m.month) = c.mes AND EXTRACT(YEAR FROM m.month) = c.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
+                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
+                    SUM(monto) AS total
+                FROM gastos_caja
+                GROUP BY mes, anio
+            ) g_caja ON EXTRACT(MONTH FROM m.month) = g_caja.mes AND EXTRACT(YEAR FROM m.month) = g_caja.anio
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
+                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
+                    SUM(monto) AS total
+                FROM gastos_generales
+                GROUP BY mes, anio
+            ) g_gen ON EXTRACT(MONTH FROM m.month) = g_gen.mes AND EXTRACT(YEAR FROM m.month) = g_gen.anio
+            ORDER BY anio ASC, mes ASC
+        `;
+
+        const result = await pool.query(query);
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error al obtener rendimiento mensual:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de rendimiento mensual' });
+    }
+});
+
 // [NUEVO] Estadísticas avanzadas para gráficos
 router.get('/stats-avanzadas', async (req, res) => {
     try {
@@ -110,58 +181,7 @@ router.get('/stats-avanzadas', async (req, res) => {
             ORDER BY hora ASC
         `);
 
-        // 3. Rendimiento Mensual (Ventas vs Compras/Gastos de los últimos 6 meses)
-        const rendimientoResult = await pool.query(`
-            SELECT 
-                EXTRACT(MONTH FROM m.month) AS mes,
-                EXTRACT(YEAR FROM m.month) AS anio,
-                COALESCE(v.total, 0) AS ventas,
-                COALESCE(c.total, 0) AS compras,
-                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos
-            FROM (
-                SELECT generate_series(
-                    CURRENT_DATE - INTERVAL '6 months',
-                    CURRENT_DATE,
-                    INTERVAL '1 month'
-                )::date AS month
-            ) m
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM fecha_venta) AS mes, 
-                    EXTRACT(YEAR FROM fecha_venta) AS anio,
-                    SUM(total) AS total
-                FROM ventas
-                WHERE es_historica = FALSE
-                GROUP BY mes, anio
-            ) v ON EXTRACT(MONTH FROM m.month) = v.mes AND EXTRACT(YEAR FROM m.month) = v.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM fecha) AS mes, 
-                    EXTRACT(YEAR FROM fecha) AS anio,
-                    SUM(total) AS total
-                FROM compras
-                GROUP BY mes, anio
-            ) c ON EXTRACT(MONTH FROM m.month) = c.mes AND EXTRACT(YEAR FROM m.month) = c.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM fecha) AS mes, 
-                    EXTRACT(YEAR FROM fecha) AS anio,
-                    SUM(monto) AS total
-                FROM gastos_caja
-                GROUP BY mes, anio
-            ) g_caja ON EXTRACT(MONTH FROM m.month) = g_caja.mes AND EXTRACT(YEAR FROM m.month) = g_caja.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM fecha) AS mes, 
-                    EXTRACT(YEAR FROM fecha) AS anio,
-                    SUM(monto) AS total
-                FROM gastos_generales
-                GROUP BY mes, anio
-            ) g_gen ON EXTRACT(MONTH FROM m.month) = g_gen.mes AND EXTRACT(YEAR FROM m.month) = g_gen.anio
-            ORDER BY anio ASC, mes ASC
-        `);
-
-        // 4. Ventas por Categoría (Nuevo para el Dashboard)
+        // 3. Ventas por Categoría (Nuevo para el Dashboard)
         const categoriasResult = await pool.query(`
             SELECT c.nombre as categoria, COALESCE(SUM(dv.subtotal), 0) as total
             FROM detalle_ventas dv
@@ -176,7 +196,6 @@ router.get('/stats-avanzadas', async (req, res) => {
         res.json({
             bcg: bcgResult.rows,
             horas: horasResult.rows,
-            rendimiento: rendimientoResult.rows,
             categorias: categoriasResult.rows
         });
 

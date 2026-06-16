@@ -211,10 +211,27 @@
 
             <!-- 2. RENDIMIENTO MENSUAL (Full width) -->
             <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
                         <h2 class="text-lg font-bold text-gray-800">📈 Rendimiento Mensual</h2>
                         <p class="text-xs text-slate-400 font-medium mt-0.5">Comparativo de Ingresos (Ventas) vs Egresos (Compras + Gastos)</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Período:</span>
+                            <select id="filtro-rendimiento-meses" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="3">Últimos 3 meses</option>
+                                <option value="6" selected>Últimos 6 meses</option>
+                                <option value="12">Últimos 12 meses</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Históricas:</span>
+                            <select id="filtro-rendimiento-historicas" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="false" selected>Excluir Ventas Históricas</option>
+                                <option value="true">Incluir Ventas Históricas</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="relative h-80">
@@ -374,6 +391,7 @@
                 cargarTopProductos();
                 cargarGraficoCategorias();
                 cargarKpisGerenciales();
+                cargarRendimientoMensual();
             }
 
             cargarMesasDashboard();
@@ -538,7 +556,6 @@
                 dataHorasRaw = data.horas;
                 renderBCG(data.bcg);
                 renderHoras(data.horas);
-                renderGraficoRendimiento(data.rendimiento);
             } catch (e) { console.error("Error Stats", e); }
         }
 
@@ -704,84 +721,108 @@
             chartHorasInst.update();
         }
 
-        function renderGraficoRendimiento(rendimiento) {
-            if (!rendimiento || !Array.isArray(rendimiento)) return;
+        let chartRendimientoInst = null;
 
-            const mesNombres = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-            
-            // Mapear los datos de la base de datos
-            const labels = rendimiento.map(r => `${mesNombres[parseInt(r.mes)]} ${r.anio}`);
-            const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
-            const comprasData = rendimiento.map(r => (parseFloat(r.compras) || 0) + (parseFloat(r.gastos) || 0)); // Compras + Gastos = Total Egresos
-            const beneficioData = rendimiento.map(r => {
-                const v = parseFloat(r.ventas) || 0;
-                const c = parseFloat(r.compras) || 0;
-                const g = parseFloat(r.gastos) || 0;
-                return v - (c + g);
-            });
+        async function cargarRendimientoMensual() {
+            const meses = document.getElementById('filtro-rendimiento-meses').value;
+            const incluirHistoricas = document.getElementById('filtro-rendimiento-historicas').value;
 
-            const ctx = document.getElementById('miGrafico').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { 
-                            label: 'Ingresos (Ventas)', 
-                            data: ventasData, 
-                            borderColor: '#10b981', 
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)', 
-                            fill: true, 
-                            tension: 0.4 
-                        },
-                        { 
-                            label: 'Egresos (Compras + Gastos)', 
-                            data: comprasData, 
-                            borderColor: '#ef4444', 
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                            fill: true, 
-                            tension: 0.4 
-                        },
-                        { 
-                            label: 'Beneficio Neto', 
-                            data: beneficioData, 
-                            borderColor: '#3b82f6', 
-                            backgroundColor: 'transparent', 
-                            fill: false, 
-                            tension: 0.4,
-                            borderWidth: 3,
-                            borderDash: [5, 5]
-                        }
-                    ]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                boxWidth: 10,
-                                font: { size: 10, weight: 'bold' }
+            try {
+                const res = await fetch(`/api/kpis/rendimiento-mensual?meses=${meses}&incluir_historicas=${incluirHistoricas}`);
+                if (!res.ok) throw new Error('Error al obtener rendimiento mensual');
+                const rendimiento = await res.json();
+
+                const mesNombres = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                
+                const labels = rendimiento.map(r => `${mesNombres[parseInt(r.mes)]} ${r.anio}`);
+                const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
+                const comprasData = rendimiento.map(r => (parseFloat(r.compras) || 0) + (parseFloat(r.gastos) || 0)); // Compras + Gastos = Total Egresos
+                const beneficioData = rendimiento.map(r => {
+                    const v = parseFloat(r.ventas) || 0;
+                    const c = parseFloat(r.compras) || 0;
+                    const g = parseFloat(r.gastos) || 0;
+                    return v - (c + g);
+                });
+
+                const ctx = document.getElementById('miGrafico').getContext('2d');
+                if (!ctx) return;
+
+                if (chartRendimientoInst) {
+                    chartRendimientoInst.destroy();
+                }
+
+                chartRendimientoInst = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { 
+                                label: 'Ingresos (Ventas)', 
+                                data: ventasData, 
+                                borderColor: '#10b981', 
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                                fill: true, 
+                                tension: 0.4 
+                            },
+                            { 
+                                label: 'Egresos (Compras + Gastos)', 
+                                data: comprasData, 
+                                borderColor: '#ef4444', 
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                                fill: true, 
+                                tension: 0.4 
+                            },
+                            { 
+                                label: 'Beneficio Neto', 
+                                data: beneficioData, 
+                                borderColor: '#3b82f6', 
+                                backgroundColor: 'transparent', 
+                                fill: false, 
+                                tension: 0.4,
+                                borderWidth: 3,
+                                borderDash: [5, 5]
                             }
-                        }
+                        ]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                font: { size: 10 },
-                                callback: function(value) { return 'Bs. ' + value; }
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 10,
+                                    font: { size: 10, weight: 'bold' }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const val = context.raw;
+                                        return ` ${context.dataset.label}: Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`;
+                                    }
+                                }
                             }
                         },
-                        x: {
-                            ticks: {
-                                font: { size: 10, weight: 'bold' }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: { size: 10 },
+                                    callback: function(value) { return 'Bs. ' + value; }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 10, weight: 'bold' }
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            } catch (e) {
+                console.error("Error al cargar gráfico de rendimiento mensual:", e);
+            }
         }
 
         async function cargarMesasDashboard() {
