@@ -307,4 +307,86 @@ router.put('/ventas/:id/historica', async (req, res) => {
     }
 });
 
+// [NUEVO] Obtener las ventas de una caja/turno específico (para confirmación de eliminación)
+router.get('/ventas/:caja_id', async (req, res) => {
+    const { caja_id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT v.id, TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_venta,
+                   v.total, v.metodo_pago, u.nombre as cajero
+            FROM ventas v
+            LEFT JOIN usuarios u ON v.usuario_id = u.id
+            WHERE v.caja_id = $1
+            ORDER BY v.fecha_venta DESC
+        `, [caja_id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener ventas de caja:', error);
+        res.status(500).json({ error: 'Error al obtener las ventas del turno.' });
+    }
+});
+
+// [NUEVO] Borrar un turno de caja y toda su información conectada (Solo Administradores)
+router.delete('/eliminar/:id', async (req, res) => {
+    const { id } = req.params;
+    const { usuario_id } = req.body;
+
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido para eliminar un turno.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        // Validar rol de administrador
+        const userRes = await client.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(400).json({ error: 'Usuario no válido.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar turnos de caja.' });
+        }
+
+        // Iniciar transacción
+        await client.query('BEGIN');
+
+        // 1. Eliminar detalles de ventas
+        await client.query(`
+            DELETE FROM detalle_ventas 
+            WHERE venta_id IN (SELECT id FROM ventas WHERE caja_id = $1)
+        `, [id]);
+
+        // 2. Eliminar ventas
+        await client.query('DELETE FROM ventas WHERE caja_id = $1', [id]);
+
+        // 3. Eliminar gastos asociados
+        await client.query('DELETE FROM gastos_caja WHERE caja_id = $1', [id]);
+
+        // 4. Eliminar detalles de comandas
+        await client.query(`
+            DELETE FROM detalle_comandas 
+            WHERE comanda_id IN (SELECT id FROM comandas WHERE caja_id = $1)
+        `, [id]);
+
+        // 5. Eliminar comandas
+        await client.query('DELETE FROM comandas WHERE caja_id = $1', [id]);
+
+        // 6. Eliminar la caja
+        const deleteCajaRes = await client.query('DELETE FROM cajas WHERE id = $1 RETURNING id', [id]);
+        if (deleteCajaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Turno de caja no encontrado.' });
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, mensaje: 'Turno de caja y toda su información relacionada eliminados con éxito.' });
+    } catch (error) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Error al eliminar turno de caja:', error);
+        res.status(500).json({ error: 'Error al eliminar el turno de caja: ' + error.message });
+    } finally {
+        if (client) client.release();
+    }
+});
+
 module.exports = router;

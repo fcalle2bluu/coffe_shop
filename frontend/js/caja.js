@@ -188,12 +188,23 @@ async function cargarHistorial() {
                 ? 'Bs. ***<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: *** | Tarj: *** | CLN: ***</span>'
                 : `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: ${ventasQr.toFixed(2)} | Tarj: ${ventasTarjeta.toFixed(2)} | CLN: ${ventasCln.toFixed(2)}</span>`;
             
+            const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+            const esAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
+            const btnEliminar = esAdmin ? `
+                <button onclick="confirmarEliminarTurno(${turno.id})" class="ml-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg border border-red-200 transition-all text-xs" title="Eliminar Turno y toda su información">
+                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                </button>
+            ` : '';
+
             tbody.innerHTML += `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-5 flex flex-col hover:shadow-md transition-all duration-300">
                     <!-- Cabecera de Tarjeta -->
                     <div class="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
                         <div>
-                            <span class="text-[14px] font-black text-stone-850 block mb-0.5">Turno #${turno.id}</span>
+                            <div class="flex items-center">
+                                <span class="text-[14px] font-black text-stone-850 block mb-0.5">Turno #${turno.id}</span>
+                                ${btnEliminar}
+                            </div>
                             <span class="text-[10px] text-gray-500 font-bold block"><i class="fa-solid fa-user-check mr-1 text-slate-400"></i>Cajero: ${turno.usuario_nombre || 'Desconocido'}</span>
                         </div>
                         <div class="text-right text-xs">
@@ -1009,3 +1020,94 @@ async function toggleVentaHistorica(id, currentStatus) {
     }
 }
 window.toggleVentaHistorica = toggleVentaHistorica;
+
+async function confirmarEliminarTurno(turnoId) {
+    document.getElementById('del-turno-id-title').innerText = turnoId;
+    const tbody = document.getElementById('del-turno-ventas-body');
+    const countSpan = document.getElementById('del-turno-ventas-count');
+    
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Cargando ventas del turno...</td></tr>`;
+    countSpan.innerText = '0';
+    
+    window.delTargetTurnoId = turnoId;
+    
+    document.getElementById('modalEliminarTurno').classList.remove('hidden');
+
+    try {
+        const res = await fetch(`/api/caja/ventas/${turnoId}`);
+        if (!res.ok) throw new Error('Error al cargar ventas');
+        const ventas = await res.json();
+
+        countSpan.innerText = ventas.length;
+        tbody.innerHTML = '';
+
+        if (ventas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400 font-medium italic">No se registraron ventas en este turno.</td></tr>`;
+        } else {
+            ventas.forEach(v => {
+                const padId = v.id.toString().padStart(5, '0');
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-2 font-mono font-bold text-slate-500">#${padId}</td>
+                        <td class="px-4 py-2 text-slate-650 font-medium">${v.fecha_venta}</td>
+                        <td class="px-4 py-2 text-slate-600 font-semibold uppercase text-[10px]">${v.metodo_pago}</td>
+                        <td class="px-4 py-2 text-right font-black text-slate-900 font-mono">Bs. ${parseFloat(v.total).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        const btnConfirmar = document.getElementById('btn-confirmar-eliminar-final');
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Confirmar Eliminación Permanente';
+        btnConfirmar.onclick = ejecutarEliminarTurno;
+
+    } catch (e) {
+        console.error('Error al cargar ventas del turno:', e);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-red-500 font-bold">Error al obtener desglose de ventas.</td></tr>`;
+    }
+}
+
+function cerrarModalEliminarTurno() {
+    document.getElementById('modalEliminarTurno').classList.add('hidden');
+}
+
+async function ejecutarEliminarTurno() {
+    const turnoId = window.delTargetTurnoId;
+    if (!turnoId) return;
+
+    const btnConfirmar = document.getElementById('btn-confirmar-eliminar-final');
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Eliminando...';
+
+    try {
+        const usuario_id = localStorage.getItem('usuario_id');
+        const res = await fetch(`/api/caja/eliminar/${turnoId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar turno');
+
+        alert('Turno de caja y toda su información asociada eliminados correctamente.');
+        cerrarModalEliminarTurno();
+        
+        cargarEstadoCaja();
+        cargarHistorial();
+        cargarHistorialVentasAdmin();
+        if (typeof cargarVentasRealizadas === 'function') {
+            cargarVentasRealizadas();
+        }
+
+    } catch (e) {
+        alert('Error: ' + e.message);
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Confirmar Eliminación Permanente';
+    }
+}
+
+window.confirmarEliminarTurno = confirmarEliminarTurno;
+window.cerrarModalEliminarTurno = cerrarModalEliminarTurno;
+window.ejecutarEliminarTurno = ejecutarEliminarTurno;

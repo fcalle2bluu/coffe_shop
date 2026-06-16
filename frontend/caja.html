@@ -559,6 +559,50 @@
         </div>
     </div>
 
+    <!-- Modal Confirmar Eliminar Turno (Solo Admin) -->
+    <div id="modalEliminarTurno" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-5 sm:p-6 border-t-4 border-red-650 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <h3 class="text-lg font-black text-red-650"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-2"></i>Eliminar Turno de Caja</h3>
+                <button onclick="cerrarModalEliminarTurno()" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs font-semibold">
+                    <p class="font-black text-sm mb-1">⚠️ ¡ATENCIÓN! ACCIÓN CRÍTICA Y DE ALTO RIESGO</p>
+                    <p>Si confirmas la eliminación del <strong>Turno #<span id="del-turno-id-title"></span></strong>, se eliminará de forma <strong>PERMANENTE</strong> toda la información conectada: gastos de caja del turno, comandas asociadas y todas las ventas realizadas que se listan a continuación.</p>
+                    <p class="mt-1">Esta acción es irreversible y podría alterar los balances financieros e informes contables del negocio.</p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Ventas registradas en este turno (<span id="del-turno-ventas-count">0</span>)</h4>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 font-black uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                                    <th class="px-4 py-2">Venta ID</th>
+                                    <th class="px-4 py-2">Fecha</th>
+                                    <th class="px-4 py-2">Método de Pago</th>
+                                    <th class="px-4 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="del-turno-ventas-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6 shrink-0 border-t border-slate-100 pt-4">
+                <button onclick="cerrarModalEliminarTurno()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all">Cancelar</button>
+                <button id="btn-confirmar-eliminar-final" class="px-5 py-2.5 bg-red-650 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-md shadow-red-500/10 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Confirmar Eliminación Permanente
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/caja.js?v=1.0.2"></script>
     <script>
         // === 1. GUARDIA DE SEGURIDAD BÁSICA (Ambos pueden entrar) ===
