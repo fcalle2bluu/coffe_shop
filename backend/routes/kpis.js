@@ -229,6 +229,104 @@ router.get('/productos-mas-vendidos', async (req, res) => {
     }
 });
 
+// [NUEVO] Obtener top productos filtrados por tiempo y métrica
+router.get('/top-productos', async (req, res) => {
+    const { filtro, metrica } = req.query; // filtro: hoy, semana, mes, anio, hora, todos. metrica: dinero, cantidad
+    
+    let orderCol = metrica === 'dinero' ? 'total_dinero' : 'total_cantidad';
+    
+    let query = `
+        SELECT p.nombre, 
+               COALESCE(SUM(dv.cantidad), 0) as total_cantidad,
+               COALESCE(SUM(dv.subtotal), 0) as total_dinero
+        FROM detalle_ventas dv
+        JOIN productos p ON dv.producto_id = p.id
+        JOIN ventas v ON dv.venta_id = v.id
+        WHERE v.es_historica = FALSE
+    `;
+    
+    const conditions = [];
+
+    if (filtro === 'hora') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '1 hour'`);
+    } else if (filtro === 'hoy') {
+        conditions.push(`DATE(v.fecha_venta AT TIME ZONE 'America/La_Paz') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date`);
+    } else if (filtro === 'semana') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '7 days'`);
+    } else if (filtro === 'mes') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '30 days'`);
+    } else if (filtro === 'anio') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '365 days'`);
+    }
+
+    if (conditions.length > 0) {
+        query += ' AND ' + conditions.join(' AND ');
+    }
+
+    query += `
+        GROUP BY p.nombre
+        ORDER BY ${orderCol} DESC
+        LIMIT 10
+    `;
+
+    try {
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener top productos:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de top productos' });
+    }
+});
+
+// [NUEVO] Obtener ventas por categoría filtradas por tiempo y métrica
+router.get('/ventas-categoria', async (req, res) => {
+    const { filtro, metrica } = req.query; // filtro: hoy, semana, mes, anio, hora, todos. metrica: dinero, cantidad
+    
+    let orderCol = metrica === 'dinero' ? 'total_dinero' : 'total_cantidad';
+    
+    let query = `
+        SELECT c.nombre as categoria, 
+               COALESCE(SUM(dv.cantidad), 0) as total_cantidad,
+               COALESCE(SUM(dv.subtotal), 0) as total_dinero
+        FROM detalle_ventas dv
+        JOIN productos p ON dv.producto_id = p.id
+        JOIN categorias c ON p.categoria_id = c.id
+        JOIN ventas v ON dv.venta_id = v.id
+        WHERE v.es_historica = FALSE
+    `;
+    
+    const conditions = [];
+
+    if (filtro === 'hora') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '1 hour'`);
+    } else if (filtro === 'hoy') {
+        conditions.push(`DATE(v.fecha_venta AT TIME ZONE 'America/La_Paz') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date`);
+    } else if (filtro === 'semana') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '7 days'`);
+    } else if (filtro === 'mes') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '30 days'`);
+    } else if (filtro === 'anio') {
+        conditions.push(`v.fecha_venta >= CURRENT_TIMESTAMP - INTERVAL '365 days'`);
+    }
+
+    if (conditions.length > 0) {
+        query += ' AND ' + conditions.join(' AND ');
+    }
+
+    query += `
+        GROUP BY c.nombre
+        ORDER BY ${orderCol} DESC
+    `;
+
+    try {
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener ventas por categoria:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de ventas por categoria' });
+    }
+});
+
 // Endpoint Gerencial para Semáforo y Punto de Equilibrio
 router.get('/gerencial', async (req, res) => {
     try {

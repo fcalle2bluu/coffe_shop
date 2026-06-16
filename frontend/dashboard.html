@@ -209,59 +209,95 @@
                 </div>
             </div>
 
-            <!-- 2. RENDIMIENTO MENSUAL + TOP PRODUCTOS -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Rendimiento Mensual (Ventas vs Compras) -->
-                <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
-                    <h2 class="text-lg font-bold text-gray-800 mb-4">Rendimiento Mensual (Ventas vs Compras)</h2>
-                    <div class="relative h-72">
-                        <canvas id="miGrafico"></canvas>
+            <!-- 2. RENDIMIENTO MENSUAL (Full width) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">📈 Rendimiento Mensual</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Comparativo de Ingresos (Ventas) vs Egresos (Compras + Gastos)</p>
                     </div>
                 </div>
-
-                <!-- Productos Más Vendidos -->
-                <div class="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-bold text-gray-800">Productos Más Vendidos</h2>
-                        <select id="filtro-top-productos" onchange="actualizarTopProductos()" class="text-[10px] font-semibold px-2 py-1 bg-gray-50 border rounded-lg focus:outline-none focus:border-accent text-slate-700">
-                            <option value="todos">Histórico</option>
-                            <option value="hoy">Hoy</option>
-                            <option value="semana">Esta Semana</option>
-                            <option value="mes" selected>Últimos 30 días</option>
-                            <option value="anio">Este Año</option>
-                        </select>
-                    </div>
-                    <div class="relative flex-1 min-h-[250px]">
-                        <canvas id="chartTopProductos"></canvas>
-                    </div>
+                <div class="relative h-80">
+                    <canvas id="miGrafico"></canvas>
                 </div>
             </div>
 
-            <!-- 3. GRID MATRIZ BCG + VENTAS POR CATEGORÍA -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Matriz BCG (2/3) -->
-                <div class="lg:col-span-2 bg-white rounded-lg shadow p-6 overflow-hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800">Matriz de Productos (BCG)</h2>
-                            <p class="text-xs text-slate-400 font-medium mt-0.5">Eje X: Cantidad vendida | Eje Y: Ingresos (Bs.)</p>
-                        </div>
-                        <span class="text-[10px] bg-indigo-50 text-indigo-600 font-bold px-2 py-1 rounded uppercase">Estrellas vs Huesos</span>
+            <!-- 3. PRODUCTOS MÁS VENDIDOS (Full width) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">🍰 Productos Más Vendidos</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Top de productos con mayor volumen de venta o facturación</p>
                     </div>
-                    <div class="relative h-72">
-                        <canvas id="chartBCG"></canvas>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Filtro:</span>
+                            <select id="filtro-top-productos" onchange="cargarTopProductos()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="hora">Última Hora</option>
+                                <option value="hoy">Hoy</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes" selected>Últimos 30 días</option>
+                                <option value="anio">Este Año</option>
+                                <option value="todos">Histórico (Todos)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Métrica:</span>
+                            <select id="metrica-top-productos" onchange="cargarTopProductos()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="cantidad" selected>Por Cantidad Vendida</option>
+                                <option value="dinero">Por Total Dinero (Bs.)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+                <div class="relative h-80 sm:h-96">
+                    <canvas id="chartTopProductos"></canvas>
+                </div>
+            </div>
 
-                <!-- Ventas por Categoría (1/3) -->
-                <div class="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-bold text-gray-800">Ventas por Categoría</h2>
-                        <span class="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-2 py-1 rounded uppercase">Mes Actual</span>
+            <!-- 4. MATRIZ BCG (Full width) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">📊 Matriz de Productos (BCG)</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Clasificación de productos en base a su volumen e ingresos (Estrellas vs Huesos)</p>
                     </div>
-                    <div class="relative flex-1 min-h-[250px]">
-                        <canvas id="chartCategorias"></canvas>
+                </div>
+                <div class="relative h-80">
+                    <canvas id="chartBCG"></canvas>
+                </div>
+            </div>
+
+            <!-- 5. VENTAS POR CATEGORÍA (Full width) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">🍩 Ventas por Categoría</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Proporción de ventas e ingresos distribuidos por categorías</p>
                     </div>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Filtro:</span>
+                            <select id="filtro-categorias" onchange="cargarGraficoCategorias()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="hora">Última Hora</option>
+                                <option value="hoy">Hoy</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes" selected>Últimos 30 días</option>
+                                <option value="anio">Este Año</option>
+                                <option value="todos">Histórico (Todos)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Métrica:</span>
+                            <select id="metrica-categorias" onchange="cargarGraficoCategorias()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="cantidad">Por Cantidad Vendida</option>
+                                <option value="dinero" selected>Por Total Dinero (Bs.)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative h-80 sm:h-96">
+                    <canvas id="chartCategorias"></canvas>
                 </div>
             </div>
 
@@ -336,6 +372,7 @@
                 cargarIndicadoresBase();
                 cargarGraficosAvanzados();
                 cargarTopProductos();
+                cargarGraficoCategorias();
                 cargarKpisGerenciales();
             }
 
@@ -402,14 +439,16 @@
 
         async function cargarTopProductos() {
             const filtro = document.getElementById('filtro-top-productos').value;
+            const metrica = document.getElementById('metrica-top-productos').value;
             try {
-                const res = await fetch(`/api/kpis/productos-mas-vendidos?filtro=${filtro}`);
+                const res = await fetch(`/api/kpis/top-productos?filtro=${filtro}&metrica=${metrica}`);
                 const data = await res.json();
                 
                 const labels = data.map(p => p.nombre);
-                const values = data.map(p => parseFloat(p.total_vendido));
+                const values = data.map(p => metrica === 'dinero' ? parseFloat(p.total_dinero) : parseFloat(p.total_cantidad));
                 
                 const ctx = document.getElementById('chartTopProductos').getContext('2d');
+                if (!ctx) return;
                 
                 if (chartTopProdInst) {
                     chartTopProdInst.destroy();
@@ -441,11 +480,32 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                position: 'bottom',
+                                position: window.innerWidth > 768 ? 'right' : 'bottom',
                                 labels: {
-                                    boxWidth: 8,
-                                    font: { size: 9 }
+                                    boxWidth: 12,
+                                    font: { size: 11, family: 'Outfit' },
+                                    padding: 15
                                 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const val = context.raw;
+                                        if (metrica === 'dinero') {
+                                            return ` Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(val)}`;
+                                        } else {
+                                            return ` ${val} Unidades`;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        onResize: function(chart, size) {
+                            const width = size ? size.width : window.innerWidth;
+                            const newPos = width > 768 ? 'right' : 'bottom';
+                            if (chart.options.plugins.legend.position !== newPos) {
+                                chart.options.plugins.legend.position = newPos;
+                                chart.update();
                             }
                         }
                     }
@@ -479,60 +539,87 @@
                 renderBCG(data.bcg);
                 renderHoras(data.horas);
                 renderGraficoRendimiento(data.rendimiento);
-                renderCategorias(data.categorias || []);
             } catch (e) { console.error("Error Stats", e); }
         }
 
         let chartCategoriasInst = null;
-        function renderCategorias(categorias) {
-            const ctx = document.getElementById('chartCategorias').getContext('2d');
-            if (!ctx) return;
-            const labels = categorias.map(c => c.categoria);
-            const values = categorias.map(c => parseFloat(c.total));
 
-            if (chartCategoriasInst) {
-                chartCategoriasInst.destroy();
-            }
-
-            chartCategoriasInst = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: [
-                            '#4f46e5', // Indigo
-                            '#f97316', // Orange
-                            '#10b981', // Emerald
-                            '#06b6d4', // Cyan
-                            '#8b5cf6', // Violet
-                            '#ec4899', // Pink
-                            '#eab308'  // Yellow
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 8,
-                                font: { size: 9 }
+        async function cargarGraficoCategorias() {
+            const filtro = document.getElementById('filtro-categorias').value;
+            const metrica = document.getElementById('metrica-categorias').value;
+            try {
+                const res = await fetch(`/api/kpis/ventas-categoria?filtro=${filtro}&metrica=${metrica}`);
+                const data = await res.json();
+                
+                const labels = data.map(c => c.categoria);
+                const values = data.map(c => metrica === 'dinero' ? parseFloat(c.total_dinero) : parseFloat(c.total_cantidad));
+                
+                const ctx = document.getElementById('chartCategorias').getContext('2d');
+                if (!ctx) return;
+                
+                if (chartCategoriasInst) {
+                    chartCategoriasInst.destroy();
+                }
+                
+                chartCategoriasInst = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#4f46e5', // Indigo
+                                '#f97316', // Orange
+                                '#10b981', // Emerald
+                                '#06b6d4', // Cyan
+                                '#8b5cf6', // Violet
+                                '#ec4899', // Pink
+                                '#eab308', // Yellow
+                                '#e11d48', // Rose
+                                '#0d9488', // Teal
+                                '#7c3aed'  // Purple
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: window.innerWidth > 768 ? 'right' : 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11, family: 'Outfit' },
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const val = context.raw;
+                                        if (metrica === 'dinero') {
+                                            return ` Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(val)}`;
+                                        } else {
+                                            return ` ${val} Unidades`;
+                                        }
+                                    }
+                                }
                             }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ` Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(context.raw)}`;
-                                }
+                        onResize: function(chart, size) {
+                            const width = size ? size.width : window.innerWidth;
+                            const newPos = width > 768 ? 'right' : 'bottom';
+                            if (chart.options.plugins.legend.position !== newPos) {
+                                chart.options.plugins.legend.position = newPos;
+                                chart.update();
                             }
                         }
                     }
-                }
-            });
+                });
+            } catch (e) {
+                console.error("Error al cargar ventas por categoria:", e);
+            }
         }
 
         function renderBCG(productos) {
