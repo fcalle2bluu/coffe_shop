@@ -2,7 +2,61 @@
 let cajaActualId = null;
 let efectivoEsperadoEnCaja = 0;
 
+function formatMontoCensurado(val, prefix = 'Bs. ') {
+    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
+    if (censurar) return `${prefix}***`;
+    const num = parseFloat(val);
+    return `${prefix}${isNaN(num) ? '0.00' : num.toFixed(2)}`;
+}
+
+function actualizarBotonCensuraUI() {
+    const btn = document.getElementById('btn-censurar');
+    if (!btn) return;
+    const txt = document.getElementById('txt-btn-censurar');
+    const icon = document.getElementById('icon-btn-censurar');
+    
+    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
+    if (censurar) {
+        if (txt) txt.textContent = 'Mostrar Montos';
+        if (icon) {
+            icon.className = 'fa-solid fa-eye text-base text-orange-500';
+        }
+        btn.classList.add('bg-orange-50', 'text-orange-600', 'border-orange-200');
+        btn.classList.remove('text-slate-600');
+    } else {
+        if (txt) txt.textContent = 'Censurar Montos';
+        if (icon) {
+            icon.className = 'fa-solid fa-eye-slash text-base text-slate-500';
+        }
+        btn.classList.remove('bg-orange-50', 'text-orange-600', 'border-orange-200');
+        btn.classList.add('text-slate-600');
+    }
+}
+
+function toggleCensura() {
+    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
+    localStorage.setItem('caja_censura_activa', censurar ? 'false' : 'true');
+    actualizarBotonCensuraUI();
+    
+    cargarEstadoCaja();
+    
+    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    if (rolActual !== 'CAJERO') {
+        cargarHistorial();
+    }
+    
+    if (rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR') {
+        cargarHistorialVentasAdmin();
+    }
+    
+    if (typeof _todasLasVentas !== 'undefined' && _todasLasVentas.length > 0) {
+        aplicarFiltrosVentas();
+    }
+}
+window.toggleCensura = toggleCensura;
+
 document.addEventListener('DOMContentLoaded', () => {
+    actualizarBotonCensuraUI();
     cargarEstadoCaja();
     
     const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
@@ -45,16 +99,22 @@ async function cargarEstadoCaja() {
             // Mostrar el botón de registrar gasto
             document.getElementById('btn-gasto-caja').classList.remove('hidden');
 
-            document.getElementById('res-inicial').innerText = `Bs. ${data.caja.saldo_inicial}`;
-            document.getElementById('res-efectivo').innerText = `Bs. ${data.ventas.total_efectivo}`;
-            document.getElementById('res-gastos').innerText = `Bs. ${parseFloat(data.total_gastos || 0).toFixed(2)}`;
+            document.getElementById('res-inicial').innerText = formatMontoCensurado(data.caja.saldo_inicial);
+            document.getElementById('res-efectivo').innerText = formatMontoCensurado(data.ventas.total_efectivo);
+            document.getElementById('res-gastos').innerText = formatMontoCensurado(data.total_gastos);
             const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0);
-            document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)}</span>`;
+            
+            const censuraActiva = localStorage.getItem('caja_censura_activa') === 'true';
+            if (censuraActiva) {
+                document.getElementById('res-digital').innerHTML = `Bs. ***<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: *** | Tarj: *** | CLN: ***</span>`;
+            } else {
+                document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)}</span>`;
+            }
             
             const ventasNetas = parseFloat(data.ventas.total_efectivo) + totalDigital - parseFloat(data.total_gastos || 0);
-            document.getElementById('res-netas').innerText = `Bs. ${ventasNetas.toFixed(2)}`;
+            document.getElementById('res-netas').innerText = formatMontoCensurado(ventasNetas);
             
-            document.getElementById('res-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
+            document.getElementById('res-esperado').innerText = formatMontoCensurado(efectivoEsperadoEnCaja);
             
             panelResumen.classList.remove('hidden');
             
@@ -122,6 +182,11 @@ async function cargarHistorial() {
                 labelDif = 'Cuadrado';
                 signoDif = '';
             }
+
+            const censuraActiva = localStorage.getItem('caja_censura_activa') === 'true';
+            const totalDigitalLabel = censuraActiva
+                ? 'Bs. ***<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: *** | Tarj: *** | CLN: ***</span>'
+                : `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: ${ventasQr.toFixed(2)} | Tarj: ${ventasTarjeta.toFixed(2)} | CLN: ${ventasCln.toFixed(2)}</span>`;
             
             tbody.innerHTML += `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-5 flex flex-col hover:shadow-md transition-all duration-300">
@@ -142,44 +207,43 @@ async function cargarHistorial() {
                         <!-- Fondo Inicial -->
                         <div class="bg-blue-50 border border-blue-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-blue-800 uppercase tracking-wide">Fondo Inicial</span>
-                            <span class="font-extrabold text-blue-900 text-sm mt-1">Bs. ${saldoInicial.toFixed(2)}</span>
+                            <span class="font-extrabold text-blue-900 text-sm mt-1">${formatMontoCensurado(saldoInicial)}</span>
                         </div>
                         <!-- Ventas Efectivo -->
                         <div class="bg-green-50 border border-green-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-green-800 uppercase tracking-wide">Ventas Efectivo</span>
-                            <span class="font-extrabold text-green-900 text-sm mt-1">Bs. ${ventasEfectivo.toFixed(2)}</span>
+                            <span class="font-extrabold text-green-900 text-sm mt-1">${formatMontoCensurado(ventasEfectivo)}</span>
                         </div>
                         <!-- Ventas Digitales -->
                         <div class="bg-purple-50 border border-purple-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-purple-800 uppercase tracking-wide">Ventas Digitales</span>
-                            <span class="font-extrabold text-purple-900 text-sm mt-1">Bs. ${totalDigital.toFixed(2)}</span>
-                            <span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: ${ventasQr.toFixed(2)} | Tarj: ${ventasTarjeta.toFixed(2)} | CLN: ${ventasCln.toFixed(2)}</span>
+                            <span class="font-extrabold text-purple-900 text-sm mt-1">${totalDigitalLabel}</span>
                         </div>
                         <!-- Gastos del Turno -->
                         <div class="bg-red-50 border border-red-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-red-800 uppercase tracking-wide">Gastos Turno</span>
-                            <span class="font-extrabold text-red-900 text-sm mt-1">Bs. ${totalGastos.toFixed(2)}</span>
+                            <span class="font-extrabold text-red-900 text-sm mt-1">${formatMontoCensurado(totalGastos)}</span>
                         </div>
                         <!-- Ventas Netas -->
                         <div class="bg-teal-50 border border-teal-100/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-teal-800 uppercase tracking-wide">Ventas Netas</span>
-                            <span class="font-extrabold text-teal-900 text-sm mt-1">Bs. ${(ventasEfectivo + totalDigital - totalGastos).toFixed(2)}</span>
+                            <span class="font-extrabold text-teal-900 text-sm mt-1">${formatMontoCensurado(ventasEfectivo + totalDigital - totalGastos)}</span>
                             <span class="text-[8px] font-bold text-teal-700 block mt-1 leading-tight">Efec + Dig - Gastos</span>
                         </div>
                         <!-- Efectivo en Cajón -->
                         <div class="bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex flex-col justify-between">
                             <span class="text-[9px] font-black text-amber-800 uppercase tracking-wide">Efectivo Cajón</span>
-                            <span class="font-extrabold text-amber-900 text-sm mt-1">Bs. ${saldoFinal.toFixed(2)}</span>
+                            <span class="font-extrabold text-amber-900 text-sm mt-1">${formatMontoCensurado(saldoFinal)}</span>
                         </div>
                     </div>
                     
                     <!-- Resumen y Descuadre al Pie -->
                     <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-3 border-t border-gray-100 text-xs gap-2 shrink-0">
                         <div class="text-gray-500 font-semibold">
-                            Esperado en Caja: <strong class="text-stone-800">Bs. ${efectivoEsperado.toFixed(2)}</strong>
+                            Esperado en Caja: <strong class="text-stone-800">${formatMontoCensurado(efectivoEsperado)}</strong>
                         </div>
                         <div class="px-3 py-1 rounded-full border text-[11px] font-black tracking-wide ${colorDif}">
-                            Diferencia: ${signoDif}Bs. ${diferencia.toFixed(2)} (${labelDif})
+                            Diferencia: ${formatMontoCensurado(diferencia, signoDif + 'Bs. ')} (${labelDif})
                         </div>
                     </div>
                 </div>
@@ -323,7 +387,7 @@ async function cargarHistorialVentasAdmin() {
                 <div class="mb-8 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <div class="bg-gray-800 text-white p-3 flex justify-between items-center">
                         <h3 class="font-black text-lg uppercase tracking-wide"><i class="fa-regular fa-calendar-days mr-2 text-orange-400"></i> ${tituloMes}</h3>
-                        <span class="font-black tabular-nums bg-gray-900 px-3 py-1 text-orange-400 rounded-lg shadow-inner">Total Mes: Bs. ${dataMes.totalMes.toFixed(2)}</span>
+                        <span class="font-black tabular-nums bg-gray-900 px-3 py-1 text-orange-400 rounded-lg shadow-inner">Total Mes: ${formatMontoCensurado(dataMes.totalMes)}</span>
                     </div>
                     <div class="p-4 bg-gray-50 flex flex-col gap-4">
             `;
@@ -333,7 +397,7 @@ async function cargarHistorialVentasAdmin() {
                     <div class="bg-white rounded border border-gray-200 border-l-4 border-l-stone-600 shadow-sm overflow-hidden">
                         <div class="bg-gray-100 p-2 px-4 flex justify-between items-center border-b border-gray-200">
                             <h4 class="font-bold text-stone-800 text-sm uppercase"><i class="fa-solid fa-user-check text-stone-500 mr-2"></i> ${nombreCajero}</h4>
-                            <span class="font-black text-stone-700 text-sm">Ventas: Bs. ${dataCajero.total.toFixed(2)}</span>
+                            <span class="font-black text-stone-700 text-sm">Ventas: ${formatMontoCensurado(dataCajero.total)}</span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
@@ -384,7 +448,7 @@ async function cargarHistorialVentasAdmin() {
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
                                         ${tdMetodoPago}
-                                        <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">Bs. ${parseFloat(venta.total).toFixed(2)}</td>
+                                        <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">${formatMontoCensurado(venta.total)}</td>
                                         <td class="px-4 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1.5">
                                             <button onclick="window.abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
                                                 <i class="fa-solid fa-print"></i> Re-Imprimir
@@ -447,12 +511,12 @@ async function cargarGastosDelTurno(cajaId) {
                 <tr class="border-b border-gray-105 hover:bg-red-50/30 transition-colors">
                     <td class="px-4 py-2.5 text-stone-600 font-mono text-xs">${g.hora}</td>
                     <td class="px-4 py-2.5 text-stone-800 font-medium text-xs">${g.descripcion}</td>
-                    <td class="px-4 py-2.5 text-right font-black text-red-600 text-xs">-Bs. ${monto.toFixed(2)}</td>
+                    <td class="px-4 py-2.5 text-right font-black text-red-600 text-xs">-${formatMontoCensurado(monto)}</td>
                 </tr>
             `;
         });
 
-        totalSpan.innerText = `Total: Bs. ${total.toFixed(2)}`;
+        totalSpan.innerText = `Total: ${formatMontoCensurado(total)}`;
     } catch (error) {
         console.error("Error al cargar gastos del turno:", error);
     }
@@ -663,13 +727,13 @@ function aplicarFiltrosVentas() {
     const promedio = filtradas.length > 0 ? totalG / filtradas.length : 0;
 
     // Actualizar tarjetas
-    document.getElementById('rv-total-general').textContent  = `Bs. ${totalG.toFixed(2)}`;
+    document.getElementById('rv-total-general').textContent  = formatMontoCensurado(totalG);
     document.getElementById('rv-total-count').textContent    = `${filtradas.length} venta${filtradas.length !== 1 ? 's' : ''}`;
-    document.getElementById('rv-total-efectivo').textContent = `Bs. ${totEfec.toFixed(2)}`;
-    document.getElementById('rv-total-qr').textContent       = `Bs. ${totQr.toFixed(2)}`;
-    document.getElementById('rv-total-tarjeta').textContent  = `Bs. ${totTarj.toFixed(2)}`;
-    document.getElementById('rv-total-cln').textContent      = `Bs. ${totCln.toFixed(2)}`;
-    document.getElementById('rv-promedio').textContent       = `Bs. ${promedio.toFixed(2)}`;
+    document.getElementById('rv-total-efectivo').textContent = formatMontoCensurado(totEfec);
+    document.getElementById('rv-total-qr').textContent       = formatMontoCensurado(totQr);
+    document.getElementById('rv-total-tarjeta').textContent  = formatMontoCensurado(totTarj);
+    document.getElementById('rv-total-cln').textContent      = formatMontoCensurado(totCln);
+    document.getElementById('rv-promedio').textContent       = formatMontoCensurado(promedio);
 
     // Actualizar total en tfoot
     const tfoot     = document.getElementById('tabla-ventas-tfoot');
@@ -678,7 +742,7 @@ function aplicarFiltrosVentas() {
     if (tfoot && filtradas.length > 0) {
         tfoot.classList.remove('hidden');
         if (tfMetodo) tfMetodo.textContent = metodo ? metodo : '';
-        if (tfTotal)  tfTotal.textContent  = `Bs. ${totalG.toFixed(2)}`;
+        if (tfTotal)  tfTotal.textContent  = formatMontoCensurado(totalG);
     } else if (tfoot) {
         tfoot.classList.add('hidden');
     }
@@ -746,7 +810,7 @@ function renderizarTablaVentas(ventas, esAdmin) {
                 <td class="px-4 py-3 text-slate-600 whitespace-nowrap">${venta.fecha_venta}</td>
                 ${cajeroCol}
                 <td class="px-4 py-3">${metodoBadge}</td>
-                <td class="px-4 py-3 text-right font-black text-slate-900 font-mono text-sm">Bs. ${total}</td>
+                <td class="px-4 py-3 text-right font-black text-slate-900 font-mono text-sm">${formatMontoCensurado(venta.total)}</td>
                 <td class="px-4 py-3 text-center no-print">
                     <button onclick="window.abrirTicket(${venta.venta_id})"
                         class="bg-slate-50 hover:bg-orange-100 text-slate-600 hover:text-orange-700 font-bold px-3 py-1.5 rounded-lg border border-slate-200 hover:border-orange-200 transition-all text-[10px] flex items-center gap-1.5 mx-auto">
