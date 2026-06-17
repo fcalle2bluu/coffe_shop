@@ -604,6 +604,131 @@
         </div>
     </div>
 
+    <!-- Modal Desglose Detallado del Turno -->
+    <div id="modalDesgloseTurno" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4 no-print">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl p-5 sm:p-6 border-t-4 border-indigo-500 flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4 shrink-0 border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="text-lg font-black text-indigo-700 flex items-center gap-2">
+                        <i class="fa-solid fa-square-poll-vertical text-xl"></i>
+                        Desglose de Turno #<span id="desglose-turno-id"></span>
+                    </h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">
+                        Cajero: <span id="desglose-cajero" class="text-slate-600 font-semibold"></span> | 
+                        Apertura: <span id="desglose-apertura" class="text-slate-600 font-semibold"></span> | 
+                        Cierre: <span id="desglose-cierre" class="text-slate-600 font-semibold"></span>
+                    </p>
+                </div>
+                <button onclick="cerrarModalDesglose()" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Content Area (Scrollable) -->
+            <div class="flex-1 overflow-y-auto space-y-6 pr-1">
+                <!-- Summary Metrics Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-7 gap-3 mt-1">
+                    <!-- Fondo Inicial -->
+                    <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-blue-800 uppercase block tracking-wider mb-1">Fondo Inicial</span>
+                        <span id="desglose-inicial" class="font-extrabold text-blue-900 text-sm"></span>
+                    </div>
+                    <!-- Ventas Efectivo -->
+                    <div class="bg-green-50 border border-green-100 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-green-800 uppercase block tracking-wider mb-1">Ventas Efectivo</span>
+                        <span id="desglose-efectivo" class="font-extrabold text-green-900 text-sm"></span>
+                    </div>
+                    <!-- Ventas Digitales -->
+                    <div class="bg-purple-50 border border-purple-100 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-purple-800 uppercase block tracking-wider mb-1">Ventas Digitales</span>
+                        <span id="desglose-digital" class="font-extrabold text-purple-900 text-sm"></span>
+                    </div>
+                    <!-- Gastos -->
+                    <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-red-800 uppercase block tracking-wider mb-1">Gastos Turno</span>
+                        <span id="desglose-gastos" class="font-extrabold text-red-900 text-sm"></span>
+                    </div>
+                    <!-- Ventas Netas -->
+                    <div class="bg-teal-50 border border-teal-100 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-teal-800 uppercase block tracking-wider mb-1">Ventas Netas</span>
+                        <span id="desglose-netas" class="font-extrabold text-teal-900 text-sm"></span>
+                    </div>
+                    <!-- Efectivo Cajón -->
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-center flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-amber-800 uppercase block tracking-wider mb-1">Efectivo Cajón</span>
+                        <span id="desglose-final" class="font-extrabold text-amber-900 text-sm"></span>
+                    </div>
+                    <!-- Esperado -->
+                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center col-span-2 md:col-span-1 flex flex-col justify-between">
+                        <span class="text-[9px] font-black text-slate-800 uppercase block tracking-wider mb-1">Esperado</span>
+                        <span id="desglose-esperado" class="font-extrabold text-slate-900 text-sm"></span>
+                    </div>
+                </div>
+
+                <!-- Footer Summary (Diferencia) -->
+                <div class="flex justify-start items-center">
+                    <div id="desglose-diferencia" class="px-3 py-1 rounded-full border text-xs font-black tracking-wide"></div>
+                </div>
+
+                <!-- Tables Section (Ventas and Gastos side by side on desktop, stacked on mobile) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                    <!-- Ventas Table -->
+                    <div class="flex flex-col">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-basket-shopping text-indigo-500"></i>
+                            Ventas del Turno
+                        </h4>
+                        <div class="border border-slate-100 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                                        <th class="px-4 py-2.5">ID</th>
+                                        <th class="px-4 py-2.5">Hora</th>
+                                        <th class="px-4 py-2.5">Método de Pago</th>
+                                        <th class="px-4 py-2.5 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="desglose-ventas-body">
+                                    <!-- Dynamic items -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gastos Table -->
+                    <div class="flex flex-col">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-hand-holding-dollar text-red-500"></i>
+                            Gastos del Turno
+                        </h4>
+                        <div class="border border-slate-100 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider sticky top-0 border-b border-slate-200">
+                                        <th class="px-4 py-2.5 w-20">Hora</th>
+                                        <th class="px-4 py-2.5">Descripción / Concepto</th>
+                                        <th class="px-4 py-2.5 text-right w-28">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="desglose-gastos-body">
+                                    <!-- Dynamic items -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Buttons -->
+            <div class="flex justify-end gap-2 mt-6 shrink-0 border-t border-slate-100 pt-4">
+                <button onclick="cerrarModalDesglose()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all">
+                    Cerrar Detalle
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/caja.js?v=1.0.2"></script>
     <script>
         // === 1. GUARDIA DE SEGURIDAD BÁSICA (Ambos pueden entrar) ===

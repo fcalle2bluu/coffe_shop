@@ -149,6 +149,7 @@ async function cargarHistorial() {
     try {
         const res = await fetch('/api/caja/historial');
         const historial = await res.json();
+        window.historialTurnosCache = historial;
         const tbody = document.getElementById('tabla-historial');
         tbody.innerHTML = '';
 
@@ -250,11 +251,16 @@ async function cargarHistorial() {
                     
                     <!-- Resumen y Descuadre al Pie -->
                     <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-3 border-t border-gray-100 text-xs gap-2 shrink-0">
-                        <div class="text-gray-500 font-semibold">
-                            Esperado en Caja: <strong class="text-stone-800">${formatMontoCensurado(efectivoEsperado)}</strong>
+                        <div class="text-gray-500 font-semibold flex flex-col sm:flex-row sm:items-center gap-2">
+                            <span>Esperado en Caja: <strong class="text-stone-800">${formatMontoCensurado(efectivoEsperado)}</strong></span>
+                            <span class="px-2 py-0.5 rounded-full border text-[9px] font-black tracking-wide inline-block ${colorDif}">
+                                ${labelDif}: ${formatMontoCensurado(diferencia, signoDif + 'Bs. ')}
+                            </span>
                         </div>
-                        <div class="px-3 py-1 rounded-full border text-[11px] font-black tracking-wide ${colorDif}">
-                            Diferencia: ${formatMontoCensurado(diferencia, signoDif + 'Bs. ')} (${labelDif})
+                        <div class="flex items-center gap-2">
+                            <button onclick="mostrarDesgloseTurno(${turno.id})" class="text-indigo-600 hover:text-indigo-850 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition-all text-[11px] font-bold flex items-center gap-1.5" title="Ver desglose detallado de ventas y gastos del turno">
+                                <i class="fa-solid fa-list-check"></i> Ver Desglose
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1182,3 +1188,113 @@ window.confirmarEliminarTurno = confirmarEliminarTurno;
 window.cerrarModalEliminarTurno = cerrarModalEliminarTurno;
 window.ejecutarEliminarTurno = ejecutarEliminarTurno;
 window.eliminarGasto = eliminarGasto;
+
+async function mostrarDesgloseTurno(turnoId) {
+    const turno = (window.historialTurnosCache || []).find(t => t.id === turnoId);
+    if (!turno) return;
+
+    document.getElementById('desglose-turno-id').innerText = turno.id;
+    document.getElementById('desglose-cajero').innerText = turno.usuario_nombre || 'Desconocido';
+    document.getElementById('desglose-apertura').innerText = turno.apertura;
+    document.getElementById('desglose-cierre').innerText = turno.cierre;
+
+    const saldoInicial = parseFloat(turno.saldo_inicial || 0);
+    const ventasEfectivo = parseFloat(turno.ventas_efectivo || 0);
+    const totalDigital = parseFloat(turno.ventas_qr || 0) + parseFloat(turno.ventas_tarjeta || 0) + parseFloat(turno.ventas_cln || 0);
+    const totalGastos = parseFloat(turno.total_gastos || 0);
+    const saldoFinal = parseFloat(turno.saldo_final || 0);
+    const diferencia = parseFloat(turno.diferencia || 0);
+    const esperado = saldoInicial + ventasEfectivo - totalGastos;
+
+    document.getElementById('desglose-inicial').innerText = formatMontoCensurado(saldoInicial);
+    document.getElementById('desglose-efectivo').innerText = formatMontoCensurado(ventasEfectivo);
+    document.getElementById('desglose-digital').innerText = formatMontoCensurado(totalDigital);
+    document.getElementById('desglose-gastos').innerText = formatMontoCensurado(totalGastos);
+    document.getElementById('desglose-netas').innerText = formatMontoCensurado(ventasEfectivo + totalDigital - totalGastos);
+    document.getElementById('desglose-final').innerText = formatMontoCensurado(saldoFinal);
+    document.getElementById('desglose-esperado').innerText = formatMontoCensurado(esperado);
+
+    const diffBadge = document.getElementById('desglose-diferencia');
+    let colorDif = '';
+    let labelDif = '';
+    let signoDif = '';
+
+    if (diferencia > 0.01) {
+        colorDif = 'text-green-600 bg-green-50 border-green-200';
+        labelDif = 'Sobrante';
+        signoDif = '+';
+    } else if (diferencia < -0.01) {
+        colorDif = 'text-red-600 bg-red-50 border-red-200';
+        labelDif = 'Faltante';
+        signoDif = '';
+    } else {
+        colorDif = 'text-stone-600 bg-stone-50 border-stone-200';
+        labelDif = 'Cuadrado';
+        signoDif = '';
+    }
+
+    diffBadge.className = `px-3 py-1 rounded-full border text-xs font-black tracking-wide ${colorDif}`;
+    diffBadge.innerText = `Diferencia: ${formatMontoCensurado(diferencia, signoDif + 'Bs. ')} (${labelDif})`;
+
+    document.getElementById('modalDesgloseTurno').classList.remove('hidden');
+
+    const vBody = document.getElementById('desglose-ventas-body');
+    const gBody = document.getElementById('desglose-gastos-body');
+    vBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400 font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando ventas...</td></tr>';
+    gBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400 font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando gastos...</td></tr>';
+
+    try {
+        const [resVentas, resGastos] = await Promise.all([
+            fetch(`/api/caja/ventas/${turnoId}`),
+            fetch(`/api/caja/gastos/${turnoId}`)
+        ]);
+
+        const ventas = await resVentas.json();
+        const gastos = await resGastos.json();
+
+        vBody.innerHTML = '';
+        if (ventas.length === 0) {
+            vBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400 italic font-semibold">No se registraron ventas en este turno.</td></tr>';
+        } else {
+            ventas.forEach(v => {
+                const parts = v.fecha_venta.split(' ');
+                const hora = parts[1] || v.fecha_venta;
+                vBody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td class="px-4 py-2.5 font-mono text-[11px] text-stone-600">${v.id}</td>
+                        <td class="px-4 py-2.5 text-stone-700">${hora}</td>
+                        <td class="px-4 py-2.5 text-stone-550 font-bold uppercase text-[10px]">${v.metodo_pago}</td>
+                        <td class="px-4 py-2.5 text-right font-black text-stone-900 font-mono">${formatMontoCensurado(parseFloat(v.total))}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        gBody.innerHTML = '';
+        if (gastos.length === 0) {
+            gBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400 italic font-semibold">No se registraron gastos en este turno.</td></tr>';
+        } else {
+            gastos.forEach(g => {
+                gBody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td class="px-4 py-2.5 text-stone-600 font-mono text-xs">${g.hora}</td>
+                        <td class="px-4 py-2.5 text-stone-700 text-xs">${g.descripcion}</td>
+                        <td class="px-4 py-2.5 text-right font-black text-red-650 font-mono text-xs">-${formatMontoCensurado(parseFloat(g.monto))}</td>
+                    </tr>
+                `;
+            });
+        }
+
+    } catch (e) {
+        console.error("Error al cargar desglose del turno:", e);
+        vBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500 font-bold">Error al obtener ventas.</td></tr>';
+        gBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-red-500 font-bold">Error al obtener gastos.</td></tr>';
+    }
+}
+
+function cerrarModalDesglose() {
+    document.getElementById('modalDesgloseTurno').classList.add('hidden');
+}
+
+window.mostrarDesgloseTurno = mostrarDesgloseTurno;
+window.cerrarModalDesglose = cerrarModalDesglose;
