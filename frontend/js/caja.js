@@ -509,8 +509,19 @@ async function cargarGastosDelTurno(cajaId) {
         tbody.innerHTML = '';
         let total = 0;
 
+        const rolActual = (localStorage.getItem('usuario_rol') || '').toUpperCase();
+        const isAdmin = (rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN');
+
+        // Mostrar u ocultar columna Acciones según el rol
+        if (isAdmin) {
+            document.querySelectorAll('.th-acciones').forEach(el => el.classList.remove('hidden'));
+        } else {
+            document.querySelectorAll('.th-acciones').forEach(el => el.classList.add('hidden'));
+        }
+
         if (gastos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-gray-400 italic">No hay gastos registrados en este turno.</td></tr>';
+            const colspanVal = isAdmin ? 4 : 3;
+            tbody.innerHTML = `<tr><td colspan="${colspanVal}" class="px-4 py-4 text-center text-gray-400 italic">No hay gastos registrados en este turno.</td></tr>`;
             totalSpan.innerText = 'Total: Bs. 0.00';
             return;
         }
@@ -518,11 +529,24 @@ async function cargarGastosDelTurno(cajaId) {
         gastos.forEach(g => {
             const monto = parseFloat(g.monto);
             total += monto;
+
+            let accionTd = '';
+            if (isAdmin) {
+                accionTd = `
+                    <td class="px-4 py-2.5 text-center text-xs">
+                        <button onclick="eliminarGasto(${g.id})" class="text-red-600 hover:text-red-800 transition-colors p-1" title="Eliminar Gasto">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+            }
+
             tbody.innerHTML += `
                 <tr class="border-b border-gray-105 hover:bg-red-50/30 transition-colors">
                     <td class="px-4 py-2.5 text-stone-600 font-mono text-xs">${g.hora}</td>
                     <td class="px-4 py-2.5 text-stone-800 font-medium text-xs">${g.descripcion}</td>
                     <td class="px-4 py-2.5 text-right font-black text-red-600 text-xs">-${formatMontoCensurado(monto)}</td>
+                    ${accionTd}
                 </tr>
             `;
         });
@@ -533,7 +557,11 @@ async function cargarGastosDelTurno(cajaId) {
     }
 }
 
+let registrandoGasto = false;
+
 async function procesarRegistroGasto() {
+    if (registrandoGasto) return;
+
     const monto = document.getElementById('inputMontoGasto').value;
     const desc = document.getElementById('inputDescGasto').value.trim();
     const usuarioId = localStorage.getItem('usuario_id');
@@ -542,6 +570,17 @@ async function procesarRegistroGasto() {
         alert("Por favor completa todos los campos correctamente.");
         return;
     }
+
+    const btn = document.querySelector('#modalGasto button[onclick="procesarRegistroGasto()"]');
+    let originalText = "";
+    if (btn) {
+        btn.disabled = true;
+        originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Procesando...';
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+    }
+
+    registrandoGasto = true;
 
     try {
         const res = await fetch('/api/caja/gastos', {
@@ -561,9 +600,17 @@ async function procesarRegistroGasto() {
         }
 
         cerrarModales();
+        alert("Gasto registrado con éxito.");
         cargarEstadoCaja();
     } catch (error) {
         alert("Error: " + error.message);
+    } finally {
+        registrandoGasto = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            btn.classList.remove("opacity-50", "cursor-not-allowed");
+        }
     }
 }
 
@@ -1108,6 +1155,30 @@ async function ejecutarEliminarTurno() {
     }
 }
 
+async function eliminarGasto(id) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este gasto permanentemente? Esta acción actualizará los totales de la caja.")) {
+        return;
+    }
+
+    try {
+        const usuario_id = localStorage.getItem('usuario_id');
+        const res = await fetch(`/api/caja/gastos/${id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar el gasto');
+
+        alert("Gasto de caja eliminado con éxito.");
+        cargarEstadoCaja();
+    } catch (e) {
+        alert("Error: " + e.message);
+    }
+}
+
 window.confirmarEliminarTurno = confirmarEliminarTurno;
 window.cerrarModalEliminarTurno = cerrarModalEliminarTurno;
 window.ejecutarEliminarTurno = ejecutarEliminarTurno;
+window.eliminarGasto = eliminarGasto;

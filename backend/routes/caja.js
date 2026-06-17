@@ -389,4 +389,37 @@ router.delete('/eliminar/:id', async (req, res) => {
     }
 });
 
+// 10. Eliminar un gasto de caja (Solo Administradores)
+router.delete('/gastos/:id', async (req, res) => {
+    const { id } = req.params;
+    const { usuario_id } = req.body;
+
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido para eliminar un gasto.' });
+    }
+
+    try {
+        // Validar rol de administrador
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(400).json({ error: 'Usuario no válido.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar gastos de caja.' });
+        }
+
+        // Eliminar el gasto
+        const deleteRes = await pool.query('DELETE FROM gastos_caja WHERE id = $1 RETURNING id', [id]);
+        if (deleteRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Gasto no encontrado.' });
+        }
+
+        res.json({ success: true, mensaje: 'Gasto de caja eliminado con éxito.' });
+    } catch (error) {
+        console.error('Error al eliminar gasto de caja:', error);
+        res.status(500).json({ error: 'Error al eliminar el gasto de caja: ' + error.message });
+    }
+});
+
 module.exports = router;
