@@ -91,97 +91,124 @@ router.get('/', async (req, res) => {
     }
 });
 
-// [NUEVO] Endpoint para Rendimiento Mensual parametrizado y con zona horaria local exacta
-router.get('/rendimiento-mensual', async (req, res) => {
+// [NUEVO] Endpoint para obtener la lista de meses y años con datos
+router.get('/meses-disponibles', async (req, res) => {
     try {
-        let meses = parseInt(req.query.meses) || 6;
-        const incluirHistoricas = req.query.incluir_historicas === 'true';
-
-        if (![3, 6, 12].includes(meses)) {
-            meses = 6;
-        }
-
-        const ventasFilter = incluirHistoricas ? '' : 'WHERE es_historica = FALSE';
-
-        const minVentasFilter = incluirHistoricas ? '' : 'WHERE es_historica = FALSE';
-
         const query = `
-            WITH date_bounds AS (
-                SELECT COALESCE(
-                    (SELECT MIN(min_date) FROM (
-                        SELECT MIN(fecha_venta AT TIME ZONE 'America/La_Paz') AS min_date FROM ventas ${minVentasFilter}
-                        UNION ALL
-                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM compras
-                        UNION ALL
-                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM gastos_caja
-                        UNION ALL
-                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM gastos_generales
-                    ) t),
-                    CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz'
-                ) AS min_db_date
-            )
-            SELECT 
-                EXTRACT(MONTH FROM m.month) AS mes,
-                EXTRACT(YEAR FROM m.month) AS anio,
-                COALESCE(v.total, 0) AS ventas,
-                COALESCE(c.total, 0) AS compras,
-                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0) + COALESCE(sal.total, 0)) AS gastos
+            SELECT DISTINCT anio, mes
             FROM (
-                SELECT (generate_series(
-                    DATE_TRUNC('month', GREATEST(
-                        (SELECT min_db_date FROM date_bounds),
-                        DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz') - INTERVAL '${meses - 1} months'
-                    ))::date,
-                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date,
-                    INTERVAL '1 month'
-                ))::date AS month
-            ) m
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM (fecha_venta AT TIME ZONE 'America/La_Paz')) AS mes, 
-                    EXTRACT(YEAR FROM (fecha_venta AT TIME ZONE 'America/La_Paz')) AS anio,
-                    SUM(total) AS total
+                SELECT EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz')::integer AS anio,
+                       EXTRACT(MONTH FROM fecha_venta AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM ventas
-                ${ventasFilter}
-                GROUP BY mes, anio
-            ) v ON EXTRACT(MONTH FROM m.month) = v.mes AND EXTRACT(YEAR FROM m.month) = v.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
-                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
-                    SUM(total) AS total
+                UNION
+                SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS anio,
+                       EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM compras
-                GROUP BY mes, anio
-            ) c ON EXTRACT(MONTH FROM m.month) = c.mes AND EXTRACT(YEAR FROM m.month) = c.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
-                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
-                    SUM(monto) AS total
+                UNION
+                SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS anio,
+                       EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM gastos_caja
-                GROUP BY mes, anio
-            ) g_caja ON EXTRACT(MONTH FROM m.month) = g_caja.mes AND EXTRACT(YEAR FROM m.month) = g_caja.anio
-            LEFT JOIN (
-                SELECT 
-                    EXTRACT(MONTH FROM (fecha AT TIME ZONE 'America/La_Paz')) AS mes, 
-                    EXTRACT(YEAR FROM (fecha AT TIME ZONE 'America/La_Paz')) AS anio,
-                    SUM(monto) AS total
+                UNION
+                SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS anio,
+                       EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM gastos_generales
-                GROUP BY mes, anio
-            ) g_gen ON EXTRACT(MONTH FROM m.month) = g_gen.mes AND EXTRACT(YEAR FROM m.month) = g_gen.anio
-            LEFT JOIN (
-                SELECT 
-                    mes,
-                    anio,
-                    SUM(salario_neto) AS total
-                FROM pagos_salarios
-                GROUP BY mes, anio
-            ) sal ON EXTRACT(MONTH FROM m.month) = sal.mes AND EXTRACT(YEAR FROM m.month) = sal.anio
-            ORDER BY anio ASC, mes ASC
+                UNION
+                SELECT anio::integer AS anio, mes::integer AS mes FROM pagos_salarios
+            ) t
+            WHERE anio IS NOT NULL AND mes IS NOT NULL
+            ORDER BY anio DESC, mes DESC
         `;
-
         const result = await pool.query(query);
         res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener meses disponibles:', error);
+        res.status(500).json({ error: 'Error al obtener meses disponibles' });
+    }
+});
+
+// [NUEVO] Endpoint para Rendimiento Mensual con granularidad diaria de un mes seleccionado (incluye ventas históricas)
+router.get('/rendimiento-mensual', async (req, res) => {
+    try {
+        const mes = parseInt(req.query.mes);
+        const anio = parseInt(req.query.anio);
+
+        if (!mes || !anio || isNaN(mes) || isNaN(anio)) {
+            return res.status(400).json({ error: 'El mes y año son requeridos y deben ser numéricos.' });
+        }
+
+        const startStr = `${anio}-${String(mes).padStart(2, '0')}-01`;
+        
+        // Obtenemos los salarios totales pagados del mes/año para distribuirlos por día de forma proporcional
+        const salariosResult = await pool.query(
+            `SELECT COALESCE(SUM(salario_neto), 0) AS total FROM pagos_salarios WHERE mes = $1 AND anio = $2`,
+            [mes, anio]
+        );
+        const totalSalarios = parseFloat(salariosResult.rows[0].total) || 0;
+        
+        const daysInMonth = new Date(anio, mes, 0).getDate();
+        const diarioSalario = totalSalarios / daysInMonth;
+
+        const query = `
+            WITH days AS (
+                SELECT (generate_series(
+                    $1::date,
+                    ($1::date + INTERVAL '1 month' - INTERVAL '1 day')::date,
+                    INTERVAL '1 day'
+                ))::date AS fecha
+            )
+            SELECT 
+                EXTRACT(DAY FROM d.fecha)::integer AS dia,
+                COALESCE(v.total, 0) AS ventas,
+                COALESCE(c.total, 0) AS compras,
+                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos_sin_salarios
+            FROM days d
+            LEFT JOIN (
+                SELECT 
+                    (fecha_venta AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    SUM(total) AS total
+                FROM ventas
+                GROUP BY fecha
+            ) v ON d.fecha = v.fecha
+            LEFT JOIN (
+                SELECT 
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    SUM(total) AS total
+                FROM compras
+                GROUP BY fecha
+            ) c ON d.fecha = c.fecha
+            LEFT JOIN (
+                SELECT 
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    SUM(monto) AS total
+                FROM gastos_caja
+                GROUP BY fecha
+            ) g_caja ON d.fecha = g_caja.fecha
+            LEFT JOIN (
+                SELECT 
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    SUM(monto) AS total
+                FROM gastos_generales
+                GROUP BY fecha
+            ) g_gen ON d.fecha = g_gen.fecha
+            ORDER BY dia ASC
+        `;
+
+        const result = await pool.query(query, [startStr]);
+        
+        const rows = result.rows.map(r => {
+            const ventas = parseFloat(r.ventas) || 0;
+            const compras = parseFloat(r.compras) || 0;
+            const gastosSinSalarios = parseFloat(r.gastos_sin_salarios) || 0;
+            const gastos = gastosSinSalarios + diarioSalario;
+            return {
+                dia: r.dia,
+                ventas: ventas.toFixed(2),
+                compras: compras.toFixed(2),
+                gastos: gastos.toFixed(2)
+            };
+        });
+
+        res.json(rows);
 
     } catch (error) {
         console.error('Error al obtener rendimiento mensual:', error);
