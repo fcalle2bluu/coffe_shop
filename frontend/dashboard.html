@@ -1357,9 +1357,19 @@
                 chartHorasInst.destroy();
             }
 
-            const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
-            const dataBS = Array(24).fill(0);
-            horas.forEach(h => { dataBS[parseInt(h.hora)] = parseFloat(h.ingresos); });
+            // Rango de horas: 5 AM a 23 PM (11 PM)
+            const labels = [];
+            for (let i = 5; i <= 23; i++) {
+                labels.push(`${i}:00`);
+            }
+            
+            const dataBS = Array(19).fill(0);
+            horas.forEach(h => {
+                const hourNum = parseInt(h.hora);
+                if (hourNum >= 5 && hourNum <= 23) {
+                    dataBS[hourNum - 5] = parseFloat(h.ingresos);
+                }
+            });
 
             const isDark = localStorage.getItem('darkMode') === 'true';
 
@@ -1383,7 +1393,7 @@
                         if (chartElements.length > 0) {
                             const index = chartElements[0].index;
                             if (index !== undefined) {
-                                actualizarDetalleHora(index);
+                                actualizarDetalleHora(index + 5);
                             }
                         }
                     },
@@ -1391,7 +1401,7 @@
                         if (elements && elements.length > 0) {
                             const index = elements[0].index;
                             if (index !== undefined) {
-                                actualizarDetalleHora(index);
+                                actualizarDetalleHora(index + 5);
                             }
                         }
                     },
@@ -1403,7 +1413,7 @@
                             callbacks: {
                                 afterBody: function(tooltipItems) {
                                     const index = tooltipItems[0].dataIndex;
-                                    const hora = index;
+                                    const hora = index + 5; // offset + 5
                                     actualizarDetalleHora(hora);
                                     
                                     const prods = productosPorHora[hora] || [];
@@ -1427,14 +1437,17 @@
                 }
             });
 
-            // Encontrar la hora con mayor afluencia/ingresos para ponerla por defecto
+            // Encontrar la hora con mayor afluencia/ingresos para ponerla por defecto (rango 5 a 23)
             let peakHour = 16;
             let maxIng = 0;
             horas.forEach(h => {
-                const ing = parseFloat(h.ingresos);
-                if (ing > maxIng) {
-                    maxIng = ing;
-                    peakHour = parseInt(h.hora);
+                const hourNum = parseInt(h.hora);
+                if (hourNum >= 5 && hourNum <= 23) {
+                    const ing = parseFloat(h.ingresos);
+                    if (ing > maxIng) {
+                        maxIng = ing;
+                        peakHour = hourNum;
+                    }
                 }
             });
             
@@ -1446,11 +1459,14 @@
             modoHoras = modo;
             const btnBs = document.getElementById('btn-horas-bs');
             const btnQty = document.getElementById('btn-horas-qty');
-            const dataBS = Array(24).fill(0);
-            const dataQTY = Array(24).fill(0);
+            const dataBS = Array(19).fill(0);
+            const dataQTY = Array(19).fill(0);
             dataHorasRaw.forEach(h => {
-                dataBS[parseInt(h.hora)] = parseFloat(h.ingresos);
-                dataQTY[parseInt(h.hora)] = parseInt(h.ventas_cont);
+                const hourNum = parseInt(h.hora);
+                if (hourNum >= 5 && hourNum <= 23) {
+                    dataBS[hourNum - 5] = parseFloat(h.ingresos);
+                    dataQTY[hourNum - 5] = parseInt(h.ventas_cont);
+                }
             });
 
             if (modo === 'bs') {

@@ -230,8 +230,8 @@ router.get('/stats-avanzadas', async (req, res) => {
         let filterHoras = '';
         
         if (fecha && fecha !== 'historico') {
-            filterBCG = ` AND v.fecha_venta AT TIME ZONE 'America/La_Paz'::date = $1::date `;
-            filterHoras = ` AND fecha_venta AT TIME ZONE 'America/La_Paz'::date = $1::date `;
+            filterBCG = ` AND (v.fecha_venta AT TIME ZONE 'America/La_Paz')::date = $1::date `;
+            filterHoras = ` AND (fecha_venta AT TIME ZONE 'America/La_Paz')::date = $1::date `;
             params = [fecha];
         }
 
