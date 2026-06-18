@@ -272,23 +272,17 @@ router.get('/stats-avanzadas', async (req, res) => {
             ORDER BY total DESC
         `, params);
 
-        // 4. Productos más vendidos por hora
+        // 4. Todos los productos vendidos por hora (ordenados de más a menos vendido)
         const topProductosHoraResult = await pool.query(`
-            WITH ventas_por_hora AS (
-                SELECT EXTRACT(HOUR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as hora,
-                       p.nombre as producto,
-                       SUM(dv.cantidad) as total_qty,
-                       ROW_NUMBER() OVER(PARTITION BY EXTRACT(HOUR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') ORDER BY SUM(dv.cantidad) DESC) as rnk
-                FROM detalle_ventas dv
-                JOIN productos p ON dv.producto_id = p.id
-                JOIN ventas v ON dv.venta_id = v.id
-                WHERE v.es_historica = FALSE ${filterBCG}
-                GROUP BY hora, producto
-            )
-            SELECT hora, producto, total_qty
-            FROM ventas_por_hora
-            WHERE rnk <= 5
-            ORDER BY hora ASC, rnk ASC;
+            SELECT EXTRACT(HOUR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as hora,
+                   p.nombre as producto,
+                   SUM(dv.cantidad) as total_qty
+            FROM detalle_ventas dv
+            JOIN productos p ON dv.producto_id = p.id
+            JOIN ventas v ON dv.venta_id = v.id
+            WHERE v.es_historica = FALSE ${filterBCG}
+            GROUP BY hora, producto
+            ORDER BY hora ASC, total_qty DESC;
         `, params);
 
         res.json({
