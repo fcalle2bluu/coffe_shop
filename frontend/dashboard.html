@@ -125,10 +125,17 @@
 
     <main class="flex-1 flex flex-col min-w-0 min-h-screen">
         <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
-            <button onclick="toggleSidebar()" class="md:hidden text-gray-800 focus:outline-none">
-                <i class="fa-solid fa-bars text-xl"></i>
-            </button>
-            <h1 class="text-xl font-bold">Panel de Control</h1>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-800 focus:outline-none mr-2">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-xl font-bold">Panel de Control</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="btn-theme-toggle" onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                    <i id="theme-toggle-icon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+            </div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-6">
@@ -678,6 +685,47 @@
         let dataHorasRaw = [];
         let modoHoras = 'bs'; 
 
+        function sincronizarGraficosConTema() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            const textColor = isDark ? '#94a3b8' : '#475569';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = textColor;
+            }
+
+            const charts = [
+                chartHorasInst,
+                chartTopProdInst,
+                chartCategoriasInst,
+                chartRendimientoInst
+            ];
+
+            charts.forEach(chart => {
+                if (chart) {
+                    if (chart.options.scales) {
+                        for (let key in chart.options.scales) {
+                            const scale = chart.options.scales[key];
+                            if (scale.ticks) {
+                                scale.ticks.color = textColor;
+                            }
+                            if (scale.grid) {
+                                scale.grid.color = gridColor;
+                            }
+                        }
+                    }
+                    if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                        chart.options.plugins.legend.labels.color = textColor;
+                    }
+                    chart.update();
+                }
+            });
+        }
+
+        window.addEventListener('themeChanged', function() {
+            sincronizarGraficosConTema();
+        });
+
         window.onload = function() {
             const nombreActual = localStorage.getItem('usuario_nombre');
             const rolActual = localStorage.getItem('usuario_rol');
@@ -712,6 +760,9 @@
 
             cargarMesasDashboard();
             setInterval(cargarMesasDashboard, 15000); // Refrescar mesas cada 15 segundos
+            
+            // Sincronizar colores de los gráficos con el tema actual tras cargarlos
+            setTimeout(sincronizarGraficosConTema, 600);
         };
 
         async function cargarKpisGerenciales() {

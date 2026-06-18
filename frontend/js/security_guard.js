@@ -1,6 +1,123 @@
 // frontend/js/security_guard.js
 
 (function() {
+    // === LÓGICA GLOBAL DE MODO OSCURO ===
+    function applyTheme(isDark) {
+        let styleEl = document.getElementById('dark-mode-style');
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'dark-mode-style';
+                styleEl.innerHTML = `
+                    /* Modo Oscuro Profesional - Café La Paz */
+                    html, body, main, .bg-mainBg {
+                        background-color: #0b0f19 !important;
+                        color: #f1f5f9 !important;
+                    }
+                    /* Tarjetas y Contenedores */
+                    .bg-white, [class*="bg-white"] {
+                        background-color: #111827 !important;
+                        color: #f1f5f9 !important;
+                    }
+                    /* Fondos Gris Claro a Oscuro */
+                    .bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
+                        background-color: #0f172a !important;
+                    }
+                    /* Cabecera / Topbar */
+                    header, .bg-white\\/70 {
+                        background-color: rgba(17, 24, 39, 0.8) !important;
+                        border-color: #1f2937 !important;
+                    }
+                    /* Bordes */
+                    .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-slate-200\\/60, .border, .border-b, .border-t, .border-r, .border-l {
+                        border-color: #1f2937 !important;
+                    }
+                    /* Texto */
+                    .text-slate-800, .text-gray-800, .text-slate-900, .text-slate-700, .text-gray-700, .text-slate-600, .text-slate-950 {
+                        color: #f3f4f6 !important;
+                    }
+                    .text-slate-500, .text-gray-500, .text-slate-400 {
+                        color: #9ca3af !important;
+                    }
+                    .text-slate-200, .text-gray-200 {
+                        color: #d1d5db !important;
+                    }
+                    /* Inputs, Selects, Textareas */
+                    input[type="text"], input[type="number"], input[type="password"], input[type="date"], input[type="time"], select, textarea {
+                        background-color: #1f2937 !important;
+                        border-color: #374151 !important;
+                        color: #f9fafb !important;
+                    }
+                    input::placeholder {
+                        color: #6b7280 !important;
+                    }
+                    /* Tablas */
+                    th {
+                        background-color: #1f2937 !important;
+                        color: #e5e7eb !important;
+                        border-bottom: 2px solid #374151 !important;
+                    }
+                    td {
+                        color: #e5e7eb !important;
+                        border-bottom: 1px solid #1f2937 !important;
+                    }
+                    tr:hover td {
+                        background-color: #1f2937 !important;
+                    }
+                    /* Sombras */
+                    .shadow-premium, .shadow-md, .shadow-lg {
+                        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+                    }
+                    /* Hover states */
+                    .hover\\:bg-slate-50:hover, .hover\\:bg-gray-50:hover, .hover\\:bg-slate-100:hover, .hover\\:bg-gray-100:hover {
+                        background-color: #1f2937 !important;
+                    }
+                `;
+                document.documentElement.appendChild(styleEl);
+            }
+        } else {
+            document.documentElement.classList.remove('dark');
+            if (styleEl) {
+                styleEl.remove();
+            }
+        }
+    }
+
+    function updateToggleButtons(isDark) {
+        const btn = document.getElementById('btn-theme-toggle');
+        const icon = document.getElementById('theme-toggle-icon');
+        if (btn && icon) {
+            if (isDark) {
+                icon.className = 'fa-solid fa-sun text-lg text-amber-400';
+                btn.className = 'w-10 h-10 rounded-xl flex items-center justify-center border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition-all shadow-sm';
+            } else {
+                icon.className = 'fa-solid fa-moon text-lg text-slate-600';
+                btn.className = 'w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all shadow-sm';
+            }
+        }
+    }
+
+    window.toggleDarkMode = function() {
+        const isDark = localStorage.getItem('darkMode') === 'true';
+        const newDark = !isDark;
+        localStorage.setItem('darkMode', newDark);
+        applyTheme(newDark);
+        updateToggleButtons(newDark);
+        
+        const event = new CustomEvent('themeChanged', { detail: { isDark: newDark } });
+        window.dispatchEvent(event);
+    };
+
+    // Aplicar inmediatamente
+    const darkModeActivo = localStorage.getItem('darkMode') === 'true';
+    applyTheme(darkModeActivo);
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const isDark = localStorage.getItem('darkMode') === 'true';
+        updateToggleButtons(isDark);
+    });
+
     // 1. Verificar Autenticación Básica
     if (!localStorage.getItem('usuario_id')) {
         window.location.href = 'index.html'; 
