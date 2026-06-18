@@ -153,6 +153,74 @@ router.get('/rendimiento-mensual', async (req, res) => {
     }
 });
 
+// [NUEVO] Actividad Semanal de Ventas (domingo a sábado)
+router.get('/ventas-semanal', async (req, res) => {
+    try {
+        const { fecha_inicio } = req.query; // YYYY-MM-DD format (domingo)
+        if (!fecha_inicio) {
+            return res.status(400).json({ error: 'La fecha de inicio de la semana (domingo) es requerida.' });
+        }
+
+        const query = `
+            SELECT 
+                d.dia::date as fecha,
+                EXTRACT(DOW FROM d.dia) as dia_semana,
+                COALESCE(v.total, 0) as total
+            FROM (
+                SELECT ($1::date + i.n)::date as dia
+                FROM generate_series(0, 6) i(n)
+            ) d
+            LEFT JOIN (
+                SELECT 
+                    (fecha_venta AT TIME ZONE 'America/La_Paz')::date as fecha,
+                    SUM(total) as total
+                FROM ventas
+                WHERE es_historica = FALSE
+                GROUP BY fecha
+            ) v ON d.dia = v.fecha
+            ORDER BY d.dia ASC
+        `;
+
+        const result = await pool.query(query, [fecha_inicio]);
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error al obtener ventas semanales:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de ventas semanales' });
+    }
+});
+
+// [NUEVO] Desglose de Ventas por Categoría para un día específico
+router.get('/ventas-dia-detalle', async (req, res) => {
+    try {
+        const { fecha } = req.query; // YYYY-MM-DD
+        if (!fecha) {
+            return res.status(400).json({ error: 'La fecha es requerida.' });
+        }
+
+        const query = `
+            SELECT 
+                c.nombre as categoria, 
+                COALESCE(SUM(dv.subtotal), 0) as total
+            FROM detalle_ventas dv
+            JOIN productos p ON dv.producto_id = p.id
+            JOIN categorias c ON p.categoria_id = c.id
+            JOIN ventas v ON dv.venta_id = v.id
+            WHERE (v.fecha_venta AT TIME ZONE 'America/La_Paz')::date = $1::date
+              AND v.es_historica = FALSE
+            GROUP BY c.nombre
+            ORDER BY total DESC
+        `;
+
+        const result = await pool.query(query, [fecha]);
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error al obtener detalle de ventas del día:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de detalle de ventas del día' });
+    }
+});
+
 // [NUEVO] Estadísticas avanzadas para gráficos
 router.get('/stats-avanzadas', async (req, res) => {
     try {

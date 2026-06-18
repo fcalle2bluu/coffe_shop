@@ -157,6 +157,52 @@
                 </div>
             </div>
 
+            <!-- GRAFICO DE ACTIVIDAD SEMANAL DE VENTAS (Estilo Captura Screen Time) -->
+            <div class="bg-slate-950 text-white rounded-3xl p-6 border border-slate-900 shadow-2xl overflow-hidden mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Columna Izquierda: Gráfico y Resumen de Ventas -->
+                    <div class="lg:col-span-7 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-6">
+                                <div class="flex items-center gap-2">
+                                    <div class="bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1.5 rounded-full text-xs flex items-center gap-2 border border-emerald-500/20 select-none">
+                                        <span>Actividad de ventas</span>
+                                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <h3 id="actividad-monto-dia" class="text-4xl font-extrabold tracking-tight text-white">Bs. 0.00</h3>
+                                <p id="actividad-lbl-dia" class="text-sm text-slate-400 font-semibold mt-1">Cargando...</p>
+                            </div>
+                        </div>
+                        <div class="relative h-48 w-full mt-4">
+                            <canvas id="chartActividadSemanal"></canvas>
+                        </div>
+                        <div class="flex items-center justify-center gap-6 mt-6 select-none">
+                            <button id="btn-actividad-prev" onclick="navegarDiaActividad(-1)" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
+                                <i class="fa-solid fa-chevron-left text-sm"></i>
+                            </button>
+                            <span id="actividad-fecha-selector" class="text-sm font-bold text-slate-300 min-w-[120px] text-center">
+                                -
+                            </span>
+                            <button id="btn-actividad-next" onclick="navegarDiaActividad(1)" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-slate-400">
+                                <i class="fa-solid fa-chevron-right text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Columna Derecha: Desglose por Categoría -->
+                    <div class="lg:col-span-5 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-800/60 pt-6 lg:pt-0 lg:pl-8">
+                        <h4 class="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-4">Ventas por Categoría</h4>
+                        <div id="actividad-desglose-lista" class="space-y-4 flex-1 overflow-y-auto max-h-[300px] pr-2">
+                            <div class="text-center text-slate-500 py-12 text-sm font-medium">
+                                <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando desglose...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- CONTROL GERENCIAL (LIBRO DIARIO) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Tarjeta del Semáforo -->
@@ -358,6 +404,275 @@
             window.location.href = 'index.html';
         }
 
+        // === LÓGICA ACTIVIDAD DE VENTAS SEMANAL ===
+        let actividadDiaSeleccionado = null;
+        let actividadDomingoSemana = null;
+        let chartActividadSemanalInst = null;
+        let actividadDatosSemana = [];
+
+        function inicializarActividadSemanal() {
+            actividadDiaSeleccionado = new Date();
+            // Asegurarse de quitar horas/minutos/segundos/ms para evitar problemas de comparación
+            actividadDiaSeleccionado.setHours(0,0,0,0);
+            cargarActividadSemanal(true);
+        }
+
+        function obtenerDomingoDeSemana(d) {
+            const date = new Date(d);
+            const day = date.getDay(); // 0 is Sunday, 6 is Saturday
+            const diff = date.getDate() - day; // Adjust to Sunday
+            return new Date(date.setDate(diff));
+        }
+
+        function formatDateISO(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatFechaSeleccionada(d) {
+            const nombresDiasCorto = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+            const nombresMesesCorto = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            return `${nombresDiasCorto[d.getDay()]} ${d.getDate()} de ${nombresMesesCorto[d.getMonth()]}`;
+        }
+
+        function formatFechaCompleta(d) {
+            const nombresDias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            return `${nombresDias[d.getDay()]}, ${d.getDate()} de ${nombresMeses[d.getMonth()]}`;
+        }
+
+        function obtenerEtiquetaDia(d) {
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            const ayer = new Date(hoy);
+            ayer.setDate(hoy.getDate() - 1);
+            
+            const selectedISO = formatDateISO(d);
+            if (selectedISO === formatDateISO(hoy)) {
+                return 'Hoy';
+            } else if (selectedISO === formatDateISO(ayer)) {
+                return 'Ayer';
+            } else {
+                return formatFechaCompleta(d);
+            }
+        }
+
+        async function cargarActividadSemanal(forzarRecargaWeek = false) {
+            try {
+                const nuevoDomingo = obtenerDomingoDeSemana(actividadDiaSeleccionado);
+                const domingoISO = formatDateISO(nuevoDomingo);
+                const domingoPrevISO = actividadDomingoSemana ? formatDateISO(actividadDomingoSemana) : null;
+                
+                if (forzarRecargaWeek || !domingoPrevISO || domingoISO !== domingoPrevISO) {
+                    actividadDomingoSemana = nuevoDomingo;
+                    const res = await fetch(`/api/kpis/ventas-semanal?fecha_inicio=${domingoISO}`);
+                    if (!res.ok) throw new Error('Error al cargar ventas semanales');
+                    actividadDatosSemana = await res.json();
+                }
+
+                // El index seleccionado en la semana es el día del selected date (0 a 6)
+                const indexSelected = actividadDiaSeleccionado.getDay();
+                
+                // Actualizar total y etiqueta en el UI
+                const datoDia = actividadDatosSemana[indexSelected] || { total: 0 };
+                const totalDia = parseFloat(datoDia.total) || 0;
+                
+                document.getElementById('actividad-monto-dia').innerText = `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(totalDia)}`;
+                document.getElementById('actividad-lbl-dia').innerText = obtenerEtiquetaDia(actividadDiaSeleccionado);
+                document.getElementById('actividad-fecha-selector').innerText = formatFechaSeleccionada(actividadDiaSeleccionado);
+                
+                // Deshabilitar botón "siguiente" si es >= hoy
+                const hoy = new Date();
+                hoy.setHours(0,0,0,0);
+                const btnNext = document.getElementById('btn-actividad-next');
+                if (btnNext) {
+                    btnNext.disabled = (actividadDiaSeleccionado >= hoy);
+                }
+
+                // Renderizar/actualizar gráfico Chart.js
+                renderChartActividadSemanal(indexSelected);
+                
+                // Cargar desglose de categorías
+                cargarDesgloseDia(formatDateISO(actividadDiaSeleccionado));
+
+            } catch (error) {
+                console.error('Error en actividad semanal:', error);
+            }
+        }
+
+        function renderChartActividadSemanal(indexSelected) {
+            const ctx = document.getElementById('chartActividadSemanal');
+            if (!ctx) return;
+
+            const labels = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+            const dataValues = labels.map((_, i) => {
+                const item = actividadDatosSemana[i];
+                return item ? parseFloat(item.total) || 0 : 0;
+            });
+
+            // Colores: naranja brillante para seleccionado, naranja opaco para no seleccionados
+            const backgroundColors = dataValues.map((_, i) => i === indexSelected ? '#f97316' : 'rgba(249, 115, 22, 0.25)');
+            const hoverColors = dataValues.map((_, i) => i === indexSelected ? '#ea580c' : 'rgba(249, 115, 22, 0.5)');
+
+            if (chartActividadSemanalInst) {
+                chartActividadSemanalInst.data.datasets[0].data = dataValues;
+                chartActividadSemanalInst.data.datasets[0].backgroundColor = backgroundColors;
+                chartActividadSemanalInst.data.datasets[0].hoverBackgroundColor = hoverColors;
+                chartActividadSemanalInst.update();
+            } else {
+                chartActividadSemanalInst = new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: backgroundColors,
+                            hoverBackgroundColor: hoverColors,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(context.raw)}`;
+                                    }
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            if (elements && elements.length > 0) {
+                                const clickedIndex = elements[0].index;
+                                const targetDate = new Date(actividadDomingoSemana);
+                                targetDate.setDate(actividadDomingoSemana.getDate() + clickedIndex);
+                                
+                                const hoy = new Date();
+                                hoy.setHours(0,0,0,0);
+                                if (targetDate <= hoy) {
+                                    actividadDiaSeleccionado = targetDate;
+                                    cargarActividadSemanal();
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: { family: 'Outfit', size: 11 }
+                                }
+                            },
+                            y: {
+                                position: 'right',
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.07)',
+                                    drawBorder: false,
+                                    drawTicks: false
+                                },
+                                ticks: {
+                                    color: '#64748b',
+                                    font: { family: 'Outfit', size: 10 },
+                                    callback: function(value) {
+                                        if (value >= 1000) return 'Bs. ' + (value/1000) + 'k';
+                                        return 'Bs. ' + value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        async function cargarDesgloseDia(fechaStr) {
+            const listContainer = document.getElementById('actividad-desglose-lista');
+            if (!listContainer) return;
+
+            try {
+                const res = await fetch(`/api/kpis/ventas-dia-detalle?fecha=${fechaStr}`);
+                if (!res.ok) throw new Error('Error al cargar desglose de día');
+                const data = await res.json();
+
+                let totalDia = 0;
+                data.forEach(item => { totalDia += parseFloat(item.total) || 0; });
+
+                listContainer.innerHTML = '';
+
+                if (data.length === 0 || totalDia === 0) {
+                    listContainer.innerHTML = `
+                        <div class="text-center text-slate-500 py-12 text-sm font-medium">
+                            No hay ventas registradas en este día
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Estilos de categorías: icono de FontAwesome, color para el icono y para la barra de progreso
+                const CATEGORIA_ESTILOS = {
+                    'cafeteria': { icon: 'fa-mug-hot', bgIcon: 'bg-amber-500/10 text-amber-400', bgBar: 'bg-amber-500' },
+                    'café': { icon: 'fa-mug-hot', bgIcon: 'bg-amber-500/10 text-amber-400', bgBar: 'bg-amber-500' },
+                    'reposteria': { icon: 'fa-cake-candles', bgIcon: 'bg-pink-500/10 text-pink-400', bgBar: 'bg-pink-500' },
+                    'repostería': { icon: 'fa-cake-candles', bgIcon: 'bg-pink-500/10 text-pink-400', bgBar: 'bg-pink-500' },
+                    'bebidas': { icon: 'fa-glass-water', bgIcon: 'bg-blue-500/10 text-blue-400', bgBar: 'bg-blue-500' },
+                    'comida': { icon: 'fa-utensils', bgIcon: 'bg-emerald-500/10 text-emerald-400', bgBar: 'bg-emerald-500' },
+                    'salados': { icon: 'fa-pizza-slice', bgIcon: 'bg-orange-500/10 text-orange-400', bgBar: 'bg-orange-500' }
+                };
+
+                data.forEach(cat => {
+                    const totalCat = parseFloat(cat.total) || 0;
+                    const porc = totalDia > 0 ? Math.round((totalCat / totalDia) * 100) : 0;
+                    
+                    const normalizedCat = (cat.categoria || '').toLowerCase().trim();
+                    const estilo = CATEGORIA_ESTILOS[normalizedCat] || { icon: 'fa-tag', bgIcon: 'bg-indigo-500/10 text-indigo-400', bgBar: 'bg-indigo-500' };
+
+                    listContainer.innerHTML += `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${estilo.bgIcon}">
+                                <i class="fa-solid ${estilo.icon} text-lg"></i>
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-sm font-semibold text-slate-200 truncate">${cat.categoria}</span>
+                                    <span class="text-sm font-bold text-white">Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(totalCat)}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-grow bg-slate-800 rounded-full h-2 overflow-hidden">
+                                        <div class="${estilo.bgBar} h-full rounded-full transition-all duration-500" style="width: ${porc}%"></div>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 font-bold font-mono w-8 text-right">${porc}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+            } catch (error) {
+                console.error('Error al cargar desglose:', error);
+                listContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-sm font-medium">Error al cargar desglose de categorías</div>`;
+            }
+        }
+
+        function navegarDiaActividad(offset) {
+            const targetDate = new Date(actividadDiaSeleccionado);
+            targetDate.setDate(actividadDiaSeleccionado.getDate() + offset);
+
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            if (targetDate <= hoy) {
+                actividadDiaSeleccionado = targetDate;
+                cargarActividadSemanal();
+            }
+        }
+
         // === LOGICA DASHBOARD ===
         let chartHorasInst = null;
         let dataHorasRaw = [];
@@ -386,6 +701,7 @@
                 const adminPanel = document.getElementById('seccion-kpis-admin');
                 if (adminPanel) adminPanel.style.display = 'none';
             } else {
+                inicializarActividadSemanal();
                 cargarIndicadoresBase();
                 cargarGraficosAvanzados();
                 cargarTopProductos();
