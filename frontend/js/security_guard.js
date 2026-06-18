@@ -21,7 +21,7 @@
                         color: #f1f5f9 !important;
                     }
                     /* Fondos Gris Claro a Oscuro */
-                    .bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
+                    .bg-slate-50, .bg-slate-50\\/60, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
                         background-color: #0f172a !important;
                     }
                     /* Cabecera / Topbar */

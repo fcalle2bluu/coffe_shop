@@ -103,7 +103,23 @@ router.get('/rendimiento-mensual', async (req, res) => {
 
         const ventasFilter = incluirHistoricas ? '' : 'WHERE es_historica = FALSE';
 
+        const minVentasFilter = incluirHistoricas ? '' : 'WHERE es_historica = FALSE';
+
         const query = `
+            WITH date_bounds AS (
+                SELECT COALESCE(
+                    (SELECT MIN(min_date) FROM (
+                        SELECT MIN(fecha_venta AT TIME ZONE 'America/La_Paz') AS min_date FROM ventas ${minVentasFilter}
+                        UNION ALL
+                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM compras
+                        UNION ALL
+                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM gastos_caja
+                        UNION ALL
+                        SELECT MIN(fecha AT TIME ZONE 'America/La_Paz') AS min_date FROM gastos_generales
+                    ) t),
+                    CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz'
+                ) AS min_db_date
+            )
             SELECT 
                 EXTRACT(MONTH FROM m.month) AS mes,
                 EXTRACT(YEAR FROM m.month) AS anio,
@@ -112,8 +128,11 @@ router.get('/rendimiento-mensual', async (req, res) => {
                 (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0) + COALESCE(sal.total, 0)) AS gastos
             FROM (
                 SELECT (generate_series(
-                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz') - INTERVAL '${meses - 1} months',
-                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz'),
+                    DATE_TRUNC('month', GREATEST(
+                        (SELECT min_db_date FROM date_bounds),
+                        DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz') - INTERVAL '${meses - 1} months'
+                    ))::date,
+                    DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date,
                     INTERVAL '1 month'
                 ))::date AS month
             ) m
