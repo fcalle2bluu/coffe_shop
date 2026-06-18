@@ -261,10 +261,30 @@ router.get('/stats-avanzadas', async (req, res) => {
             ORDER BY total DESC
         `);
 
+        // 4. Productos más vendidos por hora
+        const topProductosHoraResult = await pool.query(`
+            WITH ventas_por_hora AS (
+                SELECT EXTRACT(HOUR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as hora,
+                       p.nombre as producto,
+                       SUM(dv.cantidad) as total_qty,
+                       ROW_NUMBER() OVER(PARTITION BY EXTRACT(HOUR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') ORDER BY SUM(dv.cantidad) DESC) as rnk
+                FROM detalle_ventas dv
+                JOIN productos p ON dv.producto_id = p.id
+                JOIN ventas v ON dv.venta_id = v.id
+                WHERE v.es_historica = FALSE
+                GROUP BY hora, producto
+            )
+            SELECT hora, producto, total_qty
+            FROM ventas_por_hora
+            WHERE rnk <= 5
+            ORDER BY hora ASC, rnk ASC;
+        `);
+
         res.json({
             bcg: bcgResult.rows,
             horas: horasResult.rows,
-            categorias: categoriasResult.rows
+            categorias: categoriasResult.rows,
+            productosHora: topProductosHoraResult.rows
         });
 
     } catch (error) {

@@ -249,16 +249,34 @@
             <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
                     <div>
-                        <h2 class="text-lg font-bold text-gray-800">🕐 Mapa de Horas Pico</h2>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">Distribución de ingresos y clientes por hora del día</p>
+                        <h2 class="text-lg font-bold text-gray-800">🕐 Horas Pico y Consumo por Hora</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Visualiza la afluencia de clientes y los productos preferidos en cada momento del día</p>
                     </div>
                     <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
                         <button onclick="toggleHoras('bs')" id="btn-horas-bs" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600">Bs.</button>
                         <button onclick="toggleHoras('qty')" id="btn-horas-qty" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200">Clientes</button>
                     </div>
                 </div>
-                <div class="relative h-64">
-                    <canvas id="chartHoras"></canvas>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Gráfico de Horas -->
+                    <div class="lg:col-span-3 relative h-64 lg:h-72">
+                        <canvas id="chartHoras"></canvas>
+                    </div>
+                    <!-- Detalle de Consumo de la Hora Seleccionada -->
+                    <div class="lg:col-span-1 flex flex-col justify-between border-l border-slate-100 pl-0 lg:pl-6 pt-4 lg:pt-0">
+                        <div class="h-full flex flex-col">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-orange-600 mb-1 flex items-center gap-1.5" id="lbl-hora-pico-seleccionada">
+                                <i class="fa-solid fa-clock"></i> Consumo a las --:--
+                            </h3>
+                            <p class="text-[10px] text-slate-400 font-semibold mb-3">Productos más preferidos en este rango horario</p>
+                            
+                            <div class="flex-grow flex flex-col gap-3" id="productos-hora-lista">
+                                <div class="text-center py-8 text-slate-300 italic text-[11px]">
+                                    Pasa el cursor o haz click sobre el gráfico
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -728,6 +746,7 @@
         let chartHorasInst = null;
         let chartBCGInst = null;
         let dataHorasRaw = [];
+        let productosPorHora = {};
         let modoHoras = 'bs'; 
 
         function sincronizarGraficosConTema() {
@@ -967,6 +986,24 @@
                 const res = await fetch('/api/kpis/stats-avanzadas');
                 const data = await res.json();
                 dataHorasRaw = data.horas;
+                
+                // Procesar productos por hora
+                productosPorHora = {};
+                for (let i = 0; i < 24; i++) {
+                    productosPorHora[i] = [];
+                }
+                if (data.productosHora) {
+                    data.productosHora.forEach(row => {
+                        const h = parseInt(row.hora);
+                        if (productosPorHora[h]) {
+                            productosPorHora[h].push({
+                                producto: row.producto,
+                                cantidad: parseInt(row.total_qty)
+                            });
+                        }
+                    });
+                }
+
                 renderBCG(data.bcg);
                 renderHoras(data.horas);
             } catch (e) { console.error("Error Stats", e); }
@@ -1222,11 +1259,66 @@
             });
         }
 
+        let ultimoHoraDetalle = -1;
+
+        function actualizarDetalleHora(hora) {
+            if (hora === ultimoHoraDetalle || hora === null || hora === undefined) return;
+            ultimoHoraDetalle = hora;
+
+            const label = document.getElementById('lbl-hora-pico-seleccionada');
+            const lista = document.getElementById('productos-hora-lista');
+            if (!label || !lista) return;
+
+            label.innerHTML = `<i class="fa-solid fa-clock"></i> Consumo a las ${hora}:00`;
+
+            const prods = productosPorHora[hora] || [];
+            if (prods.length === 0) {
+                lista.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 italic text-[11px] flex flex-col items-center gap-1.5 mt-4">
+                        <i class="fa-solid fa-mug-hot text-xl text-slate-300 dark:text-slate-700"></i>
+                        Sin ventas registradas
+                    </div>
+                `;
+                return;
+            }
+
+            const totalQty = prods.reduce((sum, p) => sum + p.cantidad, 0);
+            const colores = [
+                'bg-orange-500 shadow-orange-500/20',
+                'bg-amber-500 shadow-amber-500/20',
+                'bg-emerald-500 shadow-emerald-500/20',
+                'bg-blue-500 shadow-blue-500/20',
+                'bg-indigo-500 shadow-indigo-500/20'
+            ];
+
+            lista.innerHTML = prods.map((p, idx) => {
+                const pct = totalQty > 0 ? Math.round((p.cantidad / totalQty) * 100) : 0;
+                const col = colores[idx % colores.length];
+                return `
+                    <div class="flex flex-col gap-1 transition-all duration-300">
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="truncate max-w-[125px] text-slate-700 dark:text-slate-200">${p.producto}</span>
+                            <span class="text-slate-400 shrink-0 font-normal">${p.cantidad} uds</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex shadow-inner">
+                            <div class="${col} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function renderHoras(horas) {
             const ctx = document.getElementById('chartHoras').getContext('2d');
+            if (chartHorasInst) {
+                chartHorasInst.destroy();
+            }
+
             const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
             const dataBS = Array(24).fill(0);
             horas.forEach(h => { dataBS[parseInt(h.hora)] = parseFloat(h.ingresos); });
+
+            const isDark = localStorage.getItem('darkMode') === 'true';
 
             chartHorasInst = new Chart(ctx, {
                 type: 'line',
@@ -1237,14 +1329,74 @@
                         data: dataBS,
                         borderColor: '#f97316',
                         backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        fill: true, tension: 0.4
+                        fill: true,
+                        tension: 0.4
                     }]
                 },
                 options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onHover: (event, chartElements) => {
+                        if (chartElements.length > 0) {
+                            const index = chartElements[0].index;
+                            if (index !== undefined) {
+                                actualizarDetalleHora(index);
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements && elements.length > 0) {
+                            const index = elements[0].index;
+                            if (index !== undefined) {
+                                actualizarDetalleHora(index);
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: isDark ? '#94a3b8' : '#475569' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const hora = index;
+                                    actualizarDetalleHora(hora);
+                                    
+                                    const prods = productosPorHora[hora] || [];
+                                    if (prods.length === 0) return '';
+                                    return '\nPreferidos:\n' + prods.slice(0, 3).map(p => `• ${p.producto} (${p.cantidad} uds)`).join('\n');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { color: isDark ? '#94a3b8' : '#475569' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { color: isDark ? '#94a3b8' : '#475569' }
+                        }
+                    }
                 }
             });
+
+            // Encontrar la hora con mayor afluencia/ingresos para ponerla por defecto
+            let peakHour = 16;
+            let maxIng = 0;
+            horas.forEach(h => {
+                const ing = parseFloat(h.ingresos);
+                if (ing > maxIng) {
+                    maxIng = ing;
+                    peakHour = parseInt(h.hora);
+                }
+            });
+            
+            ultimoHoraDetalle = -1; // Reset to force drawing
+            actualizarDetalleHora(peakHour);
         }
 
         function toggleHoras(modo) {
