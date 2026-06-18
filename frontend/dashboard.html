@@ -247,14 +247,26 @@
 
             <!-- 1. HORAS PICO (Full width - primero) -->
             <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
                         <h2 class="text-lg font-bold text-gray-800">🕐 Horas Pico y Consumo por Hora</h2>
                         <p class="text-xs text-slate-400 font-medium mt-0.5">Visualiza la afluencia de clientes y los productos preferidos en cada momento del día</p>
                     </div>
-                    <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
-                        <button onclick="toggleHoras('bs')" id="btn-horas-bs" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600">Bs.</button>
-                        <button onclick="toggleHoras('qty')" id="btn-horas-qty" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200">Clientes</button>
+                    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <!-- Filtro de tiempo -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Período:</span>
+                            <select id="filtro-tiempo-avanzado" onchange="cambiarFiltroAvanzado()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="historico" selected>Histórico (Todos)</option>
+                                <option value="dia">Por Día Específico</option>
+                            </select>
+                            <input type="date" id="filtro-fecha-avanzado" onchange="cargarGraficosAvanzados()" class="hidden text-xs font-semibold px-3 py-1 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                        </div>
+                        <!-- Tipo de visualización -->
+                        <div class="flex bg-gray-100 p-1 rounded-lg gap-1 ml-auto sm:ml-0">
+                            <button onclick="toggleHoras('bs')" id="btn-horas-bs" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all bg-white shadow-sm text-orange-600">Bs.</button>
+                            <button onclick="toggleHoras('qty')" id="btn-horas-qty" class="text-[10px] px-3 py-1 rounded-md font-bold transition-all text-gray-500 hover:bg-gray-200">Clientes</button>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -749,6 +761,24 @@
         let productosPorHora = {};
         let modoHoras = 'bs'; 
 
+        function cambiarFiltroAvanzado() {
+            const filtroTiempo = document.getElementById('filtro-tiempo-avanzado').value;
+            const fechaInput = document.getElementById('filtro-fecha-avanzado');
+            if (filtroTiempo === 'dia') {
+                fechaInput.classList.remove('hidden');
+                if (!fechaInput.value) {
+                    const hoy = new Date();
+                    const offset = hoy.getTimezoneOffset();
+                    const localHoy = new Date(hoy.getTime() - (offset*60*1000));
+                    fechaInput.value = localHoy.toISOString().split('T')[0];
+                }
+                cargarGraficosAvanzados();
+            } else {
+                fechaInput.classList.add('hidden');
+                cargarGraficosAvanzados();
+            }
+        }
+
         function sincronizarGraficosConTema() {
             const isDark = localStorage.getItem('darkMode') === 'true';
             const textColor = isDark ? '#94a3b8' : '#475569';
@@ -982,8 +1012,21 @@
         }
 
         async function cargarGraficosAvanzados() {
+            const filtroTiempo = document.getElementById('filtro-tiempo-avanzado').value;
+            const fechaInput = document.getElementById('filtro-fecha-avanzado');
+            
+            let url = '/api/kpis/stats-avanzadas';
+            if (filtroTiempo === 'dia') {
+                fechaInput.classList.remove('hidden');
+                const fechaVal = fechaInput.value;
+                if (!fechaVal) return; // Esperar a que elija fecha
+                url += `?fecha=${fechaVal}`;
+            } else {
+                fechaInput.classList.add('hidden');
+            }
+
             try {
-                const res = await fetch('/api/kpis/stats-avanzadas');
+                const res = await fetch(url);
                 const data = await res.json();
                 dataHorasRaw = data.horas;
                 

@@ -224,6 +224,17 @@ router.get('/ventas-dia-detalle', async (req, res) => {
 // [NUEVO] Estadísticas avanzadas para gráficos
 router.get('/stats-avanzadas', async (req, res) => {
     try {
+        const { fecha } = req.query; // YYYY-MM-DD o vacío/historico
+        let params = [];
+        let filterBCG = '';
+        let filterHoras = '';
+        
+        if (fecha && fecha !== 'historico') {
+            filterBCG = ` AND v.fecha_venta AT TIME ZONE 'America/La_Paz'::date = $1::date `;
+            filterHoras = ` AND fecha_venta AT TIME ZONE 'America/La_Paz'::date = $1::date `;
+            params = [fecha];
+        }
+
         // 1. Matriz BCG (Rendimiento de Productos)
         const bcgResult = await pool.query(`
             SELECT p.nombre, 
@@ -232,11 +243,11 @@ router.get('/stats-avanzadas', async (req, res) => {
             FROM detalle_ventas dv
             JOIN productos p ON dv.producto_id = p.id
             JOIN ventas v ON dv.venta_id = v.id
-            WHERE v.es_historica = FALSE
+            WHERE v.es_historica = FALSE ${filterBCG}
             GROUP BY p.nombre
             ORDER BY ingresos DESC
             LIMIT 15
-        `);
+        `, params);
 
         // 2. Horas Pico (Agrupado por hora)
         const horasResult = await pool.query(`
@@ -244,10 +255,10 @@ router.get('/stats-avanzadas', async (req, res) => {
                    COUNT(*) as ventas_cont, 
                    SUM(total) as ingresos
             FROM ventas
-            WHERE es_historica = FALSE
+            WHERE es_historica = FALSE ${filterHoras}
             GROUP BY hora
             ORDER BY hora ASC
-        `);
+        `, params);
 
         // 3. Ventas por Categoría (Nuevo para el Dashboard)
         const categoriasResult = await pool.query(`
@@ -256,10 +267,10 @@ router.get('/stats-avanzadas', async (req, res) => {
             JOIN productos p ON dv.producto_id = p.id
             JOIN categorias c ON p.categoria_id = c.id
             JOIN ventas v ON dv.venta_id = v.id
-            WHERE v.es_historica = FALSE
+            WHERE v.es_historica = FALSE ${filterBCG}
             GROUP BY c.nombre
             ORDER BY total DESC
-        `);
+        `, params);
 
         // 4. Productos más vendidos por hora
         const topProductosHoraResult = await pool.query(`
@@ -271,14 +282,14 @@ router.get('/stats-avanzadas', async (req, res) => {
                 FROM detalle_ventas dv
                 JOIN productos p ON dv.producto_id = p.id
                 JOIN ventas v ON dv.venta_id = v.id
-                WHERE v.es_historica = FALSE
+                WHERE v.es_historica = FALSE ${filterBCG}
                 GROUP BY hora, producto
             )
             SELECT hora, producto, total_qty
             FROM ventas_por_hora
             WHERE rnk <= 5
             ORDER BY hora ASC, rnk ASC;
-        `);
+        `, params);
 
         res.json({
             bcg: bcgResult.rows,
