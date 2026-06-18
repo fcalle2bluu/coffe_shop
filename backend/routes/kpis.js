@@ -47,6 +47,14 @@ router.get('/', async (req, res) => {
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `);
 
+        // Salarios pagados del mes
+        const salariosResult = await pool.query(`
+            SELECT COALESCE(SUM(salario_neto), 0) AS total 
+            FROM pagos_salarios 
+            WHERE mes = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND anio = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `);
+
         // Total de Proveedores
         const proveedoresResult = await pool.query(`
             SELECT COUNT(*) AS total 
@@ -64,7 +72,8 @@ router.get('/', async (req, res) => {
         const compras = parseFloat(comprasResult.rows[0].total) || 0;
         const gastosCaja = parseFloat(gastosCajaResult.rows[0].total) || 0;
         const gastosGenerales = parseFloat(gastosGeneralesResult.rows[0].total) || 0;
-        const totalGastos = compras + gastosCaja + gastosGenerales;
+        const salarios = parseFloat(salariosResult.rows[0].total) || 0;
+        const totalGastos = compras + gastosCaja + gastosGenerales + salarios;
 
         // Enviamos todo al Frontend
         res.json({
@@ -100,7 +109,7 @@ router.get('/rendimiento-mensual', async (req, res) => {
                 EXTRACT(YEAR FROM m.month) AS anio,
                 COALESCE(v.total, 0) AS ventas,
                 COALESCE(c.total, 0) AS compras,
-                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos
+                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0) + COALESCE(sal.total, 0)) AS gastos
             FROM (
                 SELECT (generate_series(
                     DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz') - INTERVAL '${meses - 1} months',
@@ -141,6 +150,14 @@ router.get('/rendimiento-mensual', async (req, res) => {
                 FROM gastos_generales
                 GROUP BY mes, anio
             ) g_gen ON EXTRACT(MONTH FROM m.month) = g_gen.mes AND EXTRACT(YEAR FROM m.month) = g_gen.anio
+            LEFT JOIN (
+                SELECT 
+                    mes,
+                    anio,
+                    SUM(salario_neto) AS total
+                FROM pagos_salarios
+                GROUP BY mes, anio
+            ) sal ON EXTRACT(MONTH FROM m.month) = sal.mes AND EXTRACT(YEAR FROM m.month) = sal.anio
             ORDER BY anio ASC, mes ASC
         `;
 
@@ -474,20 +491,29 @@ router.get('/gerencial', async (req, res) => {
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
 
-        const [ventasRes, comprasRes, gastosCajaRes, gastosGeneralesRes, gastosFijosRes] = await Promise.all([
+        const querySalarios = `
+            SELECT COALESCE(SUM(salario_neto), 0) AS total 
+            FROM pagos_salarios 
+            WHERE mes = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND anio = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `;
+
+        const [ventasRes, comprasRes, gastosCajaRes, gastosGeneralesRes, gastosFijosRes, salariosRes] = await Promise.all([
             pool.query(queryVentas),
             pool.query(queryCompras),
             pool.query(queryGastosCaja),
             pool.query(queryGastosGenerales),
-            pool.query(queryGastosFijos)
+            pool.query(queryGastosFijos),
+            pool.query(querySalarios)
         ]);
 
         const ingresos = parseFloat(ventasRes.rows[0].total) || 0;
         const egresosCompras = parseFloat(comprasRes.rows[0].total) || 0;
         const egresosCaja = parseFloat(gastosCajaRes.rows[0].total) || 0;
         const egresosGenerales = parseFloat(gastosGeneralesRes.rows[0].total) || 0;
+        const egresosSalarios = parseFloat(salariosRes.rows[0].total) || 0;
         
-        const egresos = egresosCompras + egresosCaja + egresosGenerales;
+        const egresos = egresosCompras + egresosCaja + egresosGenerales + egresosSalarios;
         const balance = ingresos - egresos;
 
         // Semáforo: Rojo si negativo, Amarillo si neutro o ganancia muy baja (< 200), Verde si > 200
@@ -540,21 +566,31 @@ router.get('/breakdown', async (req, res) => {
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
 
-        const [comprasRes, gastosCajaRes, gastosGeneralesRes] = await Promise.all([
+        const querySalarios = `
+            SELECT COALESCE(SUM(salario_neto), 0) AS total 
+            FROM pagos_salarios 
+            WHERE mes = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND anio = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+        `;
+
+        const [comprasRes, gastosCajaRes, gastosGeneralesRes, salariosRes] = await Promise.all([
             pool.query(queryCompras),
             pool.query(queryGastosCaja),
-            pool.query(queryGastosGenerales)
+            pool.query(queryGastosGenerales),
+            pool.query(querySalarios)
         ]);
 
         const compras = parseFloat(comprasRes.rows[0].total) || 0;
         const gastosCaja = parseFloat(gastosCajaRes.rows[0].total) || 0;
         const gastosGenerales = parseFloat(gastosGeneralesRes.rows[0].total) || 0;
+        const salarios = parseFloat(salariosRes.rows[0].total) || 0;
 
         res.json({
             compras: compras.toFixed(2),
             gastosCaja: gastosCaja.toFixed(2),
             gastosGenerales: gastosGenerales.toFixed(2),
-            totalEgresos: (compras + gastosCaja + gastosGenerales).toFixed(2)
+            salarios: salarios.toFixed(2),
+            totalEgresos: (compras + gastosCaja + gastosGenerales + salarios).toFixed(2)
         });
     } catch (error) {
         console.error('Error en desglose de KPIs:', error);

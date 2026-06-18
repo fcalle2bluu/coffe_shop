@@ -245,7 +245,61 @@
                 </div>
             </div>
 
-            <!-- 1. HORAS PICO (Full width - primero) -->
+            <!-- 2. RENDIMIENTO MENSUAL (Full width) -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">📈 Rendimiento Mensual</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Comparativo de Ingresos (Ventas), Compras (Materia Prima) y Gastos de Operación</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Período:</span>
+                            <select id="filtro-rendimiento-meses" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="3">Últimos 3 meses</option>
+                                <option value="6" selected>Últimos 6 meses</option>
+                                <option value="12">Últimos 12 meses</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-500">Históricas:</span>
+                            <select id="filtro-rendimiento-historicas" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                                <option value="false" selected>Excluir Ventas Históricas</option>
+                                <option value="true">Incluir Ventas Históricas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Summary cards above the chart -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Ventas Totales</span>
+                        <span class="text-base font-extrabold text-emerald-600 mt-1" id="kpi-rendimiento-ventas">Bs. 0.00</span>
+                    </div>
+                    <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Compras (Insumos)</span>
+                        <span class="text-base font-extrabold text-orange-600 mt-1" id="kpi-rendimiento-compras">Bs. 0.00</span>
+                    </div>
+                    <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Gastos de Operación</span>
+                        <span class="text-base font-extrabold text-rose-600 mt-1" id="kpi-rendimiento-gastos">Bs. 0.00</span>
+                    </div>
+                    <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Utilidad Neta (Margen)</span>
+                        <div class="flex items-baseline gap-1.5 mt-1">
+                            <span class="text-base font-extrabold text-blue-600" id="kpi-rendimiento-utilidad">Bs. 0.00</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600" id="kpi-rendimiento-margen">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative h-80">
+                    <canvas id="miGrafico"></canvas>
+                </div>
+            </div>
+
+            <!-- 1. HORAS PICO (Full width - segundo) -->
             <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
@@ -289,36 +343,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- 2. RENDIMIENTO MENSUAL (Full width) -->
-            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-800">📈 Rendimiento Mensual</h2>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">Comparativo de Ingresos (Ventas) vs Egresos (Compras + Gastos)</p>
-                    </div>
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold text-slate-500">Período:</span>
-                            <select id="filtro-rendimiento-meses" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
-                                <option value="3">Últimos 3 meses</option>
-                                <option value="6" selected>Últimos 6 meses</option>
-                                <option value="12">Últimos 12 meses</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold text-slate-500">Históricas:</span>
-                            <select id="filtro-rendimiento-historicas" onchange="cargarRendimientoMensual()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
-                                <option value="false" selected>Excluir Ventas Históricas</option>
-                                <option value="true">Incluir Ventas Históricas</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="relative h-80">
-                    <canvas id="miGrafico"></canvas>
                 </div>
             </div>
 
@@ -1500,13 +1524,47 @@
                 
                 const labels = rendimiento.map(r => `${mesNombres[parseInt(r.mes)]} ${r.anio}`);
                 const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
-                const comprasData = rendimiento.map(r => (parseFloat(r.compras) || 0) + (parseFloat(r.gastos) || 0)); // Compras + Gastos = Total Egresos
+                const comprasData = rendimiento.map(r => parseFloat(r.compras) || 0);
+                const gastosData = rendimiento.map(r => parseFloat(r.gastos) || 0);
                 const beneficioData = rendimiento.map(r => {
                     const v = parseFloat(r.ventas) || 0;
                     const c = parseFloat(r.compras) || 0;
                     const g = parseFloat(r.gastos) || 0;
                     return v - (c + g);
                 });
+
+                // Calcular totales agregados para las tarjetas superiores de KPIs
+                let totalVentas = 0;
+                let totalCompras = 0;
+                let totalGastos = 0;
+                let totalBeneficio = 0;
+
+                rendimiento.forEach(r => {
+                    totalVentas += parseFloat(r.ventas) || 0;
+                    totalCompras += parseFloat(r.compras) || 0;
+                    totalGastos += parseFloat(r.gastos) || 0;
+                });
+                totalBeneficio = totalVentas - (totalCompras + totalGastos);
+
+                const formatoMoneda = (val) => `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`;
+                
+                document.getElementById('kpi-rendimiento-ventas').innerText = formatoMoneda(totalVentas);
+                document.getElementById('kpi-rendimiento-compras').innerText = formatoMoneda(totalCompras);
+                document.getElementById('kpi-rendimiento-gastos').innerText = formatoMoneda(totalGastos);
+                document.getElementById('kpi-rendimiento-utilidad').innerText = formatoMoneda(totalBeneficio);
+
+                // Margen %
+                const margenPorcentaje = totalVentas > 0 ? ((totalBeneficio / totalVentas) * 100).toFixed(1) : '0.0';
+                const elMargen = document.getElementById('kpi-rendimiento-margen');
+                elMargen.innerText = `${margenPorcentaje}%`;
+                
+                if (totalBeneficio >= 0) {
+                    elMargen.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800';
+                    document.getElementById('kpi-rendimiento-utilidad').className = 'text-base font-extrabold text-emerald-600';
+                } else {
+                    elMargen.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800';
+                    document.getElementById('kpi-rendimiento-utilidad').className = 'text-base font-extrabold text-rose-600';
+                }
 
                 const ctx = document.getElementById('miGrafico').getContext('2d');
                 if (!ctx) return;
@@ -1524,25 +1582,33 @@
                                 label: 'Ingresos (Ventas)', 
                                 data: ventasData, 
                                 borderColor: '#10b981', 
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                                backgroundColor: 'rgba(16, 185, 129, 0.05)', 
                                 fill: true, 
-                                tension: 0.4 
+                                tension: 0.35 
                             },
                             { 
-                                label: 'Egresos (Compras + Gastos)', 
+                                label: 'Compras (Materia Prima)', 
                                 data: comprasData, 
+                                borderColor: '#f97316', 
+                                backgroundColor: 'transparent', 
+                                fill: false, 
+                                tension: 0.35 
+                            },
+                            { 
+                                label: 'Gastos Operativos (Personal, Caja, Servicios)', 
+                                data: gastosData, 
                                 borderColor: '#ef4444', 
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                                fill: true, 
-                                tension: 0.4 
+                                backgroundColor: 'transparent', 
+                                fill: false, 
+                                tension: 0.35 
                             },
                             { 
                                 label: 'Beneficio Neto', 
                                 data: beneficioData, 
                                 borderColor: '#3b82f6', 
-                                backgroundColor: 'transparent', 
-                                fill: false, 
-                                tension: 0.4,
+                                backgroundColor: 'rgba(59, 130, 246, 0.05)', 
+                                fill: true, 
+                                tension: 0.35,
                                 borderWidth: 3,
                                 borderDash: [5, 5]
                             }
@@ -1555,8 +1621,8 @@
                             legend: {
                                 position: 'top',
                                 labels: {
-                                    boxWidth: 10,
-                                    font: { size: 10, weight: 'bold' }
+                                    boxWidth: 8,
+                                    font: { size: 9, weight: 'bold' }
                                 }
                             },
                             tooltip: {
