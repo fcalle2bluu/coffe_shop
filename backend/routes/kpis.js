@@ -164,32 +164,32 @@ router.get('/rendimiento-mensual', async (req, res) => {
             FROM days d
             LEFT JOIN (
                 SELECT 
-                    (fecha_venta AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    (fecha_venta AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(total) AS total
                 FROM ventas
-                GROUP BY fecha
-            ) v ON d.fecha = v.fecha
+                GROUP BY (fecha_venta AT TIME ZONE 'America/La_Paz')::date
+            ) v ON d.fecha = v.fecha_dia
             LEFT JOIN (
                 SELECT 
-                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(total) AS total
                 FROM compras
-                GROUP BY fecha
-            ) c ON d.fecha = c.fecha
+                GROUP BY (fecha AT TIME ZONE 'America/La_Paz')::date
+            ) c ON d.fecha = c.fecha_dia
             LEFT JOIN (
                 SELECT 
-                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(monto) AS total
                 FROM gastos_caja
-                GROUP BY fecha
-            ) g_caja ON d.fecha = g_caja.fecha
+                GROUP BY (fecha AT TIME ZONE 'America/La_Paz')::date
+            ) g_caja ON d.fecha = g_caja.fecha_dia
             LEFT JOIN (
                 SELECT 
-                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha,
+                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(monto) AS total
                 FROM gastos_generales
-                GROUP BY fecha
-            ) g_gen ON d.fecha = g_gen.fecha
+                GROUP BY (fecha AT TIME ZONE 'America/La_Paz')::date
+            ) g_gen ON d.fecha = g_gen.fecha_dia
             ORDER BY dia ASC
         `;
 
