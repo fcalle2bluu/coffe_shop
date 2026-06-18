@@ -34,13 +34,15 @@
                         border-color: #1f2937 !important;
                     }
                     /* Texto */
-                    .text-slate-800, .text-gray-800, .text-slate-900, .text-slate-700, .text-gray-700, .text-slate-600, .text-slate-950 {
+                    .text-slate-800, .text-gray-800, .text-slate-900, .text-slate-700, .text-gray-700, .text-slate-600, .text-slate-950,
+                    .text-gray-900, .text-stone-800, .text-stone-700, .text-stone-900, .text-zinc-800, .text-zinc-700, .text-zinc-900,
+                    .text-neutral-800, .text-neutral-700, .text-neutral-900 {
                         color: #f3f4f6 !important;
                     }
-                    .text-slate-500, .text-gray-500, .text-slate-400 {
+                    .text-slate-500, .text-gray-500, .text-slate-400, .text-stone-500, .text-stone-600, .text-zinc-500, .text-zinc-600, .text-neutral-500, .text-neutral-600 {
                         color: #9ca3af !important;
                     }
-                    .text-slate-200, .text-gray-200 {
+                    .text-slate-200, .text-gray-200, .text-stone-200, .text-zinc-200, .text-neutral-200 {
                         color: #d1d5db !important;
                     }
                     /* Inputs, Selects, Textareas */
@@ -73,6 +75,27 @@
                     .hover\\:bg-slate-50:hover, .hover\\:bg-gray-50:hover, .hover\\:bg-slate-100:hover, .hover\\:bg-gray-100:hover {
                         background-color: #1f2937 !important;
                     }
+                    /* Caja pastel boxes overrides in dark mode */
+                    .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
+                    .bg-green-50 { background-color: rgba(34, 197, 94, 0.15) !important; }
+                    .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15) !important; }
+                    .bg-red-50 { background-color: rgba(239, 68, 68, 0.15) !important; }
+                    .bg-teal-50 { background-color: rgba(20, 184, 166, 0.15) !important; }
+                    .bg-amber-50 { background-color: rgba(245, 158, 11, 0.15) !important; }
+
+                    .border-blue-100\\/60 { border-color: rgba(59, 130, 246, 0.3) !important; }
+                    .border-green-100\\/60 { border-color: rgba(34, 197, 94, 0.3) !important; }
+                    .border-purple-100\\/60 { border-color: rgba(168, 85, 247, 0.3) !important; }
+                    .border-red-100\\/60 { border-color: rgba(239, 68, 68, 0.3) !important; }
+                    .border-teal-100\\/60 { border-color: rgba(20, 184, 166, 0.3) !important; }
+                    .border-amber-200\\/60 { border-color: rgba(245, 158, 11, 0.3) !important; }
+
+                    .text-blue-800, .text-blue-900 { color: #60a5fa !important; }
+                    .text-green-800, .text-green-900 { color: #4ade80 !important; }
+                    .text-purple-800, .text-purple-900 { color: #c084fc !important; }
+                    .text-red-800, .text-red-900 { color: #f87171 !important; }
+                    .text-teal-800, .text-teal-900, .text-teal-700 { color: #2dd4bf !important; }
+                    .text-amber-800, .text-amber-900 { color: #fbbf24 !important; }
                 `;
                 document.documentElement.appendChild(styleEl);
             }
