@@ -126,7 +126,38 @@ function actualizarGraficoCostosGastos(asientosFiltrados) {
             }
         }
     });
+
+    // Sincronizar colores del gráfico según el tema cargado
+    sincronizarGraficoConTema();
 }
+
+// === SINCRONIZACIÓN DEL GRÁFICO CON EL TEMA DIARIO (MODO OSCURO) ===
+function sincronizarGraficoConTema() {
+    if (!chartCostosGastosInstance) return;
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    const textColor = isDark ? '#94a3b8' : '#475569';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+
+    if (chartCostosGastosInstance.options.scales) {
+        for (let key in chartCostosGastosInstance.options.scales) {
+            const scale = chartCostosGastosInstance.options.scales[key];
+            if (scale.ticks) {
+                scale.ticks.color = textColor;
+            }
+            if (scale.grid) {
+                scale.grid.color = gridColor;
+            }
+        }
+    }
+    if (chartCostosGastosInstance.options.plugins && chartCostosGastosInstance.options.plugins.legend && chartCostosGastosInstance.options.plugins.legend.labels) {
+        chartCostosGastosInstance.options.plugins.legend.labels.color = textColor;
+    }
+    chartCostosGastosInstance.update();
+}
+
+window.addEventListener('themeChanged', function() {
+    sincronizarGraficoConTema();
+});
 
 // Aplica filtros client-side y re-renderiza la tabla
 function filtrarYRenderizar() {

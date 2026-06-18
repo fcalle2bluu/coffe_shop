@@ -21,7 +21,7 @@
                         color: #f1f5f9 !important;
                     }
                     /* Fondos Gris Claro a Oscuro */
-                    .bg-slate-50, .bg-slate-50\\/60, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
+                    .bg-slate-50, .bg-slate-50\\/60, .bg-slate-50\\/70, .bg-indigo-50\\/60, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
                         background-color: #0f172a !important;
                     }
                     /* Cabecera / Topbar */
@@ -30,7 +30,7 @@
                         border-color: #1f2937 !important;
                     }
                     /* Bordes */
-                    .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-slate-200\\/60, .border, .border-b, .border-t, .border-r, .border-l {
+                    .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-slate-200\\/60, .border, .border-b, .border-t, .border-r, .border-l, .excel-table, .excel-table td, .excel-table th {
                         border-color: #1f2937 !important;
                     }
                     /* Texto */
@@ -120,6 +120,17 @@
                     }
                     .hover\\:bg-orange-100:hover {
                         background-color: rgba(249, 115, 22, 0.18) !important;
+                    }
+                    
+                    /* Libro Diario & Excel Dark Mode overrides */
+                    .text-indigo-600, .text-indigo-700, .text-indigo-800 { color: #818cf8 !important; }
+                    .excel-account-debe {
+                        background-color: rgba(99, 102, 241, 0.2) !important;
+                        color: #a5b4fc !important;
+                    }
+                    .excel-account-haber {
+                        background-color: rgba(148, 163, 184, 0.15) !important;
+                        color: #94a3b8 !important;
                     }
                 `;
                 document.documentElement.appendChild(styleEl);
