@@ -75,27 +75,52 @@
                     .hover\\:bg-slate-50:hover, .hover\\:bg-gray-50:hover, .hover\\:bg-slate-100:hover, .hover\\:bg-gray-100:hover {
                         background-color: #1f2937 !important;
                     }
-                    /* Caja pastel boxes overrides in dark mode */
-                    .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
-                    .bg-green-50 { background-color: rgba(34, 197, 94, 0.15) !important; }
-                    .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15) !important; }
-                    .bg-red-50 { background-color: rgba(239, 68, 68, 0.15) !important; }
-                    .bg-teal-50 { background-color: rgba(20, 184, 166, 0.15) !important; }
-                    .bg-amber-50 { background-color: rgba(245, 158, 11, 0.15) !important; }
+                    .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12) !important; }
+                    .bg-green-50 { background-color: rgba(34, 197, 94, 0.12) !important; }
+                    .bg-purple-50 { background-color: rgba(168, 85, 247, 0.12) !important; }
+                    .bg-red-50 { background-color: rgba(239, 68, 68, 0.12) !important; }
+                    .bg-teal-50 { background-color: rgba(20, 184, 166, 0.12) !important; }
+                    .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12) !important; }
+                    .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12) !important; }
+                    .bg-emerald-50, .bg-emerald-50\\/40, .bg-emerald-50\\/30 { background-color: rgba(16, 185, 129, 0.05) !important; }
 
-                    .border-blue-100\\/60 { border-color: rgba(59, 130, 246, 0.3) !important; }
-                    .border-green-100\\/60 { border-color: rgba(34, 197, 94, 0.3) !important; }
-                    .border-purple-100\\/60 { border-color: rgba(168, 85, 247, 0.3) !important; }
-                    .border-red-100\\/60 { border-color: rgba(239, 68, 68, 0.3) !important; }
-                    .border-teal-100\\/60 { border-color: rgba(20, 184, 166, 0.3) !important; }
-                    .border-amber-200\\/60 { border-color: rgba(245, 158, 11, 0.3) !important; }
+                    .border-blue-100, .border-blue-100\\/60 { border-color: rgba(59, 130, 246, 0.25) !important; }
+                    .border-green-100, .border-green-100\\/60 { border-color: rgba(34, 197, 94, 0.25) !important; }
+                    .border-purple-100, .border-purple-100\\/60 { border-color: rgba(168, 85, 247, 0.25) !important; }
+                    .border-red-100, .border-red-100\\/60 { border-color: rgba(239, 68, 68, 0.25) !important; }
+                    .border-teal-100, .border-teal-100\\/60 { border-color: rgba(20, 184, 166, 0.25) !important; }
+                    .border-amber-100, .border-amber-200, .border-amber-200\\/60 { border-color: rgba(245, 158, 11, 0.25) !important; }
+                    .border-orange-100, .border-orange-200, .border-orange-100\\/60 { border-color: rgba(249, 115, 22, 0.25) !important; }
+                    .border-emerald-100, .border-emerald-200, .border-emerald-100\\/60 { border-color: rgba(16, 185, 129, 0.15) !important; }
 
-                    .text-blue-800, .text-blue-900 { color: #60a5fa !important; }
-                    .text-green-800, .text-green-900 { color: #4ade80 !important; }
-                    .text-purple-800, .text-purple-900 { color: #c084fc !important; }
-                    .text-red-800, .text-red-900 { color: #f87171 !important; }
-                    .text-teal-800, .text-teal-900, .text-teal-700 { color: #2dd4bf !important; }
-                    .text-amber-800, .text-amber-900 { color: #fbbf24 !important; }
+                    .text-blue-700, .text-blue-800, .text-blue-900 { color: #60a5fa !important; }
+                    .text-green-700, .text-green-800, .text-green-900 { color: #4ade80 !important; }
+                    .text-purple-700, .text-purple-800, .text-purple-900 { color: #c084fc !important; }
+                    .text-red-700, .text-red-800, .text-red-900 { color: #f87171 !important; }
+                    .text-teal-700, .text-teal-800, .text-teal-900, .text-teal-700 { color: #2dd4bf !important; }
+                    .text-amber-700, .text-amber-800, .text-amber-900 { color: #fbbf24 !important; }
+                    .text-orange-700, .text-orange-800, .text-orange-900 { color: #fb923c !important; }
+                    .text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-900 { color: #34d399 !important; }
+
+                    /* Additional improvements for buttons & tables */
+                    button.bg-slate-100, button.bg-gray-100, a.bg-slate-100, a.bg-gray-100 {
+                        background-color: #1f2937 !important;
+                        color: #f3f4f6 !important;
+                        border: 1px solid #374151 !important;
+                    }
+                    button.bg-slate-100:hover, button.bg-gray-100:hover, a.bg-slate-100:hover, a.bg-gray-100:hover {
+                        background-color: #374151 !important;
+                        color: #ffffff !important;
+                    }
+                    .hover\\:bg-slate-200:hover, .hover\\:bg-gray-200:hover {
+                        background-color: #374151 !important;
+                    }
+                    .hover\\:bg-emerald-50\\/30:hover {
+                        background-color: rgba(16, 185, 129, 0.12) !important;
+                    }
+                    .hover\\:bg-orange-100:hover {
+                        background-color: rgba(249, 115, 22, 0.18) !important;
+                    }
                 `;
                 document.documentElement.appendChild(styleEl);
             }
