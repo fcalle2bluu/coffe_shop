@@ -329,12 +329,56 @@
             <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
                     <div>
-                        <h2 class="text-lg font-bold text-gray-800">📊 Matriz de Productos (BCG)</h2>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">Clasificación de productos en base a su volumen e ingresos (Estrellas vs Huesos)</p>
+                        <h2 class="text-lg font-bold text-gray-800">📊 Portafolio de Productos (Matriz BCG)</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Análisis estratégico de los 15 productos con mayores ingresos clasificados por su demanda y rendimiento</p>
                     </div>
                 </div>
-                <div class="relative h-80">
-                    <canvas id="chartBCG"></canvas>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <!-- Gráfico Scatter -->
+                    <div class="lg:col-span-3 relative h-80 lg:h-96">
+                        <canvas id="chartBCG"></canvas>
+                    </div>
+                    <!-- Panel Clasificador 2x2 -->
+                    <div class="lg:col-span-2 flex flex-col justify-between">
+                        <div class="grid grid-cols-2 gap-3 h-full">
+                            <!-- Estrellas (Top Right) -->
+                            <div class="rounded-xl p-3 flex flex-col border border-emerald-500/20 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.04]">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-emerald-500 mb-2 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Estrellas ⭐
+                                </h4>
+                                <div class="overflow-y-auto max-h-36 pr-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300" id="bcg-estrellas">
+                                    <!-- JS items here -->
+                                </div>
+                            </div>
+                            <!-- Interrogantes (Top Left) -->
+                            <div class="rounded-xl p-3 flex flex-col border border-amber-500/20 bg-amber-500/[0.02] dark:bg-amber-500/[0.04]">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-amber-500 mb-2 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Interrogantes ❓
+                                </h4>
+                                <div class="overflow-y-auto max-h-36 pr-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300" id="bcg-interrogantes">
+                                    <!-- JS items here -->
+                                </div>
+                            </div>
+                            <!-- Vacas (Bottom Right) -->
+                            <div class="rounded-xl p-3 flex flex-col border border-blue-500/20 bg-blue-500/[0.02] dark:bg-blue-500/[0.04]">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-blue-500 mb-2 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Vacas 🐮
+                                </h4>
+                                <div class="overflow-y-auto max-h-36 pr-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300" id="bcg-vacas">
+                                    <!-- JS items here -->
+                                </div>
+                            </div>
+                            <!-- Huesos (Bottom Left) -->
+                            <div class="rounded-xl p-3 flex flex-col border border-red-500/20 bg-red-500/[0.02] dark:bg-red-500/[0.04]">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-red-500 mb-2 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Huesos 🦴
+                                </h4>
+                                <div class="overflow-y-auto max-h-36 pr-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300" id="bcg-huesos">
+                                    <!-- JS items here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -682,6 +726,7 @@
 
         // === LOGICA DASHBOARD ===
         let chartHorasInst = null;
+        let chartBCGInst = null;
         let dataHorasRaw = [];
         let modoHoras = 'bs'; 
 
@@ -698,7 +743,8 @@
                 chartHorasInst,
                 chartTopProdInst,
                 chartCategoriasInst,
-                chartRendimientoInst
+                chartRendimientoInst,
+                chartBCGInst
             ];
 
             charts.forEach(chart => {
@@ -1006,33 +1052,173 @@
             }
         }
 
+        function renderBCGLists(estrellas, vacas, interrogantes, huesos) {
+            const renderList = (array, containerId) => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                if (array.length === 0) {
+                    container.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-6">Ningún producto</p>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <ul class="flex flex-col gap-1">
+                        ${array.map(p => `
+                            <li class="flex justify-between items-center gap-1.5 py-0.5 border-b border-slate-100 dark:border-slate-800/20 last:border-none">
+                                <span class="truncate max-w-[85px] sm:max-w-[130px] font-bold" title="${p.nombre}">${p.nombre}</span>
+                                <span class="text-[9px] text-slate-400 font-normal shrink-0">${p.volumen} uds | Bs.${Math.round(p.ingresos)}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            };
+
+            renderList(estrellas, 'bcg-estrellas');
+            renderList(vacas, 'bcg-vacas');
+            renderList(interrogantes, 'bcg-interrogantes');
+            renderList(huesos, 'bcg-huesos');
+        }
+
         function renderBCG(productos) {
             const ctx = document.getElementById('chartBCG').getContext('2d');
-            const datasets = productos.map(p => ({
-                label: p.nombre,
-                data: [{ x: parseFloat(p.volumen), y: parseFloat(p.ingresos) }],
-                backgroundColor: p.ingresos > 1000 ? '#f97316' : '#94a3b8',
-                radius: 8
-            }));
+            if (chartBCGInst) {
+                chartBCGInst.destroy();
+            }
 
-            new Chart(ctx, {
+            const N = productos.length;
+            if (N === 0) return;
+
+            // Calcular promedios
+            const avgVol = productos.reduce((sum, p) => sum + parseFloat(p.volumen), 0) / N;
+            const avgIng = productos.reduce((sum, p) => sum + parseFloat(p.ingresos), 0) / N;
+
+            // Clasificar productos para el panel 2x2 lateral
+            const estrellas = [];
+            const vacas = [];
+            const interrogantes = [];
+            const huesos = [];
+
+            productos.forEach(p => {
+                const vol = parseFloat(p.volumen);
+                const ing = parseFloat(p.ingresos);
+                if (vol >= avgVol && ing >= avgIng) {
+                    estrellas.push(p);
+                } else if (vol >= avgVol && ing < avgIng) {
+                    vacas.push(p);
+                } else if (vol < avgVol && ing >= avgIng) {
+                    interrogantes.push(p);
+                } else {
+                    huesos.push(p);
+                }
+            });
+
+            // Pintar el panel 2x2 lateral
+            renderBCGLists(estrellas, vacas, interrogantes, huesos);
+
+            // Generar datasets para el gráfico
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            
+            const datasets = [{
+                label: 'Productos',
+                data: productos.map(p => ({
+                    x: parseFloat(p.volumen),
+                    y: parseFloat(p.ingresos),
+                    nombre: p.nombre
+                })),
+                backgroundColor: productos.map(p => {
+                    const vol = parseFloat(p.volumen);
+                    const ing = parseFloat(p.ingresos);
+                    if (vol >= avgVol && ing >= avgIng) return '#10b981'; // Verde Estrellas
+                    if (vol >= avgVol && ing < avgIng) return '#3b82f6'; // Azul Vacas
+                    if (vol < avgVol && ing >= avgIng) return '#f59e0b'; // Naranja Interrogantes
+                    return '#ef4444'; // Rojo Huesos
+                }),
+                pointRadius: 6,
+                pointHoverRadius: 9
+            }];
+
+            const quadrantPlugin = {
+                id: 'quadrantPlugin',
+                beforeDraw(chart) {
+                    const { ctx, chartArea: { left, top, right, bottom }, scales: { x, y } } = chart;
+                    const midX = x.getPixelForValue(avgVol);
+                    const midY = y.getPixelForValue(avgIng);
+
+                    // 1. Fondos muy tenues
+                    ctx.fillStyle = isDark ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.03)';
+                    ctx.fillRect(midX, top, right - midX, midY - top);
+
+                    ctx.fillStyle = isDark ? 'rgba(245, 158, 11, 0.05)' : 'rgba(245, 158, 11, 0.03)';
+                    ctx.fillRect(left, top, midX - left, midY - top);
+
+                    ctx.fillStyle = isDark ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.03)';
+                    ctx.fillRect(midX, midY, right - midX, bottom - midY);
+
+                    ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.03)';
+                    ctx.fillRect(left, midY, midX - left, bottom - midY);
+
+                    // 2. Líneas cruzadas en promedios
+                    ctx.save();
+                    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([5, 5]);
+
+                    ctx.beginPath();
+                    ctx.moveTo(midX, top);
+                    ctx.lineTo(midX, bottom);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(left, midY);
+                    ctx.lineTo(right, midY);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // 3. Etiquetas en esquinas
+                    ctx.save();
+                    ctx.font = 'bold 9px sans-serif';
+                    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.4)';
+                    
+                    ctx.fillText('⭐ Estrellas', right - 65, top + 12);
+                    ctx.fillText('❓ Interrogantes', left + 8, top + 12);
+                    ctx.fillText('🐮 Vacas', right - 50, bottom - 8);
+                    ctx.fillText('🦴 Huesos', left + 8, bottom - 8);
+                    ctx.restore();
+                }
+            };
+
+            chartBCGInst = new Chart(ctx, {
                 type: 'scatter',
                 data: { datasets: datasets },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.x} Unid. / Bs. ${ctx.raw.y}`
+                                label: (context) => {
+                                    const item = context.raw;
+                                    return `${item.nombre}: ${item.x} uds / Bs. ${item.y}`;
+                                }
                             }
                         }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'Volumen' } },
-                        y: { title: { display: true, text: 'Ingresos (Bs)' } }
+                        x: {
+                            title: { display: true, text: 'Volumen (Unidades vendidas)', color: isDark ? '#9ca3af' : '#6b7280' },
+                            grid: { color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Ingresos (Monto total Bs)', color: isDark ? '#9ca3af' : '#6b7280' },
+                            grid: { color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                        }
                     }
-                }
+                },
+                plugins: [quadrantPlugin]
             });
         }
 
