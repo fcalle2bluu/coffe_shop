@@ -230,3 +230,64 @@ function detectarDispositivo(ua) {
 
     return `${browser} en ${os}`;
 }
+
+async function descargarBackupExcel() {
+    const btn = document.getElementById('btnDescargarBackup');
+    const textEl = document.getElementById('textBackup');
+    const spinner = document.getElementById('spinnerBackup');
+    
+    if (!btn || !textEl || !spinner) return;
+    
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    textEl.textContent = 'Generando Backup...';
+    
+    const usuarioId = localStorage.getItem('usuario_id');
+    
+    try {
+        const response = await fetch(`/api/admin/backup/excel?usuario_id=${usuarioId}`, {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            let errorText = 'Error en el servidor al generar la copia de seguridad.';
+            try {
+                const errJson = await response.json();
+                if (errJson && errJson.error) {
+                    errorText = errJson.error;
+                }
+            } catch (e) {}
+            throw new Error(errorText);
+        }
+        
+        const blob = await response.blob();
+        
+        // Obtenemos el nombre del archivo del header o generamos uno por defecto
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `backup_cafelapaz_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (match && match[1]) {
+                filename = match[1];
+            }
+        }
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.removeAttribute('href');
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        console.error('Error al descargar backup:', error);
+        alert('❌ Error al generar la copia de seguridad:\n' + error.message);
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        textEl.textContent = 'Descargar Backup Completo';
+    }
+}

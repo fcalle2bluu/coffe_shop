@@ -27,6 +27,7 @@ const rutasComprobantes = require('./routes/comprobantes');
 const rutasParametros = require('./routes/parametros');
 const rutasCompras = require('./routes/compras');
 const rutasAuth = require('./routes/auth');
+const rutasAdmin = require('./routes/admin');
 const rutasProveedores = require('./routes/proveedores'); // <--- NUEVA RUTA IMPORTADA
 const rutasPedidosInternos = require('./routes/pedidos_internos');
 const rutasUpload = require('./routes/upload');
@@ -43,6 +44,7 @@ const rutasWhatsapp = require('./routes/whatsapp');
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
 // ==========================================
 app.use('/api/auth', rutasAuth);
+app.use('/api/admin', rutasAdmin);
 app.use('/api/kpis', rutasKpis);
 app.use('/api/almacen', rutasAlmacen); 
 app.use('/api/cotizaciones', rutasCotizaciones);
