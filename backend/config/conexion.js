@@ -38,6 +38,17 @@ pool.query('SELECT NOW()', async (err, res) => {
   } else {
     console.log('✅ ¡CONEXIÓN EXITOSA! MokaPOS está conectado a la base de datos.');
     
+    // 0. Migraciones de Catálogo de WhatsApp
+    try {
+        await pool.query('ALTER TABLE productos ADD COLUMN IF NOT EXISTS meta_catalog_synced_at TIMESTAMP;');
+        await pool.query('ALTER TABLE productos ADD COLUMN IF NOT EXISTS meta_catalog_id VARCHAR(255);');
+        await pool.query('ALTER TABLE productos ADD COLUMN IF NOT EXISTS meta_catalog_error TEXT;');
+        await pool.query('ALTER TABLE parametros ADD COLUMN IF NOT EXISTS ultima_sincronizacion_catalogo TIMESTAMP;');
+        console.log('✅ Migraciones de WhatsApp Catálogo en BD completadas.');
+    } catch (metaCatalogErr) {
+        console.log('Info Migración WhatsApp Catálogo:', metaCatalogErr.message);
+    }
+
     // 1. Asegurarse de que la tabla de usuarios exista
     try {
         await pool.query(`

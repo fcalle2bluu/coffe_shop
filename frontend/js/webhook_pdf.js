@@ -244,3 +244,314 @@ window.filtrarProductosPDF = function() {
         }
     });
 };
+
+// =========================================================================
+// SUB-TABS INTERNAS DE WHATSAPP / MENÚ
+// =========================================================================
+
+window.switchSubTab = function(subTab) {
+    const btnPdf = document.getElementById('subtab-pdf-config');
+    const btnProfile = document.getElementById('subtab-wa-profile');
+    const btnCatalog = document.getElementById('subtab-wa-catalog');
+    
+    const panelPdf = document.getElementById('subpanel-pdf-config');
+    const panelProfile = document.getElementById('subpanel-wa-profile');
+    const panelCatalog = document.getElementById('subpanel-wa-catalog');
+    
+    if (!btnPdf || !btnProfile || !btnCatalog || !panelPdf || !panelProfile || !panelCatalog) return;
+
+    const inactiveClass = "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 font-bold text-xs transition-all focus:outline-none";
+    const activeClass = "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-500 text-white font-bold text-xs transition-all focus:outline-none";
+
+    btnPdf.className = inactiveClass;
+    btnProfile.className = inactiveClass;
+    btnCatalog.className = inactiveClass;
+    
+    panelPdf.classList.add('hidden');
+    panelProfile.classList.add('hidden');
+    panelCatalog.classList.add('hidden');
+
+    if (subTab === 'pdf-config') {
+        btnPdf.className = activeClass;
+        panelPdf.classList.remove('hidden');
+        cargarConfiguracionPDF();
+    } else if (subTab === 'wa-profile') {
+        btnProfile.className = activeClass;
+        panelProfile.classList.remove('hidden');
+        cargarPerfilWhatsApp();
+    } else if (subTab === 'wa-catalog') {
+        btnCatalog.className = activeClass;
+        panelCatalog.classList.remove('hidden');
+        cargarCatalogoWhatsApp();
+    }
+};
+
+// =========================================================================
+// SECCIÓN A: PERFIL DE NEGOCIO WHATSAPP (FRONTEND)
+// =========================================================================
+
+// Cargar Perfil de WhatsApp desde el backend
+window.cargarPerfilWhatsApp = async function() {
+    try {
+        const res = await fetch('/api/whatsapp/perfil');
+        if (!res.ok) throw new Error('Error al conectar con la API de perfil.');
+        const data = await res.json();
+        
+        if (data.error_meta) {
+            console.warn("Advertencia de Meta sobre el perfil:", data.error_meta);
+        }
+
+        // Cargar campos de texto
+        document.getElementById('wa-profile-email').value = data.email || '';
+        document.getElementById('wa-profile-vertical').value = data.vertical || 'OTHER';
+        document.getElementById('wa-profile-web1').value = data.websites[0] || '';
+        document.getElementById('wa-profile-web2').value = data.websites[1] || '';
+        document.getElementById('wa-profile-address').value = data.address || '';
+        document.getElementById('wa-profile-about').value = data.about || '';
+        document.getElementById('wa-profile-description').value = data.description || '';
+
+        // Cargar imagen
+        const img = document.getElementById('wa-profile-img');
+        const placeholder = document.getElementById('wa-profile-img-placeholder');
+        if (data.profile_picture_url) {
+            img.src = data.profile_picture_url;
+            img.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+        } else {
+            img.src = '';
+            img.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error("Error al cargar perfil de WhatsApp:", error);
+        alert("❌ Error al cargar perfil de negocio: " + error.message);
+    }
+};
+
+// Guardar Perfil de WhatsApp
+window.guardarPerfilWhatsApp = async function(event) {
+    event.preventDefault();
+    
+    const btn = document.getElementById('btn-save-wa-profile');
+    if (!btn) return;
+
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Guardando...';
+    btn.disabled = true;
+
+    // Recolectar datos
+    const email = document.getElementById('wa-profile-email').value.trim();
+    const vertical = document.getElementById('wa-profile-vertical').value;
+    const web1 = document.getElementById('wa-profile-web1').value.trim();
+    const web2 = document.getElementById('wa-profile-web2').value.trim();
+    const address = document.getElementById('wa-profile-address').value.trim();
+    const about = document.getElementById('wa-profile-about').value.trim();
+    const description = document.getElementById('wa-profile-description').value.trim();
+
+    const websites = [web1, web2].filter(Boolean);
+
+    try {
+        const res = await fetch('/api/whatsapp/perfil', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                vertical,
+                websites,
+                address,
+                about,
+                description
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || (data.detalle && data.detalle.error && data.detalle.error.message) || 'Error al guardar.');
+        }
+
+        alert('✅ ¡Perfil de WhatsApp guardado en Meta exitosamente!');
+        cargarPerfilWhatsApp();
+    } catch (error) {
+        console.error("Error al guardar perfil de WhatsApp:", error);
+        alert('❌ Error al guardar perfil: ' + error.message);
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+};
+
+// Subir Foto de Perfil
+window.subirFotoPerfilWhatsApp = async function() {
+    const fileInput = document.getElementById('wa-profile-file-input');
+    if (!fileInput || fileInput.files.length === 0) return;
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('foto', file);
+
+    const imgContainer = document.getElementById('wa-profile-img').parentElement;
+    const oldHTML = imgContainer.innerHTML;
+
+    // Animación de subiendo en el círculo de la foto
+    imgContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center text-orange-500">
+            <i class="fa-solid fa-spinner fa-spin text-3xl mb-1"></i>
+            <span class="text-[9px] font-black uppercase tracking-wider">Subiendo...</span>
+        </div>
+    `;
+
+    try {
+        const res = await fetch('/api/whatsapp/perfil/foto', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || (data.detalle && data.detalle.error && data.detalle.error.message) || 'Error al subir.');
+        }
+
+        alert('✅ ¡Foto de perfil de WhatsApp actualizada con éxito!');
+    } catch (error) {
+        console.error("Error al subir foto de perfil:", error);
+        alert('❌ Error al subir foto de perfil: ' + error.message);
+    } finally {
+        imgContainer.innerHTML = oldHTML;
+        cargarPerfilWhatsApp();
+        fileInput.value = '';
+    }
+};
+
+// =========================================================================
+// SECCIÓN B: CATÁLOGO DE WHATSAPP (FRONTEND)
+// =========================================================================
+
+// Cargar estado de Catálogo y tabla de productos
+window.cargarCatalogoWhatsApp = async function() {
+    const tbody = document.getElementById('wa-catalog-tbody');
+    if (!tbody) return;
+
+    try {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-lg text-orange-500 mb-1 block"></i>
+                    Cargando estado del catálogo...
+                </td>
+            </tr>
+        `;
+
+        const res = await fetch('/api/whatsapp/catalogo/estado');
+        if (!res.ok) throw new Error('Error al conectar con la API del catálogo.');
+        const data = await res.json();
+
+        // Cargar tarjetas de resumen
+        document.getElementById('wa-catalog-activos').innerText = data.total_activos || 0;
+        document.getElementById('wa-catalog-sincronizados').innerText = data.total_sincronizados || 0;
+
+        const dateContainer = document.getElementById('wa-catalog-fecha-sinc');
+        if (data.ultima_sincronizacion_global) {
+            const fechaStr = new Date(data.ultima_sincronizacion_global).toLocaleString('es-BO', {
+                hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+            dateContainer.innerText = fechaStr;
+        } else {
+            dateContainer.innerText = 'Nunca';
+        }
+
+        if (data.productos.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="py-8 text-center text-slate-400 italic">
+                        No hay productos registrados en el sistema.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        data.productos.forEach(prod => {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-all";
+
+            const imgHtml = prod.imagen_url
+                ? `<img src="${prod.imagen_url}" class="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-850" alt="Foto">`
+                : `<div class="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 font-bold text-xs flex items-center justify-center border border-orange-100 dark:border-orange-900/30">${prod.nombre.slice(0,2).toUpperCase()}</div>`;
+
+            let statusBadge = '';
+            if (!prod.activo) {
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"><i class="fa-solid fa-eye-slash"></i> Inactivo</span>`;
+            } else if (prod.meta_catalog_synced_at) {
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"><i class="fa-solid fa-circle-check"></i> Sincronizado</span>`;
+            } else if (prod.meta_catalog_error) {
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 cursor-help" title="${prod.meta_catalog_error.replace(/"/g, '&quot;')}"><i class="fa-solid fa-triangle-exclamation"></i> Error</span>`;
+            } else {
+                statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"><i class="fa-solid fa-clock"></i> Pendiente</span>`;
+            }
+
+            let fechaProd = 'Nunca';
+            if (prod.meta_catalog_synced_at) {
+                fechaProd = new Date(prod.meta_catalog_synced_at).toLocaleString('es-BO', {
+                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                });
+            } else if (prod.meta_catalog_error) {
+                fechaProd = 'Fallido';
+            }
+
+            tr.innerHTML = `
+                <td class="py-3.5 px-6 font-bold text-slate-850 dark:text-slate-200">
+                    <div class="flex items-center gap-3">
+                        ${imgHtml}
+                        <span class="truncate max-w-[180px]">${prod.nombre}</span>
+                    </div>
+                </td>
+                <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400">${prod.categoria_nombre || 'Sin Categoría'}</td>
+                <td class="py-3.5 px-4 font-bold text-slate-700 dark:text-slate-350">Bs. ${parseFloat(prod.precio_venta).toFixed(2)}</td>
+                <td class="py-3.5 px-4">${statusBadge}</td>
+                <td class="py-3.5 px-6 text-right text-slate-400 font-medium">${fechaProd}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error al cargar catálogo de WhatsApp:", error);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-rose-500 font-bold">
+                    <i class="fa-solid fa-triangle-exclamation text-lg mb-1 block"></i>
+                    ${error.message || 'No se pudo conectar con el servidor.'}
+                </td>
+            </tr>
+        `;
+    }
+};
+
+// Sincronizar catálogo completo ahora
+window.sincronizarCatalogoWhatsApp = async function() {
+    const btn = document.getElementById('btn-sync-catalog');
+    if (!btn) return;
+
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin mr-1.5"></i> Sincronizando...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/whatsapp/catalogo/sincronizar', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || data.detalle || 'Error al ejecutar sincronización.');
+        }
+
+        alert('✅ ¡Sincronización masiva de catálogo finalizada con éxito!');
+        cargarCatalogoWhatsApp();
+    } catch (error) {
+        console.error("Error al sincronizar catálogo:", error);
+        alert('❌ Error de sincronización: ' + error.message);
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+};
+

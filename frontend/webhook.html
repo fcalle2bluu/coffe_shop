@@ -269,7 +269,7 @@
                     <i class="fa-brands fa-whatsapp text-base"></i> Webhook WhatsApp
                 </button>
                 <button onclick="switchTab('pdf-menu')" id="tab-pdf-menu" class="flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none">
-                    <i class="fa-solid fa-file-pdf text-base"></i> Configurar PDF de Menú
+                    <i class="fa-brands fa-whatsapp text-base"></i> WhatsApp y Menú
                 </button>
                 <button onclick="switchTab('chat')" id="tab-chat" class="flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none">
                     <i class="fa-solid fa-comments text-base"></i> Chat Manual WhatsApp
@@ -391,49 +391,255 @@
 
             <!-- PANEL CONFIGURAR PDF DE MENÚ -->
             <div id="panel-pdf-menu" class="hidden flex flex-col gap-6">
-                <!-- CABECERA ACCIONES -->
-                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
-                                <i class="fa-solid fa-file-pdf text-lg"></i>
+                <!-- SUB-TABS INTERNAS DE WHATSAPP / MENÚ -->
+                <div class="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1 shadow-sm shrink-0 mb-2">
+                    <button onclick="switchSubTab('pdf-config')" id="subtab-pdf-config" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-500 text-white font-bold text-xs transition-all focus:outline-none">
+                        <i class="fa-solid fa-file-pdf"></i> Menú en PDF
+                    </button>
+                    <button onclick="switchSubTab('wa-profile')" id="subtab-wa-profile" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-xs transition-all focus:outline-none">
+                        <i class="fa-solid fa-id-card"></i> Perfil de Negocio
+                    </button>
+                    <button onclick="switchSubTab('wa-catalog')" id="subtab-wa-catalog" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-xs transition-all focus:outline-none">
+                        <i class="fa-solid fa-store"></i> Catálogo de WhatsApp
+                    </button>
+                </div>
+
+                <!-- SUB-PANEL CONFIGURAR PDF DE MENÚ -->
+                <div id="subpanel-pdf-config" class="flex flex-col gap-6">
+                    <!-- CABECERA ACCIONES -->
+                    <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                                    <i class="fa-solid fa-file-pdf text-lg"></i>
+                                </div>
+                                <h2 class="font-bold text-slate-800 text-base">Configuración del PDF del Menú</h2>
                             </div>
-                            <h2 class="font-bold text-slate-800 text-base">Configuración del PDF del Menú</h2>
+                            <p class="text-xs text-slate-500">Selecciona qué productos y en qué orden aparecerán en la carta en PDF.</p>
                         </div>
-                        <p class="text-xs text-slate-500">Selecciona qué productos y en qué orden aparecerán en la carta en PDF.</p>
+                        
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button onclick="seleccionarTodosGeneral(true)" class="px-3 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all">
+                                Marcar Todos
+                            </button>
+                            <button onclick="seleccionarTodosGeneral(false)" class="px-3 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all">
+                                Desmarcar Todos
+                            </button>
+                            <button onclick="guardarConfiguracionPDF()" id="btnGuardarPDFConfig" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all text-xs flex items-center gap-1.5 btn-bounce">
+                                <i class="fa-solid fa-save"></i> Guardar Configuración
+                            </button>
+                            <a href="/api/menu-pdf/generar" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-100 transition-all text-xs flex items-center gap-1.5 btn-bounce">
+                                <i class="fa-solid fa-download"></i> Descargar PDF
+                            </a>
+                        </div>
                     </div>
-                    
-                    <div class="flex flex-wrap items-center gap-3">
-                        <button onclick="seleccionarTodosGeneral(true)" class="px-3 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all">
-                            Marcar Todos
-                        </button>
-                        <button onclick="seleccionarTodosGeneral(false)" class="px-3 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-all">
-                            Desmarcar Todos
-                        </button>
-                        <button onclick="guardarConfiguracionPDF()" id="btnGuardarPDFConfig" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all text-xs flex items-center gap-1.5 btn-bounce">
-                            <i class="fa-solid fa-save"></i> Guardar Configuración
-                        </button>
-                        <a href="/api/menu-pdf/generar" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-100 transition-all text-xs flex items-center gap-1.5 btn-bounce">
-                            <i class="fa-solid fa-download"></i> Descargar PDF
-                        </a>
+
+                    <!-- BUSCADOR -->
+                    <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-4">
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="busqueda-productos-pdf" oninput="filtrarProductosPDF()" placeholder="Buscar productos por nombre o categoría..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-3 text-xs focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR DE CATEGORÍAS -->
+                    <div id="categorias-pdf-container" class="flex flex-col gap-6">
+                        <div class="text-center py-12 text-slate-400">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl text-orange-500 mb-2 block"></i>
+                            Cargando catálogo de productos...
+                        </div>
                     </div>
                 </div>
 
-                <!-- BUSCADOR -->
-                <div class="bg-white rounded-xl shadow-premium border border-slate-100 p-4">
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="busqueda-productos-pdf" oninput="filtrarProductosPDF()" placeholder="Buscar productos por nombre o categoría..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-3 text-xs focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                <!-- SUB-PANEL PERFIL DE NEGOCIO WHATSAPP -->
+                <div id="subpanel-wa-profile" class="hidden flex flex-col gap-6">
+                    <!-- CABECERA -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-5">
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-8 h-8 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center text-orange-600">
+                                <i class="fa-solid fa-id-card text-lg"></i>
+                            </div>
+                            <h2 class="font-bold text-slate-800 dark:text-slate-100 text-base">Perfil de Negocio en WhatsApp</h2>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Configura la información pública de tu cafetería visible para los clientes en WhatsApp.</p>
+                    </div>
+
+                    <!-- FORMULARIO DE PERFIL -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Columna Izquierda: Foto de Perfil -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-6 flex flex-col items-center justify-center text-center gap-4">
+                            <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm mb-2 w-full text-left">Foto de Perfil</h3>
+                            <div class="relative w-36 h-36 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-md bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+                                <img id="wa-profile-img" src="" alt="Foto de perfil" class="hidden w-full h-full object-cover">
+                                <div id="wa-profile-img-placeholder" class="text-slate-300 dark:text-slate-700 flex flex-col items-center">
+                                    <i class="fa-solid fa-store text-4xl mb-1"></i>
+                                    <span class="text-[10px] font-bold text-slate-400">Sin Imagen</span>
+                                </div>
+                            </div>
+                            <div class="w-full">
+                                <input type="file" id="wa-profile-file-input" accept="image/png, image/jpeg" class="hidden" onchange="subirFotoPerfilWhatsApp()">
+                                <button onclick="document.getElementById('wa-profile-file-input').click()" class="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-upload"></i> Subir Nueva Foto
+                                </button>
+                                <p class="text-[9px] text-slate-400 mt-2">Formatos aceptados: JPG o PNG. Tamaño máximo 5MB.</p>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Campos de Texto -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-6 lg:col-span-2 flex flex-col gap-4">
+                            <form id="form-wa-profile" onsubmit="guardarPerfilWhatsApp(event)" class="flex flex-col gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Correo -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico</label>
+                                        <input type="email" id="wa-profile-email" placeholder="contacto@empresa.com" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                    <!-- Categoría/Vertical -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría del Negocio (Vertical)</label>
+                                        <select id="wa-profile-vertical" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                            <option value="OTHER">Otro</option>
+                                            <option value="RESTAURANT" selected>Restaurante</option>
+                                            <option value="GROCERY">Tienda de Abarrotes / Supermercado</option>
+                                            <option value="RETAIL">Comercio Minorista / Tienda</option>
+                                            <option value="PROF_SERVICES">Servicios Profesionales</option>
+                                            <option value="HOTEL">Hotel / Alojamiento</option>
+                                            <option value="HEALTH">Salud / Clínicas</option>
+                                            <option value="FINANCE">Finanzas / Banco</option>
+                                            <option value="EVENT_PLAN">Planificación de Eventos</option>
+                                            <option value="ENTRTN">Entretenimiento / Ocio</option>
+                                            <option value="EDU">Educación / Colegios</option>
+                                            <option value="BEAUTY">Belleza / Salón / Spa</option>
+                                            <option value="AUTO">Automotriz</option>
+                                            <option value="APPAREL">Ropa / Accesorios</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Sitio Web 1 -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sitio Web 1</label>
+                                        <input type="url" id="wa-profile-web1" placeholder="https://www.ejemplo.com" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                    <!-- Sitio Web 2 -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sitio Web 2 (Opcional)</label>
+                                        <input type="url" id="wa-profile-web2" placeholder="https://www.otro.com" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                <!-- Dirección -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Dirección Física</label>
+                                    <input type="text" id="wa-profile-address" placeholder="Av. Principal #123, Zona Central" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                </div>
+
+                                <!-- Estado / About -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Estado de WhatsApp (About / Info) <span class="text-[10px] text-slate-400">(Max 139 caracteres)</span></label>
+                                    <input type="text" id="wa-profile-about" maxlength="139" placeholder="¡Hola! Estamos usando WhatsApp." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all">
+                                </div>
+
+                                <!-- Descripción -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Descripción del Negocio <span class="text-[10px] text-slate-400">(Max 512 caracteres)</span></label>
+                                    <textarea id="wa-profile-description" rows="3" maxlength="512" placeholder="Describe los servicios de tu cafetería..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none transition-all resize-none"></textarea>
+                                </div>
+
+                                <!-- Botón Guardar -->
+                                <div class="flex justify-end mt-2">
+                                    <button type="submit" id="btn-save-wa-profile" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-orange-100 dark:shadow-none transition-all text-xs flex items-center gap-1.5 btn-bounce">
+                                        <i class="fa-solid fa-save"></i> Guardar Perfil en WhatsApp
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
-                <!-- CONTENEDOR DE CATEGORÍAS -->
-                <div id="categorias-pdf-container" class="flex flex-col gap-6">
-                    <div class="text-center py-12 text-slate-400">
-                        <i class="fa-solid fa-spinner fa-spin text-2xl text-orange-500 mb-2 block"></i>
-                        Cargando catálogo de productos...
+                <!-- SUB-PANEL CATÁLOGO DE WHATSAPP -->
+                <div id="subpanel-wa-catalog" class="hidden flex flex-col gap-6">
+                    <!-- CABECERA Y ACCIONES -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="w-8 h-8 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center text-orange-600">
+                                    <i class="fa-solid fa-store text-lg"></i>
+                                </div>
+                                <h2 class="font-bold text-slate-800 dark:text-slate-100 text-base">Catálogo de WhatsApp</h2>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Sincroniza tus productos activos locales con el catálogo de Meta Commerce Manager.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button onclick="sincronizarCatalogoWhatsApp()" id="btn-sync-catalog" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-orange-100 dark:shadow-none transition-all text-xs flex items-center gap-1.5 btn-bounce">
+                                <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Catálogo Ahora
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TARJETAS DE RESUMEN -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Conteo Activos -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-5 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xl shrink-0">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Productos Activos</span>
+                                <span id="wa-catalog-activos" class="block text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Conteo Sincronizados -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-5 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl shrink-0">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Sincronizados en Meta</span>
+                                <span id="wa-catalog-sincronizados" class="block text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Última Sincronización -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 p-5 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-orange-50 dark:bg-orange-950/50 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl shrink-0">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Última Sincronización</span>
+                                <span id="wa-catalog-fecha-sinc" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">Nunca</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABLA DETALLE DE PRODUCTOS -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-premium border border-slate-100 dark:border-slate-800 overflow-hidden">
+                        <div class="px-6 py-4 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-table-list text-orange-500"></i> Detalle de Sincronización por Producto
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-950/30">
+                                        <th class="py-3 px-6">Producto</th>
+                                        <th class="py-3 px-4">Categoría</th>
+                                        <th class="py-3 px-4">Precio</th>
+                                        <th class="py-3 px-4">Estado Meta</th>
+                                        <th class="py-3 px-6 text-right">Último Intento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wa-catalog-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs">
+                                    <!-- Filas cargadas dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

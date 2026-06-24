@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const whatsappRoutes = require('./whatsapp');
 
 // 1. Obtener catálogo de productos para el POS
 router.get('/productos', async (req, res) => {
@@ -54,7 +55,14 @@ router.post('/productos', async (req, res) => {
             'INSERT INTO productos (nombre, precio_venta, categoria_id, imagen_url, activo) VALUES ($1, $2, $3, $4, TRUE) RETURNING id',
             [nombre, precio_venta, categoria_id, imagen_url || null]
         );
-        res.status(201).json({ id: result.rows[0].id });
+        const newId = result.rows[0].id;
+
+        // Hook automático asíncrono
+        if (whatsappRoutes && typeof whatsappRoutes.syncProductToMeta === 'function') {
+            whatsappRoutes.syncProductToMeta(newId).catch(err => console.error("Error de sync automático:", err.message));
+        }
+
+        res.status(201).json({ id: newId });
     } catch (error) {
         console.error('Error al crear producto:', error);
         res.status(500).json({ error: 'Error interno al crear producto' });
@@ -70,6 +78,12 @@ router.put('/productos/:id', async (req, res) => {
             'UPDATE productos SET nombre = $1, precio_venta = $2, categoria_id = $3, imagen_url = $4 WHERE id = $5',
             [nombre, precio_venta, categoria_id, imagen_url || null, id]
         );
+
+        // Hook automático asíncrono
+        if (whatsappRoutes && typeof whatsappRoutes.syncProductToMeta === 'function') {
+            whatsappRoutes.syncProductToMeta(id).catch(err => console.error("Error de sync automático:", err.message));
+        }
+
         res.json({ success: true });
     } catch (error) {
         console.error('Error al modificar producto:', error);
@@ -83,6 +97,12 @@ router.delete('/productos/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM detalle_ventas WHERE producto_id = $1', [id]);
         await pool.query('DELETE FROM productos WHERE id = $1', [id]);
+
+        // Hook automático asíncrono
+        if (whatsappRoutes && typeof whatsappRoutes.deleteProductFromMeta === 'function') {
+            whatsappRoutes.deleteProductFromMeta(id).catch(err => console.error("Error de sync automático al eliminar:", err.message));
+        }
+
         res.json({ success: true, message: 'Producto eliminado exitosamente.' });
     } catch (error) {
         console.error('Error al eliminar producto:', error);

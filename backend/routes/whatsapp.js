@@ -373,4 +373,408 @@ router.post('/chat/enviar', async (req, res) => {
     }
 });
 
+// =========================================================================
+// SECTION A: PERFIL DE NEGOCIO EN WHATSAPP
+// =========================================================================
+
+// Configurar Multer en memoria para subida de fotos
+const multer = require('multer');
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // límite 5MB
+});
+
+// A.1 Obtener Perfil de WhatsApp
+router.get('/perfil', async (req, res) => {
+    try {
+        const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`;
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+        });
+        const metaData = await response.json();
+        
+        // Obtener parámetros locales como sugerencia/fallback
+        const dbResult = await pool.query('SELECT * FROM parametros WHERE id = 1');
+        const dbParams = dbResult.rows[0] || {};
+        
+        if (!response.ok) {
+            console.error('❌ Error al obtener perfil desde Meta:', metaData);
+            return res.json({
+                error_meta: metaData,
+                about: '',
+                address: dbParams.direccion || '',
+                description: '',
+                email: dbParams.correo || '',
+                profile_picture_url: '',
+                websites: [],
+                vertical: 'OTHER',
+                sugerencias: {
+                    address: dbParams.direccion || '',
+                    email: dbParams.correo || '',
+                    nombre_empresa: dbParams.nombre_empresa || ''
+                }
+            });
+        }
+
+        const profile = metaData.data ? metaData.data[0] : {};
+        
+        // Prellenar si viene vacío pero existe en local
+        const resultData = {
+            about: profile.about || '',
+            address: profile.address || dbParams.direccion || '',
+            description: profile.description || '',
+            email: profile.email || dbParams.correo || '',
+            profile_picture_url: profile.profile_picture_url || '',
+            websites: profile.websites || [],
+            vertical: profile.vertical || 'OTHER',
+            sugerencias: {
+                address: dbParams.direccion || '',
+                email: dbParams.correo || '',
+                nombre_empresa: dbParams.nombre_empresa || ''
+            }
+        };
+        res.json(resultData);
+    } catch (err) {
+        console.error('Error al consultar perfil de WhatsApp:', err.message);
+        res.status(500).json({ error: 'Error al consultar perfil de WhatsApp.' });
+    }
+});
+
+// A.2 Guardar Perfil de WhatsApp
+router.post('/perfil', async (req, res) => {
+    const { about, address, description, email, websites, vertical } = req.body;
+    
+    // Validaciones básicas de límites oficiales de Meta
+    if (about && about.length > 139) {
+        return res.status(400).json({ error: 'El estado (About) no puede superar los 139 caracteres.' });
+    }
+    if (description && description.length > 512) {
+        return res.status(400).json({ error: 'La descripción no puede superar los 512 caracteres.' });
+    }
+    if (address && address.length > 256) {
+        return res.status(400).json({ error: 'La dirección no puede superar los 256 caracteres.' });
+    }
+    if (email && email.length > 128) {
+        return res.status(400).json({ error: 'El correo no puede superar los 128 caracteres.' });
+    }
+
+    try {
+        const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/whatsapp_business_profile`;
+        
+        const bodyData = {
+            messaging_product: 'whatsapp',
+            vertical: vertical || 'OTHER'
+        };
+        
+        if (about !== undefined) bodyData.about = about;
+        if (address !== undefined) bodyData.address = address;
+        if (description !== undefined) bodyData.description = description;
+        if (email !== undefined) bodyData.email = email;
+        if (websites !== undefined) {
+            bodyData.websites = Array.isArray(websites) ? websites.slice(0, 2) : [websites].filter(Boolean).slice(0, 2);
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: JSON.stringify(bodyData)
+        });
+        const metaData = await response.json();
+
+        if (!response.ok) {
+            console.error('❌ Error al actualizar perfil en Meta:', metaData);
+            return res.status(response.status).json({ error: 'Meta rechazó la actualización del perfil.', detalle: metaData });
+        }
+        res.json({ success: true, message: 'Perfil de WhatsApp actualizado exitosamente.' });
+    } catch (err) {
+        console.error('Error al actualizar perfil de WhatsApp:', err.message);
+        res.status(500).json({ error: 'Error al actualizar perfil de WhatsApp.' });
+    }
+});
+
+// A.3 Actualizar Foto de Perfil
+router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se recibió ningún archivo de imagen.' });
+    }
+
+    try {
+        // 1. Subir archivo a Meta para obtener media handle
+        const mediaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/media`;
+        const formData = new FormData();
+        formData.append('messaging_product', 'whatsapp');
+        
+        const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+        formData.append('file', fileBlob, req.file.originalname);
+
+        const mediaResponse = await fetch(mediaUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: formData
+        });
+        const mediaData = await mediaResponse.json();
+
+        if (!mediaResponse.ok) {
+            console.error('❌ Error al subir imagen a Meta:', mediaData);
+            return res.status(mediaResponse.status).json({ error: 'Meta rechazó la subida de la imagen.', detalle: mediaData });
+        }
+
+        const mediaId = mediaData.id;
+
+        // 2. Asociar el media handle al perfil de negocio
+        const profileUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/whatsapp_business_profile`;
+        const profileResponse = await fetch(profileUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                profile_picture_handle: mediaId
+            })
+        });
+        const profileData = await profileResponse.json();
+
+        if (!profileResponse.ok) {
+            console.error('❌ Error al vincular foto de perfil:', profileData);
+            return res.status(profileResponse.status).json({ error: 'Meta no pudo vincular la nueva foto de perfil.', detalle: profileData });
+        }
+
+        res.json({ success: true, message: 'Foto de perfil de WhatsApp actualizada exitosamente.' });
+    } catch (err) {
+        console.error('Error al subir foto de perfil de WhatsApp:', err.message);
+        res.status(500).json({ error: 'Error interno al actualizar la foto de perfil.' });
+    }
+});
+
+// =========================================================================
+// SECTION B: CATÁLOGO DE PRODUCTOS EN WHATSAPP
+// =========================================================================
+
+const CATALOG_ID = "1491023345613664";
+
+// B.1 Obtener estado del catálogo y lista de productos
+router.get('/catalogo/estado', async (req, res) => {
+    try {
+        const totalResult = await pool.query('SELECT COUNT(*)::integer FROM productos WHERE activo = TRUE');
+        const totalActivos = totalResult.rows[0].count;
+
+        const syncedResult = await pool.query('SELECT COUNT(*)::integer FROM productos WHERE meta_catalog_synced_at IS NOT NULL AND activo = TRUE');
+        const totalSincronizados = syncedResult.rows[0].count;
+
+        const paramResult = await pool.query('SELECT ultima_sincronizacion_catalogo FROM parametros WHERE id = 1');
+        const ultimaSinc = paramResult.rows[0]?.ultima_sincronizacion_catalogo || null;
+
+        const prodQuery = `
+            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, p.activo, 
+                   p.meta_catalog_synced_at, p.meta_catalog_error, p.meta_catalog_id,
+                   c.nombre as categoria_nombre
+            FROM productos p
+            LEFT JOIN categorias c ON p.categoria_id = c.id
+            ORDER BY p.nombre ASC
+        `;
+        const prodResult = await pool.query(prodQuery);
+
+        res.json({
+            total_activos: totalActivos,
+            total_sincronizados: totalSincronizados,
+            ultima_sincronizacion_global: ultimaSinc,
+            productos: prodResult.rows
+        });
+    } catch (err) {
+        console.error('Error al cargar estado del catálogo:', err.message);
+        res.status(500).json({ error: 'Error al consultar estado de sincronización.' });
+    }
+});
+
+// Helper para sincronizar productos por lote a Meta y actualizar la BD local
+async function ejecutarSincronizacionLote(productos) {
+    if (productos.length === 0) return { success: true, count: 0 };
+
+    const url = `https://graph.facebook.com/v18.0/${CATALOG_ID}/items_batch`;
+    
+    const requests = productos.map(prod => {
+        const fallbackImg = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500";
+        const cleanPrice = parseFloat(prod.precio_venta).toFixed(2);
+        const availability = prod.activo ? "in stock" : "out of stock";
+
+        return {
+            method: prod.meta_catalog_synced_at ? "UPDATE" : "CREATE",
+            data: {
+                id: String(prod.id),
+                title: prod.nombre,
+                description: `Delicioso producto ${prod.nombre} de Café La Paz`,
+                price: `${cleanPrice} BOB`,
+                image_link: prod.imagen_url || fallbackImg,
+                availability: availability
+            }
+        };
+    });
+
+    const bodyData = {
+        item_type: "PRODUCT_ITEM",
+        requests: requests
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: JSON.stringify(bodyData)
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('❌ Error de lote en Meta:', data);
+            throw new Error(data.error?.message || 'Error en petición de lote a Meta.');
+        }
+
+        const handle = data.handles ? data.handles[0] : null;
+        if (!handle) {
+            throw new Error('No se recibió handle de procesamiento de Meta.');
+        }
+
+        // Hacer un polling rápido (máximo 5 segundos) para comprobar el estado final
+        let finalStatus = null;
+        for (let i = 0; i < 5; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const statusUrl = `https://graph.facebook.com/v18.0/${CATALOG_ID}/check_batch_request_status?handle=${handle}`;
+            const statusRes = await fetch(statusUrl, {
+                headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+            });
+            const statusData = await statusRes.json();
+            
+            if (statusRes.ok && statusData.status === 'FINISHED') {
+                finalStatus = statusData;
+                break;
+            }
+        }
+
+        if (finalStatus && finalStatus.errors && finalStatus.errors.length > 0) {
+            const errorMap = {};
+            finalStatus.errors.forEach(errItem => {
+                if (errItem.retailer_id) {
+                    errorMap[errItem.retailer_id] = errItem.message;
+                }
+            });
+
+            for (const prod of productos) {
+                const prodIdStr = String(prod.id);
+                if (errorMap[prodIdStr]) {
+                    await pool.query(
+                        'UPDATE productos SET meta_catalog_synced_at = NULL, meta_catalog_error = $1 WHERE id = $2',
+                        [errorMap[prodIdStr], prod.id]
+                    );
+                } else {
+                    await pool.query(
+                        'UPDATE productos SET meta_catalog_synced_at = NOW(), meta_catalog_error = NULL, meta_catalog_id = $1 WHERE id = $2',
+                        [`meta_${prod.id}`, prod.id]
+                    );
+                }
+            }
+        } else {
+            for (const prod of productos) {
+                await pool.query(
+                    'UPDATE productos SET meta_catalog_synced_at = NOW(), meta_catalog_error = NULL, meta_catalog_id = $1 WHERE id = $2',
+                    [`meta_${prod.id}`, prod.id]
+                );
+            }
+        }
+
+        await pool.query('UPDATE parametros SET ultima_sincronizacion_catalogo = NOW() WHERE id = 1');
+        return { success: true, count: productos.length };
+
+    } catch (err) {
+        console.error('Error procesando lote de catálogo:', err.message);
+        for (const prod of productos) {
+            await pool.query(
+                'UPDATE productos SET meta_catalog_error = $1 WHERE id = $2',
+                [err.message, prod.id]
+            );
+        }
+        throw err;
+    }
+}
+
+// B.2 Sincronización Manual Completa
+router.post('/catalogo/sincronizar', async (req, res) => {
+    try {
+        const query = 'SELECT id, nombre, precio_venta, imagen_url, activo, meta_catalog_synced_at FROM productos WHERE activo = TRUE';
+        const { rows } = await pool.query(query);
+        
+        if (rows.length === 0) {
+            return res.json({ success: true, message: 'No hay productos activos para sincronizar.' });
+        }
+
+        const result = await ejecutarSincronizacionLote(rows);
+        res.json({ success: true, message: `Sincronización finalizada. ${result.count} productos procesados.` });
+    } catch (err) {
+        console.error('Error en sincronización manual:', err.message);
+        res.status(500).json({ error: 'Error durante la sincronización.', detalle: err.message });
+    }
+});
+
+// --- HOOKS EXPORTADOS PARA REAL-TIME SYNC ---
+
+async function syncProductToMeta(productId) {
+    try {
+        const query = 'SELECT id, nombre, precio_venta, imagen_url, activo, meta_catalog_synced_at FROM productos WHERE id = $1';
+        const { rows } = await pool.query(query, [productId]);
+        if (rows.length === 0) return;
+        
+        await ejecutarSincronizacionLote(rows);
+        console.log(`📡 Sincronización individual completada para producto ID ${productId}`);
+    } catch (err) {
+        console.error(`❌ Sincronización automática falló para producto ID ${productId}:`, err.message);
+    }
+}
+
+async function deleteProductFromMeta(productId) {
+    const url = `https://graph.facebook.com/v18.0/${CATALOG_ID}/items_batch`;
+    const bodyData = {
+        item_type: "PRODUCT_ITEM",
+        requests: [
+            {
+                method: "DELETE",
+                data: {
+                    id: String(productId)
+                }
+            }
+        ]
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: JSON.stringify(bodyData)
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error(`❌ Error al eliminar producto ID ${productId} de Meta:`, data);
+        } else {
+            console.log(`📡 Producto ID ${productId} eliminado del catálogo de Meta exitosamente.`);
+        }
+    } catch (err) {
+        console.error(`❌ Error de red al eliminar producto ID ${productId} de Meta:`, err.message);
+    }
+}
+
+// Exportar hooks de sincronización en el router
+router.syncProductToMeta = syncProductToMeta;
+router.deleteProductFromMeta = deleteProductFromMeta;
+
 module.exports = router;
