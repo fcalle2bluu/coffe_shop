@@ -3,6 +3,7 @@ let cajaActualId = null;
 let efectivoEsperadoEnCaja = 0;
 
 function formatMontoCensurado(val, prefix = 'Bs. ') {
+    if (val === null || val === undefined) return 'Oculto';
     const censurar = localStorage.getItem('caja_censura_activa') === 'true';
     if (censurar) return `${prefix}***`;
     const num = parseFloat(val);
@@ -71,7 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function cargarEstadoCaja() {
     try {
-        const res = await fetch('/api/caja/estado');
+        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const res = await fetch(`/api/caja/estado?usuario_id=${usuarioId}`);
         const data = await res.json();
 
         const panelEstado = document.getElementById('panel-estado');
@@ -147,7 +149,8 @@ async function cargarEstadoCaja() {
 
 async function cargarHistorial() {
     try {
-        const res = await fetch('/api/caja/historial');
+        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const res = await fetch(`/api/caja/historial?usuario_id=${usuarioId}`);
         const historial = await res.json();
         window.historialTurnosCache = historial;
         const tbody = document.getElementById('tabla-historial');
@@ -278,8 +281,21 @@ function abrirModalApertura() {
 }
 
 function abrirModalCierre() {
-    document.getElementById('lbl-esperado').innerText = `Bs. ${efectivoEsperadoEnCaja.toFixed(2)}`;
-    document.getElementById('inputSaldoFinal').value = efectivoEsperadoEnCaja.toFixed(2);
+    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const desc = document.getElementById('cierre-caja-desc');
+    
+    if (rolActual === 'CAJERO') {
+        if (desc) {
+            desc.innerHTML = "Cuenta el efectivo en tu cajón e ingrésalo aquí para realizar el cierre de caja a ciegas.";
+        }
+        document.getElementById('inputSaldoFinal').value = '';
+    } else {
+        const espVal = typeof efectivoEsperadoEnCaja === 'number' && !isNaN(efectivoEsperadoEnCaja) ? efectivoEsperadoEnCaja : 0;
+        if (desc) {
+            desc.innerHTML = `Cuenta el efectivo en tu cajón e ingrésalo aquí. El sistema esperaba <strong id="lbl-esperado" class="text-red-600">Bs. ${espVal.toFixed(2)}</strong>.`;
+        }
+        document.getElementById('inputSaldoFinal').value = espVal.toFixed(2);
+    }
     document.getElementById('modalCerrar').classList.remove('hidden');
 }
 
@@ -354,7 +370,8 @@ const mesesNombres = {
 
 async function cargarHistorialVentasAdmin() {
     try {
-        const res = await fetch('/api/caja/historial-ventas-cajeros');
+        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const res = await fetch(`/api/caja/historial-ventas-cajeros?usuario_id=${usuarioId}`);
         if (!res.ok) throw new Error('Error de red');
         const ventas = await res.json();
         
@@ -688,7 +705,8 @@ async function cargarVentasRealizadas() {
     const esAdmin   = rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR';
 
     try {
-        const res = await fetch('/api/caja/historial-ventas-cajeros');
+        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const res = await fetch(`/api/caja/historial-ventas-cajeros?usuario_id=${usuarioId}`);
         if (!res.ok) throw new Error('Error al cargar ventas');
         _todasLasVentas = await res.json();
 

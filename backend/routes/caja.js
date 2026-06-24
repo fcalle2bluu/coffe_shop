@@ -5,7 +5,20 @@ const pool = require('../config/conexion');
 
 // 1. Obtener el estado actual de la caja y sus ventas en vivo
 router.get('/estado', async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
+    }
+
     try {
+        // Validar rol de usuario
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+        const esCajero = userRol === 'CAJERO';
+
         // Buscar si hay una caja abierta (fecha_cierre es null)
         const cajaRes = await pool.query(`
             SELECT c.*, u.nombre as usuario_nombre,
@@ -50,10 +63,10 @@ router.get('/estado', async (req, res) => {
 
         res.json({
             abierta: true,
-            caja: cajaActiva,
+            caja: esCajero ? { ...cajaActiva, saldo_inicial: null } : cajaActiva,
             ventas: ventas,
             total_gastos: totalGastos,
-            efectivo_esperado: efectivoEsperado
+            efectivo_esperado: esCajero ? null : efectivoEsperado
         });
 
     } catch (error) {
@@ -129,7 +142,22 @@ router.post('/cerrar', async (req, res) => {
 
 // 4. Obtener el historial de cajas pasadas
 router.get('/historial', async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
+    }
+
     try {
+        // Validar rol de usuario
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+        if (userRol === 'CAJERO') {
+            return res.status(403).json({ error: 'Acceso denegado. No tienes permiso para ver el historial de caja.' });
+        }
+
         const result = await pool.query(`
             SELECT 
                 c.id, 
@@ -175,8 +203,21 @@ router.get('/historial', async (req, res) => {
 
 // 5. [NUEVO] Obtener historial exhaustivo de ventas por cajero
 router.get('/historial-ventas-cajeros', async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
+    }
+
     try {
-        const result = await pool.query(`
+        // Validar rol de usuario
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+        const userRol = userRes.rows[0].rol.toUpperCase();
+        const esCajero = userRol === 'CAJERO';
+
+        let query = `
             SELECT 
                 v.id as venta_id,
                 v.usuario_id,
@@ -187,8 +228,17 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
                 u.nombre as cajero
             FROM ventas v
             LEFT JOIN usuarios u ON v.usuario_id = u.id
-            ORDER BY v.fecha_venta DESC
-        `);
+        `;
+
+        const queryParams = [];
+        if (esCajero) {
+            query += ` WHERE v.usuario_id = $1 `;
+            queryParams.push(parseInt(usuario_id));
+        }
+
+        query += ` ORDER BY v.fecha_venta DESC `;
+
+        const result = await pool.query(query, queryParams);
         res.json(result.rows);
     } catch (error) {
         console.error('Error al cargar historial ventas por cajero:', error);
