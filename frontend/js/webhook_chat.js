@@ -6,14 +6,14 @@ let chatInterval = null;
 
 window.iniciarChatConsole = function() {
     cargarContactosChat();
-    // Recarga automática de contactos y conversación activa cada 5 segundos
+    // Recarga automática de contactos y conversación activa cada 2 segundos
     if (!chatInterval) {
         chatInterval = setInterval(() => {
             cargarContactosChat(true); // Carga silenciosa para no parpadear
             if (contactoActivo) {
                 cargarConversacionActiva(true);
             }
-        }, 5000);
+        }, 2000);
     }
 };
 
@@ -80,7 +80,9 @@ function renderContactosChat(silent = false) {
         // Formatear fecha corta
         const fechaStr = formatFechaCorta(c.fecha);
         const lastMsg = c.mensaje ? (c.mensaje.length > 25 ? c.mensaje.substring(0, 25) + '...' : c.mensaje) : '';
-        const remitentePrefijo = c.remitente === 'ADMIN' ? '<span class="text-emerald-600 font-bold mr-1">Tú:</span>' : '';
+        let remitentePrefijo = '';
+        if (c.remitente === 'ADMIN') remitentePrefijo = '<span class="text-emerald-600 font-bold mr-1">Tú:</span>';
+        else if (c.remitente === 'BOT') remitentePrefijo = '<span class="text-indigo-500 font-bold mr-1">Bot:</span>';
 
         const item = document.createElement('div');
         item.className = `p-3 flex items-center gap-3 cursor-pointer transition-all border-b border-slate-100 ${activeClass}`;
@@ -238,7 +240,11 @@ function renderMensajes(mensajes, silent = false) {
         if (isClient) {
             bubble.className = "max-w-[75%] bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none px-4 py-2 shadow-sm relative";
         } else {
-            bubble.className = "max-w-[75%] bg-orange-500 text-white rounded-2xl rounded-tr-none px-4 py-2 shadow-md shadow-orange-500/10 relative";
+            if (m.remitente === 'BOT') {
+                bubble.className = "max-w-[75%] bg-indigo-600 text-white rounded-2xl rounded-tr-none px-4 py-2 shadow-md shadow-indigo-600/10 relative";
+            } else {
+                bubble.className = "max-w-[75%] bg-orange-500 text-white rounded-2xl rounded-tr-none px-4 py-2 shadow-md shadow-orange-500/10 relative";
+            }
         }
         
         const escapedText = escapeHTML(m.mensaje).replace(/\n/g, '<br>');

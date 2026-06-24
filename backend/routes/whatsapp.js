@@ -12,7 +12,7 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "mi_token_secreto_para_webhook_
  * Función de servicio para enviar mensajes por la API de WhatsApp de Meta.
  * Utiliza fetch nativo (disponible globalmente en Node.js >= 18).
  */
-async function enviarMensajeWhatsApp(to, text) {
+async function enviarMensajeWhatsApp(to, text, remitente = 'BOT') {
     const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`;
     try {
         const response = await fetch(url, {
@@ -31,6 +31,16 @@ async function enviarMensajeWhatsApp(to, text) {
         const data = await response.json();
         if (!response.ok) {
             console.error('❌ Error de API de WhatsApp de Meta:', data);
+        } else {
+            try {
+                await pool.query(
+                    'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
+                    [to, text, remitente]
+                );
+                console.log(`💾 Mensaje enviado a +${to} guardado en BD (${remitente}): "${text}"`);
+            } catch (dbErr) {
+                console.error('❌ Error al guardar mensaje enviado en BD:', dbErr.message);
+            }
         }
         return data;
     } catch (err) {
@@ -69,7 +79,7 @@ function obtenerEmojiNumero(num) {
 }
 
 // Helper para mandar un documento (como el PDF del menú) por WhatsApp
-async function enviarDocumentoWhatsApp(to, link, filename, caption) {
+async function enviarDocumentoWhatsApp(to, link, filename, caption, remitente = 'BOT') {
     const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`;
     try {
         const response = await fetch(url, {
@@ -92,6 +102,17 @@ async function enviarDocumentoWhatsApp(to, link, filename, caption) {
         const data = await response.json();
         if (!response.ok) {
             console.error('❌ Error de API de WhatsApp de Meta (Documento):', data);
+        } else {
+            try {
+                const msgText = caption || `📄 Documento: ${filename}`;
+                await pool.query(
+                    'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
+                    [to, msgText, remitente]
+                );
+                console.log(`💾 Documento enviado a +${to} guardado en BD (${remitente}): "${msgText}"`);
+            } catch (dbErr) {
+                console.error('❌ Error al guardar documento enviado en BD:', dbErr.message);
+            }
         }
         return data;
     } catch (err) {
@@ -100,45 +121,24 @@ async function enviarDocumentoWhatsApp(to, link, filename, caption) {
     }
 }
 
-// Helper para mandar el menú de categorías activo (y el PDF del menú si está disponible)
-async function enviarMenuCategorias(from, host = null) {
+// Helper para enviar el menú inicial con la opción 1. Productos
+async function enviarMenuInicial(from) {
     try {
-        // 1. Si tenemos el host, enviar el PDF del menú primero
-        if (host) {
-            const pdfUrl = `${host}/api/menu-pdf/generar`;
-            console.log(`📤 Enviando PDF de menú al cliente: ${pdfUrl}`);
-            await enviarDocumentoWhatsApp(from, pdfUrl, "menu_cafe_la_paz.pdf", "Aquí tienes nuestro Menú completo en PDF ☕✨");
-        }
-
-        // 2. Enviar el listado de categorías interactivo en texto
-        const catRes = await pool.query(`
-            SELECT DISTINCT c.id, c.nombre 
-            FROM categorias c 
-            INNER JOIN productos p ON p.categoria_id = c.id 
-            WHERE p.activo = TRUE 
-            ORDER BY c.nombre ASC
-        `);
-        const categorias = catRes.rows;
-        
-        if (categorias.length === 0) {
-            await enviarMensajeWhatsApp(from, "¡Bienvenido a *Café La Paz*! ☕\n\nLo sentimos, no tenemos productos disponibles en este momento. Por favor, intenta de nuevo más tarde.");
-            return;
-        }
-
-        let menuText = `¡Bienvenido a *Café La Paz*! ☕\n\n¿Qué te gustaría pedir hoy? Por favor, selecciona una categoría enviando el número correspondiente:\n\n`;
-        categorias.forEach((cat, index) => {
-            menuText += `${obtenerEmojiNumero(index + 1)} ${cat.nombre}\n`;
-        });
-        
-        await pool.query(`
-            INSERT INTO whatsapp_estados (telefono, estado, producto_seleccionado, categoria_seleccionada, updated_at) 
-            VALUES ($1, 'WAITING_CATEGORY', NULL, NULL, NOW())
-            ON CONFLICT (telefono) DO UPDATE SET estado = 'WAITING_CATEGORY', producto_seleccionado = NULL, categoria_seleccionada = NULL, updated_at = NOW()
-        `, [from]);
-
-        await enviarMensajeWhatsApp(from, menuText);
+        const welcomeText = `¡Bienvenido a *Café La Paz*! ☕\n\nPor favor, responde con el número de la opción que deseas:\n\n1️⃣ Productos`;
+        await enviarMensajeWhatsApp(from, welcomeText);
     } catch (err) {
-        console.error('Error al enviar menú de categorías:', err.message);
+        console.error('Error al enviar menú inicial:', err.message);
+    }
+}
+
+// Helper para enviar el PDF de menú
+async function enviarPdfMenu(from, host) {
+    try {
+        const pdfUrl = `${host}/api/menu-pdf/generar`;
+        console.log(`📤 Enviando PDF de menú al cliente: ${pdfUrl}`);
+        await enviarDocumentoWhatsApp(from, pdfUrl, "menu_cafe_la_paz.pdf", "Aquí tienes nuestro Menú en PDF ☕✨");
+    } catch (err) {
+        console.error('Error al enviar PDF de menú:', err.message);
     }
 }
 
@@ -217,131 +217,13 @@ router.post('/webhook', async (req, res) => {
 
             // Procesamos la lógica de flujo del bot (para mensajes de texto o interactivos)
             if (message.type === 'text' || message.type === 'interactive' || message.type === 'button') {
-                const textLower = textBody.toLowerCase();
+                const textClean = textBody.toLowerCase().trim();
 
-                // Consultamos el estado actual del cliente en la base de datos (incluyendo updated_at)
-                const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada, updated_at FROM whatsapp_estados WHERE telefono = $1', [from]);
-                const userState = stateRes.rows[0];
-
-                // Si hay inactividad mayor a 15 minutos en el estado, se considera expirado
-                const sesionExpirada = userState && (new Date() - new Date(userState.updated_at)) > 15 * 60 * 1000;
-
-                // Comandos para reiniciar o inicio de chat (ampliados)
-                const palabrasClave = ['hola', 'buen', 'tardes', 'noches', 'reset', 'menu', 'menú', 'cancelar', 'hi', 'hello', 'comenzar', 'inicio', 'ayuda', 'info', 'volver'];
-                const esSaludoOReset = palabrasClave.some(cmd => textLower.includes(cmd));
-
-                if (!userState || sesionExpirada || esSaludoOReset) {
-                    await enviarMenuCategorias(from, host);
-                    return;
-                }
-
-                // Paso 1: Esperando la selección de la categoría
-                if (userState.estado === 'WAITING_CATEGORY') {
-                    const catRes = await pool.query(`
-                        SELECT DISTINCT c.id, c.nombre 
-                        FROM categorias c 
-                        INNER JOIN productos p ON p.categoria_id = c.id 
-                        WHERE p.activo = TRUE 
-                        ORDER BY c.nombre ASC
-                    `);
-                    const categorias = catRes.rows;
-                    const opcion = parseInt(textBody);
-
-                    if (!isNaN(opcion) && opcion >= 1 && opcion <= categorias.length) {
-                        const catSeleccionada = categorias[opcion - 1];
-
-                        // Obtener productos de esa categoría
-                        const prodRes = await pool.query(`
-                            SELECT id, nombre, precio_venta 
-                            FROM productos 
-                            WHERE categoria_id = $1 AND activo = TRUE 
-                            ORDER BY nombre ASC
-                        `, [catSeleccionada.id]);
-                        const productos = prodRes.rows;
-
-                        if (productos.length === 0) {
-                            await enviarMensajeWhatsApp(from, `La categoría *${catSeleccionada.nombre}* no tiene productos disponibles. Por favor, elige otra.`);
-                            await enviarMenuCategorias(from);
-                            return;
-                        }
-
-                        // Guardar la categoría seleccionada en base de datos y avanzar de estado
-                        await pool.query(`
-                            UPDATE whatsapp_estados 
-                            SET estado = 'WAITING_PRODUCT', categoria_seleccionada = $1, producto_seleccionado = NULL, updated_at = NOW() 
-                            WHERE telefono = $2
-                        `, [catSeleccionada.nombre, from]);
-
-                        let prodText = `📂 Categoría: *${catSeleccionada.nombre}*\n\nPor favor, responde enviando el número del producto que deseas pedir:\n\n`;
-                        productos.forEach((prod, index) => {
-                            prodText += `${obtenerEmojiNumero(index + 1)} ${prod.nombre} (Bs. ${parseFloat(prod.precio_venta).toFixed(2)})\n`;
-                        });
-                        prodText += `\n✍️ O escribe *cancelar* para volver a la selección de categorías.`;
-
-                        await enviarMensajeWhatsApp(from, prodText);
-                    } else {
-                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️`);
-                        await enviarMenuCategorias(from);
-                    }
-                    return;
-                }
-
-                // Paso 2: Esperando la selección del producto
-                if (userState.estado === 'WAITING_PRODUCT') {
-                    // Cargar productos de la categoría actual
-                    const prodRes = await pool.query(`
-                        SELECT p.id, p.nombre, p.precio_venta 
-                        FROM productos p 
-                        INNER JOIN categorias c ON p.categoria_id = c.id 
-                        WHERE c.nombre = $1 AND p.activo = TRUE 
-                        ORDER BY p.nombre ASC
-                    `, [userState.categoria_seleccionada]);
-                    const productos = prodRes.rows;
-                    const opcion = parseInt(textBody);
-
-                    if (!isNaN(opcion) && opcion >= 1 && opcion <= productos.length) {
-                        const prodSeleccionado = productos[opcion - 1];
-
-                        // Guardar producto seleccionado y avanzar estado
-                        await pool.query(`
-                            UPDATE whatsapp_estados 
-                            SET estado = 'WAITING_QUANTITY', producto_seleccionado = $1, updated_at = NOW() 
-                            WHERE telefono = $2
-                        `, [prodSeleccionado.nombre, from]);
-
-                        const qtyText = `Excelente, has seleccionado *${prodSeleccionado.nombre}* (Bs. ${parseFloat(prodSeleccionado.precio_venta).toFixed(2)} c/u).\n\n¿Qué cantidad deseas pedir? 🔢\nPor favor responde con un número entero (ej. 1, 2, 5).`;
-                        await enviarMensajeWhatsApp(from, qtyText);
-                    } else {
-                        // En lugar de quedar atrapado en bucle, redirigimos al menú principal si la opción es inválida
-                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️ Te redirigimos al menú de categorías.`);
-                        await enviarMenuCategorias(from);
-                    }
-                    return;
-                }
-
-                // Paso 3: Esperando la cantidad
-                if (userState.estado === 'WAITING_QUANTITY') {
-                    const cantidad = parseInt(textBody);
-                    if (isNaN(cantidad) || cantidad <= 0) {
-                        const errorText = `Cantidad no válida. ⚠️\n\nPor favor responde con un número entero mayor a 0 (ej. 1, 2, 5).\nO escribe *cancelar* para reiniciar tu pedido.`;
-                        await enviarMensajeWhatsApp(from, errorText);
-                    } else {
-                        const producto = userState.producto_seleccionado;
-
-                        // 1. Guardar orden en pedidos_whatsapp
-                        await pool.query(`
-                            INSERT INTO pedidos_whatsapp (telefono_cliente, producto, cantidad, estado)
-                            VALUES ($1, $2, $3, 'PENDIENTE')
-                        `, [from, producto, cantidad]);
-
-                        // 2. Limpiar el estado de WhatsApp del cliente
-                        await pool.query('DELETE FROM whatsapp_estados WHERE telefono = $1', [from]);
-
-                        // 3. Enviar confirmación al cliente
-                        const confirmText = `¡Orden recibida con éxito! 🚀\n\n*Detalle del pedido:*\n📦 Producto: ${producto}\n🔢 Cantidad: ${cantidad}\n\nTu pedido está siendo preparado por nuestro personal en Café La Paz. ¡Muchas gracias! ☕✨`;
-                        await enviarMensajeWhatsApp(from, confirmText);
-                    }
-                    return;
+                // Si envían "1", "productos", "1. productos", etc., enviamos el PDF
+                if (textClean === '1' || textClean.includes('producto') || textClean === '1️⃣') {
+                    await enviarPdfMenu(from, host);
+                } else {
+                    await enviarMenuInicial(from);
                 }
             }
         }
@@ -478,13 +360,8 @@ router.post('/chat/enviar', async (req, res) => {
     }
 
     try {
-        const result = await enviarMensajeWhatsApp(telefono, mensaje);
+        const result = await enviarMensajeWhatsApp(telefono, mensaje, 'ADMIN');
         if (result && !result.error) {
-            // Guardar en la base de datos como ADMIN
-            await pool.query(
-                'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
-                [telefono, mensaje, 'ADMIN']
-            );
             res.json({ success: true, message: 'Mensaje transmitido con éxito.' });
         } else {
             console.error('Meta API Error:', result);

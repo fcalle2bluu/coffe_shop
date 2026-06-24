@@ -118,7 +118,7 @@ router.get('/generar', async (req, res) => {
         // Instanciar el documento PDF con buffer para la numeración final
         const doc = new PDFDocument({
             size: 'letter',
-            margin: 40,
+            margins: { top: 40, bottom: 15, left: 40, right: 40 },
             bufferPages: true,
             autoFirstPage: false // Controlamos manualmente la creación de páginas para evitar páginas en blanco
         });
