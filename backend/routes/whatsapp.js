@@ -502,31 +502,73 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
     }
 
     try {
-        // 1. Subir archivo a Meta para obtener media handle
-        const mediaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/media`;
-        const formData = new FormData();
-        formData.append('messaging_product', 'whatsapp');
+        // 1. Obtener dinámicamente el App ID asociado al Access Token
+        const appUrl = `https://graph.facebook.com/v18.0/app?access_token=${WHATSAPP_TOKEN}`;
+        const appRes = await fetch(appUrl);
+        const appData = await appRes.json();
         
-        const fileBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-        formData.append('file', fileBlob, req.file.originalname);
+        if (!appRes.ok || !appData.id) {
+            console.error('❌ Error al obtener App ID desde Meta:', appData);
+            return res.status(400).json({ 
+                error: 'No se pudo obtener el App ID para la subida de foto. Verifique la validez de su token.', 
+                detalle: appData 
+            });
+        }
+        
+        const appId = appData.id;
+        console.log(`📌 App ID obtenido para la subida de foto: ${appId}`);
 
-        const mediaResponse = await fetch(mediaUrl, {
+        // 2. Crear una sesión de subida resumible en Meta
+        const fileName = req.file.originalname || 'foto_perfil.jpg';
+        const fileLength = req.file.buffer.length;
+        const fileType = req.file.mimetype || 'image/jpeg';
+        
+        const uploadSessionUrl = `https://graph.facebook.com/v18.0/${appId}/uploads?file_name=${encodeURIComponent(fileName)}&file_length=${fileLength}&file_type=${encodeURIComponent(fileType)}`;
+        
+        const sessionResponse = await fetch(uploadSessionUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${WHATSAPP_TOKEN}`
-            },
-            body: formData
+            }
         });
-        const mediaData = await mediaResponse.json();
+        const sessionData = await sessionResponse.json();
 
-        if (!mediaResponse.ok) {
-            console.error('❌ Error al subir imagen a Meta:', mediaData);
-            return res.status(mediaResponse.status).json({ error: 'Meta rechazó la subida de la imagen.', detalle: mediaData });
+        if (!sessionResponse.ok || !sessionData.id) {
+            console.error('❌ Error al crear sesión de subida en Meta:', sessionData);
+            return res.status(sessionResponse.status).json({ 
+                error: 'Meta rechazó la creación de la sesión de subida para la foto.', 
+                detalle: sessionData 
+            });
         }
 
-        const mediaId = mediaData.id;
+        const sessionId = sessionData.id;
+        console.log(`📌 Sesión de subida creada con ID: ${sessionId}`);
 
-        // 2. Asociar el media handle al perfil de negocio
+        // 3. Subir la data binaria del archivo a la sesión de subida
+        const uploadUrl = `https://graph.facebook.com/v18.0/${sessionId}`;
+        const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+                'file_offset': '0',
+                'Content-Type': 'application/octet-stream'
+            },
+            body: req.file.buffer
+        });
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadData.h) {
+            console.error('❌ Error al subir data binaria a Meta:', uploadData);
+            return res.status(uploadResponse.status).json({ 
+                error: 'Meta rechazó la transferencia de la imagen.', 
+                detalle: uploadData 
+            });
+        }
+
+        const profilePictureHandle = uploadData.h;
+        console.log(`📌 Handle de imagen obtenido exitosamente: ${profilePictureHandle}`);
+
+        // 4. Vincular el handle de imagen al perfil de negocio
         const profileUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/whatsapp_business_profile`;
         const profileResponse = await fetch(profileUrl, {
             method: 'POST',
@@ -536,20 +578,23 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
             },
             body: JSON.stringify({
                 messaging_product: 'whatsapp',
-                profile_picture_handle: mediaId
+                profile_picture_handle: profilePictureHandle
             })
         });
         const profileData = await profileResponse.json();
 
         if (!profileResponse.ok) {
             console.error('❌ Error al vincular foto de perfil:', profileData);
-            return res.status(profileResponse.status).json({ error: 'Meta no pudo vincular la nueva foto de perfil.', detalle: profileData });
+            return res.status(profileResponse.status).json({ 
+                error: 'Meta no pudo vincular la nueva foto de perfil utilizando el handle.', 
+                detalle: profileData 
+            });
         }
 
         res.json({ success: true, message: 'Foto de perfil de WhatsApp actualizada exitosamente.' });
     } catch (err) {
         console.error('Error al subir foto de perfil de WhatsApp:', err.message);
-        res.status(500).json({ error: 'Error interno al actualizar la foto de perfil.' });
+        res.status(500).json({ error: 'Error interno al actualizar la foto de perfil: ' + err.message });
     }
 });
 
