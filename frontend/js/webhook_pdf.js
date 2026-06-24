@@ -6,25 +6,38 @@ let catalogProductosPDF = []; // Catálogo global para filtros y manejo
 window.switchTab = function(tab) {
     const tabWebhook = document.getElementById('tab-webhook');
     const tabPdfMenu = document.getElementById('tab-pdf-menu');
+    const tabChat = document.getElementById('tab-chat');
     const panelWebhook = document.getElementById('panel-webhook');
     const panelPdfMenu = document.getElementById('panel-pdf-menu');
+    const panelChat = document.getElementById('panel-chat');
     
-    if (!tabWebhook || !tabPdfMenu || !panelWebhook || !panelPdfMenu) return;
+    if (!tabWebhook || !tabPdfMenu || !tabChat || !panelWebhook || !panelPdfMenu || !panelChat) return;
+
+    // Clases base desactivadas
+    const inactiveClass = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none";
+    const activeClass = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-orange-500 text-white font-bold text-sm transition-all focus:outline-none";
+
+    tabWebhook.className = inactiveClass;
+    tabPdfMenu.className = inactiveClass;
+    tabChat.className = inactiveClass;
+    
+    panelWebhook.classList.add('hidden');
+    panelPdfMenu.classList.add('hidden');
+    panelChat.classList.add('hidden');
 
     if (tab === 'webhook') {
-        tabWebhook.className = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-orange-500 text-white font-bold text-sm transition-all focus:outline-none";
-        tabPdfMenu.className = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none";
-        
+        tabWebhook.className = activeClass;
         panelWebhook.classList.remove('hidden');
-        panelPdfMenu.classList.add('hidden');
-    } else {
-        tabPdfMenu.className = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-orange-500 text-white font-bold text-sm transition-all focus:outline-none";
-        tabWebhook.className = "flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-sm transition-all focus:outline-none";
-        
-        panelWebhook.classList.add('hidden');
+        if (window.detenerRecargaChat) window.detenerRecargaChat();
+    } else if (tab === 'pdf-menu') {
+        tabPdfMenu.className = activeClass;
         panelPdfMenu.classList.remove('hidden');
-        
+        if (window.detenerRecargaChat) window.detenerRecargaChat();
         cargarConfiguracionPDF();
+    } else if (tab === 'chat') {
+        tabChat.className = activeClass;
+        panelChat.classList.remove('hidden');
+        if (window.iniciarChatConsole) window.iniciarChatConsole();
     }
 };
 

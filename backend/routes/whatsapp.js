@@ -68,9 +68,49 @@ function obtenerEmojiNumero(num) {
     return `${num}.`;
 }
 
-// Helper para mandar el menú de categorías activo
-async function enviarMenuCategorias(from) {
+// Helper para mandar un documento (como el PDF del menú) por WhatsApp
+async function enviarDocumentoWhatsApp(to, link, filename, caption) {
+    const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`;
     try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_TOKEN}`
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: to,
+                type: 'document',
+                document: {
+                    link: link,
+                    filename: filename,
+                    caption: caption
+                }
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('❌ Error de API de WhatsApp de Meta (Documento):', data);
+        }
+        return data;
+    } catch (err) {
+        console.error('❌ Error de red al enviar documento WhatsApp:', err.message);
+        return null;
+    }
+}
+
+// Helper para mandar el menú de categorías activo (y el PDF del menú si está disponible)
+async function enviarMenuCategorias(from, host = null) {
+    try {
+        // 1. Si tenemos el host, enviar el PDF del menú primero
+        if (host) {
+            const pdfUrl = `${host}/api/menu-pdf/generar`;
+            console.log(`📤 Enviando PDF de menú al cliente: ${pdfUrl}`);
+            await enviarDocumentoWhatsApp(from, pdfUrl, "menu_cafe_la_paz.pdf", "Aquí tienes nuestro Menú completo en PDF ☕✨");
+        }
+
+        // 2. Enviar el listado de categorías interactivo en texto
         const catRes = await pool.query(`
             SELECT DISTINCT c.id, c.nombre 
             FROM categorias c 
@@ -123,11 +163,25 @@ router.post('/webhook', async (req, res) => {
 
             const message = body.entry[0].changes[0].value.messages[0];
             const from = message.from; // Teléfono del cliente
+            let host = req.protocol + '://' + req.get('host');
+            if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+                host = host.replace(/^http:/i, 'https:');
+            }
             
             // Solo procesamos mensajes de texto
             if (message.type === 'text') {
                 const textBody = message.text.body.trim();
                 const textLower = textBody.toLowerCase();
+
+                // Guardar en el historial de mensajes de la BD con rol CLIENTE
+                try {
+                    await pool.query(
+                        'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
+                        [from, textBody, 'CLIENTE']
+                    );
+                } catch (dbErr) {
+                    console.error('Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
+                }
 
                 // Consultamos el estado actual del cliente en la base de datos (incluyendo updated_at)
                 const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada, updated_at FROM whatsapp_estados WHERE telefono = $1', [from]);
@@ -141,7 +195,7 @@ router.post('/webhook', async (req, res) => {
                 const esSaludoOReset = palabrasClave.some(cmd => textLower.includes(cmd));
 
                 if (!userState || sesionExpirada || esSaludoOReset) {
-                    await enviarMenuCategorias(from);
+                    await enviarMenuCategorias(from, host);
                     return;
                 }
 
@@ -330,6 +384,79 @@ router.delete('/pedidos/:id', async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar pedido de WhatsApp:', error.message);
         res.status(500).json({ error: 'Error al eliminar el pedido' });
+    }
+});
+
+// --- ENDPOINTS DE GESTIÓN DE CHAT MANUAL ---
+
+// 1. Obtener listado de contactos ordenados por fecha del último mensaje
+router.get('/chat/contactos', async (req, res) => {
+    try {
+        const query = `
+            WITH ultimos_mensajes AS (
+                SELECT telefono, mensaje, fecha, remitente,
+                       ROW_NUMBER() OVER (PARTITION BY telefono ORDER BY fecha DESC) as rn
+                FROM whatsapp_mensajes
+            )
+            SELECT telefono, mensaje, fecha, remitente
+            FROM ultimos_mensajes
+            WHERE rn = 1
+            ORDER BY fecha DESC
+        `;
+        const { rows } = await pool.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error al cargar contactos de chat:', err.message);
+        res.status(500).json({ error: 'Error al obtener lista de contactos.' });
+    }
+});
+
+// 2. Obtener historial de conversación con un número
+router.get('/chat/historial', async (req, res) => {
+    const { telefono } = req.query;
+    if (!telefono) {
+        return res.status(400).json({ error: 'Falta parámetro teléfono.' });
+    }
+
+    try {
+        const query = `
+            SELECT id, mensaje, remitente, 
+                   TO_CHAR(fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI DD/MM') as fecha_formateada
+            FROM whatsapp_mensajes
+            WHERE telefono = $1
+            ORDER BY fecha ASC
+        `;
+        const { rows } = await pool.query(query, [telefono]);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error al cargar historial de chat:', err.message);
+        res.status(500).json({ error: 'Error al obtener historial de conversación.' });
+    }
+});
+
+// 3. Enviar mensaje manual y guardarlo en el historial
+router.post('/chat/enviar', async (req, res) => {
+    const { telefono, mensaje } = req.body;
+    if (!telefono || !mensaje) {
+        return res.status(400).json({ error: 'Falta teléfono o mensaje.' });
+    }
+
+    try {
+        const result = await enviarMensajeWhatsApp(telefono, mensaje);
+        if (result && !result.error) {
+            // Guardar en la base de datos como ADMIN
+            await pool.query(
+                'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
+                [telefono, mensaje, 'ADMIN']
+            );
+            res.json({ success: true, message: 'Mensaje transmitido con éxito.' });
+        } else {
+            console.error('Meta API Error:', result);
+            res.status(500).json({ error: 'Error al transmitir mensaje mediante WhatsApp API.', detalle: result });
+        }
+    } catch (err) {
+        console.error('Error al enviar mensaje manual:', err.message);
+        res.status(500).json({ error: 'Error al enviar mensaje.' });
     }
 });
 

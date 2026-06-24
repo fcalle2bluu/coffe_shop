@@ -1202,6 +1202,22 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al crear tabla config_menu_pdf:', menuPdfTableErr.message);
     }
 
+    // Tabla de Mensajes de WhatsApp
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS whatsapp_mensajes (
+                id SERIAL PRIMARY KEY,
+                telefono VARCHAR(50) NOT NULL,
+                mensaje TEXT NOT NULL,
+                remitente VARCHAR(20) NOT NULL, -- 'CLIENTE' o 'ADMIN'
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('✅ Tabla whatsapp_mensajes creada/verificada.');
+    } catch (waMsgTableErr) {
+        console.error('Error al crear tabla whatsapp_mensajes:', waMsgTableErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
