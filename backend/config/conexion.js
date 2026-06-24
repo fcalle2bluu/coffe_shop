@@ -1186,6 +1186,22 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al migrar ventas para es_historica:', ventasMigErr.message);
     }
 
+    // Tabla de Configuración de Menú PDF
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS config_menu_pdf (
+                id SERIAL PRIMARY KEY,
+                producto_id INT UNIQUE REFERENCES productos(id) ON DELETE CASCADE,
+                incluido BOOLEAN DEFAULT TRUE,
+                orden INT DEFAULT 0,
+                fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('✅ Tabla config_menu_pdf creada/verificada.');
+    } catch (menuPdfTableErr) {
+        console.error('Error al crear tabla config_menu_pdf:', menuPdfTableErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

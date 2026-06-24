@@ -129,12 +129,18 @@ router.post('/webhook', async (req, res) => {
                 const textBody = message.text.body.trim();
                 const textLower = textBody.toLowerCase();
 
-                // Consultamos el estado actual del cliente en la base de datos
-                const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada FROM whatsapp_estados WHERE telefono = $1', [from]);
+                // Consultamos el estado actual del cliente en la base de datos (incluyendo updated_at)
+                const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada, updated_at FROM whatsapp_estados WHERE telefono = $1', [from]);
                 const userState = stateRes.rows[0];
 
-                // Comandos para reiniciar o inicio de chat
-                if (!userState || ['hola', 'buen', 'tardes', 'noches', 'reset', 'menu', 'menú', 'cancelar'].some(cmd => textLower.includes(cmd))) {
+                // Si hay inactividad mayor a 15 minutos en el estado, se considera expirado
+                const sesionExpirada = userState && (new Date() - new Date(userState.updated_at)) > 15 * 60 * 1000;
+
+                // Comandos para reiniciar o inicio de chat (ampliados)
+                const palabrasClave = ['hola', 'buen', 'tardes', 'noches', 'reset', 'menu', 'menú', 'cancelar', 'hi', 'hello', 'comenzar', 'inicio', 'ayuda', 'info', 'volver'];
+                const esSaludoOReset = palabrasClave.some(cmd => textLower.includes(cmd));
+
+                if (!userState || sesionExpirada || esSaludoOReset) {
                     await enviarMenuCategorias(from);
                     return;
                 }
@@ -216,14 +222,9 @@ router.post('/webhook', async (req, res) => {
                         const qtyText = `Excelente, has seleccionado *${prodSeleccionado.nombre}* (Bs. ${parseFloat(prodSeleccionado.precio_venta).toFixed(2)} c/u).\n\n¿Qué cantidad deseas pedir? 🔢\nPor favor responde con un número entero (ej. 1, 2, 5).`;
                         await enviarMensajeWhatsApp(from, qtyText);
                     } else {
-                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️ Por favor responde con el número del producto de la lista.`);
-
-                        let prodText = `📂 Categoría: *${userState.categoria_seleccionada}*\n\nPor favor, responde enviando el número del producto que deseas pedir:\n\n`;
-                        productos.forEach((prod, index) => {
-                            prodText += `${obtenerEmojiNumero(index + 1)} ${prod.nombre} (Bs. ${parseFloat(prod.precio_venta).toFixed(2)})\n`;
-                        });
-                        prodText += `\n✍️ O escribe *cancelar* para volver a la selección de categorías.`;
-                        await enviarMensajeWhatsApp(from, prodText);
+                        // En lugar de quedar atrapado en bucle, redirigimos al menú principal si la opción es inválida
+                        await enviarMensajeWhatsApp(from, `Opción no válida. ⚠️ Te redirigimos al menú de categorías.`);
+                        await enviarMenuCategorias(from);
                     }
                     return;
                 }
