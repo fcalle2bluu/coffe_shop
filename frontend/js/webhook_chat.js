@@ -75,7 +75,7 @@ function renderContactosChat(silent = false) {
     listContainer.innerHTML = '';
     filtered.forEach(c => {
         const isSelected = contactoActivo === c.telefono;
-        const activeClass = isSelected ? 'bg-orange-500/10 border-l-4 border-orange-500' : 'hover:bg-slate-50';
+        const activeClass = isSelected ? 'active-contact' : 'hover:bg-slate-50';
         
         // Formatear fecha corta
         const fechaStr = formatFechaCorta(c.fecha);
@@ -85,7 +85,7 @@ function renderContactosChat(silent = false) {
         else if (c.remitente === 'BOT') remitentePrefijo = '<span class="text-indigo-500 font-bold mr-1">Bot:</span>';
 
         const item = document.createElement('div');
-        item.className = `p-3 flex items-center gap-3 cursor-pointer transition-all border-b border-slate-100 ${activeClass}`;
+        item.className = `p-3 flex items-center gap-3 cursor-pointer transition-all border-b border-slate-100 chat-contact-item ${activeClass}`;
         item.onclick = () => seleccionarContactoChat(c.telefono);
         item.innerHTML = `
             <div class="w-9 h-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">
@@ -238,7 +238,7 @@ function renderMensajes(mensajes, silent = false) {
         
         const bubble = document.createElement('div');
         if (isClient) {
-            bubble.className = "max-w-[75%] bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none px-4 py-2 shadow-sm relative";
+            bubble.className = "max-w-[75%] bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-none px-4 py-2 shadow-sm relative chat-bubble-client";
         } else {
             if (m.remitente === 'BOT') {
                 bubble.className = "max-w-[75%] bg-indigo-600 text-white rounded-2xl rounded-tr-none px-4 py-2 shadow-md shadow-indigo-600/10 relative";
