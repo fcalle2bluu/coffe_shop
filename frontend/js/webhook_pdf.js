@@ -541,7 +541,7 @@ window.sincronizarCatalogoWhatsApp = async function() {
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(data.error || data.detalle || 'Error al ejecutar sincronización.');
+            throw new Error(data.detalle || data.error || 'Error al ejecutar sincronización.');
         }
 
         alert('✅ ¡Sincronización masiva de catálogo finalizada con éxito!');
