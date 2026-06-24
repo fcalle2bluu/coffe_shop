@@ -185,8 +185,8 @@ router.get('/generar', async (req, res) => {
         let currentColumn = 0; // 0 = izquierda, 1 = derecha
         const colWidth = 250;
         const colSpacing = 32;
-        const cardHeight = 150; // Antes 120 -> agrandado para que la imagen respire
-        const rowSpacing = 18;
+        const cardHeight = 190; // Antes 150 -> optimizado para que la imagen y el texto quepan sin salirse
+        const rowSpacing = 16;
         const bottomLimit = 700;
         let lastCategory = '';
 
@@ -264,31 +264,32 @@ router.get('/generar', async (req, res) => {
             const imgPadding = 8;
             const imgX = x + imgPadding;
             const imgY = y + imgPadding;
-            const imgSize = colWidth - (imgPadding * 2); // Antes 104px fijos -> ahora ~234px, casi todo el ancho de la tarjeta
+            const imgWidth = colWidth - (imgPadding * 2); // ~234px
+            const imgHeight = 110; // Formato horizontal elegante para evitar desbordar la tarjeta
 
             const buffer = imageBuffers[prod.id];
             if (buffer) {
                 try {
                     doc.save();
-                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 8).clip();
+                    doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 8).clip();
                     doc.image(buffer, imgX, imgY, {
-                        width: imgSize,
-                        height: imgSize,
-                        fit: [imgSize, imgSize],
+                        width: imgWidth,
+                        height: imgHeight,
+                        fit: [imgWidth, imgHeight],
                         align: 'center',
                         valign: 'center'
                     });
                     doc.restore();
                 } catch (imgErr) {
                     console.error('Error dibujando imagen en PDF:', imgErr.message);
-                    dibujarPlaceholder(doc, imgX, imgY, imgSize, prod.nombre);
+                    dibujarPlaceholder(doc, imgX, imgY, imgWidth, imgHeight, prod.nombre);
                 }
             } else {
-                dibujarPlaceholder(doc, imgX, imgY, imgSize, prod.nombre);
+                dibujarPlaceholder(doc, imgX, imgY, imgWidth, imgHeight, prod.nombre);
             }
 
             // Dibujar nombre de producto debajo de la imagen (Times-Bold)
-            const textY = imgY + imgSize + 10;
+            const textY = imgY + imgHeight + 8;
             doc.fillColor('#FDFBF7')
                .font('Times-Bold')
                .fontSize(11.5)
@@ -330,13 +331,13 @@ router.get('/generar', async (req, res) => {
 });
 
 // Dibuja un placeholder con iniciales cuando no hay imagen disponible o falló la descarga
-function dibujarPlaceholder(doc, imgX, imgY, imgSize, nombre) {
+function dibujarPlaceholder(doc, imgX, imgY, imgWidth, imgHeight, nombre) {
     doc.save();
-    doc.roundedRect(imgX, imgY, imgSize, imgSize, 8).fill('#1A0F0D');
+    doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 8).fill('#1A0F0D');
     doc.fillColor('#D4A373')
        .font('Times-Bold')
-       .fontSize(Math.floor(imgSize / 4))
-       .text(getInitials(nombre), imgX, imgY + (imgSize / 2) - 16, { width: imgSize, align: 'center' });
+       .fontSize(Math.floor(imgHeight / 3))
+       .text(getInitials(nombre), imgX, imgY + (imgHeight / 2) - 12, { width: imgWidth, align: 'center' });
     doc.restore();
 }
 
