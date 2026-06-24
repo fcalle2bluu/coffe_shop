@@ -612,6 +612,9 @@ async function ejecutarSincronizacionLote(productos) {
                 description: `Delicioso producto ${prod.nombre} de Café La Paz`,
                 price: `${cleanPrice} BOB`,
                 image_link: prod.imagen_url || fallbackImg,
+                link: "https://coffe-shop-4ffg.onrender.com/",
+                brand: "Café La Paz",
+                condition: "new",
                 availability: availability
             }
         };
