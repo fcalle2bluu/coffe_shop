@@ -4,7 +4,7 @@ const router = express.Router();
 const pool = require('../config/conexion');
 
 // Credenciales oficiales de Meta proporcionadas por el usuario
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || "EABAqZAj7BPkUBRoh8iZAJnzL1eEZAq8R22oZCLhjHCbGwROGudHjSIvVnOtBZClISZAK2ZANyLhnGwGsfDjsUHSA8FZCLnRBiAPJMq658toaG6opALfOPyySukXaHkXNpLZCRWGLd90h2v5mevjh5tlBNkfvYyBpzyzT014fh5Efc7i1klXi76j2ZBT0kxR0egZBAZDZD";
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || "EABAqZAj7BPkUBRzImlsKGXNZCANDJOIxuDfssln5X8JT6DG1q4uDCNg6zzFMyRCksQQjfHFpCF9cj9gvWa0tDhb4wj3Fkb5ObUhDgLqIi3mQzjA6r6LZBhBhsA5oGBvRsjtgwZC4uECz9tvP5ZBpk2GdkZBgY0RHjFIYl4SBfZAcoKgnd2h7gFazLaLyV8Q4QZDZD";
 const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1189224787600539";
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "mi_token_secreto_para_webhook_123";
 
