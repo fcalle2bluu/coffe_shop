@@ -53,7 +53,11 @@ function renderContactosChat(silent = false) {
     if (!listContainer) return;
 
     const query = document.getElementById('buscar-contacto-chat')?.value.trim().toLowerCase() || '';
-    const filtered = chatContactos.filter(c => c.telefono.toLowerCase().includes(query) || (c.mensaje && c.mensaje.toLowerCase().includes(query)));
+    const filtered = chatContactos.filter(c => {
+        const tel = String(c.telefono || '').toLowerCase();
+        const msg = String(c.mensaje || '').toLowerCase();
+        return tel.includes(query) || msg.includes(query);
+    });
 
     if (filtered.length === 0) {
         listContainer.innerHTML = `
@@ -106,6 +110,36 @@ function renderContactosChat(silent = false) {
 // Filtro rápido de buscador
 window.filtrarContactosChat = function() {
     renderContactosChat(true);
+};
+
+// Iniciar nuevo chat manual con un cliente no registrado
+window.iniciarNuevoChat = function() {
+    const telefono = prompt("Ingresa el número de teléfono del cliente (incluyendo código de país, sin el signo '+'. Ej: 59170000000):");
+    if (!telefono) return;
+    
+    const numLimpio = telefono.trim().replace(/\+/g, '').replace(/\s+/g, '');
+    if (!/^\d+$/.test(numLimpio)) {
+        alert("Número no válido. Debe contener solo dígitos.");
+        return;
+    }
+    
+    // Si ya existe en la lista local, lo seleccionamos directamente
+    const existe = chatContactos.find(c => String(c.telefono) === numLimpio);
+    if (existe) {
+        seleccionarContactoChat(numLimpio);
+        return;
+    }
+    
+    // Si no existe, lo agregamos artificialmente al inicio de la lista
+    chatContactos.unshift({
+        telefono: numLimpio,
+        mensaje: 'Iniciando conversación...',
+        fecha: new Date().toISOString(),
+        remitente: 'ADMIN'
+    });
+    
+    renderContactosChat(true);
+    seleccionarContactoChat(numLimpio);
 };
 
 // Formatear fecha

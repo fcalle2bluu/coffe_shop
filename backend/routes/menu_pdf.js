@@ -96,14 +96,17 @@ router.get('/generar', async (req, res) => {
             direccion: 'La Paz, Bolivia'
         };
 
-        // 2. Cargar productos incluidos en el menú ordenados por categoría y orden
+        // 2. Cargar productos incluidos en el menú ordenados por categoría y orden (consulta defensiva para evitar duplicados)
         const query = `
-            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria_nombre, cfg.orden
-            FROM config_menu_pdf cfg
-            JOIN productos p ON cfg.producto_id = p.id
-            JOIN categorias c ON p.categoria_id = c.id
-            WHERE p.activo = TRUE AND cfg.incluido = TRUE
-            ORDER BY c.nombre ASC, cfg.orden ASC, p.nombre ASC
+            SELECT id, nombre, precio_venta, imagen_url, categoria_nombre, orden
+            FROM (
+                SELECT DISTINCT ON (p.id) p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria_nombre, cfg.orden
+                FROM config_menu_pdf cfg
+                JOIN productos p ON cfg.producto_id = p.id
+                JOIN categorias c ON p.categoria_id = c.id
+                WHERE p.activo = TRUE AND cfg.incluido = TRUE
+            ) sub
+            ORDER BY categoria_nombre ASC, orden ASC, nombre ASC
         `;
         const prodRes = await pool.query(query);
         const productos = prodRes.rows;
@@ -122,33 +125,56 @@ router.get('/generar', async (req, res) => {
         // Tubería directa a la respuesta Express
         doc.pipe(res);
 
-        // --- DIBUJAR CABECERA EN PORTADA / PÁGINA 1 ---
-        // Franja café superior
-        doc.rect(0, 0, doc.page.width, 130).fill('#3D231D');
-        
-        // Título de la empresa
-        doc.fillColor('#FDFBF7')
-           .font('Helvetica-Bold')
-           .fontSize(24)
-           .text(empresaInfo.nombre_empresa.toUpperCase(), 40, 45, { tracking: 2 });
-           
-        // Subtítulo
-        doc.fillColor('#D4A373')
-           .font('Helvetica-Bold')
-           .fontSize(10)
-           .text('CARTA DE PRODUCTOS / MENÚ GENERAL', 40, 75, { tracking: 4 });
+        // Función para pintar el fondo café oscuro y marcos elegantes
+        const paintBackground = (pageDoc) => {
+            pageDoc.save();
+            pageDoc.rect(0, 0, pageDoc.page.width, pageDoc.page.height).fill('#1A0F0D'); // Deep warm espresso
+            
+            // Marcos elegantes
+            pageDoc.rect(20, 20, pageDoc.page.width - 40, pageDoc.page.height - 40)
+                   .lineWidth(1)
+                   .stroke('#3A2520');
+            pageDoc.rect(24, 24, pageDoc.page.width - 48, pageDoc.page.height - 48)
+                   .lineWidth(0.5)
+                   .stroke('#D4A373'); // Borde dorado
+            pageDoc.restore();
+        };
 
-        // Línea dorada divisora inferior en la cabecera
-        doc.rect(0, 127, doc.page.width, 3).fill('#D4A373');
+        // Pintar la primera página
+        paintBackground(doc);
+
+        // Pintar páginas subsiguientes
+        doc.on('pageAdded', () => {
+            paintBackground(doc);
+        });
+
+        // --- DIBUJAR CABECERA EN PORTADA / PÁGINA 1 ---
+        doc.rect(24, 24, doc.page.width - 48, 110).fill('#2A1B18');
+        doc.rect(24, 131, doc.page.width - 48, 3).fill('#D4A373'); // Línea dorada
+        
+        doc.fillColor('#E6B89C')
+           .font('Times-Bold')
+           .fontSize(11)
+           .text('☕   C A F É   L A   P A Z   ☕', 40, 46, { align: 'center', tracking: 4 });
+
+        doc.fillColor('#FDFBF7')
+           .font('Times-Bold')
+           .fontSize(24)
+           .text(empresaInfo.nombre_empresa.toUpperCase(), 40, 68, { align: 'center', tracking: 2 });
+           
+        doc.fillColor('#D4A373')
+           .font('Times-Italic')
+           .fontSize(10.5)
+           .text('Menú de Especialidades & Repostería', 40, 102, { align: 'center', tracking: 1 });
 
         // Coordenadas iniciales para la grilla
-        let y = 150;
+        let y = 160;
         let currentColumn = 0; // 0 = izquierda, 1 = derecha
-        const colWidth = 256;
-        const colSpacing = 20;
-        const cardHeight = 80;
-        const rowSpacing = 15;
-        const bottomLimit = 720;
+        const colWidth = 250;
+        const colSpacing = 32;
+        const cardHeight = 120;
+        const rowSpacing = 20;
+        const bottomLimit = 700;
         let lastCategory = '';
 
         // Descarga previa de imágenes en paralelo para agilizar la generación
@@ -169,26 +195,26 @@ router.get('/generar', async (req, res) => {
             if (prod.categoria_nombre !== lastCategory) {
                 lastCategory = prod.categoria_nombre;
 
-                // Si estábamos en la columna derecha (index 1), pasamos a la siguiente fila antes de dibujar la cabecera
+                // Si estábamos en la columna derecha, pasar a la siguiente fila antes del header
                 if (currentColumn === 1) {
                     y += (cardHeight + rowSpacing);
                     currentColumn = 0;
                 }
 
-                // Verificar si hay espacio suficiente para la cabecera de categoría + al menos una fila de productos
-                if (y + 120 > bottomLimit) {
+                // Si no hay espacio para la cabecera + una fila de productos, saltar página
+                if (y + 165 > bottomLimit) {
                     doc.addPage();
                     y = 60;
                 }
 
                 // Dibujar cabecera de categoría
-                doc.rect(40, y, 532, 22).fill('#3D231D');
-                doc.fillColor('#FDFBF7')
-                   .font('Helvetica-Bold')
-                   .fontSize(9)
-                   .text(prod.categoria_nombre.toUpperCase(), 52, y + 7, { tracking: 2 });
+                doc.rect(40, y, 532, 28).fill('#4E2C24');
+                doc.fillColor('#E6B89C')
+                   .font('Times-Bold')
+                   .fontSize(11)
+                   .text(prod.categoria_nombre.toUpperCase(), 55, y + 8, { tracking: 2 });
                    
-                y += 32; // Avanzamos bajo la cabecera
+                y += 45; // Avanzamos bajo la cabecera
             }
 
             // Verificar si el producto actual cabe en la página
@@ -198,12 +224,12 @@ router.get('/generar', async (req, res) => {
                 currentColumn = 0;
 
                 // Re-dibujar cabecera de la categoría para indicar continuidad
-                doc.rect(40, y, 532, 18).fill('#3D231D');
-                doc.fillColor('#D4A373')
-                   .font('Helvetica-Bold')
-                   .fontSize(8)
-                   .text(`${prod.categoria_nombre.toUpperCase()} (CONTINUACIÓN)`, 52, y + 5, { tracking: 1 });
-                y += 28;
+                doc.rect(40, y, 532, 22).fill('#4E2C24');
+                doc.fillColor('#E6B89C')
+                   .font('Times-Bold')
+                   .fontSize(9)
+                   .text(`${prod.categoria_nombre.toUpperCase()} (CONTINUACIÓN)`, 55, y + 6, { tracking: 1 });
+                y += 38;
             }
 
             // Calcular coordenada X de la tarjeta
@@ -211,21 +237,20 @@ router.get('/generar', async (req, res) => {
 
             // Dibujar fondo de tarjeta redondeado con stroke sutil
             doc.save();
-            doc.roundedRect(x, y, colWidth, cardHeight, 6).fill('#FDFBF7');
-            doc.roundedRect(x, y, colWidth, cardHeight, 6).lineWidth(0.5).stroke('#E2E8F0');
+            doc.roundedRect(x, y, colWidth, cardHeight, 6).fill('#2A1B18');
+            doc.roundedRect(x, y, colWidth, cardHeight, 6).lineWidth(0.5).stroke('#3E2A26');
             doc.restore();
 
-            // Dibujar la imagen a la izquierda de la tarjeta
+            // Dibujar la imagen a la izquierda de la tarjeta (más grande: 104x104)
             const imgX = x + 8;
             const imgY = y + 8;
-            const imgSize = 64;
+            const imgSize = 104;
 
             const buffer = imageBuffers[prod.id];
             if (buffer) {
                 try {
-                    // Recortar la imagen con esquinas redondeadas mediante clip
                     doc.save();
-                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 4).clip();
+                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).clip();
                     doc.image(buffer, imgX, imgY, {
                         width: imgSize,
                         height: imgSize,
@@ -236,48 +261,41 @@ router.get('/generar', async (req, res) => {
                     doc.restore();
                 } catch (imgErr) {
                     console.error('Error dibujando imagen en PDF:', imgErr.message);
-                    // Fallback a iniciales en caso de fallo al decodificar
                     doc.save();
-                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 4).fill('#F5EBE0');
-                    doc.fillColor('#C68B59')
-                       .font('Helvetica-Bold')
-                       .fontSize(14)
-                       .text(getInitials(prod.nombre), imgX, imgY + 25, { width: imgSize, align: 'center' });
+                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).fill('#1A0F0D');
+                    doc.fillColor('#D4A373')
+                       .font('Times-Bold')
+                       .fontSize(22)
+                       .text(getInitials(prod.nombre), imgX, imgY + 38, { width: imgSize, align: 'center' });
                     doc.restore();
                 }
             } else {
-                // Dibujar caja placeholder para productos sin imagen
                 doc.save();
-                doc.roundedRect(imgX, imgY, imgSize, imgSize, 4).fill('#F5EBE0');
-                doc.fillColor('#C68B59')
-                   .font('Helvetica-Bold')
-                   .fontSize(14)
-                   .text(getInitials(prod.nombre), imgX, imgY + 25, { width: imgSize, align: 'center' });
+                doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).fill('#1A0F0D');
+                doc.fillColor('#D4A373')
+                   .font('Times-Bold')
+                   .fontSize(22)
+                   .text(getInitials(prod.nombre), imgX, imgY + 38, { width: imgSize, align: 'center' });
                 doc.restore();
             }
 
-            // Dibujar nombre de producto a la derecha
-            doc.fillColor('#222222')
-               .font('Helvetica-Bold')
-               .fontSize(9.5)
-               .text(prod.nombre, x + 80, y + 12, {
-                   width: 165,
-                   height: 25,
+            // Dibujar nombre de producto a la derecha (Times-Bold)
+            doc.fillColor('#FDFBF7')
+               .font('Times-Bold')
+               .fontSize(11)
+               .text(prod.nombre, x + 120, y + 15, {
+                   width: 122,
+                   height: 55,
                    ellipsis: true
                });
 
-            // Dibujar badge de precio en oro café
-            const priceBadgeY = y + 44;
-            doc.save();
-            doc.roundedRect(x + 80, priceBadgeY, 65, 16, 3).fill('#D4A373');
-            doc.fillColor('#FDFBF7')
-               .font('Helvetica-Bold')
-               .fontSize(8)
-               .text(`Bs. ${parseFloat(prod.precio_venta).toFixed(2)}`, x + 80, priceBadgeY + 4, {
-                   width: 65,
-                   align: 'center'
+            // Dibujar precio en color dorado (Times-Bold)
+            doc.fillColor('#E6B89C')
+               .font('Times-Bold')
+               .fontSize(12)
+               .text(`Bs. ${parseFloat(prod.precio_venta).toFixed(2)}`, x + 120, y + 85, {
+                   width: 122
                });
-            doc.restore();
 
             // Avanzar columna
             if (currentColumn === 0) {
@@ -298,20 +316,20 @@ router.get('/generar', async (req, res) => {
             doc.moveTo(40, 745)
                .lineTo(572, 745)
                .lineWidth(0.5)
-               .stroke('#C68B59');
+               .stroke('#3A2520');
                
             // Texto de contacto
             const contactText = `${empresaInfo.nombre_empresa}  |  Tel: ${empresaInfo.telefono}  |  Dir: ${empresaInfo.direccion}`;
-            doc.fillColor('#888888')
-               .font('Helvetica')
-               .fontSize(7.5)
+            doc.fillColor('#8A7571')
+               .font('Times-Roman')
+               .fontSize(8)
                .text(contactText, 40, 755, { width: 420, truncate: true });
                
             // Paginación
             const pageText = `Página ${i + 1} de ${range.count}`;
-            doc.fillColor('#888888')
-               .font('Helvetica-Bold')
-               .fontSize(7.5)
+            doc.fillColor('#D4A373')
+               .font('Times-Bold')
+               .fontSize(8)
                .text(pageText, 472, 755, { width: 100, align: 'right' });
             doc.restore();
         }

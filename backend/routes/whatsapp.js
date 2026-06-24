@@ -131,9 +131,9 @@ async function enviarMenuCategorias(from, host = null) {
         });
         
         await pool.query(`
-            INSERT INTO whatsapp_estados (telefono, estado, producto_seleccionado, categoria_seleccionada) 
-            VALUES ($1, 'WAITING_CATEGORY', NULL, NULL)
-            ON CONFLICT (telefono) DO UPDATE SET estado = 'WAITING_CATEGORY', producto_seleccionado = NULL, categoria_seleccionada = NULL
+            INSERT INTO whatsapp_estados (telefono, estado, producto_seleccionado, categoria_seleccionada, updated_at) 
+            VALUES ($1, 'WAITING_CATEGORY', NULL, NULL, NOW())
+            ON CONFLICT (telefono) DO UPDATE SET estado = 'WAITING_CATEGORY', producto_seleccionado = NULL, categoria_seleccionada = NULL, updated_at = NOW()
         `, [from]);
 
         await enviarMensajeWhatsApp(from, menuText);
@@ -149,6 +149,7 @@ router.post('/webhook', async (req, res) => {
 
     try {
         const body = req.body;
+        console.log('📨 Webhook recibido payload:', JSON.stringify(body, null, 2));
 
         // Validamos que sea un payload válido de WhatsApp
         if (body.object !== 'whatsapp_business_account') return;
@@ -168,20 +169,55 @@ router.post('/webhook', async (req, res) => {
                 host = host.replace(/^http:/i, 'https:');
             }
             
-            // Solo procesamos mensajes de texto
-            if (message.type === 'text') {
-                const textBody = message.text.body.trim();
-                const textLower = textBody.toLowerCase();
-
-                // Guardar en el historial de mensajes de la BD con rol CLIENTE
-                try {
-                    await pool.query(
-                        'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
-                        [from, textBody, 'CLIENTE']
-                    );
-                } catch (dbErr) {
-                    console.error('Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
+            // Extraer el texto según el tipo de mensaje para guardarlo en la bitácora
+            let textBody = '';
+            if (message.type === 'text' && message.text) {
+                textBody = message.text.body;
+            } else if (message.type === 'interactive' && message.interactive) {
+                const ir = message.interactive;
+                if (ir.type === 'button_reply' && ir.button_reply) {
+                    textBody = ir.button_reply.title;
+                } else if (ir.type === 'list_reply' && ir.list_reply) {
+                    textBody = ir.list_reply.title;
+                } else {
+                    textBody = '[Mensaje interactivo]';
                 }
+            } else if (message.type === 'button' && message.button) {
+                textBody = message.button.text;
+            } else if (message.type === 'image') {
+                textBody = message.image.caption || '[Imagen]';
+            } else if (message.type === 'document') {
+                textBody = message.document.caption || '[Documento]';
+            } else if (message.type === 'video') {
+                textBody = message.video.caption || '[Video]';
+            } else if (message.type === 'audio') {
+                textBody = '[Audio]';
+            } else if (message.type === 'voice') {
+                textBody = '[Mensaje de voz]';
+            } else if (message.type === 'location') {
+                textBody = '[Ubicación]';
+            } else if (message.type === 'sticker') {
+                textBody = '[Sticker]';
+            } else {
+                textBody = `[Mensaje: ${message.type}]`;
+            }
+            
+            textBody = (textBody || '').trim();
+
+            // Guardar en el historial de mensajes de la BD con rol CLIENTE
+            try {
+                await pool.query(
+                    'INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente) VALUES ($1, $2, $3)',
+                    [from, textBody, 'CLIENTE']
+                );
+                console.log(`💾 Mensaje de +${from} guardado en whatsapp_mensajes: "${textBody}"`);
+            } catch (dbErr) {
+                console.error('❌ Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
+            }
+
+            // Procesamos la lógica de flujo del bot (para mensajes de texto o interactivos)
+            if (message.type === 'text' || message.type === 'interactive' || message.type === 'button') {
+                const textLower = textBody.toLowerCase();
 
                 // Consultamos el estado actual del cliente en la base de datos (incluyendo updated_at)
                 const stateRes = await pool.query('SELECT estado, producto_seleccionado, categoria_seleccionada, updated_at FROM whatsapp_estados WHERE telefono = $1', [from]);
@@ -232,7 +268,7 @@ router.post('/webhook', async (req, res) => {
                         // Guardar la categoría seleccionada en base de datos y avanzar de estado
                         await pool.query(`
                             UPDATE whatsapp_estados 
-                            SET estado = 'WAITING_PRODUCT', categoria_seleccionada = $1, producto_seleccionado = NULL 
+                            SET estado = 'WAITING_PRODUCT', categoria_seleccionada = $1, producto_seleccionado = NULL, updated_at = NOW() 
                             WHERE telefono = $2
                         `, [catSeleccionada.nombre, from]);
 
@@ -269,7 +305,7 @@ router.post('/webhook', async (req, res) => {
                         // Guardar producto seleccionado y avanzar estado
                         await pool.query(`
                             UPDATE whatsapp_estados 
-                            SET estado = 'WAITING_QUANTITY', producto_seleccionado = $1 
+                            SET estado = 'WAITING_QUANTITY', producto_seleccionado = $1, updated_at = NOW() 
                             WHERE telefono = $2
                         `, [prodSeleccionado.nombre, from]);
 
