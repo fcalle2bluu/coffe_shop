@@ -119,7 +119,8 @@ router.get('/generar', async (req, res) => {
         const doc = new PDFDocument({
             size: 'letter',
             margin: 40,
-            bufferPages: true
+            bufferPages: true,
+            autoFirstPage: false // Controlamos manualmente la creación de páginas para evitar páginas en blanco
         });
 
         // Tubería directa a la respuesta Express
@@ -140,13 +141,13 @@ router.get('/generar', async (req, res) => {
             pageDoc.restore();
         };
 
-        // Pintar la primera página
-        paintBackground(doc);
-
-        // Pintar páginas subsiguientes
+        // Pintar automáticamente cada página añadida (incluida la primera, que añadimos manualmente)
         doc.on('pageAdded', () => {
             paintBackground(doc);
         });
+
+        // Crear explícitamente la primera página (dispara 'pageAdded' -> pinta fondo)
+        doc.addPage();
 
         // --- DIBUJAR CABECERA EN PORTADA / PÁGINA 1 ---
         doc.rect(24, 24, doc.page.width - 48, 110).fill('#2A1B18');
@@ -167,13 +168,25 @@ router.get('/generar', async (req, res) => {
            .fontSize(10.5)
            .text('Menú de Especialidades & Repostería', 40, 102, { align: 'center', tracking: 1 });
 
-        // Coordenadas iniciales para la grilla
+        // Si no hay productos configurados, avisar dentro del propio PDF y cerrar limpio (evita páginas extra sin contenido)
+        if (!productos || productos.length === 0) {
+            doc.fillColor('#D4A373')
+               .font('Times-Italic')
+               .fontSize(13)
+               .text('Aún no se ha configurado ningún producto para este menú.', 40, 220, { align: 'center', width: doc.page.width - 80 });
+
+            finalizarConFooter(doc, empresaInfo);
+            doc.end();
+            return;
+        }
+
+        // Coordenadas iniciales para la grilla (tarjetas más grandes y con imágenes más grandes)
         let y = 160;
         let currentColumn = 0; // 0 = izquierda, 1 = derecha
         const colWidth = 250;
         const colSpacing = 32;
-        const cardHeight = 120;
-        const rowSpacing = 20;
+        const cardHeight = 150; // Antes 120 -> agrandado para que la imagen respire
+        const rowSpacing = 18;
         const bottomLimit = 700;
         let lastCategory = '';
 
@@ -190,7 +203,12 @@ router.get('/generar', async (req, res) => {
         );
         console.log('✅ Descarga de imágenes completada.');
 
-        for (const prod of productos) {
+        // Helper: ¿queda suficiente espacio vertical en la página actual?
+        const espacioDisponible = () => bottomLimit - y;
+
+        for (let idx = 0; idx < productos.length; idx++) {
+            const prod = productos[idx];
+
             // Si la categoría cambia
             if (prod.categoria_nombre !== lastCategory) {
                 lastCategory = prod.categoria_nombre;
@@ -201,8 +219,10 @@ router.get('/generar', async (req, res) => {
                     currentColumn = 0;
                 }
 
-                // Si no hay espacio para la cabecera + una fila de productos, saltar página
-                if (y + 165 > bottomLimit) {
+                // Solo saltamos de página si REALMENTE no entra la cabecera + al menos una tarjeta completa.
+                // (antes este chequeo + el de la tarjeta individual podían dispararse ambos y generar un addPage de más)
+                const necesitaNuevaPagina = (y + 45 + cardHeight) > bottomLimit;
+                if (necesitaNuevaPagina) {
                     doc.addPage();
                     y = 60;
                 }
@@ -215,10 +235,9 @@ router.get('/generar', async (req, res) => {
                    .text(prod.categoria_nombre.toUpperCase(), 55, y + 8, { tracking: 2 });
                    
                 y += 45; // Avanzamos bajo la cabecera
-            }
-
-            // Verificar si el producto actual cabe en la página
-            if (y + cardHeight > bottomLimit) {
+            } else if (currentColumn === 0 && (y + cardHeight) > bottomLimit) {
+                // Solo verificamos salto de página por tarjeta cuando empieza una fila nueva (columna izquierda).
+                // Antes este chequeo podía dispararse también justo tras un salto de categoría -> doble addPage.
                 doc.addPage();
                 y = 60;
                 currentColumn = 0;
@@ -241,16 +260,17 @@ router.get('/generar', async (req, res) => {
             doc.roundedRect(x, y, colWidth, cardHeight, 6).lineWidth(0.5).stroke('#3E2A26');
             doc.restore();
 
-            // Dibujar la imagen a la izquierda de la tarjeta (más grande: 104x104)
-            const imgX = x + 8;
-            const imgY = y + 8;
-            const imgSize = 104;
+            // Dibujar la imagen ocupando casi todo el ancho superior de la tarjeta (mucho más grande e impactante)
+            const imgPadding = 8;
+            const imgX = x + imgPadding;
+            const imgY = y + imgPadding;
+            const imgSize = colWidth - (imgPadding * 2); // Antes 104px fijos -> ahora ~234px, casi todo el ancho de la tarjeta
 
             const buffer = imageBuffers[prod.id];
             if (buffer) {
                 try {
                     doc.save();
-                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).clip();
+                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 8).clip();
                     doc.image(buffer, imgX, imgY, {
                         width: imgSize,
                         height: imgSize,
@@ -261,40 +281,29 @@ router.get('/generar', async (req, res) => {
                     doc.restore();
                 } catch (imgErr) {
                     console.error('Error dibujando imagen en PDF:', imgErr.message);
-                    doc.save();
-                    doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).fill('#1A0F0D');
-                    doc.fillColor('#D4A373')
-                       .font('Times-Bold')
-                       .fontSize(22)
-                       .text(getInitials(prod.nombre), imgX, imgY + 38, { width: imgSize, align: 'center' });
-                    doc.restore();
+                    dibujarPlaceholder(doc, imgX, imgY, imgSize, prod.nombre);
                 }
             } else {
-                doc.save();
-                doc.roundedRect(imgX, imgY, imgSize, imgSize, 6).fill('#1A0F0D');
-                doc.fillColor('#D4A373')
-                   .font('Times-Bold')
-                   .fontSize(22)
-                   .text(getInitials(prod.nombre), imgX, imgY + 38, { width: imgSize, align: 'center' });
-                doc.restore();
+                dibujarPlaceholder(doc, imgX, imgY, imgSize, prod.nombre);
             }
 
-            // Dibujar nombre de producto a la derecha (Times-Bold)
+            // Dibujar nombre de producto debajo de la imagen (Times-Bold)
+            const textY = imgY + imgSize + 10;
             doc.fillColor('#FDFBF7')
                .font('Times-Bold')
-               .fontSize(11)
-               .text(prod.nombre, x + 120, y + 15, {
-                   width: 122,
-                   height: 55,
+               .fontSize(11.5)
+               .text(prod.nombre, x + 10, textY, {
+                   width: colWidth - 20,
+                   height: 18,
                    ellipsis: true
                });
 
-            // Dibujar precio en color dorado (Times-Bold)
+            // Dibujar precio en color dorado, debajo del nombre (Times-Bold)
             doc.fillColor('#E6B89C')
                .font('Times-Bold')
-               .fontSize(12)
-               .text(`Bs. ${parseFloat(prod.precio_venta).toFixed(2)}`, x + 120, y + 85, {
-                   width: 122
+               .fontSize(12.5)
+               .text(`Bs. ${parseFloat(prod.precio_venta).toFixed(2)}`, x + 10, textY + 20, {
+                   width: colWidth - 20
                });
 
             // Avanzar columna
@@ -306,33 +315,7 @@ router.get('/generar', async (req, res) => {
             }
         }
 
-        // --- RENDERIZADO DE FOOTER Y NUMERACIÓN DE PÁGINAS ---
-        const range = doc.bufferedPageRange();
-        for (let i = range.start; i < range.start + range.count; i++) {
-            doc.switchToPage(i);
-            
-            // Línea divisoria de pie de página
-            doc.save();
-            doc.moveTo(40, 745)
-               .lineTo(572, 745)
-               .lineWidth(0.5)
-               .stroke('#3A2520');
-               
-            // Texto de contacto
-            const contactText = `${empresaInfo.nombre_empresa}  |  Tel: ${empresaInfo.telefono}  |  Dir: ${empresaInfo.direccion}`;
-            doc.fillColor('#8A7571')
-               .font('Times-Roman')
-               .fontSize(8)
-               .text(contactText, 40, 755, { width: 420, truncate: true });
-               
-            // Paginación
-            const pageText = `Página ${i + 1} de ${range.count}`;
-            doc.fillColor('#D4A373')
-               .font('Times-Bold')
-               .fontSize(8)
-               .text(pageText, 472, 755, { width: 100, align: 'right' });
-            doc.restore();
-        }
+        finalizarConFooter(doc, empresaInfo);
 
         // Finalizar y transmitir el documento
         doc.end();
@@ -345,5 +328,48 @@ router.get('/generar', async (req, res) => {
         }
     }
 });
+
+// Dibuja un placeholder con iniciales cuando no hay imagen disponible o falló la descarga
+function dibujarPlaceholder(doc, imgX, imgY, imgSize, nombre) {
+    doc.save();
+    doc.roundedRect(imgX, imgY, imgSize, imgSize, 8).fill('#1A0F0D');
+    doc.fillColor('#D4A373')
+       .font('Times-Bold')
+       .fontSize(Math.floor(imgSize / 4))
+       .text(getInitials(nombre), imgX, imgY + (imgSize / 2) - 16, { width: imgSize, align: 'center' });
+    doc.restore();
+}
+
+// --- RENDERIZADO DE FOOTER Y NUMERACIÓN DE PÁGINAS ---
+// Recorre únicamente las páginas que REALMENTE se crearon (bufferedPageRange refleja el total real,
+// ya no se generan páginas extra de sobra porque autoFirstPage:false + addPage() controlado evita el desfase)
+function finalizarConFooter(doc, empresaInfo) {
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        
+        // Línea divisoria de pie de página
+        doc.save();
+        doc.moveTo(40, 745)
+           .lineTo(572, 745)
+           .lineWidth(0.5)
+           .stroke('#3A2520');
+           
+        // Texto de contacto
+        const contactText = `${empresaInfo.nombre_empresa}  |  Tel: ${empresaInfo.telefono}  |  Dir: ${empresaInfo.direccion}`;
+        doc.fillColor('#8A7571')
+           .font('Times-Roman')
+           .fontSize(8)
+           .text(contactText, 40, 755, { width: 420, truncate: true });
+           
+        // Paginación
+        const pageText = `Página ${i + 1} de ${range.count}`;
+        doc.fillColor('#D4A373')
+           .font('Times-Bold')
+           .fontSize(8)
+           .text(pageText, 472, 755, { width: 100, align: 'right' });
+        doc.restore();
+    }
+}
 
 module.exports = router;
