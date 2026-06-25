@@ -3,6 +3,34 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
+// Middleware para verificar rol administrador
+const checkAdminPermission = async (req, res, next) => {
+    // Si es verificación o callback de webhook, saltar
+    if (req.path === '/webhook') {
+        return next();
+    }
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario en cabecera o query/body.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos de administrador.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de admin en whatsapp:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
+
+router.use(checkAdminPermission);
+
 // Credenciales oficiales de Meta proporcionadas por el usuario
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || "EABAqZAj7BPkUBR6nPjKPh9D944usZBBAnQj4ezuN3srY7wbxhAdjByTSKMPvkO1ZBRrdeTCnfw9g7Lgfv7UcJmt3dcTROsdeZALSr7boobiVQEPRyVP7rXd5hMFo2KqL7EmOLD0UC2HR02cdNWZCDotyWomx4ZAYl0FkZB1uuty2YyMuXUWcmwEzMZCC6efRXQZDZD";
 const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || "1189224787600539";

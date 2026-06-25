@@ -246,6 +246,9 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                     DropdownMenuItem(value: 'CAJERO', child: Text('CAJERO')),
                     DropdownMenuItem(value: 'MESERO', child: Text('MESERO')),
                     DropdownMenuItem(value: 'ALMACEN', child: Text('ENCARGADO ALMACÉN')),
+                    DropdownMenuItem(value: 'PASTELERA', child: Text('PASTELERA')),
+                    DropdownMenuItem(value: 'COCINERO', child: Text('COCINERO')),
+                    DropdownMenuItem(value: 'BARISTA', child: Text('BARISTA')),
                   ],
                   onChanged: (val) {
                     setDialogState(() => _selectedRol = val!);
@@ -370,6 +373,9 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                     DropdownMenuItem(value: 'CAJERO', child: Text('CAJERO')),
                     DropdownMenuItem(value: 'MESERO', child: Text('MESERO')),
                     DropdownMenuItem(value: 'ALMACEN', child: Text('ENCARGADO ALMACÉN')),
+                    DropdownMenuItem(value: 'PASTELERA', child: Text('PASTELERA')),
+                    DropdownMenuItem(value: 'COCINERO', child: Text('COCINERO')),
+                    DropdownMenuItem(value: 'BARISTA', child: Text('BARISTA')),
                   ],
                   onChanged: (val) {
                     setDialogState(() => _editSelectedRol = val!);

@@ -374,15 +374,35 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     _menuItems.clear();
     _screens.clear();
 
-    // 0. Dashboard para Todos los Usuarios
+    final userRolUpper = _userRol.toUpperCase();
+    final esRolLimitado = ['PASTELERA', 'MESERO', 'COCINERO', 'BARISTA'].contains(userRolUpper);
+
+    if (esRolLimitado) {
+      // 1. Asistencia
+      _menuItems.add({
+        'title': 'Asistencia',
+        'icon': FontAwesomeIcons.userClock,
+      });
+      _screens.add(const AsistenciaScreen());
+
+      // 2. Pedidos Internos
+      _menuItems.add({
+        'title': 'Pedidos Internos',
+        'icon': FontAwesomeIcons.clipboardList,
+      });
+      _screens.add(const PedidosInternosScreen());
+      return;
+    }
+
+    // 0. Dashboard para Todos los Usuarios (que no sean limitados)
     _menuItems.add({
       'title': 'Dashboard',
       'icon': FontAwesomeIcons.chartLine,
     });
     _screens.add(const DashboardScreen());
 
-    // 0.5 Venta por Mesa (Visible para Admins, Cajeros y Meseros)
-    if (_isAdmin || _userRol == 'CAJERO' || _userRol == 'MESERO') {
+    // 0.5 Venta por Mesa (Visible SOLO para Admins)
+    if (_isAdmin) {
       _menuItems.add({
         'title': 'Venta por Mesa',
         'icon': FontAwesomeIcons.utensils,
@@ -390,28 +410,32 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       _screens.add(const VentaMesaScreen());
     }
 
-    // 1. Siempre visible: Punto de Venta
-    _menuItems.add({
-      'title': 'Punto de Venta',
-      'icon': FontAwesomeIcons.shop,
-    });
-    _screens.add(const PosScreen());
+    // 1. Punto de Venta (Visible SOLO para Admins)
+    if (_isAdmin) {
+      _menuItems.add({
+        'title': 'Punto de Venta',
+        'icon': FontAwesomeIcons.shop,
+      });
+      _screens.add(const PosScreen());
+    }
 
-    // 2. Siempre visible: Control de Caja
-    _menuItems.add({
-      'title': 'Control Caja',
-      'icon': FontAwesomeIcons.cashRegister,
-    });
-    _screens.add(const CajaScreen());
+    // 2. Control Caja (Visible SOLO para Admins)
+    if (_isAdmin) {
+      _menuItems.add({
+        'title': 'Control Caja',
+        'icon': FontAwesomeIcons.cashRegister,
+      });
+      _screens.add(const CajaScreen());
+    }
 
-    // 2.5. Siempre visible: Pedidos Internos
+    // 2.5. Siempre visible para otros: Pedidos Internos
     _menuItems.add({
       'title': 'Pedidos Internos',
       'icon': FontAwesomeIcons.clipboardList,
     });
     _screens.add(const PedidosInternosScreen());
 
-    // Siempre visible: Asistencia
+    // Siempre visible para otros: Asistencia
     _menuItems.add({
       'title': 'Asistencia',
       'icon': FontAwesomeIcons.userClock,

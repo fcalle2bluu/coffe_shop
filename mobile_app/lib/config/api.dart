@@ -1,20 +1,30 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
   static const String baseUrl = 'https://coffe-shop-4ffg.onrender.com/api';
+
+  // Helper para construir cabeceras con el ID de usuario
+  static Future<Map<String, String>> _getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('usuario_id');
+    return {
+      'Content-Type': 'application/json',
+      'User-Agent': 'CafeLaPazApp/1.0',
+      if (userId != null) 'x-usuario-id': userId.toString(),
+    };
+  }
 
   // Helper para peticiones GET
   static Future<http.Response> get(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');
     print('GET: $url');
     try {
+      final headers = await _getHeaders();
       final response = await http.get(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CafeLaPazApp/1.0',
-        },
+        headers: headers,
       );
       print('Response Status: ${response.statusCode}');
       return response;
@@ -30,12 +40,10 @@ class ApiConfig {
     print('POST: $url');
     print('Body: ${jsonEncode(body)}');
     try {
+      final headers = await _getHeaders();
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CafeLaPazApp/1.0',
-        },
+        headers: headers,
         body: jsonEncode(body),
       );
       print('Response Status: ${response.statusCode}');
@@ -52,12 +60,10 @@ class ApiConfig {
     print('PUT: $url');
     print('Body: ${jsonEncode(body)}');
     try {
+      final headers = await _getHeaders();
       final response = await http.put(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CafeLaPazApp/1.0',
-        },
+        headers: headers,
         body: jsonEncode(body),
       );
       print('Response Status: ${response.statusCode}');
@@ -73,12 +79,10 @@ class ApiConfig {
     final url = Uri.parse('$baseUrl$endpoint');
     print('DELETE: $url');
     try {
+      final headers = await _getHeaders();
       final response = await http.delete(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CafeLaPazApp/1.0',
-        },
+        headers: headers,
       );
       print('Response Status: ${response.statusCode}');
       return response;
@@ -94,7 +98,13 @@ class ApiConfig {
     print('UPLOAD: $url with file $filePath');
     try {
       final request = http.MultipartRequest('POST', url);
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('usuario_id');
+      
       request.headers['User-Agent'] = 'CafeLaPazApp/1.0';
+      if (userId != null) {
+        request.headers['x-usuario-id'] = userId.toString();
+      }
       request.files.add(await http.MultipartFile.fromPath('imagen', filePath));
       
       final streamedResponse = await request.send();

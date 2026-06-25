@@ -172,16 +172,31 @@
                 
                 <!-- Tarjeta 1: QR del Día -->
                 <div id="tarjeta-qr-asistencia" class="bg-white rounded-2xl border border-gray-200/60 shadow-premium p-6 flex flex-col items-center justify-center text-center no-print">
-                    <h3 class="text-base font-bold text-slate-800 mb-1">Código QR de Hoy</h3>
-                    <p class="text-xs text-slate-500 mb-6 font-semibold" id="label-fecha-qr">...</p>
-                    
-                    <div class="w-56 h-56 p-3 bg-white rounded-2xl border-2 border-slate-100 flex items-center justify-center shadow-inner relative overflow-hidden group">
-                        <img id="qr-image" src="" alt="Generando Código QR..." class="w-full h-full object-contain">
+                    <!-- Sección de generación de QR para administrador -->
+                    <div id="seccion-generar-qr" class="flex flex-col items-center w-full">
+                        <h3 class="text-base font-bold text-slate-800 mb-1">Código QR de Hoy</h3>
+                        <p class="text-xs text-slate-500 mb-6 font-semibold" id="label-fecha-qr">...</p>
+                        
+                        <div class="w-56 h-56 p-3 bg-white rounded-2xl border-2 border-slate-100 flex items-center justify-center shadow-inner relative overflow-hidden group">
+                            <img id="qr-image" src="" alt="Generando Código QR..." class="w-full h-full object-contain">
+                        </div>
+                        
+                        <p class="text-xs text-slate-500 leading-relaxed max-w-xs mt-6 font-medium">
+                            Muestra este QR en el local. Los empleados deberán escanearlo desde la app en sus celulares al iniciar y terminar su jornada.
+                        </p>
                     </div>
-                    
-                    <p class="text-xs text-slate-500 leading-relaxed max-w-xs mt-6 font-medium">
-                        Muestra este QR en el local. Los empleados deberán escanearlo desde la app en sus celulares al iniciar y terminar su jornada.
-                    </p>
+
+                    <!-- Sección de escaneo de QR para no-administradores -->
+                    <div id="seccion-escanear-qr" class="hidden flex flex-col items-center w-full">
+                        <h3 class="text-base font-bold text-slate-800 mb-1">Registrar Asistencia</h3>
+                        <p class="text-xs text-slate-500 mb-6 font-semibold">Usa tu cámara para escanear el código QR en el mostrador.</p>
+                        
+                        <button onclick="iniciarEscaneoWeb()" class="w-full max-w-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mb-4">
+                            <i class="fa-solid fa-camera"></i> Escanear con Cámara
+                        </button>
+                        
+                        <div id="web-qr-reader" class="w-full max-w-sm rounded-xl overflow-hidden border border-slate-200 shadow-inner hidden"></div>
+                    </div>
                 </div>
 
                 <!-- Tarjeta 2: Historial y Reportes de Asistencia -->
@@ -285,6 +300,7 @@
         </div>
     </main>
 
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="js/asistencia.js"></script>
     <script>
         function toggleSidebar() {

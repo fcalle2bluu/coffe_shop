@@ -60,21 +60,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Calcula el token del día en base a la zona horaria de Bolivia (GMT-4) y carga la imagen QR
-function inicializarQR() {
+let html5QrcodeScanner = null;
+
+// Inicializa el QR o el Escáner según el rol
+async function inicializarQR() {
     const ahora = new Date();
     const utc = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
     const horaBolivia = new Date(utc + (3600000 * -4));
     
-    const yyyy = horaBolivia.getFullYear();
-    const mm = String(horaBolivia.getMonth() + 1).padStart(2, '0');
-    const dd = String(horaBolivia.getDate()).padStart(2, '0');
+    const labelFecha = document.getElementById('label-fecha-qr');
+    if (labelFecha) {
+        labelFecha.innerText = `${horaBolivia.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+    }
+
+    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const isAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
+
+    if (!isAdmin) {
+        // Mostrar sección de escaneo, ocultar generación de QR
+        const seccionGenerar = document.getElementById('seccion-generar-qr');
+        const seccionEscanear = document.getElementById('seccion-escanear-qr');
+        if (seccionGenerar) seccionGenerar.classList.add('hidden');
+        if (seccionEscanear) seccionEscanear.classList.remove('hidden');
+        return;
+    }
+
+    // Si es admin, cargar token del backend seguro
+    try {
+        const userId = localStorage.getItem('usuario_id');
+        const res = await fetch(`/api/asistencia/qr-token?usuario_id=${userId}`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.token}`;
+            document.getElementById('qr-image').src = qrUrl;
+        } else {
+            console.error('Error al cargar el token QR del servidor:', data.error);
+            document.getElementById('qr-image').alt = 'No autorizado para generar QR';
+        }
+    } catch (err) {
+        console.error('Error de red al inicializar QR:', err);
+    }
+}
+
+// Inicia el lector de QR en la web
+function iniciarEscaneoWeb() {
+    const readerDiv = document.getElementById('web-qr-reader');
+    if (!readerDiv) return;
     
-    const token = `asistencia_${yyyy}_${mm}_${dd}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${token}`;
+    readerDiv.classList.remove('hidden');
     
-    document.getElementById('qr-image').src = qrUrl;
-    document.getElementById('label-fecha-qr').innerText = `${horaBolivia.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(err => console.log('Error clearing scanner:', err));
+    }
+    
+    html5QrcodeScanner = new Html5QrcodeScanner(
+        "web-qr-reader", 
+        { fps: 10, qrbox: {width: 220, height: 220} },
+        /* verbose= */ false
+    );
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+    if (html5QrcodeScanner) {
+        try {
+            await html5QrcodeScanner.clear();
+        } catch (e) {
+            console.log('Error clearing scanner in success:', e);
+        }
+    }
+    document.getElementById('web-qr-reader').classList.add('hidden');
+    
+    // Registrar asistencia
+    const usuario_id = localStorage.getItem('usuario_id');
+    try {
+        const res = await fetch('/api/asistencia/marcar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuario_id,
+                token: decodedText
+            })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert(data.mensaje + '\n' + (data.detalles || ''));
+            window.location.reload();
+        } else {
+            alert('Error al marcar asistencia: ' + (data.error || 'Código QR inválido o expirado.'));
+        }
+    } catch (err) {
+        alert('Error de conexión con el servidor al registrar la asistencia.');
+    }
+}
+
+function onScanFailure(error) {
+    // Silenciar fallos continuos de lectura mientras la cámara está activa
 }
 
 // Configura los valores iniciales de los filtros
@@ -255,7 +337,8 @@ async function guardarAsistenciaManual() {
                 fecha,
                 hora_entrada,
                 hora_salida: hora_salida || null,
-                editor_rol
+                editor_rol,
+                editor_id: localStorage.getItem('usuario_id')
             })
         });
 

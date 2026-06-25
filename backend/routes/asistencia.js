@@ -15,6 +15,32 @@ const obtenerTokenHoy = () => {
     return `asistencia_${yyyy}_${mm}_${dd}`;
 };
 
+// Endpoint para obtener el token QR de hoy (Solo Administradores)
+router.get('/qr-token', async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Falta ID de usuario para verificar permisos.' });
+    }
+
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
+            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden generar o ver el código QR.' });
+        }
+
+        const token = obtenerTokenHoy();
+        res.json({ success: true, token });
+    } catch (error) {
+        console.error('Error al generar token QR:', error);
+        res.status(500).json({ error: 'Error interno del servidor al generar el token QR.' });
+    }
+});
+
 // 1. Marcar Entrada o Salida (Escaneando QR)
 router.post('/marcar', async (req, res) => {
     const { usuario_id, token } = req.body;
@@ -188,11 +214,26 @@ router.get('/mi-historial/:usuario_id', async (req, res) => {
 
 // 4. Registrar Asistencia Manual (Solo Administradores)
 router.post('/manual', async (req, res) => {
-    const { usuario_id, fecha, hora_entrada, hora_salida, editor_rol } = req.body;
+    const { usuario_id, fecha, hora_entrada, hora_salida, editor_rol, editor_id } = req.body;
 
-    // Validar rol de administrador
-    if (editor_rol !== 'ADMINISTRADOR' && editor_rol !== 'ADMIN') {
-        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden registrar asistencia manualmente.' });
+    // Validar rol de administrador en base de datos para seguridad
+    const adminId = editor_id;
+    if (!adminId) {
+        return res.status(400).json({ error: 'Faltan datos de autorización (editor_id).' });
+    }
+
+    try {
+        const adminCheck = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [adminId]);
+        if (adminCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario administrador no encontrado.' });
+        }
+        const rolReal = adminCheck.rows[0].rol.toUpperCase();
+        if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden registrar asistencia manualmente.' });
+        }
+    } catch (dbErr) {
+        console.error('Error al validar editor:', dbErr);
+        return res.status(500).json({ error: 'Error interno al validar permisos.' });
     }
 
     if (!usuario_id || !fecha || !hora_entrada) {

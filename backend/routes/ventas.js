@@ -4,6 +4,30 @@ const router = express.Router();
 const pool = require('../config/conexion');
 const whatsappRoutes = require('./whatsapp');
 
+// Middleware para verificar rol administrador
+const checkAdminPermission = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos de administrador.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de admin en ventas:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
+
+router.use(checkAdminPermission);
+
 // 1. Obtener catálogo de productos para el POS
 router.get('/productos', async (req, res) => {
     try {

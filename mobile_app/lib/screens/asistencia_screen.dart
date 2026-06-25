@@ -28,6 +28,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
   String _filtroAnio = '';
   List<dynamic> _empleados = [];
   String _filtroEmpleadoId = '';
+  String _qrToken = '';
 
   @override
   void initState() {
@@ -56,6 +57,15 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         final empRes = await ApiConfig.get('/parametros/usuarios');
         if (empRes.statusCode == 200) {
           _empleados = jsonDecode(empRes.body);
+        }
+        
+        // Cargar token QR desde el servidor seguro
+        final tokenRes = await ApiConfig.get('/asistencia/qr-token?usuario_id=$_userId');
+        if (tokenRes.statusCode == 200) {
+          final tokenData = jsonDecode(tokenRes.body);
+          if (tokenData['success'] == true) {
+            _qrToken = tokenData['token'] ?? '';
+          }
         }
         
         // Cargar historial completo filtrado
@@ -320,7 +330,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Image.network(
-                  'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${_getTodayToken()}',
+                  'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${_qrToken.isNotEmpty ? _qrToken : _getTodayToken()}',
                   fit: BoxFit.contain,
                 ),
               ),

@@ -1,6 +1,22 @@
 // frontend/js/security_guard.js
 
 (function() {
+    // === MONKEY PATCH FETCH PARA INYECTAR USUARIO ID ===
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        const usuarioId = localStorage.getItem('usuario_id');
+        if (usuarioId) {
+            init = init || {};
+            init.headers = init.headers || {};
+            if (init.headers instanceof Headers) {
+                init.headers.set('x-usuario-id', usuarioId);
+            } else {
+                init.headers['x-usuario-id'] = usuarioId;
+            }
+        }
+        return originalFetch(input, init);
+    };
+
     // === LÓGICA GLOBAL DE MODO OSCURO ===
     function applyTheme(isDark) {
         let styleEl = document.getElementById('dark-mode-style');
@@ -212,20 +228,24 @@
         return;
     }
 
-    // REGLAS PARA PASTELERA/PASTELERO
-    if (rol.includes('PASTELERA') || rol.includes('PASTELERO')) {
-        const paginasPermitidas = ['produccion.html', 'index.html', ''];
+    // REGLAS PARA ROLES LIMITADOS (PASTELERA, MESERO, COCINERO, BARISTA)
+    const esRolLimitado = ['PASTELERA', 'PASTELERO', 'MESERO', 'COCINERO', 'BARISTA'].some(r => rol.includes(r));
+    if (esRolLimitado) {
+        const paginasPermitidas = ['asistencia.html', 'pedidos_internos.html', 'index.html', ''];
         
         if (!paginasPermitidas.includes(pageName)) {
-            window.location.href = 'produccion.html';
+            window.location.href = 'asistencia.html';
             return;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Ocultar tabs de menú que no sean produccion
+            // Ocultar todos los enlaces del sidebar excepto Asistencia y Pedidos Internos
             document.querySelectorAll('aside nav a').forEach(el => {
-                if (!el.href.includes('produccion.html')) {
+                const href = el.getAttribute('href') || '';
+                if (!href.includes('asistencia.html') && !href.includes('pedidos_internos.html')) {
                     el.style.display = 'none';
+                } else {
+                    el.style.display = 'flex';
                 }
             });
             // Ocultar botones y elementos de admin
@@ -340,11 +360,12 @@
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('asistencia.html')) {
-                if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
+                const tieneAccesoAsistencia = isAdmin || rol === 'CAJERO' || ['PASTELERA', 'PASTELERO', 'MESERO', 'COCINERO', 'BARISTA'].some(r => rol.includes(r));
+                if (!tieneAccesoAsistencia) el.style.display = 'none';
                 else el.style.display = 'flex';
             }
-            if (href.includes('webhook.html')) {
-                if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
+            if (href.includes('webhook.html') || href.includes('ventas.html') || href.includes('venta_mesa.html') || href.includes('caja.html')) {
+                if (!isAdmin) el.style.display = 'none';
                 else el.style.display = 'flex';
             }
         });

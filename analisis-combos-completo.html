@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Combos — Café La Paz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F3EC;
+    --paper-dim:#EFE9DE;
+    --ink:#2B2622;
+    --ink-soft:#6B6258;
+    --rule:#DAD2C2;
+    --rust:#C2541E;
+    --rust-soft:#F0DDC9;
+    --gold:#B8923D;
+    --gold-soft:#F2E8CE;
+    --green:#3D7A52;
+    --green-soft:#E1ECE2;
+    --blue:#2F5D8A;
+    --blue-soft:#E1EAF2;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Manrope',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  .wrap{
+    max-width:1220px;
+    margin:0 auto;
+    padding:36px 28px 90px;
+  }
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:18px;
+    padding-bottom:22px;
+    border-bottom:2px solid var(--ink);
+    margin-bottom:28px;
+  }
+  .brand-eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  .brand-title{
+    font-size:30px;
+    font-weight:800;
+    letter-spacing:-.01em;
+    margin:0;
+    line-height:1.08;
+  }
+  .brand-sub{
+    margin:8px 0 0;
+    font-size:14.5px;
+    color:var(--ink-soft);
+    max-width:560px;
+    line-height:1.5;
+  }
+  .period-controls{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .seg{
+    display:flex;
+    border:1.5px solid var(--ink);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .seg button{
+    border:none;
+    background:transparent;
+    padding:8px 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.03em;
+    cursor:pointer;
+    color:var(--ink);
+    border-right:1.5px solid var(--ink);
+    transition:background .15s ease, color .15s ease;
+  }
+  .seg button:last-child{border-right:none;}
+  .seg button.active{background:var(--ink); color:var(--paper);}
+  .seg button:hover:not(.active){background:var(--paper-dim);}
+
+  /* ---------- tab nav within page (visual ref to other dashboard tabs) ---------- */
+  .tabnav{
+    display:flex;
+    gap:4px;
+    margin-bottom:30px;
+    border-bottom:1px solid var(--rule);
+  }
+  .tabnav .tlink{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.04em;
+    padding:10px 16px;
+    color:var(--ink-soft);
+    border-bottom:2px solid transparent;
+    cursor:default;
+  }
+  .tabnav .tlink.current{
+    color:var(--ink);
+    border-bottom:2px solid var(--rust);
+    font-weight:700;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin-bottom:36px;
+  }
+  .kpi{background:var(--paper); padding:18px 18px;}
+  .kpi-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    color:var(--ink-soft);
+    margin:0 0 8px;
+  }
+  .kpi-value{font-size:24px; font-weight:800; margin:0; line-height:1; letter-spacing:-.01em;}
+  .kpi-value span{font-size:13px; font-weight:600; color:var(--ink-soft);}
+  .kpi-delta{font-family:'JetBrains Mono',monospace; font-size:10.5px; margin-top:6px; color:var(--green); font-weight:600;}
+
+  /* ---------- section heads ---------- */
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:14px;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .section-title{
+    font-size:18px;
+    font-weight:800;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .section-title .tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:.08em;
+    background:var(--rust);
+    color:var(--paper);
+    padding:3px 7px;
+    border-radius:4px;
+    text-transform:uppercase;
+    font-weight:700;
+  }
+  .section-title .tag.alt{background:var(--blue);}
+  .section-note{font-size:13px; color:var(--ink-soft); margin:0;}
+
+  .panel{
+    background:var(--paper);
+    border:1.5px solid var(--ink);
+    border-radius:14px;
+    padding:20px 20px 14px;
+    position:relative;
+  }
+
+  /* ============ SECTION 1: constellation + side ============ */
+  .main-grid{
+    display:grid;
+    grid-template-columns:1.5fr 1fr;
+    gap:22px;
+    margin-bottom:46px;
+    align-items:stretch;
+  }
+  @media (max-width: 980px){ .main-grid{grid-template-columns:1fr;} }
+
+  .constellation-panel{min-height:480px; display:flex; flex-direction:column;}
+  .constellation-stage{flex:1; position:relative; margin-top:6px;}
+  svg#net{width:100%; height:100%; display:block; overflow:visible;}
+  .legend-row{
+    display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; padding-top:12px;
+    border-top:1px dashed var(--rule);
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft);
+  }
+  .legend-row .lg-item{display:flex; align-items:center; gap:6px;}
+  .lg-swatch{width:18px; height:3px; border-radius:2px; display:inline-block;}
+
+  .node-tooltip{
+    position:absolute; pointer-events:none;
+    background:var(--ink); color:var(--paper);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    padding:8px 10px; border-radius:7px; line-height:1.45;
+    transform:translate(-50%,-115%); white-space:nowrap;
+    opacity:0; transition:opacity .12s ease; z-index:20;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);
+  }
+  .node-tooltip b{color:#E7C68A;}
+  .node-tooltip.show{opacity:1;}
+
+  .side-stack{display:flex; flex-direction:column; gap:16px;}
+  .hero-combo{
+    background:linear-gradient(180deg, var(--ink) 0%, #1c1815 100%);
+    color:var(--paper); border-radius:14px; padding:20px; position:relative; overflow:hidden;
+  }
+  .hero-combo::before{
+    content:""; position:absolute; top:-40px; right:-40px; width:140px; height:140px;
+    background:radial-gradient(circle, rgba(194,84,30,.5), transparent 70%);
+  }
+  .hero-eyebrow{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#D8B98A; margin:0 0 10px;}
+  .hero-pair{font-size:21px; font-weight:800; line-height:1.25; margin:0 0 14px; position:relative; z-index:1;}
+  .hero-pair .plus{color:#D8B98A; font-weight:600; margin:0 6px;}
+  .hero-stats{display:flex; gap:18px; position:relative; z-index:1; flex-wrap:wrap;}
+  .hero-stat-label{font-family:'JetBrains Mono',monospace; font-size:10px; color:#B8AFA4; text-transform:uppercase; letter-spacing:.07em;}
+  .hero-stat-val{font-size:19px; font-weight:800; margin-top:2px;}
+
+  .focus-panel{display:flex; flex-direction:column;}
+  .focus-select-row{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
+  .focus-select-row label{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em;}
+  select{
+    font-family:'JetBrains Mono',monospace; font-size:12.5px;
+    border:1.5px solid var(--ink); border-radius:7px; padding:6px 10px;
+    background:var(--paper); color:var(--ink); cursor:pointer;
+  }
+  select#productFocus{flex:1;}
+  .focus-list{display:flex; flex-direction:column; gap:8px;}
+  .focus-row{display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--paper-dim);}
+  .focus-row:last-child{border-bottom:none;}
+  .focus-rank{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); width:18px;}
+  .focus-name{flex:1; font-size:13.5px; font-weight:600;}
+  .focus-bar-track{width:64px; height:6px; background:var(--paper-dim); border-radius:3px; overflow:hidden;}
+  .focus-bar-fill{height:100%; background:var(--rust); border-radius:3px;}
+  .focus-pct{font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:700; width:40px; text-align:right;}
+  .focus-hint{margin:14px 0 0; padding-top:12px; border-top:1px dashed var(--rule); font-size:12.5px; color:var(--ink-soft); line-height:1.55;}
+
+  /* ============ SECTION 2: top 20 combos table ============ */
+  .table-toolbar{
+    display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px;
+  }
+  .metric-toggle{display:flex; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11.5px;}
+  .metric-toggle button{
+    border:1.5px solid var(--ink); background:var(--paper); color:var(--ink);
+    padding:6px 12px; border-radius:7px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:11.5px;
+  }
+  .metric-toggle button.active{background:var(--ink); color:var(--paper);}
+
+  .receipt-panel{border:1.5px solid var(--ink); border-radius:14px; background:var(--paper); overflow:hidden; margin-bottom:14px;}
+  .receipt-header-row{
+    display:grid; grid-template-columns: 34px 1.9fr .8fr .9fr .9fr .8fr 1.2fr;
+    gap:10px; padding:12px 18px; background:var(--ink); color:var(--paper);
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase;
+  }
+  .receipt-row{
+    display:grid; grid-template-columns: 34px 1.9fr .8fr .9fr .9fr .8fr 1.2fr;
+    gap:10px; padding:11px 18px; align-items:center;
+    border-bottom:1px solid var(--paper-dim); transition:background .12s ease;
+  }
+  .receipt-row:hover{background:var(--paper-dim);}
+  .receipt-row:last-child{border-bottom:none;}
+  .r-idx{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-soft);}
+  .r-pair{font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .r-pair .plus-sm{color:var(--ink-soft); font-weight:500;}
+  .r-cat-pill{
+    font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase;
+    padding:2px 6px; border-radius:4px; background:var(--paper-dim); color:var(--ink-soft); margin-left:2px;
+  }
+  .r-num{font-family:'JetBrains Mono',monospace; font-size:12.5px;}
+  .r-money{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;}
+  .r-bar-cell{display:flex; align-items:center; gap:8px;}
+  .r-bar-track{flex:1; height:7px; background:var(--paper-dim); border-radius:4px; overflow:hidden;}
+  .r-bar-fill{height:100%; border-radius:4px; background:var(--rust);}
+  .m-label{display:none;}
+
+  .footnote{
+    margin-top:6px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft);
+    line-height:1.6; border-top:1px dashed var(--rule); padding-top:14px;
+  }
+
+  /* ============ SECTION 3: future combos ============ */
+  .future-intro{font-size:13.5px; color:var(--ink-soft); line-height:1.6; max-width:760px; margin:0 0 20px;}
+
+  .future-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    margin-bottom:24px;
+  }
+  @media (max-width: 980px){ .future-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width: 680px){ .future-grid{grid-template-columns:1fr;} }
+
+  .future-card{
+    border:1.5px solid var(--ink);
+    border-radius:14px;
+    background:var(--paper);
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .future-card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .future-pair{font-size:15.5px; font-weight:800; line-height:1.3;}
+  .future-pair .plus-sm{color:var(--ink-soft); font-weight:500; margin:0 3px;}
+  .future-score{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase;
+    padding:4px 8px; border-radius:6px; white-space:nowrap;
+  }
+  .score-high{background:var(--green-soft); color:var(--green);}
+  .score-mid{background:var(--gold-soft); color:var(--gold);}
+
+  .future-price-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:'JetBrains Mono',monospace;
+    padding:10px 0; border-top:1px dashed var(--rule); border-bottom:1px dashed var(--rule);
+  }
+  .future-price-item{display:flex; flex-direction:column; gap:2px;}
+  .future-price-label{font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft);}
+  .future-price-val{font-size:15px; font-weight:700;}
+  .future-price-val.strike{color:var(--ink-soft); font-weight:500; text-decoration:line-through; font-size:13px;}
+  .future-price-val.combo{color:var(--rust);}
+
+  .future-proj{display:flex; flex-direction:column; gap:8px;}
+  .future-proj-row{display:flex; justify-content:space-between; align-items:center; font-size:12.5px;}
+  .future-proj-row .lbl{color:var(--ink-soft);}
+  .future-proj-row .val{font-family:'JetBrains Mono',monospace; font-weight:700;}
+  .val-up{color:var(--green);}
+  .val-down{color:#A33;}
+
+  .future-note{font-size:11.5px; color:var(--ink-soft); line-height:1.5; margin:0;}
+
+  /* ============ simulator panel ============ */
+  .sim-panel{
+    border:1.5px solid var(--ink);
+    border-radius:14px;
+    background:var(--paper);
+    padding:22px;
+    margin-bottom:10px;
+  }
+  .sim-grid{
+    display:grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap:28px;
+    align-items:start;
+  }
+  @media (max-width: 880px){ .sim-grid{grid-template-columns:1fr;} }
+
+  .sim-controls label{
+    display:block;
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;
+  }
+  .sim-controls .ctrl-block{margin-bottom:18px;}
+  .sim-controls select{width:100%;}
+  input[type="range"]{
+    width:100%;
+    accent-color:var(--rust);
+  }
+  .sim-range-readout{
+    display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;
+  }
+  .sim-range-readout .val{font-family:'JetBrains Mono',monospace; font-weight:800; font-size:18px; color:var(--rust);}
+
+  .sim-result-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .sim-result-card{
+    background:var(--paper-dim);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .sim-result-card.combo-on{background:var(--green-soft);}
+  .sim-result-label{font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin:0 0 6px;}
+  .sim-result-card.combo-on .sim-result-label{color:var(--green);}
+  .sim-result-value{font-size:23px; font-weight:800; margin:0; line-height:1;}
+  .sim-result-sub{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); margin-top:6px;}
+
+  .sim-delta-banner{
+    margin-top:14px;
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:10px;
+    padding:14px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .sim-delta-banner .ddesc{font-size:12.5px; color:#C9C2B6;}
+  .sim-delta-banner .dval{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:800; color:#7FCB97;}
+  .sim-delta-banner .dval.neg{color:#E08383;}
+
+  /* responsive receipt -> stack on small screens */
+  @media (max-width: 760px){
+    .receipt-header-row{display:none;}
+    .receipt-row{grid-template-columns:1fr; gap:5px; padding:13px 16px;}
+    .r-bar-cell{order:6;}
+    .m-label{display:inline; color:var(--ink-soft); font-weight:500; text-transform:uppercase; font-size:9.5px; letter-spacing:.05em;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="topbar">
+    <div>
+      <p class="brand-eyebrow">Dashboard Café La Paz · Inteligencia de Ventas</p>
+      <h1 class="brand-title">Análisis de Combos</h1>
+      <p class="brand-sub">Qué productos se compran juntos hoy, cuánto generan, y qué combos nuevos vale la pena lanzar — con proyección de ingreso antes de decidir.</p>
+    </div>
+    <div class="period-controls">
+      <div class="seg" role="group" aria-label="Rango de tiempo">
+        <button data-range="7">7D</button>
+        <button class="active" data-range="30">30D</button>
+        <button data-range="90">90D</button>
+        <button data-range="all">TODO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB NAV (referencia visual a otras pestañas del dashboard) -->
+  <div class="tabnav">
+    <span class="tlink">Semáforo contable</span>
+    <span class="tlink">Ventas semanales</span>
+    <span class="tlink">Rendimiento mensual</span>
+    <span class="tlink">Horas pico</span>
+    <span class="tlink">Matriz BCG</span>
+    <span class="tlink current">Análisis de combos</span>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <p class="kpi-label">Tickets con 2+ items</p>
+      <p class="kpi-value" id="kpiTickets">1,842</p>
+      <p class="kpi-delta">de 6,310 ventas totales</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-label">Ingreso por combos top 20</p>
+      <p class="kpi-value">Bs <span id="kpiIngresoTop">14,920</span></p>
+      <p class="kpi-delta">38% del ingreso del periodo</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-label">Combo más fuerte</p>
+      <p class="kpi-value" id="kpiTopPct">46<span>%</span></p>
+      <p class="kpi-delta">Café Expreso + Marraqueta</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-label">Ticket con combo</p>
+      <p class="kpi-value">Bs 28<span>.40</span></p>
+      <p class="kpi-delta">+34% vs. ticket simple</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-label">Oportunidad sin explotar</p>
+      <p class="kpi-value">5</p>
+      <p class="kpi-delta" style="color:var(--gold);">combos potenciales sin lanzar</p>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 1: constellation + side ============ -->
+  <div class="main-grid">
+    <div class="panel constellation-panel">
+      <div class="section-head">
+        <h2 class="section-title">Mapa de afinidad <span class="tag">en vivo</span></h2>
+        <p class="section-note">Grosor de línea = % de tickets donde aparecen juntos</p>
+      </div>
+      <div class="constellation-stage">
+        <svg id="net" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="node-tooltip" id="tooltip"></div>
+      </div>
+      <div class="legend-row">
+        <span class="lg-item"><span class="lg-swatch" style="background:var(--green);"></span>Afinidad alta (&gt;35%)</span>
+        <span class="lg-item"><span class="lg-swatch" style="background:var(--gold);"></span>Afinidad media (20–35%)</span>
+        <span class="lg-item"><span class="lg-swatch" style="background:var(--rule);"></span>Afinidad baja (&lt;20%)</span>
+        <span class="lg-item">● tamaño del nodo = volumen del producto</span>
+      </div>
+    </div>
+
+    <div class="side-stack">
+      <div class="hero-combo">
+        <p class="hero-eyebrow">Combo #1 del periodo</p>
+        <p class="hero-pair">Café Expreso<span class="plus">+</span>Marraqueta</p>
+        <div class="hero-stats">
+          <div><div class="hero-stat-label">Co-ocurrencia</div><div class="hero-stat-val">46%</div></div>
+          <div><div class="hero-stat-label">Lift</div><div class="hero-stat-val">2.8×</div></div>
+          <div><div class="hero-stat-label">Ingreso/mes</div><div class="hero-stat-val">Bs 3,210</div></div>
+        </div>
+      </div>
+
+      <div class="panel focus-panel">
+        <div class="section-head" style="margin-bottom:8px;">
+          <h2 class="section-title" style="font-size:15px;">Explorar por producto</h2>
+        </div>
+        <div class="focus-select-row">
+          <label for="productFocus">Si compran</label>
+          <select id="productFocus"></select>
+        </div>
+        <div class="focus-list" id="focusList"></div>
+        <p class="focus-hint">Sugerencias ordenadas por confianza, listas para usar como recomendación automática en caja.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECTION 2: top 20 combos ============ -->
+  <div style="margin-bottom:50px;">
+    <div class="table-toolbar">
+      <div class="section-head" style="margin-bottom:0; flex:1;">
+        <h2 class="section-title">Top 20 combos actuales <span class="tag">ranking</span></h2>
+        <p class="section-note">Combinaciones de 2 productos más frecuentes en el mismo ticket</p>
+      </div>
+      <div class="metric-toggle" role="group" aria-label="Ordenar por">
+        <button id="sortMoney" class="active">Bs. generados</button>
+        <button id="sortVentas">N° de ventas</button>
+      </div>
+    </div>
+    <div class="receipt-panel">
+      <div class="receipt-header-row">
+        <div>#</div>
+        <div>Combo</div>
+        <div>Ventas</div>
+        <div>Bs. generados</div>
+        <div>Ticket prom.</div>
+        <div>Lift</div>
+        <div>% del ingreso top 20</div>
+      </div>
+      <div id="receiptBody"></div>
+    </div>
+    <p class="footnote">
+      VENTAS = N° de tickets (`ventas`) que contienen ambos `producto_id` en `detalle_ventas` · BS. GENERADOS = suma de `subtotal` de ambas líneas en esos tickets · TICKET PROM. = Bs. generados ÷ N° de ventas del combo · LIFT = qué tan por encima del azar ocurre el combo (1.0× = sin relación, &gt;2× = relación fuerte) · % DEL INGRESO TOP 20 = participación de este combo dentro del ingreso total de los 20 combos listados.
+    </p>
+  </div>
+
+  <!-- ============ SECTION 3: future combos ============ -->
+  <div style="margin-bottom:36px;">
+    <div class="section-head">
+      <h2 class="section-title">Combos potenciales futuros <span class="tag alt">proyección</span></h2>
+      <p class="section-note">Productos con alta afinidad que hoy se compran juntos por casualidad, pero nunca se ofrecen como promo formal</p>
+    </div>
+    <p class="future-intro">
+      Estos pares ya tienen una co-ocurrencia natural alta, pero el cliente los pide por separado porque nadie se los sugiere ni hay un precio de combo. La proyección estima qué pasaría si se formaliza el combo con un descuento, comparando el ingreso esperado contra seguir vendiendo ambos productos por separado al mismo volumen actual.
+    </p>
+    <div class="future-grid" id="futureGrid"></div>
+  </div>
+
+  <!-- ============ SIMULATOR ============ -->
+  <div>
+    <div class="section-head">
+      <h2 class="section-title">Simulador de combo nuevo</h2>
+      <p class="section-note">Ajusta el descuento y el aumento de demanda esperado para ver el impacto en ingresos</p>
+    </div>
+    <div class="sim-panel">
+      <div class="sim-grid">
+        <div class="sim-controls">
+          <div class="ctrl-block">
+            <label for="simCombo">Combo a simular</label>
+            <select id="simCombo"></select>
+          </div>
+          <div class="ctrl-block">
+            <div class="sim-range-readout">
+              <label for="simDiscount" style="margin:0;">Descuento del combo</label>
+              <span class="val mono" id="simDiscountVal">15%</span>
+            </div>
+            <input type="range" id="simDiscount" min="0" max="35" value="15" step="1">
+          </div>
+          <div class="ctrl-block">
+            <div class="sim-range-readout">
+              <label for="simLift" style="margin:0;">Aumento de demanda esperado</label>
+              <span class="val mono" id="simLiftVal">+20%</span>
+            </div>
+            <input type="range" id="simLift" min="0" max="80" value="20" step="5">
+            <p style="font-size:11px; color:var(--ink-soft); margin:8px 0 0;">Cuánto subiría la frecuencia de este combo al promocionarlo activamente (sugerencia en caja, cartel, app). Ajusta este valor con cautela: es un supuesto, no un dato medido.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="sim-result-grid">
+            <div class="sim-result-card">
+              <p class="sim-result-label">Sin combo (hoy)</p>
+              <p class="sim-result-value" id="simBaseRevenue">Bs 3,210</p>
+              <p class="sim-result-sub" id="simBaseDetail">412 ventas/mes · Bs 7.79 c/u</p>
+            </div>
+            <div class="sim-result-card combo-on">
+              <p class="sim-result-label">Con combo (proyectado)</p>
+              <p class="sim-result-value" id="simComboRevenue">Bs 3,706</p>
+              <p class="sim-result-sub" id="simComboDetail">494 ventas/mes · Bs 7.50 c/u</p>
+            </div>
+          </div>
+          <div class="sim-delta-banner">
+            <span class="ddesc">Impacto mensual proyectado en ingresos</span>
+            <span class="dval" id="simDelta">+Bs 496</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   DATOS DE EJEMPLO — estructura pensada para mapear directo a:
+   ventas, detalle_ventas, productos
+   En producción esto vendría de endpoints como:
+   /api/kpis/market-basket-top?dias=30
+   /api/kpis/market-basket-oportunidades?dias=30
+   ============================================================ */
+
+const products = [
+  { id:'expreso',   name:'Café Expreso',       vol:100, color:'#C2541E', precio:8 },
+  { id:'cappu',     name:'Cappuccino',         vol:72,  color:'#C2541E', precio:12 },
+  { id:'marraqueta',name:'Marraqueta',         vol:68,  color:'#3D7A52', precio:5 },
+  { id:'croissant', name:'Croissant',          vol:54,  color:'#B8923D', precio:9 },
+  { id:'torta',     name:'Torta de Chocolate', vol:31,  color:'#B8923D', precio:14 },
+  { id:'saltena',   name:'Salteña',            vol:46,  color:'#3D7A52', precio:7 },
+  { id:'te_coca',   name:'Té de Coca',         vol:38,  color:'#C2541E', precio:6 },
+  { id:'jugo_nat',  name:'Jugo Natural',       vol:29,  color:'#3D7A52', precio:10 },
+  { id:'sandwich',  name:'Sándwich Mixto',     vol:24,  color:'#B8923D', precio:16 },
+];
+const byId = Object.fromEntries(products.map(p=>[p.id,p]));
+
+// pares para la constelación (mapa de afinidad), no todos requieren ser top 20
+const affinityPairs = [
+  { a:'expreso',   b:'marraqueta', coocc:46, conf:68, lift:2.8 },
+  { a:'cappu',     b:'croissant',  coocc:39, conf:61, lift:2.4 },
+  { a:'saltena',   b:'te_coca',    coocc:33, conf:55, lift:2.1 },
+  { a:'expreso',   b:'croissant',  coocc:24, conf:34, lift:1.5 },
+  { a:'cappu',     b:'torta',      coocc:21, conf:40, lift:1.9 },
+  { a:'expreso',   b:'torta',      coocc:12, conf:18, lift:0.9 },
+  { a:'jugo_nat',  b:'sandwich',   coocc:27, conf:44, lift:2.0 },
+  { a:'cappu',     b:'sandwich',   coocc:14, conf:22, lift:1.1 },
+];
+
+// TOP 20 combos actuales con datos monetarios (simulado, escala realista para una cafeteria mensual)
+const top20 = [
+  { a:'expreso', b:'marraqueta', ventas:412, ingreso:3210, lift:2.8 },
+  { a:'cappu', b:'croissant', ventas:301, ingreso:3320, lift:2.4 },
+  { a:'saltena', b:'te_coca', ventas:268, ingreso:2210, lift:2.1 },
+  { a:'jugo_nat', b:'sandwich', ventas:198, ingreso:2480, lift:2.0 },
+  { a:'cappu', b:'torta', ventas:171, ingreso:2310, lift:1.9 },
+  { a:'expreso', b:'croissant', ventas:198, ingreso:1850, lift:1.5 },
+  { a:'expreso', b:'te_coca', ventas:120, ingreso:980, lift:1.3 },
+  { a:'marraqueta', b:'te_coca', ventas:96, ingreso:640, lift:1.2 },
+  { a:'cappu', b:'sandwich', ventas:88, ingreso:1310, lift:1.1 },
+  { a:'expreso', b:'torta', ventas:96, ingreso:1330, lift:0.9 },
+  { a:'saltena', b:'jugo_nat', ventas:84, ingreso:1170, lift:1.4 },
+  { a:'croissant', b:'jugo_nat', ventas:79, ingreso:1090, lift:1.2 },
+  { a:'expreso', b:'sandwich', ventas:71, ingreso:1190, lift:0.8 },
+  { a:'marraqueta', b:'croissant', ventas:66, ingreso:560, lift:0.7 },
+  { a:'cappu', b:'te_coca', ventas:58, ingreso:600, lift:0.9 },
+  { a:'torta', b:'jugo_nat', ventas:52, ingreso:910, lift:1.1 },
+  { a:'saltena', b:'croissant', ventas:49, ingreso:540, lift:0.8 },
+  { a:'expreso', b:'jugo_nat', ventas:44, ingreso:560, lift:0.7 },
+  { a:'marraqueta', b:'sandwich', ventas:38, ingreso:560, lift:0.6 },
+  { a:'torta', b:'te_coca', ventas:31, ingreso:460, lift:0.6 },
+];
+
+// COMBOS POTENCIALES FUTUROS — pares de alta afinidad SIN promo formal hoy
+const futureCombos = [
+  {
+    a:'jugo_nat', b:'sandwich',
+    coocc:27, ventasActuales:198, score:'high',
+    descuentoSugerido:0.12, liftEsperado:0.22,
+    nota:'Ya tiene alta co-ocurrencia natural sin ningún incentivo. Formalizarlo como combo de almuerzo ligero.'
+  },
+  {
+    a:'cappu', b:'torta',
+    coocc:21, ventasActuales:171, score:'high',
+    descuentoSugerido:0.10, liftEsperado:0.18,
+    nota:'Combo de tarde (merienda). Buen candidato para cartel físico en mostrador 16:00–19:00.'
+  },
+  {
+    a:'expreso', b:'croissant',
+    coocc:24, ventasActuales:198, score:'mid',
+    descuentoSugerido:0.08, liftEsperado:0.15,
+    nota:'Volumen alto pero lift moderado: el descuento debe ser bajo para no perder margen.'
+  },
+  {
+    a:'saltena', b:'jugo_nat',
+    coocc:18, ventasActuales:84, score:'mid',
+    descuentoSugerido:0.10, liftEsperado:0.25,
+    nota:'Combo de desayuno salado + jugo. Rotación media, pero buen ticket si se empuja.'
+  },
+  {
+    a:'torta', b:'jugo_nat',
+    coocc:14, ventasActuales:52, score:'mid',
+    descuentoSugerido:0.12, liftEsperado:0.30,
+    nota:'Baja base actual, pero alto potencial de crecimiento porcentual si se promociona.'
+  },
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function fmtBs(n){ return 'Bs ' + Math.round(n).toLocaleString('es-BO'); }
+function fmtBsDec(n){ return 'Bs ' + n.toLocaleString('es-BO', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function strengthInfo(lift){
+  if(lift >= 2.2) return {cls:'lift-high', barColor:'var(--green)'};
+  if(lift >= 1.4) return {cls:'lift-mid', barColor:'var(--gold)'};
+  return {cls:'lift-low', barColor:'var(--rule)'};
+}
+
+/* ============================================================
+   KPI STRIP — calculado a partir de top20
+   ============================================================ */
+function renderKpis(){
+  const totalIngresoTop20 = top20.reduce((s,p)=>s+p.ingreso,0);
+  document.getElementById('kpiIngresoTop').textContent = totalIngresoTop20.toLocaleString('es-BO');
+}
+renderKpis();
+
+/* ============================================================
+   SECTION 2 — TOP 20 TABLE
+   ============================================================ */
+let sortMode = 'money'; // 'money' | 'ventas'
+
+function renderTop20(){
+  const body = document.getElementById('receiptBody');
+  const totalIngreso = top20.reduce((s,p)=>s+p.ingreso,0);
+  const sorted = [...top20].sort((x,y)=> sortMode === 'money' ? y.ingreso - x.ingreso : y.ventas - x.ventas);
+  const maxVal = sortMode === 'money' ? sorted[0].ingreso : sorted[0].ventas;
+
+  body.innerHTML = sorted.map((p,i)=>{
+    const A = byId[p.a], B = byId[p.b];
+    const s = strengthInfo(p.lift);
+    const ticketProm = p.ingreso / p.ventas;
+    const pctIngreso = (p.ingreso / totalIngreso * 100);
+    const barVal = sortMode === 'money' ? p.ingreso : p.ventas;
+    return `
+      <div class="receipt-row">
+        <div class="r-idx">${String(i+1).padStart(2,'0')}</div>
+        <div class="r-pair">${A.name} <span class="plus-sm">+</span> ${B.name}</div>
+        <div class="r-num mono"><span class="m-label">Ventas </span>${p.ventas}</div>
+        <div class="r-money mono"><span class="m-label">Bs. generados </span>${fmtBs(p.ingreso)}</div>
+        <div class="r-num mono"><span class="m-label">Ticket prom. </span>${fmtBsDec(ticketProm)}</div>
+        <div class="r-num mono ${s.cls}"><span class="m-label">Lift </span>${p.lift.toFixed(1)}×</div>
+        <div class="r-bar-cell">
+          <div class="r-bar-track"><div class="r-bar-fill" style="width:${(barVal/maxVal*100).toFixed(0)}%; background:${s.barColor};"></div></div>
+          <span class="mono" style="font-size:11px; color:var(--ink-soft); min-width:34px; text-align:right;">${pctIngreso.toFixed(1)}%</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+renderTop20();
+
+document.getElementById('sortMoney').addEventListener('click', ()=>{
+  sortMode = 'money';
+  document.getElementById('sortMoney').classList.add('active');
+  document.getElementById('sortVentas').classList.remove('active');
+  renderTop20();
+});
+document.getElementById('sortVentas').addEventListener('click', ()=>{
+  sortMode = 'ventas';
+  document.getElementById('sortVentas').classList.add('active');
+  document.getElementById('sortMoney').classList.remove('active');
+  renderTop20();
+});
+
+/* ============================================================
+   SECTION 3 — FUTURE COMBOS CARDS
+   ============================================================ */
+function renderFutureCombos(){
+  const grid = document.getElementById('futureGrid');
+  grid.innerHTML = futureCombos.map(f=>{
+    const A = byId[f.a], B = byId[f.b];
+    const precioNormal = A.precio + B.precio;
+    const precioCombo = precioNormal * (1 - f.descuentoSugerido);
+    const ventasProyectadas = Math.round(f.ventasActuales * (1 + f.liftEsperado));
+
+    const ingresoSinCombo = f.ventasActuales * precioNormal;
+    const ingresoConCombo = ventasProyectadas * precioCombo;
+    const delta = ingresoConCombo - ingresoSinCombo;
+    const deltaCls = delta >= 0 ? 'val-up' : 'val-down';
+    const deltaSign = delta >= 0 ? '+' : '';
+
+    const scoreCls = f.score === 'high' ? 'score-high' : 'score-mid';
+    const scoreLabel = f.score === 'high' ? 'Alta afinidad' : 'Afinidad media';
+
+    return `
+      <div class="future-card">
+        <div class="future-card-head">
+          <div class="future-pair">${A.name}<span class="plus-sm">+</span>${B.name}</div>
+          <span class="future-score ${scoreCls}">${scoreLabel}</span>
+        </div>
+
+        <div class="future-price-row">
+          <div class="future-price-item">
+            <span class="future-price-label">Precio por separado</span>
+            <span class="future-price-val strike">${fmtBsDec(precioNormal)}</span>
+          </div>
+          <div class="future-price-item">
+            <span class="future-price-label">Precio combo (${(f.descuentoSugerido*100).toFixed(0)}% off)</span>
+            <span class="future-price-val combo">${fmtBsDec(precioCombo)}</span>
+          </div>
+        </div>
+
+        <div class="future-proj">
+          <div class="future-proj-row">
+            <span class="lbl">Ventas/mes hoy (sin promo)</span>
+            <span class="val">${f.ventasActuales}</span>
+          </div>
+          <div class="future-proj-row">
+            <span class="lbl">Ventas/mes proyectadas (+${(f.liftEsperado*100).toFixed(0)}%)</span>
+            <span class="val">${ventasProyectadas}</span>
+          </div>
+          <div class="future-proj-row">
+            <span class="lbl">Ingreso sin combo</span>
+            <span class="val">${fmtBs(ingresoSinCombo)}</span>
+          </div>
+          <div class="future-proj-row">
+            <span class="lbl">Ingreso con combo</span>
+            <span class="val">${fmtBs(ingresoConCombo)}</span>
+          </div>
+          <div class="future-proj-row" style="border-top:1px dashed var(--rule); padding-top:8px; margin-top:2px;">
+            <span class="lbl" style="font-weight:700; color:var(--ink);">Impacto mensual</span>
+            <span class="val ${deltaCls}">${deltaSign}${fmtBs(delta)}</span>
+          </div>
+        </div>
+
+        <p class="future-note">${f.nota}</p>
+      </div>`;
+  }).join('');
+}
+renderFutureCombos();
+
+/* ============================================================
+   SIMULATOR
+   ============================================================ */
+const simCombos = [...futureCombos]; // mismos pares disponibles para simular
+
+function populateSimSelect(){
+  const sel = document.getElementById('simCombo');
+  sel.innerHTML = simCombos.map((f,i)=>{
+    const A = byId[f.a], B = byId[f.b];
+    return `<option value="${i}">${A.name} + ${B.name}</option>`;
+  }).join('');
+}
+populateSimSelect();
+
+function runSimulation(){
+  const idx = parseInt(document.getElementById('simCombo').value, 10);
+  const f = simCombos[idx];
+  const A = byId[f.a], B = byId[f.b];
+
+  const discountPct = parseInt(document.getElementById('simDiscount').value, 10) / 100;
+  const liftPct = parseInt(document.getElementById('simLift').value, 10) / 100;
+
+  document.getElementById('simDiscountVal').textContent = (discountPct*100).toFixed(0) + '%';
+  document.getElementById('simLiftVal').textContent = '+' + (liftPct*100).toFixed(0) + '%';
+
+  const precioNormal = A.precio + B.precio;
+  const precioCombo = precioNormal * (1 - discountPct);
+  const ventasBase = f.ventasActuales;
+  const ventasProyectadas = Math.round(ventasBase * (1 + liftPct));
+
+  const ingresoBase = ventasBase * precioNormal;
+  const ingresoCombo = ventasProyectadas * precioCombo;
+  const delta = ingresoCombo - ingresoBase;
+
+  document.getElementById('simBaseRevenue').textContent = fmtBs(ingresoBase);
+  document.getElementById('simBaseDetail').textContent = `${ventasBase} ventas/mes · ${fmtBsDec(precioNormal)} c/u`;
+
+  document.getElementById('simComboRevenue').textContent = fmtBs(ingresoCombo);
+  document.getElementById('simComboDetail').textContent = `${ventasProyectadas} ventas/mes · ${fmtBsDec(precioCombo)} c/u`;
+
+  const deltaEl = document.getElementById('simDelta');
+  deltaEl.textContent = (delta >= 0 ? '+' : '') + fmtBs(delta) + ' / mes';
+  deltaEl.classList.toggle('neg', delta < 0);
+}
+
+document.getElementById('simCombo').addEventListener('change', runSimulation);
+document.getElementById('simDiscount').addEventListener('input', runSimulation);
+document.getElementById('simLift').addEventListener('input', runSimulation);
+runSimulation();
+
+/* ============================================================
+   FOCUS PANEL ("explorar por producto")
+   ============================================================ */
+function renderFocus(productId){
+  const list = document.getElementById('focusList');
+  const related = affinityPairs
+    .filter(p => p.a === productId || p.b === productId)
+    .map(p => {
+      const otherId = p.a === productId ? p.b : p.a;
+      return { other: byId[otherId], conf: p.conf };
+    })
+    .sort((a,b)=> b.conf - a.conf);
+
+  if(related.length === 0){
+    list.innerHTML = `<p style="font-size:13px;color:var(--ink-soft);">Sin combinaciones frecuentes registradas todavía.</p>`;
+    return;
+  }
+  list.innerHTML = related.map((r,i)=>`
+    <div class="focus-row">
+      <span class="focus-rank mono">${i+1}</span>
+      <span class="focus-name">${r.other.name}</span>
+      <span class="focus-bar-track"><span class="focus-bar-fill" style="width:${r.conf}%;"></span></span>
+      <span class="focus-pct mono">${r.conf}%</span>
+    </div>
+  `).join('');
+}
+const focusSelect = document.getElementById('productFocus');
+focusSelect.innerHTML = products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+focusSelect.value = 'expreso';
+focusSelect.addEventListener('change', e => renderFocus(e.target.value));
+renderFocus('expreso');
+
+/* ============================================================
+   CONSTELLATION SVG
+   ============================================================ */
+function buildConstellation(){
+  const svg = document.getElementById('net');
+  const W = 680, H = 460;
+  const cx = W/2, cy = H/2 - 6;
+  const R = 175;
+
+  const n = products.length;
+  const positions = {};
+  products.forEach((p, i)=>{
+    const angle = (i / n) * Math.PI * 2 - Math.PI/2;
+    positions[p.id] = { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+  });
+
+  function edgeColor(coocc){
+    if(coocc >= 35) return 'var(--green)';
+    if(coocc >= 20) return 'var(--gold)';
+    return 'var(--rule)';
+  }
+
+  let svgParts = [];
+
+  affinityPairs.forEach(p=>{
+    const A = positions[p.a], B = positions[p.b];
+    const w = 1.5 + (p.coocc/46) * 8;
+    const col = edgeColor(p.coocc);
+    const midx = (A.x+B.x)/2, midy = (A.y+B.y)/2;
+    svgParts.push(`
+      <line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"
+            stroke="${col}" stroke-width="${w}" stroke-linecap="round"
+            opacity="0.85" class="edge-line"
+            data-a="${p.a}" data-b="${p.b}" data-coocc="${p.coocc}" data-conf="${p.conf}" data-lift="${p.lift}"/>
+      <circle cx="${midx}" cy="${midy}" r="11" fill="transparent" class="edge-hit"
+            data-a="${p.a}" data-b="${p.b}" data-coocc="${p.coocc}" data-conf="${p.conf}" data-lift="${p.lift}"
+            style="cursor:pointer;"/>
+    `);
+  });
+
+  products.forEach(p=>{
+    const pos = positions[p.id];
+    const r = 13 + (p.vol/100) * 18;
+    svgParts.push(`
+      <g class="node-group" data-id="${p.id}" data-vol="${p.vol}" style="cursor:pointer;">
+        <circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="var(--paper)" stroke="${p.color}" stroke-width="2.5"/>
+        <circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="${p.color}" opacity="0.14"/>
+      </g>
+    `);
+  });
+
+  products.forEach(p=>{
+    const pos = positions[p.id];
+    const r = 13 + (p.vol/100) * 18;
+    const labelDy = pos.y > cy ? r + 16 : -(r + 10);
+    svgParts.push(`
+      <text x="${pos.x}" y="${pos.y + labelDy}" text-anchor="middle"
+            font-family="JetBrains Mono, monospace" font-size="11" font-weight="600"
+            fill="#2B2622">${p.name}</text>
+    `);
+  });
+
+  svg.innerHTML = svgParts.join('');
+
+  const tooltip = document.getElementById('tooltip');
+  const stage = document.querySelector('.constellation-stage');
+
+  function showTooltip(html, evt){
+    tooltip.innerHTML = html;
+    const rect = stage.getBoundingClientRect();
+    tooltip.style.left = (evt.clientX - rect.left) + 'px';
+    tooltip.style.top = (evt.clientY - rect.top) + 'px';
+    tooltip.classList.add('show');
+  }
+  function hideTooltip(){ tooltip.classList.remove('show'); }
+
+  svg.querySelectorAll('.edge-hit').forEach(hit=>{
+    hit.addEventListener('mousemove', (e)=>{
+      const A = byId[hit.dataset.a].name, B = byId[hit.dataset.b].name;
+      showTooltip(`<b>${A} + ${B}</b><br>Co-ocurrencia: ${hit.dataset.coocc}%<br>Confianza: ${hit.dataset.conf}%<br>Lift: ${parseFloat(hit.dataset.lift).toFixed(1)}×`, e);
+    });
+    hit.addEventListener('mouseleave', hideTooltip);
+  });
+
+  svg.querySelectorAll('.node-group').forEach(node=>{
+    node.addEventListener('mousemove', (e)=>{
+      const p = byId[node.dataset.id];
+      showTooltip(`<b>${p.name}</b><br>Volumen relativo: ${node.dataset.vol}`, e);
+    });
+    node.addEventListener('mouseleave', hideTooltip);
+    node.addEventListener('click', ()=>{
+      focusSelect.value = node.dataset.id;
+      renderFocus(node.dataset.id);
+    });
+  });
+}
+buildConstellation();
+
+/* ============================================================
+   PERIOD SEGMENTED CONTROL (visual only en este mockup)
+   ============================================================ */
+document.querySelectorAll('.seg button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
