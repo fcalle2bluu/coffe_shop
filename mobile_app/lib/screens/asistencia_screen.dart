@@ -118,6 +118,14 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     var status = await Permission.camera.status;
     if (!status.isGranted) {
       status = await Permission.camera.request();
+      if (status.isGranted) {
+        // Pequeña espera para permitir al SO delegar los permisos de cámara al proceso activo
+        await Future.delayed(const Duration(milliseconds: 450));
+      }
+    } else {
+      // Incluso si ya estaba concedido, agregamos un delay ínfimo para evitar
+      // condiciones de carrera durante la navegación.
+      await Future.delayed(const Duration(milliseconds: 150));
     }
 
     if (!status.isGranted) {
@@ -790,6 +798,30 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           // Lector de Cámara
           MobileScanner(
             controller: _scannerController,
+            errorBuilder: (context, error, child) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error de Cámara',
+                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Detalle: ${error.errorCode.toString().split('.').last}\n${error.errorDetails?.message ?? ''}',
+                        style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
             onDetect: (capture) {
               if (_detected) return;
               final List<Barcode> barcodes = capture.barcodes;
