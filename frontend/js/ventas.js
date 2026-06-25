@@ -532,7 +532,8 @@ function iniciarReloj() {
 // Verificar el estado de la caja al cargar la pantalla
 async function verificarEstadoCaja() {
     try {
-        const res = await fetch('/api/caja/estado');
+        const usuarioId = localStorage.getItem('usuario_id') || 1;
+        const res = await fetch(`/api/caja/estado?usuario_id=${usuarioId}`);
         const data = await res.json();
         
         if (data.abierta) {
