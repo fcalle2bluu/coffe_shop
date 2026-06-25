@@ -115,6 +115,10 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 
   Future<void> _abrirEscaneo() async {
     if (!mounted) return;
+    // Pequeño delay para que Android tenga lista la cámara antes de inicializar
+    // el MobileScannerController. Sin esto aparece "Called state before initializing".
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
     final tokenEscaneado = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const QrScannerScreen()),
