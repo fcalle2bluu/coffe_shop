@@ -175,7 +175,7 @@
                     <div class="flex flex-col gap-2">
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400"></i>
-                            <input type="text" id="buscar-receta" placeholder="Buscar receta o ingrediente..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent text-sm transition-all" oninput="filtrarRecetas()">
+                            <input type="text" id="buscar-receta" autocomplete="off" placeholder="Buscar receta o ingrediente..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent text-sm transition-all" oninput="filtrarRecetas()">
                         </div>
                         <div class="flex gap-2 overflow-x-auto pb-1 mt-1 scrollbar-none" id="filtros-categoria">
                             <button class="px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-lg shrink-0 transition-all filter-btn" onclick="filtrarCategoria('TODOS', this)">Todos</button>
