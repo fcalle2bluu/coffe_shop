@@ -445,6 +445,9 @@ router.post('/perfil', async (req, res) => {
     const { about, address, description, email, websites, vertical } = req.body;
     
     // Validaciones básicas de límites oficiales de Meta
+    if (about !== undefined && about.trim() === "") {
+        return res.status(400).json({ error: 'El estado (About) no puede estar vacío.' });
+    }
     if (about && about.length > 139) {
         return res.status(400).json({ error: 'El estado (About) no puede superar los 139 caracteres.' });
     }
@@ -466,12 +469,15 @@ router.post('/perfil', async (req, res) => {
             vertical: vertical || 'OTHER'
         };
         
-        if (about !== undefined) bodyData.about = about;
-        if (address !== undefined) bodyData.address = address;
-        if (description !== undefined) bodyData.description = description;
-        if (email !== undefined) bodyData.email = email;
+        if (about !== undefined) bodyData.about = about.trim();
+        if (address !== undefined) bodyData.address = address.trim();
+        if (description !== undefined) bodyData.description = description.trim();
+        if (email !== undefined) bodyData.email = email.trim();
         if (websites !== undefined) {
-            bodyData.websites = Array.isArray(websites) ? websites.slice(0, 2) : [websites].filter(Boolean).slice(0, 2);
+            bodyData.websites = (Array.isArray(websites) ? websites : [websites])
+                .map(w => (w || '').trim())
+                .filter(Boolean)
+                .slice(0, 2);
         }
 
         const response = await fetch(url, {

@@ -348,6 +348,13 @@ window.guardarPerfilWhatsApp = async function(event) {
     const about = document.getElementById('wa-profile-about').value.trim();
     const description = document.getElementById('wa-profile-description').value.trim();
 
+    if (!about) {
+        alert('⚠️ El estado (About / Info) de WhatsApp es requerido y no puede estar vacío.');
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        return;
+    }
+
     const websites = [web1, web2].filter(Boolean);
 
     try {
@@ -366,7 +373,7 @@ window.guardarPerfilWhatsApp = async function(event) {
 
         const data = await res.json();
         if (!res.ok) {
-            throw new Error(data.error || (data.detalle && data.detalle.error && data.detalle.error.message) || 'Error al guardar.');
+            throw new Error((data.detalle && data.detalle.error && data.detalle.error.message) || data.error || 'Error al guardar.');
         }
 
         alert('✅ ¡Perfil de WhatsApp guardado en Meta exitosamente!');
