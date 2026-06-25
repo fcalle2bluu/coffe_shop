@@ -492,12 +492,13 @@ router.post('/perfil', async (req, res) => {
 
         if (!response.ok) {
             console.error('❌ Error al actualizar perfil en Meta:', metaData);
-            return res.status(response.status).json({ error: 'Meta rechazó la actualización del perfil.', detalle: metaData });
+            const errMsg = (metaData && metaData.error && metaData.error.message) || 'Meta rechazó la actualización del perfil.';
+            return res.status(response.status).json({ error: errMsg, detalle: metaData });
         }
         res.json({ success: true, message: 'Perfil de WhatsApp actualizado exitosamente.' });
     } catch (err) {
         console.error('Error al actualizar perfil de WhatsApp:', err.message);
-        res.status(500).json({ error: 'Error al actualizar perfil de WhatsApp.' });
+        res.status(500).json({ error: 'Error al actualizar perfil de WhatsApp: ' + err.message });
     }
 });
 
@@ -515,8 +516,9 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
         
         if (!appRes.ok || !appData.id) {
             console.error('❌ Error al obtener App ID desde Meta:', appData);
+            const errMsg = (appData && appData.error && appData.error.message) || 'No se pudo obtener el App ID para la subida de foto. Verifique la validez de su token.';
             return res.status(400).json({ 
-                error: 'No se pudo obtener el App ID para la subida de foto. Verifique la validez de su token.', 
+                error: errMsg, 
                 detalle: appData 
             });
         }
@@ -541,8 +543,9 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
 
         if (!sessionResponse.ok || !sessionData.id) {
             console.error('❌ Error al crear sesión de subida en Meta:', sessionData);
+            const errMsg = (sessionData && sessionData.error && sessionData.error.message) || 'Meta rechazó la creación de la sesión de subida para la foto.';
             return res.status(sessionResponse.status).json({ 
-                error: 'Meta rechazó la creación de la sesión de subida para la foto.', 
+                error: errMsg, 
                 detalle: sessionData 
             });
         }
@@ -565,8 +568,9 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
 
         if (!uploadResponse.ok || !uploadData.h) {
             console.error('❌ Error al subir data binaria a Meta:', uploadData);
+            const errMsg = (uploadData && uploadData.error && uploadData.error.message) || 'Meta rechazó la transferencia de la imagen.';
             return res.status(uploadResponse.status).json({ 
-                error: 'Meta rechazó la transferencia de la imagen.', 
+                error: errMsg, 
                 detalle: uploadData 
             });
         }
@@ -591,8 +595,9 @@ router.post('/perfil/foto', upload.single('foto'), async (req, res) => {
 
         if (!profileResponse.ok) {
             console.error('❌ Error al vincular foto de perfil:', profileData);
+            const errMsg = (profileData && profileData.error && profileData.error.message) || 'Meta no pudo vincular la nueva foto de perfil utilizando el handle.';
             return res.status(profileResponse.status).json({ 
-                error: 'Meta no pudo vincular la nueva foto de perfil utilizando el handle.', 
+                error: errMsg, 
                 detalle: profileData 
             });
         }

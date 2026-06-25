@@ -415,7 +415,7 @@ window.subirFotoPerfilWhatsApp = async function() {
 
         const data = await res.json();
         if (!res.ok) {
-            throw new Error(data.error || (data.detalle && data.detalle.error && data.detalle.error.message) || 'Error al subir.');
+            throw new Error((data.detalle && data.detalle.error && data.detalle.error.message) || data.error || 'Error al subir.');
         }
 
         alert('✅ ¡Foto de perfil de WhatsApp actualizada con éxito!');
