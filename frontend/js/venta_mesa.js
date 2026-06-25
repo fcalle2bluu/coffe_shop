@@ -228,8 +228,8 @@ function renderizarDetalleComandaActiva() {
         </button>
     `;
 
-    // B. Botón de Modificar Pedido (Solo para mesero o admin, y estado CREADA)
-    if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'ADMIN')) {
+    // B. Botón de Modificar Pedido (Solo para mesero, cajero o admin, y estado CREADA)
+    if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
         accionesCont.innerHTML += `
             <button onclick="modificarComandaActiva()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition-colors btn-bounce flex items-center justify-center gap-2 text-xs">
                 <i class="fa-solid fa-pen-to-square"></i> Modificar Pedido
@@ -237,8 +237,8 @@ function renderizarDetalleComandaActiva() {
         `;
     }
 
-    // C. Botón "Entregar Comida" (Para mesero o admin, si está en estado CREADA)
-    if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'ADMIN')) {
+    // C. Botón "Entregar Comida" (Para mesero, cajero o admin, si está en estado CREADA)
+    if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
         accionesCont.innerHTML += `
             <button onclick="marcarComandaEntregada()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm mt-1">
                 <i class="fa-solid fa-hand-holding-hand"></i> Marcar como Entregado
