@@ -25,10 +25,30 @@ const checkAdminPermission = async (req, res, next) => {
     }
 };
 
-router.use(checkAdminPermission);
+// Middleware CAJERO o Admin: para endpoints de consulta (estado de caja)
+const checkCajeroOAdmin = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos en caja:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
 
-// 1. Obtener el estado actual de la caja y sus ventas en vivo
-router.get('/estado', async (req, res) => {
+// 1. Obtener el estado actual de la caja — accesible también para CAJERO
+router.get('/estado', checkCajeroOAdmin, async (req, res) => {
     const { usuario_id } = req.query;
     if (!usuario_id) {
         return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
@@ -98,6 +118,9 @@ router.get('/estado', async (req, res) => {
         res.status(500).json({ error: 'Error interno' });
     }
 });
+
+// Aplicar check estricto (solo admin) a todas las rutas restantes
+router.use(checkAdminPermission);
 
 // 2. Abrir un nuevo turno de caja
 router.post('/abrir', async (req, res) => {
