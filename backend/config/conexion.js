@@ -83,7 +83,9 @@ pool.query('SELECT NOW()', async (err, res) => {
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ci VARCHAR(50);',
         'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS salario NUMERIC(10, 2) DEFAULT 0.00;',
-        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_url TEXT;'
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_url TEXT;',
+        'ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;',
+        "ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check CHECK (rol IN ('ADMINISTRADOR', 'ADMIN', 'CAJERO', 'MESERO', 'ALMACEN', 'PASTELERA', 'COCINERO', 'BARISTA'));"
     ];
 
     for (const sql of userMigrations) {
