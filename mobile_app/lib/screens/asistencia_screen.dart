@@ -778,8 +778,21 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _scannerController = MobileScannerController();
+  late final MobileScannerController _scannerController;
   bool _detected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scannerController = MobileScannerController(autoStart: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scannerController.start().catchError((error) {
+          print('Error starting scanner: $error');
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
