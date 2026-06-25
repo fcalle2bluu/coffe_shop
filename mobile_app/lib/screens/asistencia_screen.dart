@@ -750,37 +750,12 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObserver {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-  );
+class _QrScannerScreenState extends State<QrScannerScreen> {
+  final MobileScannerController _controller = MobileScannerController();
   bool _detected = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.value.isInitialized) return;
-    switch (state) {
-      case AppLifecycleState.paused:
-        _controller.stop();
-        break;
-      case AppLifecycleState.resumed:
-        _controller.start();
-        break;
-      default:
-        break;
-    }
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
@@ -799,7 +774,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
           // Lector de Cámara
           MobileScanner(
             controller: _controller,
-            errorBuilder: (context, error) {
+            errorBuilder: (context, error, child) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
