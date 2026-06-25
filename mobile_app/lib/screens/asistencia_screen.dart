@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -115,37 +114,11 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
   }
 
   Future<void> _abrirEscaneo() async {
-    var status = await Permission.camera.status;
-    if (!status.isGranted) {
-      status = await Permission.camera.request();
-      if (status.isGranted) {
-        // Pequeña espera para permitir al SO delegar los permisos de cámara al proceso activo
-        await Future.delayed(const Duration(milliseconds: 450));
-      }
-    } else {
-      // Incluso si ya estaba concedido, agregamos un delay ínfimo para evitar
-      // condiciones de carrera durante la navegación.
-      await Future.delayed(const Duration(milliseconds: 150));
-    }
-
-    if (!status.isGranted) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Se requiere permiso de cámara para escanear el código QR.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
     if (!mounted) return;
-
     final tokenEscaneado = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const QrScannerScreen()),
     );
-
     if (tokenEscaneado != null) {
       _registrarAsistencia(tokenEscaneado);
     }
@@ -777,48 +750,63 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  late final MobileScannerController _scannerController;
+class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObserver {
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    facing: CameraFacing.back,
+  );
   bool _detected = false;
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(autoStart: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _scannerController.start().catchError((error) {
-          print('Error starting scanner: $error');
-        });
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.value.isInitialized) return;
+    switch (state) {
+      case AppLifecycleState.paused:
+        _controller.stop();
+        break;
+      case AppLifecycleState.resumed:
+        _controller.start();
+        break;
+      default:
+        break;
+    }
   }
 
   @override
   void dispose() {
-    _scannerController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Escanear QR Asistencia', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+        title: Text('Escanear QR Asistencia', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
           // Lector de Cámara
           MobileScanner(
-            controller: _scannerController,
-            errorBuilder: (context, error, child) {
+            controller: _controller,
+            errorBuilder: (context, error) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                      const Icon(Icons.no_photography_outlined, color: Colors.redAccent, size: 56),
                       const SizedBox(height: 16),
                       Text(
                         'Error de Cámara',
@@ -826,9 +814,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Detalle: ${error.errorCode.toString().split('.').last}\n${error.errorDetails?.message ?? ''}',
-                        style: GoogleFonts.outfit(color: AppTheme.textMuted, fontSize: 12),
+                        '${error.errorCode.toString().split(".").last}\n${error.errorDetails?.message ?? ""}',
+                        style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12),
                         textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => _controller.start(),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
                       ),
                     ],
                   ),
@@ -841,43 +836,40 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
                   _detected = true;
-                  final code = barcode.rawValue!;
-                  // Detener cámara y retornar el código
-                  Navigator.pop(context, code);
+                  Navigator.pop(context, barcode.rawValue!);
                   break;
                 }
               }
             },
           ),
-          
-          // Máscara / Cuadro de Enfoque Visual
+
+          // Marco de enfoque visual
           Center(
             child: Container(
-              width: 250,
-              height: 250,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
                 border: Border.all(color: AppTheme.accentColor, width: 3),
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.transparent,
               ),
             ),
           ),
-          
-          // Texto Guía al final de la pantalla
+
+          // Texto guía
           Positioned(
-            bottom: 50,
+            bottom: 60,
             left: 0,
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.black.withOpacity(0.75),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Apunta la cámara al código QR de asistencia',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 12),
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
                 ),
               ),
             ),
