@@ -364,7 +364,12 @@
                 if (!tieneAccesoAsistencia) el.style.display = 'none';
                 else el.style.display = 'flex';
             }
-            if (href.includes('webhook.html') || href.includes('ventas.html') || href.includes('venta_mesa.html') || href.includes('caja.html')) {
+            if (href.includes('ventas.html') || href.includes('venta_mesa.html')) {
+                // Cajeros también tienen acceso al Punto de Venta y Venta por Mesa
+                if (!isAdmin && rol !== 'CAJERO') el.style.display = 'none';
+                else el.style.display = 'flex';
+            }
+            if (href.includes('caja.html') || href.includes('webhook.html')) {
                 if (!isAdmin) el.style.display = 'none';
                 else el.style.display = 'flex';
             }

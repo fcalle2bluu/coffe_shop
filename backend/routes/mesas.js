@@ -15,8 +15,8 @@ const checkAdminPermission = async (req, res, next) => {
             return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
         }
         const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos de administrador.' });
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
         }
         next();
     } catch (err) {

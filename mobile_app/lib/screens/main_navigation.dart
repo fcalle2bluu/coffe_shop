@@ -401,8 +401,8 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     });
     _screens.add(const DashboardScreen());
 
-    // 0.5 Venta por Mesa (Visible SOLO para Admins)
-    if (_isAdmin) {
+    // 0.5 Venta por Mesa (Admin y Cajero)
+    if (_isAdmin || userRolUpper == 'CAJERO') {
       _menuItems.add({
         'title': 'Venta por Mesa',
         'icon': FontAwesomeIcons.utensils,
@@ -410,8 +410,8 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       _screens.add(const VentaMesaScreen());
     }
 
-    // 1. Punto de Venta (Visible SOLO para Admins)
-    if (_isAdmin) {
+    // 1. Punto de Venta (Admin y Cajero)
+    if (_isAdmin || userRolUpper == 'CAJERO') {
       _menuItems.add({
         'title': 'Punto de Venta',
         'icon': FontAwesomeIcons.shop,

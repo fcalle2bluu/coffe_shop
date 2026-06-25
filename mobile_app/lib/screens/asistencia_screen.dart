@@ -755,14 +755,8 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
   bool _detected = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  int _retryKey = 0; // Incrementar fuerza rebuild del MobileScanner
 
   @override
   Widget build(BuildContext context) {
@@ -770,45 +764,17 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text('Escanear QR Asistencia', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(
+          'Escanear QR Asistencia',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
-          // Lector de Cámara
+          // MobileScanner sin controller externo — maneja su propio ciclo de vida
           MobileScanner(
-            controller: _controller,
-            errorBuilder: (context, error, child) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.no_photography_outlined, color: Colors.redAccent, size: 56),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error de Cámara',
-                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${error.errorCode.toString().split(".").last}\n${error.errorDetails?.message ?? ""}',
-                        style: GoogleFonts.outfit(color: Colors.white60, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () => _controller.start(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Reintentar'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            key: ValueKey(_retryKey),
             onDetect: (capture) {
               if (_detected) return;
               final List<Barcode> barcodes = capture.barcodes;
@@ -858,3 +824,4 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     );
   }
 }
+
