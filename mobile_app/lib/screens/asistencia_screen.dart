@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -114,6 +115,24 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
   }
 
   Future<void> _abrirEscaneo() async {
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
+
+    if (!status.isGranted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se requiere permiso de cámara para escanear el código QR.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
     final tokenEscaneado = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const QrScannerScreen()),
@@ -269,6 +288,69 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmarEliminar(int id) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: AppTheme.secondaryDark,
+        title: Text(
+          '¿Eliminar marcación?',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar este registro de asistencia? Esta acción no se puede deshacer.',
+          style: GoogleFonts.outfit(color: AppTheme.textLight, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar', style: GoogleFonts.outfit(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Eliminar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      _eliminarRegistro(id);
+    }
+  }
+
+  Future<void> _eliminarRegistro(int id) async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiConfig.delete('/asistencia/$id');
+
+      if (!mounted) return;
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['mensaje'] ?? 'Registro de asistencia eliminado.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _cargarDatos();
+      } else {
+        _mostrarAlertaError(data['error'] ?? 'Error al eliminar el registro.');
+      }
+    } catch (e) {
+      _mostrarAlertaError('Error de conexión al eliminar la marcación.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -472,7 +554,8 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                 ],
                               ),
                             ),
-                            if (r['horas_trabajadas'] != null)
+                            if (r['horas_trabajadas'] != null) ...[
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
@@ -493,6 +576,13 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                   ],
                                 ),
                               ),
+                            ],
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                              onPressed: () => _confirmarEliminar(int.parse(r['id'].toString())),
+                              tooltip: 'Eliminar Registro',
+                            ),
                           ],
                         ),
                       ),

@@ -293,4 +293,35 @@ router.post('/manual', async (req, res) => {
     }
 });
 
+// 5. Eliminar un Registro de Asistencia (Solo Administradores)
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    const editor_id = req.headers['x-usuario-id'] || req.body.editor_id || req.query.editor_id;
+
+    if (!editor_id) {
+        return res.status(400).json({ error: 'Falta ID de editor para verificar permisos.' });
+    }
+
+    try {
+        const adminCheck = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [editor_id]);
+        if (adminCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario administrador no encontrado.' });
+        }
+        const rolReal = adminCheck.rows[0].rol.toUpperCase();
+        if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar registros de asistencia.' });
+        }
+
+        const deleteResult = await pool.query('DELETE FROM asistencia WHERE id = $1 RETURNING id', [id]);
+        if (deleteResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Registro de asistencia no encontrado.' });
+        }
+
+        res.json({ success: true, mensaje: 'Registro de asistencia eliminado correctamente.' });
+    } catch (error) {
+        console.error('Error al eliminar asistencia:', error);
+        res.status(500).json({ error: 'Ocurrió un error al intentar eliminar el registro.' });
+    }
+});
+
 module.exports = router;

@@ -225,7 +225,7 @@ async function cargarHistorialAsistencia(silent) {
     
     const tbody = document.getElementById('tabla-asistencia-body');
     if (!esSilencioso) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-slate-400 font-semibold">Cargando marcaciones...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-400 font-semibold">Cargando marcaciones...</td></tr>';
     }
     
     try {
@@ -236,7 +236,7 @@ async function cargarHistorialAsistencia(silent) {
         document.getElementById('print-total-rows').innerText = registros.length;
         
         if (registros.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-slate-400 font-semibold">No se encontraron registros de asistencia para los filtros seleccionados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-400 font-semibold">No se encontraron registros de asistencia para los filtros seleccionados.</td></tr>';
             return;
         }
         
@@ -258,13 +258,18 @@ async function cargarHistorialAsistencia(silent) {
                 <td class="px-4 py-3 text-center font-bold text-slate-700">${r.entrada}</td>
                 <td class="px-4 py-3 text-center">${salidaText}</td>
                 <td class="px-4 py-3 text-right">${horasText}</td>
+                <td class="px-4 py-3 text-center no-print">
+                    <button onclick="eliminarAsistencia(${r.id})" class="text-red-600 hover:text-red-800 transition-colors p-1" title="Eliminar registro">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
             `;
             tbody.appendChild(fila);
         });
     } catch (error) {
         console.error('Error al cargar historial de asistencia:', error);
         if (!esSilencioso) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500 font-semibold">Error al cargar el historial de asistencia.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-red-500 font-semibold">Error al cargar el historial de asistencia.</td></tr>';
         }
     }
 }
@@ -354,5 +359,28 @@ async function guardarAsistenciaManual() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk text-[10px]"></i> Guardar Registro';
+    }
+}
+
+async function eliminarAsistencia(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro de asistencia? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/asistencia/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'x-usuario-id': localStorage.getItem('usuario_id')
+            }
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar');
+        
+        alert(data.mensaje || 'Registro eliminado con éxito.');
+        cargarHistorialAsistencia();
+    } catch (error) {
+        alert('Error al eliminar registro: ' + error.message);
     }
 }
