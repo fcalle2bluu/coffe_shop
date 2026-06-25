@@ -17,9 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Generar el Token y cargar el Código QR
     inicializarQR();
 
-    const esCajero = rolActual && rolActual.toUpperCase() === 'CAJERO';
+    const rolActualUpper = rolActual ? rolActual.toUpperCase() : '';
+    const isAdmin = rolActualUpper === 'ADMINISTRADOR' || rolActualUpper === 'ADMIN';
 
-    if (!esCajero) {
+    if (isAdmin) {
         // 3. Inicializar los filtros y cargar los datos
         inicializarFiltros();
         cargarEmpleados();
