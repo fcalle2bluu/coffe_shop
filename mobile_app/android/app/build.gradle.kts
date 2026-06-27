@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.cafelapaz.pos.coffe_shop_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -19,7 +19,7 @@ android {
         applicationId = "com.cafelapaz.pos.coffe_shop_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion  // CameraX (mobile_scanner v7) requires min SDK 21
+        minSdk = flutter.minSdkVersion  // mobile_scanner v7.1.3+ requires min SDK 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
