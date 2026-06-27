@@ -761,7 +761,25 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _iniciarCamara();
+
+    // Esperamos al primer frame para leer la animación de la ruta con context.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final animation = ModalRoute.of(context)?.animation;
+      if (animation == null || animation.status == AnimationStatus.completed) {
+        // La transición ya terminó (o no hay): arrancamos directo.
+        _iniciarCamara();
+      } else {
+        // Esperamos a que termine el push antes de iniciar la cámara.
+        animation.addStatusListener(_onRouteAnimacionStatus);
+      }
+    });
+  }
+
+  void _onRouteAnimacionStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      ModalRoute.of(context)?.animation?.removeStatusListener(_onRouteAnimacionStatus);
+      _iniciarCamara();
+    }
   }
 
   Future<void> _iniciarCamara() async {
@@ -800,6 +818,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
 
   @override
   void dispose() {
+    // Limpiar listener de animación si la pantalla se cierra antes de que termine
+    ModalRoute.of(context)?.animation?.removeStatusListener(_onRouteAnimacionStatus);
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
