@@ -49,7 +49,25 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración WhatsApp Catálogo:', metaCatalogErr.message);
     }
 
-    // 1. Asegurarse de que la tabla de usuarios exista
+    // 0b. Migración: ampliar constraint de metodo_pago en ventas para incluir BILLETERA MOVIL
+    try {
+        await pool.query(`ALTER TABLE ventas DROP CONSTRAINT IF EXISTS ventas_metodo_pago_check;`);
+        await pool.query(`
+            ALTER TABLE ventas ADD CONSTRAINT ventas_metodo_pago_check
+            CHECK (metodo_pago IN (
+                'EFECTIVO',
+                'QR', 'QR DIGITAL',
+                'TARJETA', 'TARJETA DE DÉBITO/CRÉDITO',
+                'CONSUME_LO_NUESTRO', 'CONSUME LO NUESTRO',
+                'BILLETERA MOVIL'
+            ));
+        `);
+        console.log('✅ Constraint ventas_metodo_pago_check actualizado con BILLETERA MOVIL.');
+    } catch (constraintErr) {
+        console.log('Info Migración constraint ventas:', constraintErr.message);
+    }
+
+
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS usuarios (

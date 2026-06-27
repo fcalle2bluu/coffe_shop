@@ -104,13 +104,13 @@ async function cargarEstadoCaja() {
             document.getElementById('res-inicial').innerText = formatMontoCensurado(data.caja.saldo_inicial);
             document.getElementById('res-efectivo').innerText = formatMontoCensurado(data.ventas.total_efectivo);
             document.getElementById('res-gastos').innerText = formatMontoCensurado(data.total_gastos);
-            const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0);
+            const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0) + parseFloat(data.ventas.total_billetera || 0);
             
             const censuraActiva = localStorage.getItem('caja_censura_activa') === 'true';
             if (censuraActiva) {
-                document.getElementById('res-digital').innerHTML = `Bs. ***<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: *** | Tarj: *** | CLN: ***</span>`;
+                document.getElementById('res-digital').innerHTML = `Bs. ***<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: *** | Tarj: *** | CLN: *** | Bill: ***</span>`;
             } else {
-                document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)}</span>`;
+                document.getElementById('res-digital').innerHTML = `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: ${parseFloat(data.ventas.total_qr).toFixed(2)} | Tarj: ${parseFloat(data.ventas.total_tarjeta).toFixed(2)} | CLN: ${parseFloat(data.ventas.total_consume_lo_nuestro || 0).toFixed(2)} | Bill: ${parseFloat(data.ventas.total_billetera || 0).toFixed(2)}</span>`;
             }
             
             const ventasNetas = parseFloat(data.ventas.total_efectivo) + totalDigital - parseFloat(data.total_gastos || 0);

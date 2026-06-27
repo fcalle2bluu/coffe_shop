@@ -469,6 +469,8 @@ class _PosScreenState extends State<PosScreen> {
             _buildPaymentMethodButton('CONSUME LO NUESTRO', FontAwesomeIcons.wallet),
             const SizedBox(height: 8),
             _buildPaymentMethodButton('TARJETA DE DÉBITO/CRÉDITO', FontAwesomeIcons.creditCard),
+            const SizedBox(height: 8),
+            _buildPaymentMethodButton('BILLETERA MOVIL', FontAwesomeIcons.mobileScreen),
           ],
         ),
         actions: [

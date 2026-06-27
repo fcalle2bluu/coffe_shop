@@ -326,12 +326,10 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
             const Text('Selecciona el método de pago:'),
             const SizedBox(height: 12),
             _buildPaymentMethodButton('EFECTIVO', FontAwesomeIcons.moneyBillWave),
-            const SizedBox(height: 8),
             _buildPaymentMethodButton('QR DIGITAL', FontAwesomeIcons.qrcode),
-            const SizedBox(height: 8),
             _buildPaymentMethodButton('CONSUME LO NUESTRO', FontAwesomeIcons.wallet),
-            const SizedBox(height: 8),
             _buildPaymentMethodButton('TARJETA DE DÉBITO/CRÉDITO', FontAwesomeIcons.creditCard),
+            _buildPaymentMethodButton('BILLETERA MOVIL', FontAwesomeIcons.mobileScreen),
           ],
         ),
         actions: [

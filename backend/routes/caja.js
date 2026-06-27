@@ -86,6 +86,7 @@ router.get('/estado', checkCajeroOAdmin, async (req, res) => {
                 COALESCE(SUM(CASE WHEN metodo_pago IN ('QR', 'QR DIGITAL') THEN total ELSE 0 END), 0) as total_qr,
                 COALESCE(SUM(CASE WHEN metodo_pago IN ('TARJETA', 'TARJETA DE DÉBITO/CRÉDITO') THEN total ELSE 0 END), 0) as total_tarjeta,
                 COALESCE(SUM(CASE WHEN metodo_pago IN ('CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO') THEN total ELSE 0 END), 0) as total_consume_lo_nuestro,
+                COALESCE(SUM(CASE WHEN metodo_pago = 'BILLETERA MOVIL' THEN total ELSE 0 END), 0) as total_billetera,
                 COALESCE(SUM(total), 0) as total_ventas
             FROM ventas 
             WHERE caja_id = $1
@@ -227,7 +228,8 @@ router.get('/historial', async (req, res) => {
                     COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) as total_efectivo,
                     COALESCE(SUM(CASE WHEN metodo_pago IN ('QR', 'QR DIGITAL') THEN total ELSE 0 END), 0) as total_qr,
                     COALESCE(SUM(CASE WHEN metodo_pago IN ('TARJETA', 'TARJETA DE DÉBITO/CRÉDITO') THEN total ELSE 0 END), 0) as total_tarjeta,
-                    COALESCE(SUM(CASE WHEN metodo_pago IN ('CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO') THEN total ELSE 0 END), 0) as total_consume_lo_nuestro
+                    COALESCE(SUM(CASE WHEN metodo_pago IN ('CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO') THEN total ELSE 0 END), 0) as total_consume_lo_nuestro,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'BILLETERA MOVIL' THEN total ELSE 0 END), 0) as total_billetera
                 FROM ventas
                 GROUP BY caja_id
             ) v ON c.id = v.caja_id
