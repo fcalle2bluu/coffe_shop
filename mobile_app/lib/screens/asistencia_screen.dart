@@ -115,10 +115,6 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 
   Future<void> _abrirEscaneo() async {
     if (!mounted) return;
-    // Pequeño delay para que Android tenga lista la cámara antes de inicializar
-    // el MobileScannerController. Sin esto aparece "Called state before initializing".
-    await Future.delayed(const Duration(milliseconds: 350));
-    if (!mounted) return;
     final tokenEscaneado = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (context) => const QrScannerScreen()),
@@ -754,9 +750,60 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
+class _QrScannerScreenState extends State<QrScannerScreen>
+    with WidgetsBindingObserver {
   bool _detected = false;
-  int _retryKey = 0; // Incrementar fuerza rebuild del MobileScanner
+  bool _cameraReady = false; // true una vez que controller.start() tiene éxito
+  MobileScannerController? _controller;
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _iniciarCamara();
+  }
+
+  Future<void> _iniciarCamara() async {
+    final controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+    );
+    if (!mounted) return;
+    setState(() {
+      _controller = controller;
+      _errorMsg = null;
+    });
+    try {
+      await controller.start();
+      if (!mounted) return;
+      setState(() => _cameraReady = true);
+    } on MobileScannerException catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMsg = 'Error cámara: ${e.errorCode}\n${e.errorDetails?.message ?? ""}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMsg = 'Error inesperado: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !_cameraReady) return;
+    if (state == AppLifecycleState.resumed) {
+      controller.start();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      controller.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -770,58 +817,92 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Stack(
-        children: [
-          // MobileScanner sin controller externo — maneja su propio ciclo de vida
-          MobileScanner(
-            key: ValueKey(_retryKey),
-            onDetect: (capture) {
-              if (_detected) return;
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null) {
-                  _detected = true;
-                  Navigator.pop(context, barcode.rawValue!);
-                  break;
-                }
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    // Error al iniciar la cámara — muestra el motivo real
+    if (_errorMsg != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                _errorMsg!,
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _iniciarCamara,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Cargando controller
+    if (_controller == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      children: [
+        MobileScanner(
+          controller: _controller!,
+          onDetect: (capture) {
+            if (_detected) return;
+            for (final barcode in capture.barcodes) {
+              if (barcode.rawValue != null) {
+                _detected = true;
+                Navigator.pop(context, barcode.rawValue!);
+                break;
               }
-            },
-          ),
+            }
+          },
+        ),
 
-          // Marco de enfoque visual
-          Center(
+        // Marco de enfoque visual
+        Center(
+          child: Container(
+            width: 260,
+            height: 260,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.accentColor, width: 3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+
+        // Texto guía
+        Positioned(
+          bottom: 60,
+          left: 0,
+          right: 0,
+          child: Center(
             child: Container(
-              width: 260,
-              height: 260,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.accentColor, width: 3),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.black.withOpacity(0.75),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Apunta la cámara al código QR de asistencia',
+                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
               ),
             ),
           ),
-
-          // Texto guía
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.75),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Apunta la cámara al código QR de asistencia',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
-
