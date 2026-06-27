@@ -753,7 +753,7 @@ class QrScannerScreen extends StatefulWidget {
 class _QrScannerScreenState extends State<QrScannerScreen>
     with WidgetsBindingObserver {
   bool _detected = false;
-  bool _cameraReady = false; // true una vez que controller.start() tiene éxito
+  bool _isStarting = false; // evita arranques duplicados desde cualquier origen
   MobileScannerController? _controller;
   String? _errorMsg;
 
@@ -783,8 +783,11 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   }
 
   Future<void> _iniciarCamara() async {
+    if (_isStarting) return; // evita arranques duplicados desde cualquier origen
+    _isStarting = true;
     final controller = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
+      autoStart: false,
     );
     if (!mounted) return;
     setState(() {
@@ -794,25 +797,35 @@ class _QrScannerScreenState extends State<QrScannerScreen>
     try {
       await controller.start();
       if (!mounted) return;
-      setState(() => _cameraReady = true);
     } on MobileScannerException catch (e) {
       if (!mounted) return;
       setState(() => _errorMsg = 'Error cámara: ${e.errorCode}\n${e.errorDetails?.message ?? ""}');
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMsg = 'Error inesperado: $e');
+    } finally {
+      _isStarting = false;
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
-    if (controller == null || !_cameraReady) return;
-    if (state == AppLifecycleState.resumed) {
-      controller.start();
-    } else if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      controller.stop();
+    // Usamos hasCameraPermission, NO isInitialized:
+    // el diálogo de permiso dispara cambios de lifecycle antes de que el
+    // controller termine de inicializar, lo que causaba doble start().
+    if (controller == null || !controller.value.hasCameraPermission) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        controller.start();
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        controller.stop();
+        break;
     }
   }
 
