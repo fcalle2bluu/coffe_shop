@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -116,12 +117,45 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 
   Future<void> _abrirEscaneo() async {
     if (!mounted) return;
-    final resultado = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerWebScreen()),
-    );
-    if (resultado != null && resultado.isNotEmpty) {
-      _registrarAsistencia(resultado);
+
+    // 1. Pedir permiso de cámara al sistema Android
+    final status = await Permission.camera.request();
+
+    if (!mounted) return;
+
+    if (status.isGranted) {
+      // Permiso concedido → abrir el escáner
+      final resultado = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const QrScannerWebScreen()),
+      );
+      if (resultado != null && resultado.isNotEmpty) {
+        _registrarAsistencia(resultado);
+      }
+    } else if (status.isPermanentlyDenied) {
+      // El usuario marcó "No volver a preguntar" → mandarlo a Ajustes
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Permiso de cámara denegado. Actívalo en Ajustes → Aplicaciones → Café La Paz → Permisos.',
+          ),
+          backgroundColor: Colors.orange[800],
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Ajustes',
+            textColor: Colors.white,
+            onPressed: openAppSettings,
+          ),
+        ),
+      );
+    } else {
+      // Denegado pero puede volver a pedir
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se necesita permiso de cámara para escanear el QR.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
