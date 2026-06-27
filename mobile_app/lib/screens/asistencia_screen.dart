@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
@@ -115,12 +116,12 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 
   Future<void> _abrirEscaneo() async {
     if (!mounted) return;
-    final tokenEscaneado = await Navigator.push<String>(
+    final resultado = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+      MaterialPageRoute(builder: (_) => const QrScannerWebScreen()),
     );
-    if (tokenEscaneado != null) {
-      _registrarAsistencia(tokenEscaneado);
+    if (resultado != null && resultado.isNotEmpty) {
+      _registrarAsistencia(resultado);
     }
   }
 
@@ -741,75 +742,49 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
 }
 
 // ----------------------------------------------------
-// PANTALLA SECUNDARIA: LECTOR DE CÁMARA (QR SCANNER)
+// PANTALLA SECUNDARIA: LECTOR QR vía WebView
+// (usa la misma API de cámara del navegador del dispositivo)
 // ----------------------------------------------------
-class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({super.key});
+class QrScannerWebScreen extends StatefulWidget {
+  const QrScannerWebScreen({super.key});
 
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  State<QrScannerWebScreen> createState() => _QrScannerWebScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  bool _detected = false;
-  bool _isStarting = false;
-  MobileScannerController? _controller;
-  String? _errorMsg;
+class _QrScannerWebScreenState extends State<QrScannerWebScreen> {
+  late final WebViewController _webController;
+  bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
-    // Esperamos al primer frame para leer la animación de la ruta con context.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final animation = ModalRoute.of(context)?.animation;
-      if (animation == null || animation.status == AnimationStatus.completed) {
-        // La transición ya terminó (o no hay): arrancamos directo.
-        _iniciarCamara();
-      } else {
-        // Esperamos a que termine el push antes de iniciar la cámara.
-        animation.addStatusListener(_onRouteAnimacionStatus);
-      }
-    });
-  }
+    _webController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      // Canal JS → Flutter: recibe el valor del QR escaneado
+      ..addJavaScriptChannel(
+        'QrChannel',
+        onMessageReceived: (msg) {
+          final valor = msg.message.trim();
+          if (valor.isNotEmpty && mounted) {
+            Navigator.pop(context, valor);
+          }
+        },
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) setState(() => _cargando = false);
+          },
+        ),
+      )
+      ..loadFlutterAsset('assets/qr_scanner.html');
 
-  void _onRouteAnimacionStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      ModalRoute.of(context)?.animation?.removeStatusListener(_onRouteAnimacionStatus);
-      _iniciarCamara();
+    // Autorizar cámara desde el WebView (API específica de Android)
+    if (_webController.platform is AndroidWebViewController) {
+      (_webController.platform as AndroidWebViewController)
+          .setOnPlatformPermissionRequest((request) => request.grant());
     }
-  }
-
-  Future<void> _iniciarCamara() async {
-    if (_isStarting) return; // evita arranques duplicados desde cualquier origen
-    _isStarting = true;
-    final controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      autoStart: false,
-    );
-    if (!mounted) return;
-    setState(() {
-      _controller = controller;
-      _errorMsg = null;
-    });
-    try {
-      await controller.start();
-      if (!mounted) return;
-    } on MobileScannerException catch (e) {
-      if (!mounted) return;
-      setState(() => _errorMsg = 'Error cámara: ${e.errorCode}\n${e.errorDetails?.message ?? ""}');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _errorMsg = 'Error inesperado: $e');
-    } finally {
-      _isStarting = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    ModalRoute.of(context)?.animation?.removeStatusListener(_onRouteAnimacionStatus);
-    _controller?.dispose();
-    super.dispose();
   }
 
   @override
@@ -824,118 +799,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    // Error al iniciar la cámara — muestra el motivo real
-    if (_errorMsg != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                _errorMsg!,
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _iniciarCamara,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Cargando controller
-    if (_controller == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Stack(
-      children: [
-        MobileScanner(
-          controller: _controller!,
-          errorBuilder: (context, error) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Error: ${error.errorCode}\n${error.errorDetails?.message ?? error.toString()}',
-                      style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _iniciarCamara,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reintentar'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          onDetect: (capture) {
-            if (_detected) return;
-            for (final barcode in capture.barcodes) {
-              if (barcode.rawValue != null) {
-                _detected = true;
-                Navigator.pop(context, barcode.rawValue!);
-                break;
-              }
-            }
-          },
-        ),
-
-        // Marco de enfoque visual
-        Center(
-          child: Container(
-            width: 260,
-            height: 260,
-            decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.accentColor, width: 3),
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        ),
-
-        // Texto guía
-        Positioned(
-          bottom: 60,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.75),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Apunta la cámara al código QR de asistencia',
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ),
-        ),
-      ],
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _webController),
+          if (_cargando)
+            const Center(child: CircularProgressIndicator(color: AppTheme.accentColor)),
+        ],
+      ),
     );
   }
 }

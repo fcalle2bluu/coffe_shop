@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Escanear QR</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    #reader {
+      width: 100%;
+      max-width: 340px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 3px solid #FF8C00;
+    }
+    /* Oculta los controles internos de html5-qrcode que no necesitamos */
+    #reader__dashboard_section_swaplink,
+    #reader__dashboard_section_filesel { display: none !important; }
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #aaa;
+      text-align: center;
+    }
+    #error {
+      margin-top: 12px;
+      color: #ff4444;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="reader"></div>
+  <p id="status">Apunta la cámara al código QR</p>
+  <p id="error"></p>
+
+  <script>
+    let stopped = false;
+
+    const scanner = new Html5Qrcode("reader");
+
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        if (stopped) return;
+        stopped = true;
+        scanner.stop().catch(() => {});
+        // Enviar resultado a Flutter
+        QrChannel.postMessage(decodedText);
+      },
+      () => { /* sin error en cada frame fallido */ }
+    ).catch((err) => {
+      document.getElementById('error').textContent = 'Error de cámara: ' + err;
+    });
+  </script>
+</body>
+</html>
