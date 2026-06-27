@@ -750,18 +750,15 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen>
-    with WidgetsBindingObserver {
+class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _detected = false;
-  bool _isStarting = false; // evita arranques duplicados desde cualquier origen
+  bool _isStarting = false;
   MobileScannerController? _controller;
   String? _errorMsg;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-
     // Esperamos al primer frame para leer la animación de la ruta con context.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final animation = ModalRoute.of(context)?.animation;
@@ -809,31 +806,8 @@ class _QrScannerScreenState extends State<QrScannerScreen>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    // Usamos hasCameraPermission, NO isInitialized:
-    // el diálogo de permiso dispara cambios de lifecycle antes de que el
-    // controller termine de inicializar, lo que causaba doble start().
-    if (controller == null || !controller.value.hasCameraPermission) return;
-
-    switch (state) {
-      case AppLifecycleState.resumed:
-        controller.start();
-        break;
-      case AppLifecycleState.inactive:
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-        controller.stop();
-        break;
-    }
-  }
-
-  @override
   void dispose() {
-    // Limpiar listener de animación si la pantalla se cierra antes de que termine
     ModalRoute.of(context)?.animation?.removeStatusListener(_onRouteAnimacionStatus);
-    WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
   }
@@ -892,6 +866,32 @@ class _QrScannerScreenState extends State<QrScannerScreen>
       children: [
         MobileScanner(
           controller: _controller!,
+          errorBuilder: (context, error) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Error: ${error.errorCode}\n${error.errorDetails?.message ?? error.toString()}',
+                      style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _iniciarCamara,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
           onDetect: (capture) {
             if (_detected) return;
             for (final barcode in capture.barcodes) {
