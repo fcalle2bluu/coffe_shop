@@ -296,11 +296,11 @@
                         <span class="text-base font-extrabold text-emerald-600 mt-1" id="kpi-rendimiento-ventas">Bs. 0.00</span>
                     </div>
                     <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Compras (Insumos)</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Gasto de Caja Chica</span>
                         <span class="text-base font-extrabold text-orange-600 mt-1" id="kpi-rendimiento-compras">Bs. 0.00</span>
                     </div>
                     <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Gastos de Operación</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Libro Diario</span>
                         <span class="text-base font-extrabold text-rose-600 mt-1" id="kpi-rendimiento-gastos">Bs. 0.00</span>
                     </div>
                     <div class="bg-slate-50/60 border border-slate-100 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
@@ -1665,12 +1665,12 @@
 
                 const labels = rendimiento.map(r => `Día ${r.dia}`);
                 const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
-                const comprasData = rendimiento.map(r => parseFloat(r.compras) || 0);
-                const gastosData = rendimiento.map(r => parseFloat(r.gastos) || 0);
+                const comprasData = rendimiento.map(r => parseFloat(r.caja_chica) || 0);
+                const gastosData = rendimiento.map(r => parseFloat(r.libro_diario) || 0);
                 const beneficioData = rendimiento.map(r => {
                     const v = parseFloat(r.ventas) || 0;
-                    const c = parseFloat(r.compras) || 0;
-                    const g = parseFloat(r.gastos) || 0;
+                    const c = parseFloat(r.caja_chica) || 0;
+                    const g = parseFloat(r.libro_diario) || 0;
                     return v - (c + g);
                 });
 
@@ -1682,8 +1682,8 @@
 
                 rendimiento.forEach(r => {
                     totalVentas += parseFloat(r.ventas) || 0;
-                    totalCompras += parseFloat(r.compras) || 0;
-                    totalGastos += parseFloat(r.gastos) || 0;
+                    totalCompras += parseFloat(r.caja_chica) || 0;
+                    totalGastos += parseFloat(r.libro_diario) || 0;
                 });
                 totalBeneficio = totalVentas - (totalCompras + totalGastos);
 
@@ -1728,7 +1728,7 @@
                                 tension: 0.35 
                             },
                             { 
-                                label: 'Compras (Materia Prima)', 
+                                label: 'Gasto de Caja Chica', 
                                 data: comprasData, 
                                 borderColor: '#f97316', 
                                 backgroundColor: 'transparent', 
@@ -1736,7 +1736,7 @@
                                 tension: 0.35 
                             },
                             { 
-                                label: 'Gastos Operativos (Personal, Caja, Servicios)', 
+                                label: 'Libro Diario', 
                                 data: gastosData, 
                                 borderColor: '#ef4444', 
                                 backgroundColor: 'transparent', 

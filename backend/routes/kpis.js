@@ -159,8 +159,8 @@ router.get('/rendimiento-mensual', async (req, res) => {
             SELECT 
                 EXTRACT(DAY FROM d.fecha)::integer AS dia,
                 COALESCE(v.total, 0) AS ventas,
-                COALESCE(c.total, 0) AS compras,
-                (COALESCE(g_caja.total, 0) + COALESCE(g_gen.total, 0)) AS gastos_sin_salarios
+                COALESCE(g_caja.total, 0) AS caja_chica,
+                COALESCE(g_gen.total, 0) AS libro_diario_gastos
             FROM days d
             LEFT JOIN (
                 SELECT 
@@ -169,13 +169,6 @@ router.get('/rendimiento-mensual', async (req, res) => {
                 FROM ventas
                 GROUP BY (fecha_venta AT TIME ZONE 'America/La_Paz')::date
             ) v ON d.fecha = v.fecha_dia
-            LEFT JOIN (
-                SELECT 
-                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
-                    SUM(total) AS total
-                FROM compras
-                GROUP BY (fecha AT TIME ZONE 'America/La_Paz')::date
-            ) c ON d.fecha = c.fecha_dia
             LEFT JOIN (
                 SELECT 
                     (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
@@ -197,14 +190,14 @@ router.get('/rendimiento-mensual', async (req, res) => {
         
         const rows = result.rows.map(r => {
             const ventas = parseFloat(r.ventas) || 0;
-            const compras = parseFloat(r.compras) || 0;
-            const gastosSinSalarios = parseFloat(r.gastos_sin_salarios) || 0;
-            const gastos = gastosSinSalarios + diarioSalario;
+            const cajaChica = parseFloat(r.caja_chica) || 0;
+            const libroDiarioGastos = parseFloat(r.libro_diario_gastos) || 0;
+            const libroDiario = libroDiarioGastos + diarioSalario;
             return {
                 dia: r.dia,
                 ventas: ventas.toFixed(2),
-                compras: compras.toFixed(2),
-                gastos: gastos.toFixed(2)
+                caja_chica: cajaChica.toFixed(2),
+                libro_diario: libroDiario.toFixed(2)
             };
         });
 
