@@ -329,4 +329,95 @@ router.delete('/compra/:id', async (req, res) => {
     }
 });
 
+// ─── STATS: Métodos de Pago más usados ────────────────────────────────────────
+router.get('/stats/metodos-pago', async (req, res) => {
+    const { filtro, fecha } = req.query; // filtro: hoy | mes | anio | todos
+    let whereClause = '';
+    const params = [];
+
+    if (filtro === 'hoy') {
+        whereClause = `WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = CURRENT_DATE AT TIME ZONE 'America/La_Paz'`;
+    } else if (filtro === 'mes') {
+        whereClause = `WHERE EXTRACT(MONTH FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM NOW() AT TIME ZONE 'America/La_Paz')
+                         AND EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM NOW() AT TIME ZONE 'America/La_Paz')`;
+    } else if (filtro === 'anio') {
+        whereClause = `WHERE EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM NOW() AT TIME ZONE 'America/La_Paz')`;
+    } else if (filtro === 'dia' && fecha) {
+        whereClause = `WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = $1`;
+        params.push(fecha);
+    }
+    // 'todos' o sin filtro → sin WHERE (histórico)
+
+    try {
+        const query = `
+            SELECT
+                metodo_pago                                           AS metodo,
+                COUNT(*)::int                                         AS cantidad,
+                COALESCE(SUM(total), 0)::numeric(12,2)               AS total_monto,
+                json_agg(
+                    json_build_object(
+                        'id', id,
+                        'total', total,
+                        'fecha', TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI')
+                    ) ORDER BY fecha_venta DESC
+                )                                                     AS items
+            FROM ventas
+            ${whereClause}
+            GROUP BY metodo_pago
+            ORDER BY cantidad DESC
+        `;
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error stats metodos-pago:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── STATS: Gastos por Categoría ──────────────────────────────────────────────
+router.get('/stats/gastos-categorias', async (req, res) => {
+    const { filtro, fecha } = req.query;
+    let whereClause = '';
+    const params = [];
+
+    if (filtro === 'hoy') {
+        whereClause = `WHERE DATE(fecha AT TIME ZONE 'America/La_Paz') = CURRENT_DATE AT TIME ZONE 'America/La_Paz'`;
+    } else if (filtro === 'mes') {
+        whereClause = `WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM NOW() AT TIME ZONE 'America/La_Paz')
+                         AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM NOW() AT TIME ZONE 'America/La_Paz')`;
+    } else if (filtro === 'anio') {
+        whereClause = `WHERE EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM NOW() AT TIME ZONE 'America/La_Paz')`;
+    } else if (filtro === 'dia' && fecha) {
+        whereClause = `WHERE DATE(fecha AT TIME ZONE 'America/La_Paz') = $1`;
+        params.push(fecha);
+    }
+
+    try {
+        const query = `
+            SELECT
+                categoria,
+                COUNT(*)::int                                         AS cantidad,
+                COALESCE(SUM(monto), 0)::numeric(12,2)               AS total_monto,
+                json_agg(
+                    json_build_object(
+                        'descripcion', descripcion,
+                        'monto', monto,
+                        'fecha', TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY'),
+                        'metodo_pago', metodo_pago
+                    ) ORDER BY fecha DESC
+                )                                                     AS items
+            FROM gastos_generales
+            ${whereClause}
+            GROUP BY categoria
+            ORDER BY total_monto DESC
+        `;
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error stats gastos-categorias:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
+

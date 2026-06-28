@@ -463,7 +463,86 @@
                 </div>
             </div>
 
+            <!-- 6. MÉTODOS DE PAGO MÁS USADOS -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">💳 Métodos de Pago más Usados</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Frecuencia y monto total por método de pago</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs font-semibold text-slate-500">Filtro:</span>
+                        <select id="filtro-metodos-pago" onchange="cargarGraficoMetodosPago()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                            <option value="todos" selected>📚 Histórico (Todo)</option>
+                            <option value="hoy">📅 Hoy</option>
+                            <option value="mes">🗓️ Este Mes</option>
+                            <option value="anio">📆 Este Año</option>
+                        </select>
+                        <select id="metrica-metodos-pago" onchange="cargarGraficoMetodosPago()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                            <option value="cantidad" selected>Por Cantidad</option>
+                            <option value="monto">Por Total Bs.</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col lg:flex-row gap-4">
+                    <div class="relative flex-1 h-72 sm:h-80">
+                        <canvas id="chartMetodosPago"></canvas>
+                    </div>
+                    <div id="panel-metodos-pago" class="lg:w-72 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col">
+                        <p class="text-xs font-black uppercase text-slate-400 tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-list-ul text-indigo-400"></i> Detalle de ventas
+                        </p>
+                        <div id="panel-metodos-pago-list" class="flex-1 overflow-y-auto max-h-72 text-xs text-slate-500 italic">
+                            <div class="flex flex-col items-center justify-center h-full gap-2 py-8">
+                                <i class="fa-solid fa-hand-pointer text-2xl text-slate-300"></i>
+                                <span class="text-slate-400 font-medium">Pasa el cursor sobre una barra</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. GASTOS POR CATEGORÍA DEL LIBRO DIARIO -->
+            <div class="bg-white rounded-xl shadow-premium p-6 mb-6 border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">📊 Movimiento de Gastos por Categoría</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">Gastos Fijos, Operativos y Producción/Insumos registrados en el libro diario</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs font-semibold text-slate-500">Filtro:</span>
+                        <select id="filtro-gastos-cat" onchange="cargarGraficoGastosCat()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                            <option value="todos" selected>📚 Histórico (Todo)</option>
+                            <option value="hoy">📅 Hoy</option>
+                            <option value="mes">🗓️ Este Mes</option>
+                            <option value="anio">📆 Este Año</option>
+                        </select>
+                        <select id="metrica-gastos-cat" onchange="cargarGraficoGastosCat()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                            <option value="monto" selected>Por Total Bs.</option>
+                            <option value="cantidad">Por Cantidad de Registros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col lg:flex-row gap-4">
+                    <div class="relative flex-1 h-72 sm:h-80">
+                        <canvas id="chartGastosCat"></canvas>
+                    </div>
+                    <div id="panel-gastos-cat" class="lg:w-72 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col">
+                        <p class="text-xs font-black uppercase text-slate-400 tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-rose-400"></i> Detalle de gastos
+                        </p>
+                        <div id="panel-gastos-cat-list" class="flex-1 overflow-y-auto max-h-72 text-xs text-slate-500 italic">
+                            <div class="flex flex-col items-center justify-center h-full gap-2 py-8">
+                                <i class="fa-solid fa-hand-pointer text-2xl text-slate-300"></i>
+                                <span class="text-slate-400 font-medium">Pasa el cursor sobre una barra</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             </div> <!-- Fin seccion-kpis-admin -->
+
 
             <!-- DISPONIBILIDAD DE MESAS (Visible para todos) -->
             <div class="bg-white rounded-2xl shadow-premium p-6 border border-slate-100 mb-6">
@@ -811,7 +890,9 @@
                 chartTopProdInst,
                 chartCategoriasInst,
                 chartRendimientoInst,
-                chartBCGInst
+                chartBCGInst,
+                chartMetodosPagoInst,
+                chartGastosCatInst
             ];
 
             charts.forEach(chart => {
@@ -869,6 +950,8 @@
                 cargarGraficoCategorias();
                 cargarKpisGerenciales();
                 inicializarRendimientoMensual();
+                cargarGraficoMetodosPago();
+                cargarGraficoGastosCat();
             }
 
             cargarMesasDashboard();
@@ -1767,6 +1850,254 @@
                 console.error("Error cargando mesas:", e);
                 contenedor.innerHTML = `<div class="col-span-full py-4 text-center text-red-500 font-bold">Error al cargar disponibilidad de mesas.</div>`;
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 💳 GRÁFICO: MÉTODOS DE PAGO MÁS USADOS
+        // ═══════════════════════════════════════════════════════════════════
+        let chartMetodosPagoInst = null;
+        let metodosPagoRawData = [];
+
+        // Paleta vibrante para los métodos de pago
+        const paletaMetodosPago = {
+            'EFECTIVO':                  { bg: 'rgba(16, 185, 129, 0.85)', border: '#059669', emoji: '💵' },
+            'QR':                        { bg: 'rgba(99, 102, 241, 0.85)',  border: '#4338ca', emoji: '📱' },
+            'QR DIGITAL':               { bg: 'rgba(99, 102, 241, 0.85)',  border: '#4338ca', emoji: '📱' },
+            'TARJETA':                   { bg: 'rgba(245, 158, 11, 0.85)',  border: '#b45309', emoji: '💳' },
+            'TARJETA DE DÉBITO/CRÉDITO': { bg: 'rgba(245, 158, 11, 0.85)',  border: '#b45309', emoji: '💳' },
+            'CONSUME LO NUESTRO':        { bg: 'rgba(239, 68, 68, 0.85)',   border: '#dc2626', emoji: '🇧🇴' },
+            'CONSUME_LO_NUESTRO':        { bg: 'rgba(239, 68, 68, 0.85)',   border: '#dc2626', emoji: '🇧🇴' },
+            'BILLETERA MOVIL':           { bg: 'rgba(139, 92, 246, 0.85)',  border: '#7c3aed', emoji: '📲' },
+        };
+        const defaultPaleta = { bg: 'rgba(148, 163, 184, 0.85)', border: '#64748b', emoji: '💰' };
+
+        async function cargarGraficoMetodosPago() {
+            const filtro  = document.getElementById('filtro-metodos-pago').value;
+            const metrica = document.getElementById('metrica-metodos-pago').value;
+            try {
+                const res  = await fetch(`/api/libro-diario/stats/metodos-pago?filtro=${filtro}`);
+                const data = await res.json();
+                metodosPagoRawData = data;
+
+                const labels = data.map(d => {
+                    const p = paletaMetodosPago[d.metodo] || defaultPaleta;
+                    return `${p.emoji} ${d.metodo}`;
+                });
+                const values  = data.map(d => metrica === 'monto' ? parseFloat(d.total_monto) : parseInt(d.cantidad));
+                const bgColors = data.map(d => (paletaMetodosPago[d.metodo] || defaultPaleta).bg);
+                const brColors = data.map(d => (paletaMetodosPago[d.metodo] || defaultPaleta).border);
+
+                const ctx = document.getElementById('chartMetodosPago').getContext('2d');
+                if (!ctx) return;
+                if (chartMetodosPagoInst) chartMetodosPagoInst.destroy();
+
+                chartMetodosPagoInst = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: metrica === 'monto' ? 'Total Bs.' : 'Cantidad de Ventas',
+                            data: values,
+                            backgroundColor: bgColors,
+                            borderColor: brColors,
+                            borderWidth: 2,
+                            borderRadius: 10,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => metrica === 'monto'
+                                        ? ` Bs. ${new Intl.NumberFormat('es-BO',{minimumFractionDigits:2}).format(ctx.raw)}`
+                                        : ` ${ctx.raw} ventas`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Outfit', size: 11 }, color: '#64748b' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: {
+                                    font: { family: 'Outfit', size: 11 }, color: '#64748b',
+                                    callback: v => metrica === 'monto' ? `Bs.${v}` : v
+                                }
+                            }
+                        },
+                        onHover: (event, elements) => {
+                            if (elements.length > 0) {
+                                const idx = elements[0].index;
+                                renderPanelMetodosPago(metodosPagoRawData[idx], metrica);
+                            }
+                        }
+                    }
+                });
+
+                // Mostrar el primero por defecto
+                if (data.length > 0) renderPanelMetodosPago(data[0], metrica);
+
+            } catch (e) {
+                console.error('Error grafico metodos pago:', e);
+            }
+        }
+
+        function renderPanelMetodosPago(row, metrica) {
+            const list = document.getElementById('panel-metodos-pago-list');
+            if (!list || !row) return;
+            const items = row.items || [];
+            const paleta = paletaMetodosPago[row.metodo] || defaultPaleta;
+            const total  = metrica === 'monto'
+                ? `Bs. ${new Intl.NumberFormat('es-BO',{minimumFractionDigits:2}).format(parseFloat(row.total_monto))}`
+                : `${row.cantidad} ventas`;
+
+            list.innerHTML = `
+                <div class="mb-3 pb-2 border-b border-slate-200">
+                    <span class="text-base font-black text-slate-700">${paleta.emoji} ${row.metodo}</span>
+                    <div class="flex gap-3 mt-1">
+                        <span class="text-xs font-bold px-2 py-0.5 rounded-lg text-white" style="background:${paleta.border}">${total}</span>
+                        <span class="text-xs text-slate-400 font-medium">${row.cantidad} transacciones</span>
+                    </div>
+                </div>
+                <ul class="flex flex-col gap-1">
+                    ${items.slice(0,30).map(it => `
+                        <li class="flex justify-between items-center py-1 border-b border-slate-100 last:border-none">
+                            <span class="text-[10px] text-slate-500 font-medium">${it.fecha}</span>
+                            <span class="text-[10px] font-bold text-slate-700 font-mono">Bs. ${parseFloat(it.total).toFixed(2)}</span>
+                        </li>
+                    `).join('')}
+                    ${items.length > 30 ? `<li class="text-center text-slate-400 text-[10px] pt-1">... y ${items.length - 30} más</li>` : ''}
+                </ul>
+            `;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 📊 GRÁFICO: GASTOS POR CATEGORÍA (LIBRO DIARIO)
+        // ═══════════════════════════════════════════════════════════════════
+        let chartGastosCatInst = null;
+        let gastosCatRawData = [];
+
+        const paletaGastos = [
+            { bg: 'rgba(239,68,68,0.85)',  border: '#dc2626', emoji: '🏢' }, // Gastos Fijos
+            { bg: 'rgba(245,158,11,0.85)', border: '#b45309', emoji: '⚙️' }, // Gastos Operativos
+            { bg: 'rgba(16,185,129,0.85)', border: '#059669', emoji: '🧪' }, // Producción/Insumos
+            { bg: 'rgba(99,102,241,0.85)', border: '#4338ca', emoji: '📦' }, // otros
+        ];
+
+        async function cargarGraficoGastosCat() {
+            const filtro  = document.getElementById('filtro-gastos-cat').value;
+            const metrica = document.getElementById('metrica-gastos-cat').value;
+            try {
+                const res  = await fetch(`/api/libro-diario/stats/gastos-categorias?filtro=${filtro}`);
+                const data = await res.json();
+                gastosCatRawData = data;
+
+                const labels  = data.map((d, i) => `${paletaGastos[i % paletaGastos.length].emoji} ${d.categoria}`);
+                const values  = data.map(d => metrica === 'monto' ? parseFloat(d.total_monto) : parseInt(d.cantidad));
+                const bgColors = data.map((_, i) => paletaGastos[i % paletaGastos.length].bg);
+                const brColors = data.map((_, i) => paletaGastos[i % paletaGastos.length].border);
+
+                const ctx = document.getElementById('chartGastosCat').getContext('2d');
+                if (!ctx) return;
+                if (chartGastosCatInst) chartGastosCatInst.destroy();
+
+                chartGastosCatInst = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: metrica === 'monto' ? 'Total Bs.' : 'Cantidad de Registros',
+                            data: values,
+                            backgroundColor: bgColors,
+                            borderColor: brColors,
+                            borderWidth: 2,
+                            borderRadius: 10,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => metrica === 'monto'
+                                        ? ` Bs. ${new Intl.NumberFormat('es-BO',{minimumFractionDigits:2}).format(ctx.raw)}`
+                                        : ` ${ctx.raw} registros`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Outfit', size: 11 }, color: '#64748b', maxRotation: 0 }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: {
+                                    font: { family: 'Outfit', size: 11 }, color: '#64748b',
+                                    callback: v => metrica === 'monto' ? `Bs.${v}` : v
+                                }
+                            }
+                        },
+                        onHover: (event, elements) => {
+                            if (elements.length > 0) {
+                                const idx = elements[0].index;
+                                renderPanelGastosCat(gastosCatRawData[idx], metrica, idx);
+                            }
+                        }
+                    }
+                });
+
+                if (data.length > 0) renderPanelGastosCat(data[0], metrica, 0);
+
+            } catch (e) {
+                console.error('Error grafico gastos categorias:', e);
+            }
+        }
+
+        function renderPanelGastosCat(row, metrica, colorIdx) {
+            const list = document.getElementById('panel-gastos-cat-list');
+            if (!list || !row) return;
+            const items  = row.items || [];
+            const paleta = paletaGastos[colorIdx % paletaGastos.length];
+            const total  = metrica === 'monto'
+                ? `Bs. ${new Intl.NumberFormat('es-BO',{minimumFractionDigits:2}).format(parseFloat(row.total_monto))}`
+                : `${row.cantidad} registros`;
+
+            list.innerHTML = `
+                <div class="mb-3 pb-2 border-b border-slate-200">
+                    <span class="text-sm font-black text-slate-700">${paleta.emoji} ${row.categoria}</span>
+                    <div class="flex gap-3 mt-1">
+                        <span class="text-xs font-bold px-2 py-0.5 rounded-lg text-white" style="background:${paleta.border}">${total}</span>
+                        <span class="text-xs text-slate-400 font-medium">${row.cantidad} registros</span>
+                    </div>
+                </div>
+                <ul class="flex flex-col gap-1">
+                    ${items.slice(0,30).map(it => `
+                        <li class="flex flex-col py-1.5 border-b border-slate-100 last:border-none">
+                            <div class="flex justify-between">
+                                <span class="text-[10px] text-slate-500 font-semibold truncate max-w-[140px]" title="${it.descripcion}">${it.descripcion}</span>
+                                <span class="text-[10px] font-bold text-slate-700 font-mono shrink-0">Bs. ${parseFloat(it.monto).toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[9px] text-slate-400">${it.fecha}</span>
+                                <span class="text-[9px] text-slate-400">${it.metodo_pago || ''}</span>
+                            </div>
+                        </li>
+                    `).join('')}
+                    ${items.length > 30 ? `<li class="text-center text-slate-400 text-[10px] pt-1">... y ${items.length - 30} más</li>` : ''}
+                </ul>
+            `;
         }
     </script>
     <script src="js/security_guard.js"></script>
