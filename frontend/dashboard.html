@@ -36,6 +36,18 @@
         }
     </script>
     <link rel="icon" href="favicon.png" type="image/png">
+    <style>
+        /* Transición suave para colapsar sidebar en modo presentación */
+        #sidebar {
+            transition: width 0.3s ease, opacity 0.25s ease, transform 0.3s ease;
+        }
+        #sidebar.sidebar-collapsed {
+            width: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
 
@@ -132,6 +144,10 @@
                 <button onclick="toggleSidebar()" class="md:hidden text-gray-800 focus:outline-none mr-2">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
+                <!-- Botón ocultar sidebar en desktop -->
+                <button id="btn-presentacion" onclick="togglePresentationMode()" title="Modo Presentación (ocultar menú)" class="hidden md:flex w-9 h-9 rounded-xl items-center justify-center border border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200 transition-all shadow-sm" >
+                    <i id="icon-presentacion" class="fa-solid fa-sidebar text-sm"></i>
+                </button>
                 <h1 class="text-xl font-bold">Panel de Control</h1>
             </div>
             <div class="flex items-center gap-4">
@@ -140,6 +156,14 @@
                 </button>
             </div>
         </header>
+
+        <!-- Pestaña flotante para restaurar sidebar en modo presentación -->
+        <div id="tab-restaurar-sidebar" class="hidden fixed left-0 top-1/2 -translate-y-1/2 z-50">
+            <button onclick="togglePresentationMode()" title="Mostrar menú" class="flex flex-col items-center justify-center gap-1 bg-slate-900 text-orange-400 px-1.5 py-4 rounded-r-xl shadow-2xl border border-slate-700 hover:bg-orange-500 hover:text-white transition-all group">
+                <i class="fa-solid fa-chevron-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">Menú</span>
+            </button>
+        </div>
 
         <div class="flex-1 overflow-y-auto p-6">
             <!-- SECCIÓN KPIs ADMIN ONLY -->
@@ -564,6 +588,8 @@
         </div>
     </main>
 
+
+
     <script>
         // === GUARDIA DE SEGURIDAD ===
         if (!localStorage.getItem('usuario_id')) {
@@ -574,8 +600,47 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
+            if (overlay) overlay.classList.toggle('hidden');
         }
+
+        // ── MODO PRESENTACIÓN (ocultar/mostrar sidebar en desktop) ────────────
+        function togglePresentationMode() {
+            const sidebar  = document.getElementById('sidebar');
+            const tab      = document.getElementById('tab-restaurar-sidebar');
+            const icon     = document.getElementById('icon-presentacion');
+            const isHidden = sidebar.classList.contains('sidebar-collapsed');
+
+            if (isHidden) {
+                // Mostrar sidebar
+                sidebar.classList.remove('sidebar-collapsed', '-translate-x-full', 'w-0', '!w-0', 'overflow-hidden', 'opacity-0', 'pointer-events-none');
+                sidebar.style.width = '';
+                tab.classList.add('hidden');
+                icon.className = 'fa-solid fa-sidebar text-sm';
+                localStorage.setItem('sidebarOculto', 'false');
+            } else {
+                // Ocultar sidebar
+                sidebar.classList.add('sidebar-collapsed', 'overflow-hidden', 'opacity-0', 'pointer-events-none');
+                sidebar.style.width = '0px';
+                tab.classList.remove('hidden');
+                icon.className = 'fa-solid fa-sidebar-flip text-sm';
+                localStorage.setItem('sidebarOculto', 'true');
+            }
+        }
+
+        // Restaurar estado de sidebar al cargar
+        (function restaurarEstadoSidebar() {
+            if (localStorage.getItem('sidebarOculto') === 'true') {
+                const sidebar = document.getElementById('sidebar');
+                const tab     = document.getElementById('tab-restaurar-sidebar');
+                const icon    = document.getElementById('icon-presentacion');
+                if (sidebar) {
+                    sidebar.classList.add('sidebar-collapsed', 'overflow-hidden', 'opacity-0', 'pointer-events-none');
+                    sidebar.style.width = '0px';
+                }
+                if (tab)  tab.classList.remove('hidden');
+                if (icon) icon.className = 'fa-solid fa-sidebar-flip text-sm';
+            }
+        })();
 
         function cerrarSesión() {
             localStorage.clear();
