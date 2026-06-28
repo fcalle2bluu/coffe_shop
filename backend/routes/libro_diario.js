@@ -73,6 +73,7 @@ router.get('/', async (req, res) => {
         // 3. Obtener gastos de caja del mes/año
         const queryGastosCaja = `
             SELECT gc.id, gc.monto, gc.descripcion, gc.fecha,
+                   gc.categoria,
                    TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
@@ -170,6 +171,7 @@ router.get('/', async (req, res) => {
                 fecha_raw: new Date(gc.fecha),
                 tipo: 'gasto_caja',
                 ref_id: gc.id,
+                categoria: gc.categoria || 'Gastos Operativos',
                 glosa: `Gasto de Caja Chica (Turno #${gc.id}).${cajero} Detalle: ${gc.descripcion}`,
                 cuentas: [
                     { nombre: 'GASTOS OPERATIVOS', tipo: 'DEBE', importe: total },
@@ -317,6 +319,23 @@ router.delete('/gasto-caja/:id', async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar gasto de caja:', error);
         res.status(500).json({ error: 'Error al eliminar gasto de caja: ' + error.message });
+    }
+});
+
+// Cambiar categoría de un gasto de caja
+router.patch('/gasto-caja/:id/categoria', async (req, res) => {
+    const { id } = req.params;
+    const { categoria } = req.body;
+    const categoriasValidas = ['Gastos Operativos', 'Gastos Fijos', 'Costos de Producción/Insumos'];
+    if (!categoriasValidas.includes(categoria)) {
+        return res.status(400).json({ error: 'Categoría no válida' });
+    }
+    try {
+        await pool.query('UPDATE gastos_caja SET categoria = $1 WHERE id = $2', [categoria, id]);
+        res.json({ success: true, message: 'Categoría actualizada correctamente' });
+    } catch (error) {
+        console.error('Error al actualizar categoría del gasto de caja:', error);
+        res.status(500).json({ error: 'Error al actualizar la categoría: ' + error.message });
     }
 });
 

@@ -351,7 +351,7 @@ function renderizarAsientos(asientos) {
 
         const accionAdmin = esAdmin
             ? `<button onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)" title="Eliminar asiento" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
-               ${asiento.tipo === 'gasto_general' ? `<button onclick="abrirModalCambiarCategoria(${asiento.ref_id})" title="Cambiar categoría" class="text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-pen-to-square text-xs"></i></button>` : ''}`
+               ${(asiento.tipo === 'gasto_general' || asiento.tipo === 'gasto_caja') ? `<button onclick="abrirModalCambiarCategoria(${asiento.ref_id}, '${asiento.tipo}')" title="Cambiar categor\u00eda" class="text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-pen-to-square text-xs"></i></button>` : ''}`
             : '';
 
         // ── FILA PRINCIPAL (siempre visible) ──
@@ -567,29 +567,37 @@ async function guardarGastoGeneral(event) {
     }
 }
 
-// ── CAMBIAR CATEGORÍA DE GASTO GENERAL ───────────────────────────────────────
+// ── CAMBIAR CATEGORÍA DE GASTO (caja o general) ─────────────────────────────
 let _gastoIdParaCambiarCategoria = null;
+let _gastoTipoParaCambiarCategoria = null; // 'gasto_general' | 'gasto_caja'
 
-function abrirModalCambiarCategoria(gastoId) {
+function abrirModalCambiarCategoria(gastoId, tipo) {
     _gastoIdParaCambiarCategoria = gastoId;
+    _gastoTipoParaCambiarCategoria = tipo || 'gasto_general';
     document.getElementById('modalCambiarCategoria').classList.remove('hidden');
 }
 
 function cerrarModalCambiarCategoria() {
     _gastoIdParaCambiarCategoria = null;
+    _gastoTipoParaCambiarCategoria = null;
     document.getElementById('modalCambiarCategoria').classList.add('hidden');
 }
 
 async function cambiarCategoriaGasto(nuevaCategoria) {
     if (!_gastoIdParaCambiarCategoria) return;
-    const id = _gastoIdParaCambiarCategoria;
+    const id   = _gastoIdParaCambiarCategoria;
+    const tipo = _gastoTipoParaCambiarCategoria;
 
-    // Resaltar el botón seleccionado
+    // Determinar el endpoint según el tipo de gasto
+    const endpoint = tipo === 'gasto_caja'
+        ? `/api/libro-diario/gasto-caja/${id}/categoria`
+        : `/api/libro-diario/gastos/${id}/categoria`;
+
     const botones = document.querySelectorAll('#botones-categorias-cambio button');
     botones.forEach(b => b.disabled = true);
 
     try {
-        const res = await fetch(`/api/libro-diario/gastos/${id}/categoria`, {
+        const res = await fetch(endpoint, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ categoria: nuevaCategoria })
@@ -597,7 +605,7 @@ async function cambiarCategoriaGasto(nuevaCategoria) {
 
         if (res.ok) {
             cerrarModalCambiarCategoria();
-            await cargarLibroDiario();  // Recargar para reflejar cambio
+            await cargarLibroDiario();
         } else {
             const err = await res.json();
             alert('Error: ' + (err.error || 'No se pudo actualizar la categoría'));

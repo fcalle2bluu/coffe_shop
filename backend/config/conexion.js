@@ -1249,6 +1249,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al crear tabla whatsapp_mensajes:', waMsgTableErr.message);
     }
 
+    // Migración: Agregar columna categoria a gastos_caja
+    try {
+        await pool.query(`ALTER TABLE gastos_caja ADD COLUMN IF NOT EXISTS categoria VARCHAR(100) DEFAULT 'Gastos Operativos';`);
+        console.log('✅ Columna categoria en gastos_caja verificada/creada.');
+    } catch (gcCatErr) {
+        console.error('Error al migrar categoria en gastos_caja:', gcCatErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
