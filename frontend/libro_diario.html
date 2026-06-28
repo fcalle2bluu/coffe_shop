@@ -451,7 +451,48 @@
         </div>
     </div>
 
+    <!-- MODAL CAMBIAR CATEGORÍA DE GASTO GENERAL -->
+    <div id="modalCambiarCategoria" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-5">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-amber-500"></i> Cambiar Categoría
+                </h3>
+                <button onclick="cerrarModalCambiarCategoria()" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4 font-medium">Selecciona la nueva categoría para este gasto:</p>
+            <div class="flex flex-col gap-3" id="botones-categorias-cambio">
+                <button onclick="cambiarCategoriaGasto('Gastos Fijos')"
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-left group">
+                    <span class="text-xl">🏢</span>
+                    <div>
+                        <p class="text-sm font-bold text-red-700">Gastos Fijos</p>
+                        <p class="text-[10px] text-red-400 font-medium">Alquiler, Internet fijo, etc.</p>
+                    </div>
+                </button>
+                <button onclick="cambiarCategoriaGasto('Gastos Operativos')"
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-left group">
+                    <span class="text-xl">⚙️</span>
+                    <div>
+                        <p class="text-sm font-bold text-amber-700">Gastos Operativos</p>
+                        <p class="text-[10px] text-amber-400 font-medium">Sueldos, servicios, etc.</p>
+                    </div>
+                </button>
+                <button onclick="cambiarCategoriaGasto('Costos de Producción/Insumos')"
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 transition-all text-left group">
+                    <span class="text-xl">🧪</span>
+                    <div>
+                        <p class="text-sm font-bold text-emerald-700">Costos de Producción / Insumos</p>
+                        <p class="text-[10px] text-emerald-400 font-medium">Materias primas, insumos, etc.</p>
+                    </div>
+                </button>
+            </div>
+            <button onclick="cerrarModalCambiarCategoria()" class="mt-5 w-full py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors">Cancelar</button>
+        </div>
+    </div>
+
     <script src="js/libro_diario.js"></script>
+
     <script src="js/security_guard.js"></script>
 </body>
 </html>

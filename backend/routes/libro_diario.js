@@ -290,6 +290,24 @@ router.delete('/gastos/:id', async (req, res) => {
     }
 });
 
+// Cambiar categoría de un gasto general
+router.patch('/gastos/:id/categoria', async (req, res) => {
+    const { id } = req.params;
+    const { categoria } = req.body;
+    const categoriasValidas = ['Gastos Operativos', 'Gastos Fijos', 'Costos de Producción/Insumos'];
+    if (!categoriasValidas.includes(categoria)) {
+        return res.status(400).json({ error: 'Categoría no válida' });
+    }
+    try {
+        await pool.query('UPDATE gastos_generales SET categoria = $1 WHERE id = $2', [categoria, id]);
+        res.json({ success: true, message: 'Categoría actualizada correctamente' });
+    } catch (error) {
+        console.error('Error al actualizar categoría del gasto:', error);
+        res.status(500).json({ error: 'Error al actualizar la categoría: ' + error.message });
+    }
+});
+
+
 // Eliminar un gasto de caja
 router.delete('/gasto-caja/:id', async (req, res) => {
     const { id } = req.params;

@@ -350,7 +350,8 @@ function renderizarAsientos(asientos) {
             : (asiento.glosa || '');
 
         const accionAdmin = esAdmin
-            ? `<button onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)" title="Eliminar asiento" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>`
+            ? `<button onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)" title="Eliminar asiento" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
+               ${asiento.tipo === 'gasto_general' ? `<button onclick="abrirModalCambiarCategoria(${asiento.ref_id})" title="Cambiar categoría" class="text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-pen-to-square text-xs"></i></button>` : ''}`
             : '';
 
         // ── FILA PRINCIPAL (siempre visible) ──
@@ -563,5 +564,48 @@ async function guardarGastoGeneral(event) {
     } catch (e) {
         console.error('Error al guardar gasto general:', e);
         alert('Error al conectar con el servidor contable.');
+    }
+}
+
+// ── CAMBIAR CATEGORÍA DE GASTO GENERAL ───────────────────────────────────────
+let _gastoIdParaCambiarCategoria = null;
+
+function abrirModalCambiarCategoria(gastoId) {
+    _gastoIdParaCambiarCategoria = gastoId;
+    document.getElementById('modalCambiarCategoria').classList.remove('hidden');
+}
+
+function cerrarModalCambiarCategoria() {
+    _gastoIdParaCambiarCategoria = null;
+    document.getElementById('modalCambiarCategoria').classList.add('hidden');
+}
+
+async function cambiarCategoriaGasto(nuevaCategoria) {
+    if (!_gastoIdParaCambiarCategoria) return;
+    const id = _gastoIdParaCambiarCategoria;
+
+    // Resaltar el botón seleccionado
+    const botones = document.querySelectorAll('#botones-categorias-cambio button');
+    botones.forEach(b => b.disabled = true);
+
+    try {
+        const res = await fetch(`/api/libro-diario/gastos/${id}/categoria`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categoria: nuevaCategoria })
+        });
+
+        if (res.ok) {
+            cerrarModalCambiarCategoria();
+            await cargarLibroDiario();  // Recargar para reflejar cambio
+        } else {
+            const err = await res.json();
+            alert('Error: ' + (err.error || 'No se pudo actualizar la categoría'));
+        }
+    } catch (e) {
+        console.error('Error al cambiar categoría:', e);
+        alert('Error al conectar con el servidor.');
+    } finally {
+        botones.forEach(b => b.disabled = false);
     }
 }
