@@ -49,14 +49,18 @@ async function cargarCatalogo() {
 async function cargarMesas() {
     try {
         const res = await fetch('/api/comandas/mesas-estado');
-        if (!res.ok) throw new Error('Error al cargar mesas');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Error en servidor al obtener mesas');
+        }
         mesasGlobal = await res.json();
         renderizarMesas();
     } catch (e) {
         console.error("Error mesas:", e);
         document.getElementById('lienzo-venta-mesas').innerHTML = `
-            <div class="absolute inset-0 flex items-center justify-center text-red-500 font-bold text-xs">
-                Error al cargar el estado de las mesas.
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-red-500 font-bold text-xs gap-1">
+                <span>Error al cargar el estado de las mesas:</span>
+                <span class="text-[10px] opacity-80 font-normal bg-red-50 px-2 py-1 rounded border border-red-200 mt-1">${e.message}</span>
             </div>
         `;
     }

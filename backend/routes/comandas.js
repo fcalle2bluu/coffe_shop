@@ -88,7 +88,7 @@ router.get('/mesas-estado', async (req, res) => {
         res.json(mesas);
     } catch (error) {
         console.error('Error al obtener estado de mesas:', error);
-        res.status(500).json({ error: 'Error al obtener estado de mesas' });
+        res.status(500).json({ error: 'Error al obtener estado de mesas: ' + error.message });
     }
 });
 
