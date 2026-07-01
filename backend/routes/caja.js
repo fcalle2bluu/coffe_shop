@@ -350,7 +350,7 @@ router.put('/ventas/:id/metodo-pago', async (req, res) => {
 
     // Normalizar el método de pago
     const metodoNormalizado = metodo_pago.toUpperCase();
-    const metodosPermitidos = ['EFECTIVO', 'QR', 'TARJETA', 'CONSUME LO NUESTRO'];
+    const metodosPermitidos = ['EFECTIVO', 'QR', 'TARJETA', 'CONSUME LO NUESTRO', 'BILLETERA MOVIL'];
     if (!metodosPermitidos.includes(metodoNormalizado)) {
         return res.status(400).json({ error: 'Método de pago no válido.' });
     }

@@ -453,7 +453,7 @@ async function cargarHistorialVentasAdmin() {
                 dataCajero.lista.forEach(venta => {
                     const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
                                        (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
-                                       (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
+                                       (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO' || venta.metodo_pago === 'BILLETERA MOVIL' || venta.metodo_pago === 'BILLETERA_MOVIL') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
                                        '<i class="fa-solid fa-credit-card text-purple-600 mr-1"></i>';
 
                     let tdMetodoPago = '';
@@ -466,7 +466,7 @@ async function cargarHistorialVentasAdmin() {
                                         <option value="EFECTIVO" ${venta.metodo_pago === 'EFECTIVO' ? 'selected' : ''}>EFECTIVO</option>
                                         <option value="QR" ${['QR', 'QR DIGITAL'].includes(venta.metodo_pago) ? 'selected' : ''}>QR</option>
                                         <option value="TARJETA" ${['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(venta.metodo_pago) ? 'selected' : ''}>TARJETA</option>
-                                        <option value="CONSUME LO NUESTRO" ${['CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(venta.metodo_pago) ? 'selected' : ''}>CONSUME LO NUESTRO</option>
+                                        <option value="BILLETERA MOVIL" ${['BILLETERA MOVIL', 'BILLETERA_MOVIL', 'CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(venta.metodo_pago) ? 'selected' : ''}>BILLETERA MÓVIL</option>
                                     </select>
                                 </div>
                             </td>

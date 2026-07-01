@@ -511,7 +511,8 @@ router.get('/gerencial', async (req, res) => {
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
         const queryGastosCaja = `
-            SELECT COALESCE(SUM(monto), 0) AS total 
+            SELECT id, monto, descripcion, fecha,
+                   TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI:SS') as fecha_bolivia
             FROM gastos_caja 
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
