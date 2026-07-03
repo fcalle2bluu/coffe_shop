@@ -1204,6 +1204,11 @@ pool.query('SELECT NOW()', async (err, res) => {
             );
         `);
         await pool.query('ALTER TABLE whatsapp_estados ADD COLUMN IF NOT EXISTS categoria_seleccionada VARCHAR(255);');
+        try {
+            await pool.query('ALTER TABLE whatsapp_estados ALTER COLUMN producto_seleccionado TYPE TEXT;');
+        } catch (alterPErr) {
+            // Silencioso
+        }
         console.log('✅ Tablas pedidos_whatsapp y whatsapp_estados creadas/verificadas.');
     } catch (waTableErr) {
         console.error('Error al crear tablas de WhatsApp:', waTableErr.message);
