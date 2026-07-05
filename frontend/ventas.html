@@ -52,10 +52,12 @@
                 display: none !important;
             }
             body.print-ticket { background: white !important; color: black !important; }
-            body.print-ticket #zona-impresion, 
-            body.print-ticket #zona-impresion * { 
-                display: block !important; 
-                visibility: visible !important; 
+            body.print-ticket #zona-impresion {
+                display: block !important;
+                visibility: visible !important;
+            }
+            body.print-ticket #zona-impresion * {
+                visibility: visible !important;
             }
             body.print-ticket #zona-impresion { 
                 position: absolute !important; 
@@ -70,10 +72,14 @@
                 border-top: none !important;
                 box-shadow: none !important;
             }
-            body.print-ticket #zona-impresion table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+            body.print-ticket #zona-impresion table { display: table !important; width: 100% !important; border-collapse: collapse !important; margin-top: 5px !important; }
             body.print-ticket #zona-impresion tr { display: table-row !important; }
             body.print-ticket #zona-impresion th, 
-            body.print-ticket #zona-impresion td { display: table-cell !important; padding: 2px 0 !important; font-size: 11px !important; vertical-align: top !important; }
+            body.print-ticket #zona-impresion td { display: table-cell !important; padding: 3px 0 !important; font-size: 11px !important; vertical-align: middle !important; border-bottom: 1px dashed #ddd !important; }
+            body.print-ticket #zona-impresion th { font-weight: bold !important; border-bottom: 1px solid #000 !important; }
+            body.print-ticket #zona-impresion th:nth-child(1), body.print-ticket #zona-impresion td:nth-child(1) { width: 35px !important; text-align: left !important; }
+            body.print-ticket #zona-impresion th:nth-child(2), body.print-ticket #zona-impresion td:nth-child(2) { text-align: left !important; padding-right: 5px !important; }
+            body.print-ticket #zona-impresion th:nth-child(3), body.print-ticket #zona-impresion td:nth-child(3) { width: 65px !important; text-align: right !important; }
             body.print-ticket #zona-impresion .text-center { text-align: center !important; }
             body.print-ticket #zona-impresion .text-right { text-align: right !important; }
             .no-print { display: none !important; }

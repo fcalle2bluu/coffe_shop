@@ -37,8 +37,11 @@
                 display: none !important;
             }
             /* Mostrar únicamente la zona de impresión */
-            #zona-impresion, #zona-impresion * {
+            #zona-impresion {
                 display: block !important;
+                visibility: visible !important;
+            }
+            #zona-impresion * {
                 visibility: visible !important;
             }
             #zona-impresion { 
@@ -54,10 +57,16 @@
                 border-top: none !important;
                 box-shadow: none !important;
             }
-            #zona-impresion table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+            #zona-impresion table { display: table !important; width: 100% !important; border-collapse: collapse !important; margin-top: 5px !important; }
             #zona-impresion tr { display: table-row !important; }
             #zona-impresion th, 
-            #zona-impresion td { display: table-cell !important; padding: 2px 0 !important; font-size: 11px !important; vertical-align: top !important; }
+            #zona-impresion td { display: table-cell !important; padding: 3px 0 !important; font-size: 11px !important; vertical-align: middle !important; border-bottom: 1px dashed #ddd !important; }
+            #zona-impresion th { font-weight: bold !important; border-bottom: 1px solid #000 !important; }
+            #zona-impresion th:nth-child(1), #zona-impresion td:nth-child(1) { width: 35px !important; text-align: left !important; }
+            #zona-impresion th:nth-child(2), #zona-impresion td:nth-child(2) { text-align: left !important; padding-right: 5px !important; }
+            #zona-impresion th:nth-child(3), #zona-impresion td:nth-child(3) { width: 65px !important; text-align: right !important; }
+            #zona-impresion .text-center { text-align: center !important; }
+            #zona-impresion .text-right { text-align: right !important; }
             #zona-impresion .text-center { text-align: center !important; }
             #zona-impresion .text-right { text-align: right !important; }
         }
