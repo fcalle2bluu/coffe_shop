@@ -42,8 +42,23 @@
             body.print-ticket * { visibility: hidden; }
             body.print-ticket #modalTicket,
             body.print-ticket #zona-impresion,
-            body.print-ticket #zona-impresion * { visibility: visible !important; display: block !important; }
-            body.print-ticket #zona-impresion { position: absolute; left: 0; top: 0; width: 200px; padding: 0; margin: 0; font-family: monospace; font-size: 10px; line-height: 1.2; }
+            body.print-ticket #zona-impresion * { visibility: visible !important; }
+            body.print-ticket #zona-impresion { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 210px; 
+                padding: 5px; 
+                margin: 0; 
+                font-family: 'JetBrains Mono', monospace; 
+                font-size: 11px; 
+                line-height: 1.15; 
+            }
+            body.print-ticket #zona-impresion table { width: 100%; border-collapse: collapse; }
+            body.print-ticket #zona-impresion th, 
+            body.print-ticket #zona-impresion td { padding: 2px 0 !important; vertical-align: top; font-size: 11px; }
+            body.print-ticket #zona-impresion .text-center { text-align: center; }
+            body.print-ticket #zona-impresion .text-right { text-align: right; }
 
             body.print-auditoria * { visibility: hidden; }
             body.print-auditoria #seccion-auditoria-cajeros,

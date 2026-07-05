@@ -15,8 +15,23 @@
     <style>
         @media print {
             body * { visibility: hidden; }
-            #zona-impresion, #zona-impresion * { visibility: visible; }
-            #zona-impresion { position: absolute; left: 0; top: 0; width: 200px; padding: 0; margin: 0; font-family: monospace; font-size: 10px; line-height: 1.2; }
+            #zona-impresion, #zona-impresion * { visibility: visible !important; }
+            #zona-impresion { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 210px; 
+                padding: 5px; 
+                margin: 0; 
+                font-family: 'JetBrains Mono', monospace; 
+                font-size: 11px; 
+                line-height: 1.15; 
+            }
+            #zona-impresion table { width: 100%; border-collapse: collapse; }
+            #zona-impresion th, 
+            #zona-impresion td { padding: 2px 0 !important; vertical-align: top; font-size: 11px; }
+            #zona-impresion .text-center { text-align: center; }
+            #zona-impresion .text-right { text-align: right; }
         }
     </style>
 
