@@ -206,8 +206,29 @@
                                 </div>
                             </div>
                             <div class="mb-4">
-                                <h3 id="actividad-monto-dia" class="text-4xl font-extrabold tracking-tight text-white">Bs. 0.00</h3>
+                                <div class="flex items-end gap-3 flex-wrap">
+                                    <h3 id="actividad-monto-dia" class="text-4xl font-extrabold tracking-tight text-white">Bs. 0.00</h3>
+                                    <span id="actividad-vs-prom" class="hidden text-[11px] font-bold px-2 py-1 rounded-full mb-1"></span>
+                                </div>
                                 <p id="actividad-lbl-dia" class="text-sm text-slate-400 font-semibold mt-1">Cargando...</p>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 select-none">
+                                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                                        <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Total semana</p>
+                                        <p id="actividad-total-semana" class="text-sm font-extrabold text-white mt-0.5">—</p>
+                                    </div>
+                                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                                        <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Promedio / día</p>
+                                        <p id="actividad-promedio-dia" class="text-sm font-extrabold text-white mt-0.5">—</p>
+                                    </div>
+                                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                                        <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">vs sem. anterior</p>
+                                        <p id="actividad-vs-semana" class="text-sm font-extrabold text-slate-300 mt-0.5">—</p>
+                                    </div>
+                                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                                        <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Mejor día</p>
+                                        <p id="actividad-mejor-dia" class="text-sm font-extrabold text-amber-400 mt-0.5">—</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="relative h-48 w-full mt-4">
@@ -652,6 +673,7 @@
         let actividadDomingoSemana = null;
         let chartActividadSemanalInst = null;
         let actividadDatosSemana = [];
+        let actividadDatosSemanaPrev = [];
 
         function inicializarActividadSemanal() {
             actividadDiaSeleccionado = new Date();
@@ -710,9 +732,15 @@
                 
                 if (forzarRecargaWeek || !domingoPrevISO || domingoISO !== domingoPrevISO) {
                     actividadDomingoSemana = nuevoDomingo;
-                    const res = await fetch(`/api/kpis/ventas-semanal?fecha_inicio=${domingoISO}`);
+                    const domingoAnterior = new Date(nuevoDomingo);
+                    domingoAnterior.setDate(domingoAnterior.getDate() - 7);
+                    const [res, resPrev] = await Promise.all([
+                        fetch(`/api/kpis/ventas-semanal?fecha_inicio=${domingoISO}`),
+                        fetch(`/api/kpis/ventas-semanal?fecha_inicio=${formatDateISO(domingoAnterior)}`)
+                    ]);
                     if (!res.ok) throw new Error('Error al cargar ventas semanales');
                     actividadDatosSemana = await res.json();
+                    actividadDatosSemanaPrev = resPrev.ok ? await resPrev.json() : [];
                 }
 
                 // El index seleccionado en la semana es el día del selected date (0 a 6)
@@ -734,6 +762,9 @@
                     btnNext.disabled = (actividadDiaSeleccionado >= hoy);
                 }
 
+                // Actualizar chips de estadísticas de la semana
+                actualizarStatsSemana(indexSelected, totalDia);
+
                 // Renderizar/actualizar gráfico Chart.js
                 renderChartActividadSemanal(indexSelected);
                 
@@ -745,9 +776,95 @@
             }
         }
 
+        const fmtBs = (v) => `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(v)}`;
+        const fmtBsCorto = (v) => v >= 1000 ? `Bs. ${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `Bs. ${Math.round(v)}`;
+
+        function actualizarStatsSemana(indexSelected, totalDia) {
+            const totales = ['dom','lun','mar','mié','jue','vie','sáb'].map((_, i) => {
+                const item = actividadDatosSemana[i];
+                return item ? parseFloat(item.total) || 0 : 0;
+            });
+            const totalSemana = totales.reduce((a, b) => a + b, 0);
+            const diasConVenta = totales.filter(v => v > 0).length;
+            const promedio = diasConVenta > 0 ? totalSemana / diasConVenta : 0;
+
+            // Comparación justa: si es la semana en curso, comparar solo los mismos días transcurridos
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+            const finSemana = new Date(actividadDomingoSemana); finSemana.setDate(finSemana.getDate() + 6);
+            const esSemanaActual = hoy >= actividadDomingoSemana && hoy <= finSemana;
+            const limite = esSemanaActual ? hoy.getDay() : 6;
+
+            let totalPrev = 0;
+            for (let i = 0; i <= limite; i++) {
+                const item = actividadDatosSemanaPrev[i];
+                totalPrev += item ? parseFloat(item.total) || 0 : 0;
+            }
+            const totalActualComparable = totales.slice(0, limite + 1).reduce((a, b) => a + b, 0);
+
+            document.getElementById('actividad-total-semana').innerText = fmtBs(totalSemana);
+            document.getElementById('actividad-promedio-dia').innerText = fmtBs(promedio);
+
+            const elVsSemana = document.getElementById('actividad-vs-semana');
+            if (totalPrev > 0) {
+                const pct = ((totalActualComparable - totalPrev) / totalPrev) * 100;
+                const sube = pct >= 0;
+                elVsSemana.innerHTML = `<i class="fa-solid fa-arrow-trend-${sube ? 'up' : 'down'} mr-1"></i>${sube ? '+' : ''}${pct.toFixed(1)}%`;
+                elVsSemana.className = `text-sm font-extrabold mt-0.5 ${sube ? 'text-emerald-400' : 'text-rose-400'}`;
+            } else {
+                elVsSemana.innerText = 'Sin datos';
+                elVsSemana.className = 'text-sm font-extrabold text-slate-500 mt-0.5';
+            }
+
+            const maxVal = Math.max(...totales);
+            const elMejor = document.getElementById('actividad-mejor-dia');
+            if (maxVal > 0) {
+                const nombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                elMejor.innerText = `${nombres[totales.indexOf(maxVal)]} · ${fmtBsCorto(maxVal)}`;
+            } else {
+                elMejor.innerText = '—';
+            }
+
+            // Chip del día seleccionado vs promedio de la semana
+            const elVsProm = document.getElementById('actividad-vs-prom');
+            if (promedio > 0 && totalDia > 0) {
+                const pctDia = ((totalDia - promedio) / promedio) * 100;
+                const sobre = pctDia >= 0;
+                elVsProm.innerHTML = `<i class="fa-solid fa-arrow-trend-${sobre ? 'up' : 'down'} mr-1"></i>${sobre ? '+' : ''}${pctDia.toFixed(0)}% vs promedio`;
+                elVsProm.className = `text-[11px] font-bold px-2 py-1 rounded-full mb-1 border ${sobre ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`;
+            } else {
+                elVsProm.className = 'hidden';
+            }
+        }
+
+        // Plugin: línea punteada de promedio semanal sobre el gráfico
+        const pluginLineaPromedio = {
+            id: 'lineaPromedio',
+            afterDatasetsDraw(chart) {
+                const prom = chart.$promedioSemana;
+                if (!prom || prom <= 0) return;
+                const { ctx, chartArea, scales } = chart;
+                if (!scales.y || prom > scales.y.max) return;
+                const y = scales.y.getPixelForValue(prom);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(chartArea.left, y);
+                ctx.lineTo(chartArea.right, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.font = "bold 9px Outfit, sans-serif";
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.9)';
+                ctx.textAlign = 'left';
+                ctx.fillText(`prom ${fmtBsCorto(prom)}`, chartArea.left + 4, y - 5);
+                ctx.restore();
+            }
+        };
+
         function renderChartActividadSemanal(indexSelected) {
-            const ctx = document.getElementById('chartActividadSemanal');
-            if (!ctx) return;
+            const canvas = document.getElementById('chartActividadSemanal');
+            if (!canvas) return;
 
             const labels = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
             const dataValues = labels.map((_, i) => {
@@ -755,39 +872,85 @@
                 return item ? parseFloat(item.total) || 0 : 0;
             });
 
-            // Colores: naranja brillante para seleccionado, naranja opaco para no seleccionados
-            const backgroundColors = dataValues.map((_, i) => i === indexSelected ? '#f97316' : 'rgba(249, 115, 22, 0.25)');
-            const hoverColors = dataValues.map((_, i) => i === indexSelected ? '#ea580c' : 'rgba(249, 115, 22, 0.5)');
+            const diasConVenta = dataValues.filter(v => v > 0).length;
+            const promedioSemana = diasConVenta > 0 ? dataValues.reduce((a, b) => a + b, 0) / diasConVenta : 0;
+
+            // Barras con degradado: encendida la seleccionada, tenues las demás
+            const colorBarra = (context) => {
+                const { ctx, chartArea } = context.chart;
+                const seleccionada = context.dataIndex === context.chart.$indexSelected;
+                if (!chartArea) return seleccionada ? '#f97316' : 'rgba(249, 115, 22, 0.22)';
+                const g = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                if (seleccionada) {
+                    g.addColorStop(0, '#c2410c');
+                    g.addColorStop(0.55, '#f97316');
+                    g.addColorStop(1, '#fbbf24');
+                } else {
+                    g.addColorStop(0, 'rgba(249, 115, 22, 0.08)');
+                    g.addColorStop(1, 'rgba(249, 115, 22, 0.40)');
+                }
+                return g;
+            };
+            const colorBarraHover = (context) => {
+                const seleccionada = context.dataIndex === context.chart.$indexSelected;
+                return seleccionada ? '#fb923c' : 'rgba(249, 115, 22, 0.6)';
+            };
 
             if (chartActividadSemanalInst) {
+                chartActividadSemanalInst.$indexSelected = indexSelected;
+                chartActividadSemanalInst.$promedioSemana = promedioSemana;
                 chartActividadSemanalInst.data.datasets[0].data = dataValues;
-                chartActividadSemanalInst.data.datasets[0].backgroundColor = backgroundColors;
-                chartActividadSemanalInst.data.datasets[0].hoverBackgroundColor = hoverColors;
                 chartActividadSemanalInst.update();
             } else {
-                chartActividadSemanalInst = new Chart(ctx.getContext('2d'), {
+                chartActividadSemanalInst = new Chart(canvas.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [{
                             data: dataValues,
-                            backgroundColor: backgroundColors,
-                            hoverBackgroundColor: hoverColors,
-                            borderRadius: 6,
+                            backgroundColor: colorBarra,
+                            hoverBackgroundColor: colorBarraHover,
+                            borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 2, bottomRight: 2 },
                             borderSkipped: false,
                             barPercentage: 0.6,
-                            categoryPercentage: 0.8
+                            categoryPercentage: 0.8,
+                            maxBarThickness: 42
                         }]
                     },
+                    plugins: [pluginLineaPromedio],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: { duration: 600, easing: 'easeOutQuart' },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleColor: '#f8fafc',
+                                bodyColor: '#cbd5e1',
+                                borderColor: 'rgba(148, 163, 184, 0.25)',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 12,
+                                displayColors: false,
+                                titleFont: { family: 'Outfit', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Outfit', size: 11 },
                                 callbacks: {
+                                    title: function(items) {
+                                        const d = new Date(actividadDomingoSemana);
+                                        d.setDate(d.getDate() + items[0].dataIndex);
+                                        return formatFechaCompleta(d);
+                                    },
                                     label: function(context) {
-                                        return ` Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(context.raw)}`;
+                                        return ` ${fmtBs(context.raw)}`;
+                                    },
+                                    afterLabel: function(context) {
+                                        const prom = context.chart.$promedioSemana;
+                                        if (!prom || context.raw <= 0) return '';
+                                        const pct = ((context.raw - prom) / prom) * 100;
+                                        return pct >= 0
+                                            ? `▲ ${pct.toFixed(0)}% sobre el promedio`
+                                            : `▼ ${Math.abs(pct).toFixed(0)}% bajo el promedio`;
                                     }
                                 }
                             }
@@ -797,7 +960,7 @@
                                 const clickedIndex = elements[0].index;
                                 const targetDate = new Date(actividadDomingoSemana);
                                 targetDate.setDate(actividadDomingoSemana.getDate() + clickedIndex);
-                                
+
                                 const hoy = new Date();
                                 hoy.setHours(0,0,0,0);
                                 if (targetDate <= hoy) {
@@ -806,33 +969,38 @@
                                 }
                             }
                         },
+                        onHover: (event, elements) => {
+                            event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                        },
                         scales: {
                             x: {
                                 grid: { display: false },
+                                border: { display: false },
                                 ticks: {
                                     color: '#94a3b8',
-                                    font: { family: 'Outfit', size: 11 }
+                                    font: { family: 'Outfit', size: 11, weight: 'bold' }
                                 }
                             },
                             y: {
                                 position: 'right',
+                                border: { display: false },
                                 grid: {
-                                    color: 'rgba(255, 255, 255, 0.07)',
-                                    drawBorder: false,
+                                    color: 'rgba(255, 255, 255, 0.06)',
                                     drawTicks: false
                                 },
                                 ticks: {
                                     color: '#64748b',
                                     font: { family: 'Outfit', size: 10 },
-                                    callback: function(value) {
-                                        if (value >= 1000) return 'Bs. ' + (value/1000) + 'k';
-                                        return 'Bs. ' + value;
-                                    }
+                                    maxTicksLimit: 5,
+                                    callback: function(value) { return fmtBsCorto(value); }
                                 }
                             }
                         }
                     }
                 });
+                chartActividadSemanalInst.$indexSelected = indexSelected;
+                chartActividadSemanalInst.$promedioSemana = promedioSemana;
+                chartActividadSemanalInst.update();
             }
         }
 
@@ -1663,7 +1831,9 @@
                 if (!res.ok) throw new Error('Error al obtener rendimiento mensual');
                 const rendimiento = await res.json();
 
-                const labels = rendimiento.map(r => `Día ${r.dia}`);
+                const diasSemanaCorto = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+                const nombreDiaSemana = (d) => diasSemanaCorto[new Date(parseInt(anio), parseInt(mes) - 1, parseInt(d)).getDay()];
+                const labels = rendimiento.map(r => `${r.dia}`);
                 const ventasData = rendimiento.map(r => parseFloat(r.ventas) || 0);
                 const comprasData = rendimiento.map(r => parseFloat(r.caja_chica) || 0);
                 const gastosData = rendimiento.map(r => parseFloat(r.libro_diario) || 0);
@@ -1714,60 +1884,125 @@
                     chartRendimientoInst.destroy();
                 }
 
+                // Degradados de relleno (se crean en función del área del gráfico)
+                const gradienteVentas = (context) => {
+                    const { ctx: g, chartArea } = context.chart;
+                    if (!chartArea) return 'rgba(16, 185, 129, 0.08)';
+                    const grad = g.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    grad.addColorStop(0, 'rgba(16, 185, 129, 0)');
+                    grad.addColorStop(1, 'rgba(16, 185, 129, 0.22)');
+                    return grad;
+                };
+                const gradienteBeneficio = (context) => {
+                    const { ctx: g, chartArea } = context.chart;
+                    if (!chartArea) return 'rgba(59, 130, 246, 0.06)';
+                    const grad = g.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    grad.addColorStop(0, 'rgba(59, 130, 246, 0)');
+                    grad.addColorStop(1, 'rgba(59, 130, 246, 0.14)');
+                    return grad;
+                };
+
+                const estiloPuntos = (color) => ({
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHitRadius: 20,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointHoverBorderWidth: 2
+                });
+
                 chartRendimientoInst = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [
-                            { 
-                                label: 'Ingresos (Ventas)', 
-                                data: ventasData, 
-                                borderColor: '#10b981', 
-                                backgroundColor: 'rgba(16, 185, 129, 0.05)', 
-                                fill: true, 
-                                tension: 0.35 
+                            {
+                                label: 'Ingresos (Ventas)',
+                                data: ventasData,
+                                borderColor: '#10b981',
+                                backgroundColor: gradienteVentas,
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 2.5,
+                                ...estiloPuntos('#10b981')
                             },
-                            { 
-                                label: 'Gasto de Caja Chica', 
-                                data: comprasData, 
-                                borderColor: '#f97316', 
-                                backgroundColor: 'transparent', 
-                                fill: false, 
-                                tension: 0.35 
+                            {
+                                label: 'Gasto de Caja Chica',
+                                data: comprasData,
+                                borderColor: '#f97316',
+                                backgroundColor: 'transparent',
+                                fill: false,
+                                tension: 0.4,
+                                borderWidth: 1.8,
+                                ...estiloPuntos('#f97316')
                             },
-                            { 
-                                label: 'Libro Diario', 
-                                data: gastosData, 
-                                borderColor: '#ef4444', 
-                                backgroundColor: 'transparent', 
-                                fill: false, 
-                                tension: 0.35 
+                            {
+                                label: 'Libro Diario',
+                                data: gastosData,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'transparent',
+                                fill: false,
+                                tension: 0.4,
+                                borderWidth: 1.8,
+                                ...estiloPuntos('#ef4444')
                             },
-                            { 
-                                label: 'Beneficio Neto', 
-                                data: beneficioData, 
-                                borderColor: '#3b82f6', 
-                                backgroundColor: 'rgba(59, 130, 246, 0.05)', 
-                                fill: true, 
-                                tension: 0.35,
-                                borderWidth: 3,
-                                borderDash: [5, 5]
+                            {
+                                label: 'Beneficio Neto',
+                                data: beneficioData,
+                                borderColor: '#3b82f6',
+                                backgroundColor: gradienteBeneficio,
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 2.5,
+                                borderDash: [6, 4],
+                                // El tramo negativo del beneficio se pinta en rojo
+                                segment: {
+                                    borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0) ? '#f43f5e' : '#3b82f6'
+                                },
+                                ...estiloPuntos('#3b82f6')
                             }
                         ]
                     },
-                    options: { 
-                        responsive: true, 
+                    options: {
+                        responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        animation: { duration: 700, easing: 'easeOutQuart' },
                         plugins: {
                             legend: {
                                 position: 'top',
+                                align: 'end',
                                 labels: {
-                                    boxWidth: 8,
-                                    font: { size: 9, weight: 'bold' }
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    boxWidth: 6,
+                                    boxHeight: 6,
+                                    padding: 16,
+                                    color: '#64748b',
+                                    font: { family: 'Outfit', size: 10, weight: 'bold' }
                                 }
                             },
                             tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleColor: '#f8fafc',
+                                bodyColor: '#cbd5e1',
+                                borderColor: 'rgba(148, 163, 184, 0.25)',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 12,
+                                usePointStyle: true,
+                                boxWidth: 6,
+                                boxHeight: 6,
+                                boxPadding: 4,
+                                titleFont: { family: 'Outfit', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Outfit', size: 11 },
+                                itemSort: (a, b) => b.raw - a.raw,
                                 callbacks: {
+                                    title: function(items) {
+                                        const dia = items[0].label;
+                                        return `Día ${dia} · ${nombreDiaSemana(dia)}`;
+                                    },
                                     label: function(context) {
                                         const val = context.raw;
                                         return ` ${context.dataset.label}: Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`;
@@ -1778,14 +2013,28 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
+                                border: { display: false },
+                                grid: { color: 'rgba(100, 116, 139, 0.08)', drawTicks: false },
                                 ticks: {
-                                    font: { size: 10 },
-                                    callback: function(value) { return 'Bs. ' + value; }
+                                    color: '#94a3b8',
+                                    font: { family: 'Outfit', size: 10 },
+                                    maxTicksLimit: 6,
+                                    padding: 8,
+                                    callback: function(value) {
+                                        if (Math.abs(value) >= 1000) return 'Bs. ' + (value / 1000).toFixed(value % 1000 === 0 ? 0 : 1) + 'k';
+                                        return 'Bs. ' + value;
+                                    }
                                 }
                             },
                             x: {
+                                grid: { display: false },
+                                border: { display: false },
                                 ticks: {
-                                    font: { size: 10, weight: 'bold' }
+                                    color: '#94a3b8',
+                                    font: { family: 'Outfit', size: 9, weight: 'bold' },
+                                    maxRotation: 0,
+                                    autoSkip: true,
+                                    maxTicksLimit: 16
                                 }
                             }
                         }
