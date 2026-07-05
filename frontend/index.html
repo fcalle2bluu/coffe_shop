@@ -26,81 +26,137 @@
     </script>
 
     <style>
-        .bg-login {
-            background: linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.6)), url('login_background_cafe_la_paz_1775797730643.png');
-            background-size: cover;
-            background-position: center;
+        :root { color-scheme: dark; }
+
+        /* Capa de efectos de fondo (fija, no interfiere con el scroll del teclado móvil) */
+        .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+
+        /* Orbes de luz animados */
+        .orb { position: absolute; border-radius: 9999px; filter: blur(90px); opacity: .55; }
+        .orb-1 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(249,115,22,.45), transparent 65%); top: -140px; left: -120px; animation: drift1 16s ease-in-out infinite alternate; }
+        .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(59,89,246,.28), transparent 65%); bottom: -120px; right: -100px; animation: drift2 20s ease-in-out infinite alternate; }
+        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(245,158,11,.22), transparent 60%); bottom: 15%; left: 8%; animation: drift3 18s ease-in-out infinite alternate; }
+        @keyframes drift1 { to { transform: translate(60px, 40px) scale(1.1); } }
+        @keyframes drift2 { to { transform: translate(-50px, -30px) scale(1.15); } }
+        @keyframes drift3 { to { transform: translate(40px, -50px); } }
+
+        /* Cuadrícula sutil desvanecida */
+        .bg-grid {
+            position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px);
+            background-size: 44px 44px;
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
         }
+
+        /* Tarjeta glass oscura */
         .glass-login {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(148, 163, 184, 0.12);
         }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
+
+        /* Vapor del café */
+        .steam {
+            position: absolute; width: 3px; height: 14px; border-radius: 9999px;
+            background: linear-gradient(to top, rgba(255,255,255,0), rgba(255,255,255,.75));
+            bottom: 92%; opacity: 0;
+            animation: steamUp 2.6s ease-in-out infinite;
         }
+        @keyframes steamUp {
+            0% { transform: translateY(6px) scaleY(.6); opacity: 0; }
+            30% { opacity: .8; }
+            100% { transform: translateY(-16px) scaleY(1.2); opacity: 0; }
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .animate-float { animation: float 6s ease-in-out infinite; }
+
+        /* Entrada escalonada */
+        .enter { opacity: 0; transform: translateY(18px); animation: enterUp .7s cubic-bezier(.22, 1, .36, 1) forwards; }
+        @keyframes enterUp { to { opacity: 1; transform: none; } }
+        .d-1 { animation-delay: .05s; } .d-2 { animation-delay: .18s; } .d-3 { animation-delay: .32s; }
+
+        /* Brillo que cruza el botón al pasar el mouse */
+        .btn-shine { position: relative; overflow: hidden; }
+        .btn-shine::after {
+            content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+            background: linear-gradient(105deg, transparent, rgba(255,255,255,.35), transparent);
+            transform: skewX(-20deg); transition: left .6s ease;
+        }
+        .btn-shine:hover::after { left: 130%; }
     </style>
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
-<body class="bg-slate-950 min-h-screen flex items-center justify-center p-4 bg-login font-sans">
+<body class="bg-[#060a13] min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans">
 
-    <div class="w-full max-w-md animate-in fade-in zoom-in duration-700">
+    <!-- Fondo: orbes de luz + cuadrícula -->
+    <div class="fx">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10">
         <!-- Logo Area -->
-        <div class="flex flex-col items-center mb-8">
-            <div class="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-orange-500/30 mb-4 animate-float">
+        <div class="flex flex-col items-center mb-8 enter d-1">
+            <div class="relative w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-orange-500/40 mb-4 animate-float">
                 <i class="fa-solid fa-mug-hot text-3xl"></i>
+                <span class="steam" style="left: 24px; animation-delay: 0s;"></span>
+                <span class="steam" style="left: 31px; animation-delay: .9s;"></span>
+                <span class="steam" style="left: 38px; animation-delay: 1.7s;"></span>
             </div>
             <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">
-                Café <span class="text-orange-500">La Paz</span>
+                Café <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">La Paz</span>
             </h1>
-            <p class="text-slate-300 text-xs font-bold uppercase tracking-[0.2em] mt-2 opacity-80">Gestión de Cafetería </p>
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.25em] mt-2">Gestión de Cafetería</p>
         </div>
 
         <!-- Login Card -->
-        <div class="glass-login rounded-[2.5rem] p-10 shadow-premium relative overflow-hidden">
+        <div class="glass-login rounded-[2rem] p-6 sm:p-10 shadow-premium relative overflow-hidden enter d-2">
+            <!-- Filo de luz superior -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent"></div>
+
             <div class="relative z-10">
                 <div class="mb-8">
-                    <h2 class="text-2xl font-black text-slate-900 leading-tight tracking-tight uppercase italic">Bienvenido</h2>
-                    <p class="text-slate-500 text-sm mt-1">Ingresa tus credenciales para continuar.</p>
+                    <h2 class="text-2xl font-black text-white leading-tight tracking-tight uppercase italic">Bienvenido</h2>
+                    <p class="text-slate-400 text-sm mt-1">Ingresa tus credenciales para continuar.</p>
                 </div>
 
-                <form id="loginForm" class="space-y-6">
+                <form id="loginForm" class="space-y-5 sm:space-y-6">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificador de Usuario</label>
-                        <div class="relative">
-                            <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" id="username" required placeholder="Ej. admin" 
-                                class="w-full bg-slate-100 border-none rounded-2xl pl-12 pr-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 placeholder-slate-400 transition-all outline-none text-slate-900 font-semibold" autocomplete="off">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificador de Usuario</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-orange-400 transition-colors"></i>
+                            <input type="text" id="username" required placeholder="Ej. admin" autofocus
+                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-orange-500/60 focus:ring-4 focus:ring-orange-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold" autocomplete="off">
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PIN de Seguridad</label>
-                        <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="password" id="pin" required placeholder="****" inputmode="numeric" maxlength="6"
-                                class="w-full bg-slate-100 border-none rounded-2xl pl-12 pr-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 placeholder-slate-400 transition-all outline-none text-slate-900 font-semibold tracking-[0.5em]">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">PIN de Seguridad</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-orange-400 transition-colors"></i>
+                            <input type="password" id="pin" required placeholder="••••" inputmode="numeric" maxlength="6"
+                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-orange-500/60 focus:ring-4 focus:ring-orange-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold tracking-[0.5em]">
                         </div>
                     </div>
 
-                    <div id="mensaje-error" class="hidden bg-rose-50 text-rose-600 text-xs font-bold p-4 rounded-xl text-center animate-in slide-in-from-top-2">
+                    <div id="mensaje-error" class="hidden bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold p-4 rounded-xl text-center">
                         Credenciales incorrectas
                     </div>
 
-                    <button type="submit" id="btnSubmit" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                    <button type="submit" id="btnSubmit" class="btn-shine w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-500/25 transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
                         Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>
                     </button>
                 </form>
             </div>
-            
-            <!-- Decorative circle -->
         </div>
 
-        <p class="text-center text-slate-400 text-[10px] mt-10 font-bold uppercase tracking-widest">
-            &copy; 2026 Café La Paz &bull; v2.0 
+        <p class="text-center text-slate-500 text-[10px] mt-8 sm:mt-10 font-bold uppercase tracking-widest enter d-3">
+            &copy; 2026 Café La Paz &bull; v2.0
         </p>
     </div>
     <script>

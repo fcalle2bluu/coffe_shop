@@ -206,6 +206,110 @@
         updateToggleButtons(isDark);
     });
 
+    // === MEJORAS GLOBALES DE UI (móvil, transiciones fluidas, tablas y gráficos) ===
+
+    // 1. Estilos globales inyectados en todas las páginas
+    (function inyectarEstilosPremium() {
+        if (document.getElementById('ui-premium-style')) return;
+        const st = document.createElement('style');
+        st.id = 'ui-premium-style';
+        st.innerHTML = `
+            html { -webkit-tap-highlight-color: transparent; }
+
+            /* Entrada suave de cada página */
+            body { animation: pageFadeIn .45s cubic-bezier(.22, 1, .36, 1); }
+            @keyframes pageFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+            /* Transiciones fluidas en elementos interactivos */
+            button, a, input, select, textarea { transition: background-color .2s cubic-bezier(.4,0,.2,1), border-color .2s cubic-bezier(.4,0,.2,1), color .2s cubic-bezier(.4,0,.2,1), box-shadow .25s cubic-bezier(.4,0,.2,1), transform .2s cubic-bezier(.4,0,.2,1), opacity .2s ease; }
+            button:active { transform: scale(.97); }
+
+            /* Scrollbars finos y elegantes */
+            ::-webkit-scrollbar { width: 8px; height: 8px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, .35); border-radius: 8px; }
+            ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, .6); }
+
+            /* Tablas responsive: scroll horizontal con inercia en el teléfono */
+            .tabla-responsive { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+
+            @media (max-width: 640px) {
+                .tabla-responsive > table { min-width: 560px; }
+                /* Evita el zoom automático de iOS al enfocar campos */
+                input, select, textarea { font-size: 16px !important; }
+                /* Tap targets cómodos */
+                .tabla-responsive td, .tabla-responsive th { padding-top: .65rem !important; padding-bottom: .65rem !important; white-space: nowrap; }
+            }
+
+            /* Respeto por usuarios con movimiento reducido */
+            @media (prefers-reduced-motion: reduce) {
+                body { animation: none; }
+                * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+            }
+        `;
+        document.head.appendChild(st);
+    })();
+
+    // 2. Envolver tablas en contenedores scrolleables (estáticas y las que crea el JS después)
+    function envolverTablas(raiz) {
+        (raiz.querySelectorAll ? raiz.querySelectorAll('table') : []).forEach(t => {
+            if (t.closest('#zona-impresion') || t.closest('.tabla-responsive')) return;
+            const padre = t.parentElement;
+            if (!padre) return;
+            const overflowPadre = getComputedStyle(padre).overflowX;
+            if (overflowPadre === 'auto' || overflowPadre === 'scroll') {
+                padre.classList.add('tabla-responsive');
+                return;
+            }
+            const wrap = document.createElement('div');
+            wrap.className = 'tabla-responsive';
+            padre.insertBefore(wrap, t);
+            wrap.appendChild(t);
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        envolverTablas(document);
+        // Observar tablas agregadas dinámicamente (con debounce para no impactar rendimiento)
+        let tmrTablas = null;
+        const obs = new MutationObserver(() => {
+            clearTimeout(tmrTablas);
+            tmrTablas = setTimeout(() => envolverTablas(document), 250);
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+    });
+
+    // 3. Defaults premium de Chart.js para TODOS los gráficos del sistema
+    function aplicarDefaultsChart() {
+        if (typeof Chart === 'undefined') return;
+        try {
+            Chart.defaults.font.family = "'Outfit', sans-serif";
+            Chart.defaults.animation = { duration: 800, easing: 'easeOutQuart' };
+            Chart.defaults.plugins.tooltip.backgroundColor = '#0f172a';
+            Chart.defaults.plugins.tooltip.titleColor = '#f8fafc';
+            Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';
+            Chart.defaults.plugins.tooltip.borderColor = 'rgba(148, 163, 184, 0.25)';
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+            Chart.defaults.plugins.tooltip.padding = 12;
+            Chart.defaults.plugins.tooltip.cornerRadius = 12;
+            Chart.defaults.plugins.tooltip.usePointStyle = true;
+            Chart.defaults.plugins.tooltip.boxPadding = 4;
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+            Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+            Chart.defaults.plugins.legend.labels.boxWidth = 6;
+            Chart.defaults.plugins.legend.labels.boxHeight = 6;
+            Chart.defaults.plugins.legend.labels.padding = 14;
+            Chart.defaults.elements.line.tension = 0.4;
+            Chart.defaults.elements.line.borderWidth = 2.5;
+            Chart.defaults.elements.point.radius = 0;
+            Chart.defaults.elements.point.hoverRadius = 5;
+            Chart.defaults.elements.point.hitRadius = 20;
+            Chart.defaults.elements.bar.borderRadius = 6;
+        } catch (e) { console.warn('No se pudieron aplicar defaults de Chart:', e); }
+    }
+    aplicarDefaultsChart();
+    window.addEventListener('DOMContentLoaded', aplicarDefaultsChart);
+
     // 1. Verificar Autenticación Básica
     if (!localStorage.getItem('usuario_id')) {
         window.location.href = 'index.html'; 
