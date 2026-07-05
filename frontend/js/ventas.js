@@ -69,7 +69,7 @@ function renderizarCatalogo(filtro = '') {
         
         // Renderizar el encabezado de categoría (pegajoso al hacer scroll)
         const headerHtml = `
-            <div class="col-span-full sticky top-0 z-10 bg-[#f8fafc]/95 backdrop-blur-sm mt-3 first:mt-0 mb-1 border-b border-slate-200/70 pb-1">
+            <div class="col-span-full sticky top-0 z-10 bg-mainBg/95 backdrop-blur-sm mt-3 first:mt-0 mb-1 border-b border-slate-200/70 pb-1">
                 <button onclick="toggleCategoriaCollapse('${catCleanId}')" class="w-full text-left focus:outline-none flex items-center justify-between hover:opacity-80 transition-opacity py-1">
                     <h3 class="text-xs font-black text-stone-500 uppercase tracking-widest flex items-center gap-2 select-none">
                         <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>

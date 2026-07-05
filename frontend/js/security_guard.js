@@ -148,6 +148,19 @@
                         background-color: rgba(148, 163, 184, 0.15) !important;
                         color: #94a3b8 !important;
                     }
+
+                    /* === POS (Punto de Venta) === */
+                    /* Encabezados de categoría pegajosos */
+                    .bg-mainBg\\/95 { background-color: rgba(11, 15, 25, 0.92) !important; }
+                    /* Placeholder de imagen de producto (degradado crema -> tinte naranja oscuro) */
+                    .bg-gradient-to-br.from-orange-50 {
+                        background-image: none !important;
+                        background-color: rgba(249, 115, 22, 0.08) !important;
+                    }
+                    /* Zona de items del ticket */
+                    .bg-slate-50\\/50 { background-color: #0f172a !important; }
+                    /* Bordes tenues introducidos por el rediseño */
+                    .border-slate-200\\/70, .border-slate-200\\/80, .border-slate-300 { border-color: #1f2937 !important; }
                 `;
                 document.documentElement.appendChild(styleEl);
             }
