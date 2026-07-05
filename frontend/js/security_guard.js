@@ -284,7 +284,12 @@
         if (typeof Chart === 'undefined') return;
         try {
             Chart.defaults.font.family = "'Outfit', sans-serif";
-            Chart.defaults.animation = { duration: 800, easing: 'easeOutQuart' };
+            Chart.defaults.animation.duration = 800;
+            Chart.defaults.animation.easing = 'easeOutQuart';
+            // CRÍTICO: no animar colores. Con fondos degradados (CanvasGradient) la
+            // interpolación de color de Chart.js lanza una excepción dentro del bucle
+            // de animación y TODOS los gráficos se quedan congelados en altura cero.
+            Chart.defaults.animations.colors = false;
             Chart.defaults.plugins.tooltip.backgroundColor = '#0f172a';
             Chart.defaults.plugins.tooltip.titleColor = '#f8fafc';
             Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';

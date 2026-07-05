@@ -922,6 +922,7 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: { duration: 600, easing: 'easeOutQuart' },
+                        animations: { colors: false }, // los degradados no se pueden interpolar
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -1969,6 +1970,7 @@
                         maintainAspectRatio: false,
                         interaction: { mode: 'index', intersect: false },
                         animation: { duration: 700, easing: 'easeOutQuart' },
+                        animations: { colors: false }, // los degradados no se pueden interpolar
                         plugins: {
                             legend: {
                                 position: 'top',
