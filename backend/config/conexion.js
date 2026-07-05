@@ -1254,12 +1254,23 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al crear tabla whatsapp_mensajes:', waMsgTableErr.message);
     }
 
-    // Migración: Agregar columna categoria a gastos_caja
+    // Tabla de Control Diario de Cocina
     try {
-        await pool.query(`ALTER TABLE gastos_caja ADD COLUMN IF NOT EXISTS categoria VARCHAR(100) DEFAULT 'Gastos Operativos';`);
-        console.log('✅ Columna categoria en gastos_caja verificada/creada.');
-    } catch (gcCatErr) {
-        console.error('Error al migrar categoria en gastos_caja:', gcCatErr.message);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS control_diario_cocina (
+                id SERIAL PRIMARY KEY,
+                fecha DATE NOT NULL,
+                insumo_id INT REFERENCES insumos(id) ON DELETE SET NULL,
+                nombre_insumo VARCHAR(255) NOT NULL,
+                cantidad NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+                unidad_medida VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (fecha, nombre_insumo)
+            );
+        `);
+        console.log('✅ Tabla control_diario_cocina creada/verificada.');
+    } catch (cdcErr) {
+        console.error('Error al crear tabla control_diario_cocina:', cdcErr.message);
     }
 
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');

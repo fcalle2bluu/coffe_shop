@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Control Diario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        sidebar: '#020617',
+                        sidebarHover: '#0f172a',
+                        topbar: '#ffffff',
+                        mainBg: '#f8fafc',
+                        accent: '#f97316',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    }
+                } 
+            } 
+        }
+    </script>
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
+
+    <!-- Sidebar Inyectado por security_guard.js -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+            </a>
+            <!-- El enlace Control Diario se inyecta dinámicamente aquí y se activa automáticamente -->
+            <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-kitchen-set w-5 text-center text-orange-500/60"></i> <span>Producción y Masas</span>
+            </a>
+            <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-book-open w-5 text-center text-orange-500/60"></i> <span>Recetas</span>
+            </a>
+            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+            </a>
+            <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-truck w-5 text-center text-orange-500/60"></i> <span>Proveedores</span>
+            </a>
+            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-utensils w-5 text-center text-orange-500/60"></i> <span>Venta por Mesa</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+            </a>
+            <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-brands fa-whatsapp w-5 text-center text-orange-500/60"></i> <span>Webhook WhatsApp</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+            </a>
+            <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión de Empleados</span>
+            </a>
+            <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
+            </a>
+            <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+            </a>
+            <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-mug-hot w-5 text-center text-orange-500/60"></i> <span>Informe General</span>
+            </a>
+            <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-brain w-5 text-center text-orange-500/60"></i> <span>Asistente IA</span>
+            </a>
+            <a href="asistencia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-user-clock w-5 text-center text-orange-500/60"></i> <span>Asistencia QR</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <!-- Header / Top Bar -->
+        <header class="h-16 bg-topbar border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-30">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-600 hover:text-slate-900"><i class="fa-solid fa-bars text-xl"></i></button>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">Control Diario de Insumos</h1>
+                    <p class="text-xs text-slate-400">Inventario y control diario en Cocina</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-1.5 border border-slate-200/50">
+                    <span id="header-user" class="text-sm font-bold text-slate-700">Cargando...</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            <!-- Controls / Filters -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-premium flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="bg-orange-500/10 text-orange-500 p-2.5 rounded-xl">
+                        <i class="fa-solid fa-calendar-day text-lg"></i>
+                    </div>
+                    <div class="flex-1 sm:flex-initial">
+                        <label class="block text-[10px] uppercase font-black tracking-widest text-slate-400">Fecha del Control</label>
+                        <input type="date" id="filtro-fecha" onchange="cargarControlDiario()" class="font-bold text-slate-700 bg-transparent outline-none cursor-pointer border-b border-slate-200 focus:border-accent pb-0.5 text-sm sm:text-base">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button onclick="abrirModalAnadir()" class="w-full sm:w-auto px-5 py-3 bg-accent text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-orange-600 transition-all duration-200 shadow-lg shadow-orange-500/20">
+                        <i class="fa-solid fa-plus"></i> Añadir Insumo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Listado Principal con Gráfico de Barras -->
+            <div class="bg-white rounded-2xl border border-slate-200/60 shadow-premium overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Lista de Insumos Registrados</h2>
+                        <p class="text-xs text-slate-400">Los datos de días anteriores se heredan automáticamente</p>
+                    </div>
+                    <span id="contador-insumos" class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full font-bold text-xs">0 Insumos</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-xs font-black uppercase tracking-wider">
+                                <th class="px-6 py-3.5">Insumo</th>
+                                <th class="px-6 py-3.5">Cantidad Registrada</th>
+                                <th class="px-6 py-3.5 w-[40%]">Gráfico de Cantidad</th>
+                                <th class="px-6 py-3.5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-control" class="divide-y divide-slate-100 text-sm">
+                            <!-- Inyectado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden flex flex-col items-center justify-center py-16 px-4">
+                    <div class="w-20 h-20 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center text-4xl mb-4">
+                        <i class="fa-solid fa-clipboard"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-600 text-lg">Sin registros para esta fecha</h3>
+                    <p class="text-slate-400 text-sm text-center max-w-sm mt-1">Haz clic en "Añadir Insumo" para empezar a registrar ingredientes en la cocina para este día.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Añadir Insumo -->
+    <div id="modalAnadir" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-accent"></i> Añadir Insumo al Control
+                </h3>
+                <button onclick="cerrarModalAnadir()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <form onsubmit="guardarNuevoInsumo(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Buscar Insumo del Catálogo</label>
+                    <select id="select-catalogo" onchange="seleccionarDeCatalogo()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium">
+                        <option value="">-- [ Escribir insumo libre ] --</option>
+                        <!-- Inyectado por backend -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nombre del Insumo</label>
+                    <input type="text" id="input-nombre" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Ej: Leche Condensada">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cantidad</label>
+                        <input type="number" id="input-cantidad" step="0.01" required min="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-bold" placeholder="Ej: 5.50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Unidad Medida</label>
+                        <input type="text" id="input-unidad" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Ej: Kg, Litros, Unidades">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="cerrarModalAnadir()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition-all duration-200">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-accent hover:bg-orange-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/10">Añadir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Cantidad -->
+    <div id="modalEditar" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-edit text-accent"></i> Modificar Cantidad Insumo
+                </h3>
+                <button onclick="cerrarModalEditar()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <form onsubmit="guardarEdicionInsumo(event)" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                
+                <div>
+                    <h4 class="font-bold text-slate-800 text-base" id="edit-nombre-texto">---</h4>
+                    <p class="text-xs text-slate-400">Modificando control de esta fecha</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nueva Cantidad</label>
+                        <input type="number" id="edit-cantidad" step="0.01" required min="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-bold" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Unidad Medida</label>
+                        <input type="text" id="edit-unidad" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Kg, Litros, etc">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="cerrarModalEditar()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition-all duration-200">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-accent hover:bg-orange-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/10">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts del Sistema -->
+    <script src="js/security_guard.js"></script>
+    <script>
+        // Set date to today on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-fecha').value = today;
+
+            // Cargar usuario logueado en la cabecera
+            const nombre = localStorage.getItem('nombre_usuario') || 'Usuario';
+            const rol = localStorage.getItem('rol_usuario') || 'Cajero';
+            document.getElementById('header-user').innerText = `${nombre} (${rol})`;
+
+            cargarControlDiario();
+            cargarInsumosCatalogo();
+        });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        let insumosCatalogo = [];
+
+        // Cargar catálogo de insumos
+        async function cargarInsumosCatalogo() {
+            try {
+                const res = await fetch('/api/control-diario/insumos-catalogo');
+                insumosCatalogo = await res.json();
+                
+                const select = document.getElementById('select-catalogo');
+                select.innerHTML = '<option value="">-- [ Escribir insumo libre ] --</option>';
+                insumosCatalogo.forEach(ins => {
+                    select.innerHTML += `<option value="${ins.id}">${ins.nombre} (${ins.unidad_medida})</option>`;
+                });
+            } catch (err) {
+                console.error("Error al cargar catálogo:", err);
+            }
+        }
+
+        function seleccionarDeCatalogo() {
+            const select = document.getElementById('select-catalogo');
+            const inputNombre = document.getElementById('input-nombre');
+            const inputUnidad = document.getElementById('input-unidad');
+
+            if (select.value === "") {
+                inputNombre.value = "";
+                inputUnidad.value = "";
+                inputNombre.readOnly = false;
+                inputUnidad.readOnly = false;
+            } else {
+                const selectedInsumo = insumosCatalogo.find(ins => ins.id == select.value);
+                if (selectedInsumo) {
+                    inputNombre.value = selectedInsumo.nombre;
+                    inputUnidad.value = selectedInsumo.unidad_medida;
+                    inputNombre.readOnly = true;
+                    inputUnidad.readOnly = true;
+                }
+            }
+        }
+
+        // Cargar control de la fecha
+        async function cargarControlDiario() {
+            const fecha = document.getElementById('filtro-fecha').value;
+            if (!fecha) return;
+
+            try {
+                const res = await fetch(`/api/control-diario?fecha=${fecha}`);
+                const data = await res.json();
+
+                const tbody = document.getElementById('lista-control');
+                const emptyState = document.getElementById('empty-state');
+                const countBadge = document.getElementById('contador-insumos');
+
+                tbody.innerHTML = '';
+                countBadge.innerText = `${data.length} Insumo${data.length === 1 ? '' : 's'}`;
+
+                if (data.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                emptyState.classList.add('hidden');
+
+                // Calcular el máximo de cantidad de este día para la escala de las barras
+                const maxCantidad = Math.max(...data.map(item => parseFloat(item.cantidad) || 0), 1);
+
+                data.forEach(item => {
+                    const cant = parseFloat(item.cantidad) || 0;
+                    // Porcentaje relativo al máximo
+                    const porcentaje = Math.min((cant / maxCantidad) * 100, 100);
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-slate-800">
+                                ${item.nombre_insumo}
+                            </td>
+                            <td class="px-6 py-4 font-mono font-bold text-slate-700">
+                                ${cant.toFixed(2)} <span class="text-xs text-slate-400 font-sans font-medium">${item.unidad_medida}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-orange-400 to-accent h-full rounded-full transition-all duration-500" style="width: ${porcentaje}%"></div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                <button onclick="abrirModalEditar(${item.id}, '${item.nombre_insumo}', ${cant}, '${item.unidad_medida}')" class="p-2 text-slate-400 hover:text-accent rounded-xl hover:bg-slate-100 transition-all duration-150" title="Editar Cantidad">
+                                    <i class="fa-solid fa-pencil text-sm"></i>
+                                </button>
+                                <button onclick="eliminarInsumo(${item.id})" class="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-slate-100 transition-all duration-150" title="Eliminar Insumo">
+                                    <i class="fa-solid fa-trash-can text-sm"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+            } catch (err) {
+                console.error("Error al cargar control diario:", err);
+            }
+        }
+
+        // Modales
+        function abrirModalAnadir() {
+            document.getElementById('modalAnadir').classList.remove('hidden');
+            document.getElementById('select-catalogo').value = "";
+            seleccionarDeCatalogo();
+        }
+
+        function cerrarModalAnadir() {
+            document.getElementById('modalAnadir').classList.add('hidden');
+        }
+
+        function abrirModalEditar(id, nombre, cantidad, unidad) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-nombre-texto').innerText = nombre;
+            document.getElementById('edit-cantidad').value = cantidad;
+            document.getElementById('edit-unidad').value = unidad;
+            document.getElementById('modalEditar').classList.remove('hidden');
+        }
+
+        function cerrarModalEditar() {
+            document.getElementById('modalEditar').classList.add('hidden');
+        }
+
+        // CRUD Actions
+        async function guardarNuevoInsumo(e) {
+            e.preventDefault();
+            const fecha = document.getElementById('filtro-fecha').value;
+            const selectCatalogo = document.getElementById('select-catalogo');
+            const nombre = document.getElementById('input-nombre').value;
+            const cantidad = document.getElementById('input-cantidad').value;
+            const unidad = document.getElementById('input-unidad').value;
+
+            try {
+                const res = await fetch('/api/control-diario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fecha,
+                        insumo_id: selectCatalogo.value || null,
+                        nombre_insumo: nombre,
+                        cantidad,
+                        unidad_medida: unidad
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Error al guardar');
+                }
+
+                cerrarModalAnadir();
+                cargarControlDiario();
+            } catch (err) {
+                alert("Error al añadir insumo: " + err.message);
+            }
+        }
+
+        async function guardarEdicionInsumo(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const cantidad = document.getElementById('edit-cantidad').value;
+            const unidad = document.getElementById('edit-unidad').value;
+
+            try {
+                const res = await fetch(`/api/control-diario/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cantidad,
+                        unidad_medida: unidad
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Error al guardar');
+                }
+
+                cerrarModalEditar();
+                cargarControlDiario();
+            } catch (err) {
+                alert("Error al editar insumo: " + err.message);
+            }
+        }
+
+        async function eliminarInsumo(id) {
+            const confirmacion = confirm("¿Estás seguro de eliminar este insumo de la lista de hoy?");
+            if (!confirmacion) return;
+
+            try {
+                const res = await fetch(`/api/control-diario/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Error al eliminar');
+                }
+
+                cargarControlDiario();
+            } catch (err) {
+                alert("Error al eliminar: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

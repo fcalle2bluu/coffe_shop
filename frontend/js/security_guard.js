@@ -292,6 +292,26 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+        // Inyectar dinámicamente el enlace de "Control Diario" en el sidebar
+        const nav = document.querySelector('aside nav');
+        if (nav) {
+            const pageName = window.location.pathname.split("/").pop();
+            const isActive = pageName.includes('control_diario.html');
+            const controlDiarioHTML = `
+                <a href="control_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive ? 'bg-orange-500/10 text-orange-500 font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
+                    <i class="fa-solid fa-calendar-day w-5 text-center text-orange-500/60"></i> <span>Control Diario</span>
+                </a>
+            `;
+            if (!nav.querySelector('a[href="control_diario.html"]')) {
+                const dashLink = nav.querySelector('a[href="dashboard.html"]');
+                if (dashLink) {
+                    dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                } else {
+                    nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
+                }
+            }
+        }
+
         // Ocultar o mostrar links del sidebar según permisos individuales
         document.querySelectorAll('aside nav a').forEach(el => {
             const href = el.getAttribute('href') || '';
