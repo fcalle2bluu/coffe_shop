@@ -67,9 +67,9 @@ function renderizarCatalogo(filtro = '') {
         const catCleanId = cat.replace(/[^a-zA-Z0-9]/g, '_');
         const isCollapsed = (filtro === ''); // Colapsado por defecto si no hay filtro de búsqueda
         
-        // Renderizar el encabezado de categoría
+        // Renderizar el encabezado de categoría (pegajoso al hacer scroll)
         const headerHtml = `
-            <div class="col-span-full mt-4 first:mt-1 mb-1 border-b border-gray-100 pb-1">
+            <div class="col-span-full sticky top-0 z-10 bg-[#f8fafc]/95 backdrop-blur-sm mt-3 first:mt-0 mb-1 border-b border-slate-200/70 pb-1">
                 <button onclick="toggleCategoriaCollapse('${catCleanId}')" class="w-full text-left focus:outline-none flex items-center justify-between hover:opacity-80 transition-opacity py-1">
                     <h3 class="text-xs font-black text-stone-500 uppercase tracking-widest flex items-center gap-2 select-none">
                         <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>
@@ -86,16 +86,16 @@ function renderizarCatalogo(filtro = '') {
             prodIndex++;
             const delayClass = `delay-${Math.min(prodIndex, 12)}`;
             productsHtml += `
-                <div onclick="agregarAlCarrito(${prod.id})" class="animate-fade-in-up ${delayClass} bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all select-none flex flex-col justify-between overflow-hidden relative min-h-[160px] btn-bounce">
+                <div onclick="agregarAlCarrito(${prod.id})" class="animate-fade-in-up ${delayClass} group bg-white rounded-2xl shadow-sm border border-slate-200/80 cursor-pointer hover:shadow-lg hover:shadow-orange-500/10 hover:border-orange-400 hover:-translate-y-0.5 transition-all duration-200 select-none flex flex-col justify-between overflow-hidden relative min-h-[160px] btn-bounce">
                     <!-- Imagen -->
-                    <div class="h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b border-gray-100 relative overflow-hidden">
-                        ${prod.imagen_url ? 
-                            `<img src="${prod.imagen_url}" class="w-full h-full object-cover" alt="${prod.nombre}">` : 
-                            `<div class="w-full h-full bg-gradient-to-br from-orange-50 to-orange-100/50 flex items-center justify-center">
-                                <i class="fa-solid fa-mug-hot text-orange-300 text-2xl"></i>
+                    <div class="h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 relative overflow-hidden">
+                        ${prod.imagen_url ?
+                            `<img src="${prod.imagen_url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="${prod.nombre}">` :
+                            `<div class="w-full h-full bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100/60 flex items-center justify-center">
+                                <i class="fa-solid fa-mug-hot text-orange-300 text-2xl group-hover:scale-110 transition-transform duration-300"></i>
                              </div>`
                         }
-                        
+
                         <!-- Botones de Admin -->
                         <div class="solo-admin absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg shadow-sm border border-gray-100">
                             <button onclick="event.stopPropagation(); abrirModalProducto(${prod.id})" class="text-slate-500 hover:text-indigo-600 transition-colors p-1 btn-bounce" title="Editar Producto">
@@ -106,12 +106,15 @@ function renderizarCatalogo(filtro = '') {
                             </button>
                         </div>
                     </div>
-                    
+
                     <!-- Info -->
                     <div class="p-3 flex-grow flex flex-col justify-between">
-                        <h3 class="font-bold text-gray-800 leading-tight text-xs sm:text-sm line-clamp-2">${prod.nombre}</h3>
-                        <div class="text-sm sm:text-base font-black text-stone-800 mt-1.5">
-                            Bs. ${prod.precio_venta}
+                        <h3 class="font-bold text-slate-800 leading-tight text-xs sm:text-sm line-clamp-2">${prod.nombre}</h3>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span class="text-sm sm:text-base font-black text-slate-900">Bs. ${prod.precio_venta}</span>
+                            <span class="w-6 h-6 rounded-full bg-orange-500/10 text-orange-500 hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -199,11 +202,18 @@ function actualizarTicket() {
 
     const cajaId = localStorage.getItem('caja_id');
 
+    // Actualizar contador de artículos del encabezado del ticket
+    const elCount = document.getElementById('ticket-count');
+    if (elCount) elCount.innerText = carritoVenta.reduce((acc, it) => acc + it.cantidad, 0);
+
     if (carritoVenta.length === 0) {
         contenedor.innerHTML = `
-            <div class="text-center text-gray-400 mt-10 text-sm">
-                <i class="fa-solid fa-basket-shopping text-4xl mb-3 opacity-20"></i>
-                <p>No hay productos en el ticket</p>
+            <div class="h-full flex flex-col items-center justify-center text-center text-slate-400 py-8">
+                <div class="w-16 h-16 rounded-2xl bg-white border border-dashed border-slate-300 flex items-center justify-center mb-3">
+                    <i class="fa-solid fa-basket-shopping text-2xl opacity-30"></i>
+                </div>
+                <p class="text-sm font-semibold">Ticket vacío</p>
+                <p class="text-xs text-slate-300 mt-1">Toca un producto para agregarlo</p>
             </div>`;
         document.getElementById('btn-cobrar').disabled = true;
         if (!cajaId) {
@@ -225,19 +235,19 @@ function actualizarTicket() {
         carritoVenta.forEach((item, index) => {
             totalVenta += item.subtotal;
             contenedor.innerHTML += `
-                <div class="flex justify-between items-center py-3 border-b border-dashed border-gray-200">
-                    <div class="flex-1">
-                        <h4 class="font-bold text-gray-800 text-sm">${item.nombre}</h4>
-                        <p class="text-xs text-gray-500">Bs. ${item.precio_unitario.toFixed(2)}</p>
-                    </div>
-                    
-                    <div class="flex items-center bg-gray-100 rounded-lg mx-2 border">
-                        <button onclick="modificarCantidad(${index}, 'resta')" class="px-2 py-1 text-gray-600 hover:text-red-500 font-bold btn-bounce">-</button>
-                        <span class="px-2 text-sm font-bold w-6 text-center">${item.cantidad}</span>
-                        <button onclick="modificarCantidad(${index}, 'suma')" class="px-2 py-1 text-gray-600 hover:text-green-500 font-bold btn-bounce">+</button>
+                <div class="flex justify-between items-center gap-2 py-2.5 px-2.5 mb-1.5 bg-white rounded-xl border border-slate-200/70 shadow-sm hover:border-orange-200 transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-slate-800 text-sm truncate">${item.nombre}</h4>
+                        <p class="text-[11px] text-slate-400 font-medium">Bs. ${item.precio_unitario.toFixed(2)} c/u</p>
                     </div>
 
-                    <div class="text-right font-black text-stone-900 w-16">
+                    <div class="flex items-center bg-slate-100 rounded-full border border-slate-200 overflow-hidden shrink-0">
+                        <button onclick="modificarCantidad(${index}, 'resta')" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-500 font-bold transition-colors btn-bounce">−</button>
+                        <span class="px-1 text-sm font-black w-6 text-center text-slate-800">${item.cantidad}</span>
+                        <button onclick="modificarCantidad(${index}, 'suma')" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-white hover:bg-emerald-500 font-bold transition-colors btn-bounce">+</button>
+                    </div>
+
+                    <div class="text-right font-black text-slate-900 w-16 text-sm shrink-0">
                         Bs. ${item.subtotal.toFixed(2)}
                     </div>
                 </div>
