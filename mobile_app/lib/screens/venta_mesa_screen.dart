@@ -8,6 +8,7 @@ import '../config/api.dart';
 import '../config/theme.dart';
 import '../models/product.dart';
 import '../widgets/pulsing_coffee_loader.dart';
+import '../services/sunmi_printer_service.dart';
 
 enum VentaMesaViewState {
   tableSelection,
@@ -365,7 +366,17 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       });
 
       if (response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final ventaId = responseData['venta_id'] ?? 0;
+        final totalCobrado = double.tryParse(_activeComanda!['total'].toString()) ?? 0.0;
         final ticketRecibo = _generarTicketVenta(method);
+        
+        // Datos para impresión Sunmi
+        final List<Map<String, dynamic>> printItems = _activeComandaItems.map((item) => {
+          'nombre': item['producto_nombre'] ?? '',
+          'cantidad': item['cantidad'] ?? 1,
+          'subtotal': item['subtotal']?.toString() ?? '0',
+        }).toList();
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ ¡Venta registrada y mesa liberada exitosamente!')),
@@ -376,8 +387,17 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
         });
         await _cargarMesas();
 
-        // Mostrar el recibo de venta
-        _mostrarTicketDialog('Recibo de Venta (Mesa $_selectedMesa)', ticketRecibo);
+        // Mostrar el recibo de venta con opción de imprimir
+        _mostrarTicketDialog(
+          'Recibo de Venta (Mesa $_selectedMesa)', 
+          ticketRecibo,
+          printData: {
+            'ventaId': ventaId,
+            'total': totalCobrado,
+            'metodoPago': method,
+            'items': printItems,
+          },
+        );
       } else {
         final err = jsonDecode(response.body);
         throw Exception(err['error'] ?? 'Error al liquidar comanda');
@@ -459,7 +479,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     return ticket.toString();
   }
 
-  void _mostrarTicketDialog(String titulo, String contenido) {
+  void _mostrarTicketDialog(String titulo, String contenido, {Map<String, dynamic>? printData}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -499,6 +519,46 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
             icon: const Icon(Icons.copy, size: 16, color: AppTheme.accentColor),
             label: const Text('Copiar', style: TextStyle(color: AppTheme.accentColor)),
           ),
+          if (printData != null)
+            StatefulBuilder(
+              builder: (context, setBtn) {
+                bool printing = false;
+                return TextButton.icon(
+                  onPressed: printing ? null : () async {
+                    setBtn(() => printing = true);
+                    try {
+                      await SunmiPrinterService.printTicketVenta(
+                        ventaId: printData['ventaId'] ?? 0,
+                        fecha: DateTime.now().toString().substring(0, 16),
+                        items: List<Map<String, dynamic>>.from(printData['items'] ?? []),
+                        total: (printData['total'] as num?)?.toDouble() ?? 0.0,
+                        metodoPago: printData['metodoPago'] ?? 'EFECTIVO',
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ Ticket impreso')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('❌ Error: $e')),
+                        );
+                      }
+                    } finally {
+                      setBtn(() => printing = false);
+                    }
+                  },
+                  icon: printing 
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const FaIcon(FontAwesomeIcons.print, size: 14, color: AppTheme.accentColor),
+                  label: Text(
+                    printing ? 'Imprimiendo...' : 'Imprimir',
+                    style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold),
+                  ),
+                );
+              },
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar', style: TextStyle(color: AppTheme.textMuted)),

@@ -10,6 +10,7 @@ import '../models/category.dart';
 import '../widgets/bouncing_widget.dart';
 import '../widgets/pulsing_coffee_loader.dart';
 import '../widgets/fade_in_slide.dart';
+import '../services/sunmi_printer_service.dart';
 
 class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
@@ -618,14 +619,66 @@ class _PosScreenState extends State<PosScreen> {
                 ],
               ),
               actions: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor,
-                    minimumSize: const Size(double.infinity, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const FaIcon(FontAwesomeIcons.xmark, size: 14),
+                        label: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.textMuted,
+                          side: const BorderSide(color: Colors.white10),
+                          minimumSize: const Size(0, 44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: StatefulBuilder(
+                        builder: (context, setBtn) {
+                          bool printing = false;
+                          return ElevatedButton.icon(
+                            onPressed: printing ? null : () async {
+                              setBtn(() => printing = true);
+                              try {
+                                await SunmiPrinterService.printTicketVenta(
+                                  ventaId: ventaId,
+                                  fecha: DateTime.now().toString().substring(0, 16),
+                                  items: resumenItems,
+                                  total: totalFinal,
+                                  metodoPago: method,
+                                );
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(content: Text('✅ Ticket impreso')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(content: Text('❌ Error: $e')),
+                                  );
+                                }
+                              } finally {
+                                setBtn(() => printing = false);
+                              }
+                            },
+                            icon: printing
+                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const FaIcon(FontAwesomeIcons.print, size: 14),
+                            label: Text(printing ? 'Imprimiendo' : 'Imprimir', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentColor,
+                              minimumSize: const Size(0, 44),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -378,14 +378,29 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     final esRolLimitado = ['PASTELERA', 'MESERO', 'COCINERO', 'BARISTA'].contains(userRolUpper);
 
     if (esRolLimitado) {
-      // 1. Asistencia
+      // 1. Venta por Mesa (para meseros/baristas que toman pedidos y cobran)
+      if (userRolUpper == 'MESERO' || userRolUpper == 'BARISTA') {
+        _menuItems.add({
+          'title': 'Venta por Mesa',
+          'icon': FontAwesomeIcons.utensils,
+        });
+        _screens.add(const VentaMesaScreen());
+
+        _menuItems.add({
+          'title': 'Punto de Venta',
+          'icon': FontAwesomeIcons.shop,
+        });
+        _screens.add(const PosScreen());
+      }
+
+      // 2. Asistencia
       _menuItems.add({
         'title': 'Asistencia',
         'icon': FontAwesomeIcons.userClock,
       });
       _screens.add(const AsistenciaScreen());
 
-      // 2. Pedidos Internos
+      // 3. Pedidos Internos
       _menuItems.add({
         'title': 'Pedidos Internos',
         'icon': FontAwesomeIcons.clipboardList,

@@ -8,6 +8,7 @@ import '../config/theme.dart';
 import '../widgets/bouncing_widget.dart';
 import '../widgets/pulsing_coffee_loader.dart';
 import '../widgets/fade_in_slide.dart';
+import '../services/sunmi_printer_service.dart';
 
 class CajaScreen extends StatefulWidget {
   const CajaScreen({super.key});
@@ -27,6 +28,11 @@ class _CajaScreenState extends State<CajaScreen> {
   double _totalConsumeLoNuestro = 0.0;
   List<dynamic> _historialCajas = [];
   String _rolActual = '';
+
+  // Comprobantes / Reimpresión
+  List<dynamic> _comprobantes = [];
+  bool _loadingComprobantes = false;
+  bool _isPrinting = false;
 
   final _montoInicialController = TextEditingController();
   final _montoFinalController = TextEditingController();
@@ -952,6 +958,291 @@ class _CajaScreenState extends State<CajaScreen> {
     );
   }
 
+  // === COMPROBANTES / REIMPRESIÓN ===
+
+  Future<void> _loadComprobantes() async {
+    setState(() => _loadingComprobantes = true);
+    try {
+      final res = await ApiConfig.get('/comprobantes');
+      if (res.statusCode == 200) {
+        setState(() {
+          _comprobantes = jsonDecode(res.body);
+        });
+      }
+    } catch (e) {
+      print('Error al cargar comprobantes: $e');
+    } finally {
+      setState(() => _loadingComprobantes = false);
+    }
+  }
+
+  Future<void> _verYReimprimirTicket(int ventaId) async {
+    try {
+      final res = await ApiConfig.get('/comprobantes/$ventaId');
+      if (res.statusCode != 200) throw Exception('Error al cargar ticket');
+
+      final data = jsonDecode(res.body);
+      final ticket = data['ticket'];
+      final items = List<Map<String, dynamic>>.from(data['items']);
+      final total = double.tryParse(ticket['total']?.toString() ?? '0') ?? 0.0;
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          height: MediaQuery.of(ctx).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: AppTheme.secondaryDark,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Ticket #${ventaId.toString().padLeft(5, '0')}',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppTheme.textLight)),
+                    Row(
+                      children: [
+                        // Botón Imprimir Sunmi
+                        StatefulBuilder(
+                          builder: (context, setButtonState) {
+                            return ElevatedButton.icon(
+                              onPressed: _isPrinting ? null : () async {
+                                setButtonState(() => _isPrinting = true);
+                                try {
+                                  await SunmiPrinterService.printTicketVenta(
+                                    ventaId: ventaId,
+                                    fecha: ticket['fecha'] ?? '',
+                                    items: items,
+                                    total: total,
+                                    metodoPago: ticket['metodo_pago'] ?? 'EFECTIVO',
+                                    estado: ticket['estado'],
+                                  );
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(content: Text('✅ Ticket impreso correctamente')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(content: Text('❌ Error al imprimir: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  setButtonState(() => _isPrinting = false);
+                                }
+                              },
+                              icon: _isPrinting
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const FaIcon(FontAwesomeIcons.print, size: 14),
+                              label: Text(_isPrinting ? 'Imprimiendo...' : 'Imprimir'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: const FaIcon(FontAwesomeIcons.xmark, size: 18, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Fecha: ${ticket['fecha']}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    Text('Método: ${ticket['metodo_pago']}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(color: Colors.white10),
+              // Lista de productos
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: items.length,
+                  itemBuilder: (ctx, i) {
+                    final item = items[i];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28, height: 28,
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text('${item['cantidad']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppTheme.accentColor)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(item['nombre'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textLight)),
+                          ),
+                          Text('Bs. ${double.tryParse(item['subtotal']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}',
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textLight)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // Total
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentColor.withOpacity(0.08),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.accentColor)),
+                    Text('Bs. ${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppTheme.accentColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildComprobantesSection() {
+    if (_comprobantes.isEmpty && !_loadingComprobantes) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const FaIcon(FontAwesomeIcons.receipt, size: 32, color: AppTheme.textMuted),
+              const SizedBox(height: 12),
+              const Text('No hay comprobantes registrados', style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textMuted)),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _loadComprobantes,
+                icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 14),
+                label: const Text('Cargar Comprobantes'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_loadingComprobantes) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Center(child: CircularProgressIndicator(color: AppTheme.accentColor)),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _comprobantes.length > 50 ? 50 : _comprobantes.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, idx) {
+        final c = _comprobantes[idx];
+        final total = double.tryParse(c['total']?.toString() ?? '0') ?? 0.0;
+        final estado = c['estado'] ?? 'COMPLETADA';
+        final isAnulada = estado == 'ANULADA';
+
+        return Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                color: isAnulada ? Colors.redAccent.withOpacity(0.1) : AppTheme.accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: FaIcon(
+                  isAnulada ? FontAwesomeIcons.ban : FontAwesomeIcons.receipt,
+                  size: 16,
+                  color: isAnulada ? Colors.redAccent : AppTheme.accentColor,
+                ),
+              ),
+            ),
+            title: Text(
+              'Ticket #${c['id'].toString().padLeft(5, '0')}',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                color: isAnulada ? Colors.redAccent : AppTheme.textLight,
+                decoration: isAnulada ? TextDecoration.lineThrough : null,
+              ),
+            ),
+            subtitle: Text(
+              '${c['fecha']} • ${c['metodo_pago']}',
+              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Bs. ${total.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: isAnulada ? Colors.redAccent : const Color(0xFF10B981),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _verYReimprimirTicket(c['id']),
+                  icon: const FaIcon(FontAwesomeIcons.print, size: 14, color: AppTheme.accentColor),
+                  tooltip: 'Ver / Reimprimir',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -968,9 +1259,42 @@ class _CajaScreenState extends State<CajaScreen> {
           children: [
             FadeInSlide(index: 0, child: _buildStateCard()),
             if (_rolActual.toUpperCase() != 'CAJERO') ...[
+              // Sección de Comprobantes / Reimprimir
               const SizedBox(height: 24),
               FadeInSlide(
                 index: 1,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const FaIcon(FontAwesomeIcons.receipt, size: 14, color: AppTheme.accentColor),
+                        const SizedBox(width: 8),
+                        Text('Comprobantes / Reimprimir'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.0, color: AppTheme.textMuted)),
+                      ],
+                    ),
+                    if (_comprobantes.isEmpty)
+                      TextButton.icon(
+                        onPressed: _loadComprobantes,
+                        icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 12, color: AppTheme.accentColor),
+                        label: const Text('Cargar', style: TextStyle(fontSize: 11, color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
+                      )
+                    else
+                      TextButton.icon(
+                        onPressed: _loadComprobantes,
+                        icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 12, color: AppTheme.accentColor),
+                        label: Text('${_comprobantes.length} ventas', style: const TextStyle(fontSize: 11, color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              FadeInSlide(index: 2, child: _buildComprobantesSection()),
+
+              // Sección de Historial de Turnos
+              const SizedBox(height: 24),
+              FadeInSlide(
+                index: 3,
                 child: Row(
                   children: [
                     const FaIcon(FontAwesomeIcons.clockRotateLeft, size: 14, color: AppTheme.accentColor),
@@ -980,7 +1304,7 @@ class _CajaScreenState extends State<CajaScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              FadeInSlide(index: 2, child: _buildHistoryList()),
+              FadeInSlide(index: 4, child: _buildHistoryList()),
             ],
           ],
         ),
