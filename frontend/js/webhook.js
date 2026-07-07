@@ -29,7 +29,7 @@ async function cargarPedidosWhatsApp() {
         if (pedidos.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center p-8 text-slate-400 font-semibold">
+                    <td colspan="8" class="text-center p-8 text-slate-400 font-semibold">
                         <i class="fa-regular fa-comment-dots text-3xl mb-2 block text-slate-350"></i>
                         No se han recibido pedidos por WhatsApp todavía.
                     </td>
@@ -87,13 +87,21 @@ async function cargarPedidosWhatsApp() {
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
-            
+
+            // Miniatura de la foto de referencia (si el cliente mandó una para su torta)
+            const fotoCelda = p.foto_referencia_url
+                ? `<a href="${p.foto_referencia_url}" target="_blank" rel="noopener noreferrer">
+                       <img src="${p.foto_referencia_url}" alt="Foto de referencia" class="w-10 h-10 object-cover rounded-lg border border-slate-200 hover:scale-150 transition-transform" />
+                   </a>`
+                : `<span class="text-slate-300">—</span>`;
+
             tbody.innerHTML += `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                     <td class="px-4 py-3 font-mono font-bold text-slate-500">#${p.id}</td>
                     <td class="px-4 py-3 font-semibold text-slate-700 select-all">${p.telefono_cliente}</td>
                     <td class="px-4 py-3 font-bold text-slate-800">${p.producto}</td>
                     <td class="px-4 py-3 text-center font-black text-slate-900">${p.cantidad}</td>
+                    <td class="px-4 py-3 text-center">${fotoCelda}</td>
                     <td class="px-4 py-3">${badge}</td>
                     <td class="px-4 py-3 text-slate-500 whitespace-nowrap">${fechaStr}</td>
                     <td class="px-4 py-3 text-center whitespace-nowrap">${btnAcciones}</td>
@@ -107,7 +115,7 @@ async function cargarPedidosWhatsApp() {
         console.error('Error al cargar pedidos:', error);
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center p-6 text-red-500 font-bold">
+                <td colspan="8" class="text-center p-6 text-red-500 font-bold">
                     ⚠️ Error al conectar con el servidor de pedidos.
                 </td>
             </tr>

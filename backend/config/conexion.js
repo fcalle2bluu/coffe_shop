@@ -1225,6 +1225,8 @@ pool.query('SELECT NOW()', async (err, res) => {
         } catch (alterPErr) {
             // Silencioso
         }
+        await pool.query('ALTER TABLE whatsapp_estados ADD COLUMN IF NOT EXISTS foto_referencia_url TEXT;');
+        await pool.query('ALTER TABLE pedidos_whatsapp ADD COLUMN IF NOT EXISTS foto_referencia_url TEXT;');
         console.log('✅ Tablas pedidos_whatsapp y whatsapp_estados creadas/verificadas.');
     } catch (waTableErr) {
         console.error('Error al crear tablas de WhatsApp:', waTableErr.message);

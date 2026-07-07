@@ -3,12 +3,21 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { createClient } = require('@supabase/supabase-js');
 
 // Reutiliza la misma clave de Gemini que ya usa el Asistente IA (Moka) del panel admin
 const geminiApiKey = process.env.GEMINI_API_KEY || '';
 let genAIWhatsapp = null;
 if (geminiApiKey) {
     genAIWhatsapp = new GoogleGenerativeAI(geminiApiKey);
+}
+
+// Reutiliza el mismo bucket de Supabase Storage que ya usa la subida de imágenes de productos
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+let supabaseWhatsapp = null;
+if (supabaseUrl && supabaseKey) {
+    supabaseWhatsapp = createClient(supabaseUrl, supabaseKey);
 }
 
 // Middleware para verificar rol administrador
@@ -154,6 +163,65 @@ async function enviarDocumentoWhatsApp(to, link, filename, caption, remitente = 
     } catch (err) {
         console.error('❌ Error de red al enviar documento WhatsApp:', err.message);
         return null;
+    }
+}
+
+// Descarga una imagen recibida por WhatsApp (usando el media ID de Meta) y la sube a Supabase Storage.
+// Devuelve la URL pública, o null si algo falla (no debe interrumpir el resto del flujo del bot).
+async function descargarYGuardarImagenWhatsApp(mediaId) {
+    if (!supabaseWhatsapp) {
+        console.error('❌ Supabase no está configurado: no se puede guardar la foto de WhatsApp.');
+        return null;
+    }
+    try {
+        // 1. Pedir a Meta la URL temporal firmada del archivo
+        const metaRes = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+            headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+        });
+        const metaData = await metaRes.json();
+        if (!metaRes.ok || !metaData.url) {
+            console.error('❌ No se pudo obtener la URL de la imagen de WhatsApp:', metaData);
+            return null;
+        }
+
+        // 2. Descargar el binario real (requiere el mismo header de autorización)
+        const fileRes = await fetch(metaData.url, {
+            headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+        });
+        if (!fileRes.ok) {
+            console.error('❌ No se pudo descargar el binario de la imagen de WhatsApp.');
+            return null;
+        }
+        const buffer = Buffer.from(await fileRes.arrayBuffer());
+        const mimeType = metaData.mime_type || 'image/jpeg';
+        const extension = mimeType.split('/')[1] || 'jpg';
+
+        // 3. Subir a Supabase Storage (mismo bucket que las fotos de productos)
+        const nombreArchivo = `whatsapp/${mediaId}_${Date.now()}.${extension}`;
+        const { error } = await supabaseWhatsapp.storage.from('insumos').upload(nombreArchivo, buffer, { contentType: mimeType });
+        if (error) throw error;
+
+        const { data: publicData } = supabaseWhatsapp.storage.from('insumos').getPublicUrl(nombreArchivo);
+        return publicData.publicUrl;
+    } catch (err) {
+        console.error('❌ Error al descargar/guardar imagen de WhatsApp:', err.message);
+        return null;
+    }
+}
+
+// Guarda (o actualiza) la foto de referencia asociada a la conversación en curso de un teléfono,
+// sin afectar la memoria de la IA que ya esté guardada en whatsapp_estados.
+async function guardarFotoReferencia(telefono, url) {
+    try {
+        await pool.query(
+            `INSERT INTO whatsapp_estados (telefono, estado, foto_referencia_url, updated_at)
+             VALUES ($1, 'IA_CONVERSACION', $2, CURRENT_TIMESTAMP)
+             ON CONFLICT (telefono) DO UPDATE
+             SET foto_referencia_url = EXCLUDED.foto_referencia_url, updated_at = CURRENT_TIMESTAMP`,
+            [telefono, url]
+        );
+    } catch (e) {
+        console.error('Error al guardar foto de referencia:', e.message);
     }
 }
 
@@ -307,6 +375,8 @@ ${JSON.stringify(memoriaPrevia)}
 HISTORIAL RECIENTE DE LA CONVERSACIÓN (el último mensaje, de CLIENTE, es al que debes responder ahora):
 ${historialTexto}
 
+${(estadoRow && estadoRow.foto_referencia_url) ? 'El cliente ya envió y se guardó una foto de referencia para esta cotización. NO se la vuelvas a pedir.' : ''}
+
 TU TRABAJO:
 1. Si el cliente saluda o pregunta el menú, salúdalo cordialmente y ofrécele mandarle el menú en PDF (usa "adjuntar_menu_pdf": true) o cuéntale las categorías disponibles.
 2. Si el cliente quiere hacer un pedido normal (productos del menú para recoger en el local), confirma producto(s) y cantidad, y cuando el pedido esté claro y confirmado por el cliente, regístralo con "registrar_pedido".
@@ -363,9 +433,10 @@ FORMATO DE RESPUESTA OBLIGATORIO: responde ÚNICAMENTE con un JSON válido (sin 
 
         if (salida.registrar_pedido && salida.registrar_pedido.producto) {
             try {
+                const fotoUrl = (estadoRow && estadoRow.foto_referencia_url) || null;
                 await pool.query(
-                    `INSERT INTO pedidos_whatsapp (telefono_cliente, producto, cantidad, estado) VALUES ($1, $2, $3, 'PENDIENTE')`,
-                    [from, salida.registrar_pedido.producto, parseInt(salida.registrar_pedido.cantidad) || 1]
+                    `INSERT INTO pedidos_whatsapp (telefono_cliente, producto, cantidad, estado, foto_referencia_url) VALUES ($1, $2, $3, 'PENDIENTE', $4)`,
+                    [from, salida.registrar_pedido.producto, parseInt(salida.registrar_pedido.cantidad) || 1, fotoUrl]
                 );
                 console.log(`🧾 Pedido de WhatsApp registrado vía IA para +${from}: ${salida.registrar_pedido.producto}`);
             } catch (dbErr) {
@@ -457,6 +528,15 @@ router.post('/webhook', async (req, res) => {
                 console.log(`💾 Mensaje de +${from} guardado en whatsapp_mensajes: "${textBody}"`);
             } catch (dbErr) {
                 console.error('❌ Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
+            }
+
+            // Si es una imagen, la descargamos de Meta y la guardamos en Supabase como foto de referencia
+            if (message.type === 'image' && message.image && message.image.id) {
+                const fotoUrl = await descargarYGuardarImagenWhatsApp(message.image.id);
+                if (fotoUrl) {
+                    await guardarFotoReferencia(from, fotoUrl);
+                    console.log(`🖼️ Foto de referencia guardada para +${from}: ${fotoUrl}`);
+                }
             }
 
             // Procesamos el mensaje con el agente de IA (para mensajes de texto, interactivos o imágenes)
