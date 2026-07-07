@@ -249,30 +249,9 @@ router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
     }
 });
 
-router.use(checkAdminPermission);
-
-
-
-// 1. Obtener todas las comandas activas (CREADA, ENTREGADA)
-router.get('/', async (req, res) => {
-    try {
-        const query = `
-            SELECT c.*, u.nombre as mesero_nombre
-            FROM comandas c
-            LEFT JOIN usuarios u ON c.usuario_id = u.id
-            WHERE c.estado IN ('CREADA', 'ENTREGADA')
-            ORDER BY c.fecha_creacion DESC
-        `;
-        const result = await pool.query(query);
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Error al obtener comandas:', error);
-        res.status(500).json({ error: 'Error al obtener comandas' });
-    }
-});
-
-// 2. Obtener el estado consolidado de las mesas activas
-router.get('/mesas-estado', async (req, res) => {
+// Obtener el estado consolidado de las mesas activas (mesero también lo necesita
+// para saber qué mesa está libre/ocupada al elegir dónde mandar el pedido)
+router.get('/mesas-estado', checkMeseroOAdmin, async (req, res) => {
     try {
         const query = `
             SELECT c.*, u.nombre as mesero_nombre
@@ -313,6 +292,26 @@ router.get('/mesas-estado', async (req, res) => {
     } catch (error) {
         console.error('Error al obtener estado de mesas:', error);
         res.status(500).json({ error: 'Error al obtener estado de mesas: ' + error.message });
+    }
+});
+
+router.use(checkAdminPermission);
+
+// 1. Obtener todas las comandas activas (CREADA, ENTREGADA)
+router.get('/', async (req, res) => {
+    try {
+        const query = `
+            SELECT c.*, u.nombre as mesero_nombre
+            FROM comandas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.estado IN ('CREADA', 'ENTREGADA')
+            ORDER BY c.fecha_creacion DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener comandas:', error);
+        res.status(500).json({ error: 'Error al obtener comandas' });
     }
 });
 

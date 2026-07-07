@@ -55,7 +55,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     try {
       final results = await Future.wait([
         ApiConfig.get('/ventas/productos'),
-        ApiConfig.get('/mesas'),
+        ApiConfig.get('/comandas/mesas-estado'),
       ]);
 
       final prodRes = results[0];
@@ -84,11 +84,12 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   }
 
   List<Product> get _productosFiltrados {
-    return _productos.where((p) {
-      final coincideBusqueda = p.nombre.toLowerCase().contains(_busqueda.toLowerCase());
-      final coincideCategoria = _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada;
-      return coincideBusqueda && coincideCategoria;
-    }).toList();
+    // Si hay texto de búsqueda, se busca en TODOS los productos sin importar
+    // la categoría seleccionada. La categoría solo filtra cuando no se busca.
+    if (_busqueda.isNotEmpty) {
+      return _productos.where((p) => p.nombre.toLowerCase().contains(_busqueda.toLowerCase())).toList();
+    }
+    return _productos.where((p) => _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada).toList();
   }
 
   int get _cantidadTotal => _carrito.values.fold(0, (a, b) => a + b);
@@ -293,6 +294,14 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     );
   }
 
+  Widget _placeholderImagen() {
+    return Container(
+      color: AppTheme.primaryDark,
+      alignment: Alignment.center,
+      child: const FaIcon(FontAwesomeIcons.mugHot, color: AppTheme.textMuted, size: 28),
+    );
+  }
+
   Widget _buildVistaPedido() {
     if (_loading) {
       return const Center(child: PulsingCoffeeLoader(message: 'Cargando productos...'));
@@ -354,7 +363,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 0.95,
+              childAspectRatio: 0.72,
             ),
             itemCount: _productosFiltrados.length,
             itemBuilder: (context, index) {
@@ -363,35 +372,62 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
               return GestureDetector(
                 onTap: () => _agregarProducto(p),
                 child: Container(
+                  clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     color: AppTheme.secondaryDark,
                     borderRadius: BorderRadius.circular(16),
                     border: enCarrito > 0 ? Border.all(color: AppTheme.accentColor, width: 2) : null,
                   ),
-                  padding: const EdgeInsets.all(10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Text(
-                          p.nombre,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textLight),
+                      AspectRatio(
+                        aspectRatio: 1.3,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (p.imagenUrl != null && p.imagenUrl!.isNotEmpty)
+                              Image.network(
+                                p.imagenUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => _placeholderImagen(),
+                                loadingBuilder: (context, child, progress) => progress == null ? child : _placeholderImagen(),
+                              )
+                            else
+                              _placeholderImagen(),
+                            if (enCarrito > 0)
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(10)),
+                                  child: Text('$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Bs. ${p.precioVenta.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.w900, fontSize: 13)),
-                          if (enCarrito > 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(8)),
-                              child: Text('$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                            ),
-                        ],
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                p.nombre,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textLight),
+                              ),
+                              Text(
+                                'Bs. ${p.precioVenta.toStringAsFixed(2)}',
+                                style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.w900, fontSize: 17),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -568,18 +604,23 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(prod.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                        child: Text(prod.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
                       ),
                       IconButton(
                         onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, -1)),
-                        icon: const Icon(Icons.remove_circle_outline, color: AppTheme.textMuted),
-                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted),
+                        iconSize: 34,
+                        padding: EdgeInsets.zero,
                       ),
-                      Text('${e.value}', style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold)),
+                      SizedBox(
+                        width: 28,
+                        child: Text('${e.value}', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold, fontSize: 18)),
+                      ),
                       IconButton(
                         onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, 1)),
-                        icon: const Icon(Icons.add_circle_outline, color: AppTheme.accentColor),
-                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.add_circle, color: AppTheme.accentColor),
+                        iconSize: 34,
+                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
@@ -598,8 +639,25 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
               dropdownColor: AppTheme.secondaryDark,
+              selectedItemBuilder: (context) => widget.mesas.map<Widget>((m) {
+                return Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight));
+              }).toList(),
               items: widget.mesas.map<DropdownMenuItem<String>>((m) {
-                return DropdownMenuItem(value: m['numero'].toString(), child: Text('Mesa ${m['numero']}'));
+                final ocupada = m['estado'] == 'ocupada';
+                return DropdownMenuItem(
+                  value: m['mesa'].toString(),
+                  enabled: !ocupada,
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, size: 10, color: ocupada ? Colors.redAccent : Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Mesa ${m['mesa']}${ocupada ? ' (ocupada)' : ''}',
+                        style: TextStyle(color: ocupada ? AppTheme.textMuted : AppTheme.textLight),
+                      ),
+                    ],
+                  ),
+                );
               }).toList(),
               onChanged: (v) => setState(() => _mesaSeleccionada = v),
             ),
