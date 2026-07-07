@@ -344,13 +344,17 @@ async function obtenerCatalogoTextoIA() {
     }
 }
 
-// Arma el transcript reciente de la conversación (incluye el mensaje actual, ya guardado) para dar memoria a la IA
-async function obtenerHistorialTextoIA(telefono, limite = 20) {
+// Arma el transcript reciente de la conversación (incluye el mensaje actual, ya guardado) para dar memoria a la IA.
+// Solo toma mensajes de las últimas horas: una conversación vieja de días/semanas atrás no debe "contaminar"
+// la sesión actual del cliente (evita que el bot imite respuestas rotas de pruebas o chats muy antiguos).
+async function obtenerHistorialTextoIA(telefono, limite = 12, horasVentana = 3) {
     try {
         const { rows } = await pool.query(
             `SELECT mensaje, remitente, TO_CHAR(fecha, 'HH24:MI DD/MM') as fecha_fmt
-             FROM whatsapp_mensajes WHERE telefono = $1 ORDER BY fecha DESC LIMIT $2`,
-            [telefono, limite]
+             FROM whatsapp_mensajes
+             WHERE telefono = $1 AND fecha >= NOW() - ($2 || ' hours')::INTERVAL
+             ORDER BY fecha DESC LIMIT $3`,
+            [telefono, horasVentana, limite]
         );
         return rows.reverse().map(m => `[${m.fecha_fmt}] ${m.remitente}: ${m.mensaje}`).join('\n');
     } catch (err) {
@@ -399,8 +403,10 @@ ${catalogoTexto}
 MEMORIA DE ESTA CONVERSACIÓN (datos que ya recopilaste en turnos anteriores, puede estar vacía si es la primera vez):
 ${JSON.stringify(memoriaPrevia)}
 
-HISTORIAL RECIENTE DE LA CONVERSACIÓN (el último mensaje, de CLIENTE, es al que debes responder ahora):
-${historialTexto}
+HISTORIAL RECIENTE DE LA CONVERSACIÓN (solo de las últimas horas, para darte contexto de la charla en curso):
+${historialTexto || '(sin mensajes previos recientes, es el inicio de la conversación)'}
+
+MENSAJE ACTUAL DEL CLIENTE AL QUE DEBES RESPONDER AHORA MISMO (ignora cualquier patrón repetitivo que veas en el historial de arriba; responde específicamente a esto): "${textBody}"
 
 ${(estadoRow && estadoRow.foto_referencia_url) ? 'El cliente ya envió y se guardó una foto de referencia para esta cotización. NO se la vuelvas a pedir.' : ''}
 
