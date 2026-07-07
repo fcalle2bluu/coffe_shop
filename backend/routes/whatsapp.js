@@ -2,15 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { createClient } = require('@supabase/supabase-js');
 
-// Reutiliza la misma clave de Gemini que ya usa el Asistente IA (Moka) del panel admin
-const geminiApiKey = process.env.GEMINI_API_KEY || '';
-let genAIWhatsapp = null;
-if (geminiApiKey) {
-    genAIWhatsapp = new GoogleGenerativeAI(geminiApiKey);
-}
+// El bot de WhatsApp usa Groq (modelos open-source, cuota gratuita mucho más amplia que Gemini)
+const groqApiKey = process.env.GROQ_API_KEY || '';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 // Reutiliza el mismo bucket de Supabase Storage que ya usa la subida de imágenes de productos
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -274,21 +270,39 @@ async function enviarPdfMenu(from, host) {
     }
 }
 
-// Helper para reintentar generación de contenido ante rate limits (429) de Gemini
-async function generarConIAConRetry(model, prompt, retries = 3, delay = 1000) {
+// Llama al endpoint de Groq (compatible con el formato de OpenAI chat completions), con reintentos ante rate limits (429)
+async function generarConGroq(systemInstruction, retries = 3, delay = 1000) {
     for (let i = 0; i < retries; i++) {
-        try {
-            return await model.generateContent(prompt);
-        } catch (error) {
-            const errorMsg = (error.message || '').toLowerCase();
-            const esRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('exhausted');
-            if (esRateLimit && i < retries - 1) {
-                console.warn(`⚠️ Rate limit de Gemini (WhatsApp IA). Reintentando en ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
-            } else {
-                throw error;
-            }
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${groqApiKey}`
+            },
+            body: JSON.stringify({
+                model: GROQ_MODEL,
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: 'Responde ahora siguiendo tus instrucciones, en el formato JSON indicado.' }
+                ],
+                response_format: { type: 'json_object' },
+                temperature: 0.6
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        const data = await response.json().catch(() => ({}));
+        const esRateLimit = response.status === 429;
+        if (esRateLimit && i < retries - 1) {
+            console.warn(`⚠️ Rate limit de Groq (WhatsApp IA). Reintentando en ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+        } else {
+            throw new Error(`Groq API error ${response.status}: ${JSON.stringify(data)}`);
         }
     }
 }
@@ -338,9 +352,9 @@ async function obtenerHistorialTextoIA(telefono, limite = 20) {
  * todo en las mismas tablas (pedidos_whatsapp, whatsapp_estados) que ya usa el panel admin.
  */
 async function procesarFlujoBotIA(from, textBody, host, rawMessage) {
-    if (!genAIWhatsapp) {
+    if (!groqApiKey) {
         await enviarMensajeWhatsApp(from, 'Estamos presentando un inconveniente técnico en este momento. Un asesor de Café La Paz te responderá a la brevedad. ¡Gracias por tu paciencia! 🙏');
-        console.error('❌ GEMINI_API_KEY no configurada: no se puede procesar el mensaje de WhatsApp con IA.');
+        console.error('❌ GROQ_API_KEY no configurada: no se puede procesar el mensaje de WhatsApp con IA.');
         return;
     }
 
@@ -405,14 +419,7 @@ FORMATO DE RESPUESTA OBLIGATORIO: responde ÚNICAMENTE con un JSON válido (sin 
 - "memoria" debe llevar TODOS los datos relevantes acumulados hasta ahora de la conversación en curso (por ejemplo el progreso del embudo de torta), para recordarlos en el siguiente turno. Si ya se completó y registró un pedido, reinicia "memoria" a {}.
 `;
 
-        const model = genAIWhatsapp.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-            systemInstruction,
-            generationConfig: { responseMimeType: 'application/json' },
-        });
-
-        const result = await generarConIAConRetry(model, 'Responde ahora siguiendo tus instrucciones, en el formato JSON indicado.');
-        const rawText = result.response.text().trim();
+        const rawText = (await generarConGroq(systemInstruction)).trim();
 
         let salida;
         try {
