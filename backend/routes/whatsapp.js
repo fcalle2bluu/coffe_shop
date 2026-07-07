@@ -16,6 +16,19 @@ if (supabaseUrl && supabaseKey) {
     supabaseWhatsapp = createClient(supabaseUrl, supabaseKey);
 }
 
+// Cola de procesamiento por número de teléfono: si el cliente escribe varios mensajes seguidos,
+// se procesan uno por uno en orden (leyendo el historial ya actualizado) en vez de en paralelo,
+// que causaba respuestas repetidas/ciegas al contexto cuando llegaban mensajes casi simultáneos.
+const colasWhatsappPorTelefono = new Map();
+function encolarProcesamientoWhatsapp(telefono, tarea) {
+    const anterior = colasWhatsappPorTelefono.get(telefono) || Promise.resolve();
+    const actual = anterior.then(tarea).catch(err => {
+        console.error(`❌ Error en la cola de WhatsApp para +${telefono}:`, err.message);
+    });
+    colasWhatsappPorTelefono.set(telefono, actual);
+    return actual;
+}
+
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
     // Si es verificación o callback de webhook, saltar
@@ -537,19 +550,23 @@ router.post('/webhook', async (req, res) => {
                 console.error('❌ Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
             }
 
-            // Si es una imagen, la descargamos de Meta y la guardamos en Supabase como foto de referencia
-            if (message.type === 'image' && message.image && message.image.id) {
-                const fotoUrl = await descargarYGuardarImagenWhatsApp(message.image.id);
-                if (fotoUrl) {
-                    await guardarFotoReferencia(from, fotoUrl);
-                    console.log(`🖼️ Foto de referencia guardada para +${from}: ${fotoUrl}`);
+            // Se encola por teléfono: si el cliente manda varios mensajes seguidos, se procesan
+            // uno por uno en orden en vez de en paralelo (evita respuestas ciegas al contexto).
+            encolarProcesamientoWhatsapp(from, async () => {
+                // Si es una imagen, la descargamos de Meta y la guardamos en Supabase como foto de referencia
+                if (message.type === 'image' && message.image && message.image.id) {
+                    const fotoUrl = await descargarYGuardarImagenWhatsApp(message.image.id);
+                    if (fotoUrl) {
+                        await guardarFotoReferencia(from, fotoUrl);
+                        console.log(`🖼️ Foto de referencia guardada para +${from}: ${fotoUrl}`);
+                    }
                 }
-            }
 
-            // Procesamos el mensaje con el agente de IA (para mensajes de texto, interactivos o imágenes)
-            if (message.type === 'text' || message.type === 'interactive' || message.type === 'button' || message.type === 'image') {
-                await procesarFlujoBotIA(from, textBody, host, message);
-            }
+                // Procesamos el mensaje con el agente de IA (para mensajes de texto, interactivos o imágenes)
+                if (message.type === 'text' || message.type === 'interactive' || message.type === 'button' || message.type === 'image') {
+                    await procesarFlujoBotIA(from, textBody, host, message);
+                }
+            });
         }
     } catch (error) {
         console.error('❌ Error en procesamiento del Webhook de WhatsApp:', error.message);
