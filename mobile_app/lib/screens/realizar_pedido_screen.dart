@@ -225,48 +225,57 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_userName, style: const TextStyle(fontSize: 15)),
-        actions: [
-          if (_vista == 1)
-            IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarMisComandas),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppTheme.secondaryDark,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _tabButton('Pedido', 0)),
-                  Expanded(child: _tabButton('Control', 1)),
-                ],
+    return PopScope(
+      canPop: !_tecladoAbierto,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _tecladoAbierto) {
+          setState(() => _tecladoAbierto = false);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 44,
+          title: Text(_userName, style: const TextStyle(fontSize: 14)),
+          actions: [
+            if (_vista == 1)
+              IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarMisComandas),
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: AppTheme.secondaryDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _tabButton('Pedido', 0)),
+                    Expanded(child: _tabButton('Control', 1)),
+                  ],
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: _vista == 0 ? _buildVistaPedido() : _buildVistaControl(),
-          ),
-        ],
+            Expanded(
+              child: _vista == 0 ? _buildVistaPedido() : _buildVistaControl(),
+            ),
+          ],
+        ),
+        floatingActionButton: _vista == 0 && _carrito.isNotEmpty
+            ? FloatingActionButton.extended(
+                onPressed: _abrirCarrito,
+                backgroundColor: AppTheme.accentColor,
+                icon: Badge(
+                  label: Text('$_cantidadTotal'),
+                  child: const Icon(Icons.shopping_basket, color: Colors.white),
+                ),
+                label: Text('Bs. ${_totalCarrito.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              )
+            : null,
       ),
-      floatingActionButton: _vista == 0 && _carrito.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: _abrirCarrito,
-              backgroundColor: AppTheme.accentColor,
-              icon: Badge(
-                label: Text('$_cantidadTotal'),
-                child: const Icon(Icons.shopping_basket, color: Colors.white),
-              ),
-              label: Text('Bs. ${_totalCarrito.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          : null,
     );
   }
 
@@ -278,10 +287,10 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         if (index == 1) _cargarMisComandas();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: seleccionado ? AppTheme.accentColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(9),
         ),
         alignment: Alignment.center,
         child: Text(
@@ -324,7 +333,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: TextField(
             controller: _searchController,
             readOnly: true,
@@ -350,7 +359,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           ),
         ),
         SizedBox(
-          height: 36,
+          height: 32,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -370,7 +379,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
@@ -826,6 +835,11 @@ class _TecladoQwerty extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
+              _botonAccion(
+                flex: 2,
+                onTap: onCerrar,
+                child: const Icon(Icons.keyboard_hide_outlined, color: AppTheme.textLight, size: 20),
+              ),
               _botonAccion(
                 flex: 5,
                 onTap: onEspacio,
