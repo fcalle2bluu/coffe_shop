@@ -34,10 +34,19 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   bool _loadingControl = false;
   List<dynamic> _misComandas = [];
 
+  final TextEditingController _searchController = TextEditingController();
+  bool _tecladoAbierto = false;
+
   @override
   void initState() {
     super.initState();
     _iniciar();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _iniciar() async {
@@ -218,14 +227,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Realizar Pedido', style: TextStyle(fontSize: 16)),
-            Text(_userName, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.normal)),
-          ],
-        ),
+        title: Text(_userName, style: const TextStyle(fontSize: 15)),
         actions: [
           if (_vista == 1)
             IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarMisComandas),
@@ -324,10 +326,23 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         Padding(
           padding: const EdgeInsets.all(16),
           child: TextField(
-            onChanged: (v) => setState(() => _busqueda = v),
+            controller: _searchController,
+            readOnly: true,
+            showCursor: true,
+            onTap: () => setState(() => _tecladoAbierto = true),
+            style: const TextStyle(fontSize: 16, color: AppTheme.textLight),
             decoration: InputDecoration(
               hintText: 'Buscar producto...',
               prefixIcon: const Icon(Icons.search),
+              suffixIcon: _busqueda.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() {
+                        _busqueda = '';
+                        _searchController.clear();
+                      }),
+                    )
+                  : null,
               filled: true,
               fillColor: AppTheme.secondaryDark,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -436,6 +451,25 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
             },
           ),
         ),
+        if (_tecladoAbierto)
+          _TecladoQwerty(
+            onLetra: (letra) => setState(() {
+              _busqueda += letra;
+              _searchController.text = _busqueda;
+            }),
+            onEspacio: () => setState(() {
+              _busqueda += ' ';
+              _searchController.text = _busqueda;
+            }),
+            onBorrar: () {
+              if (_busqueda.isEmpty) return;
+              setState(() {
+                _busqueda = _busqueda.substring(0, _busqueda.length - 1);
+                _searchController.text = _busqueda;
+              });
+            },
+            onCerrar: () => setState(() => _tecladoAbierto = false),
+          ),
       ],
     );
   }
@@ -683,6 +717,127 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                     : Text('GENERAR COMANDA · Bs. ${_total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Teclado propio en pantalla, solo letras en formato QWERTY con teclas
+/// grandes, pensado para el buscador de productos en pantallas táctiles
+/// chicas (evita el teclado nativo del sistema y deja el grid de productos
+/// usando todo el espacio disponible arriba).
+class _TecladoQwerty extends StatelessWidget {
+  final void Function(String letra) onLetra;
+  final VoidCallback onEspacio;
+  final VoidCallback onBorrar;
+  final VoidCallback onCerrar;
+
+  const _TecladoQwerty({
+    required this.onLetra,
+    required this.onEspacio,
+    required this.onBorrar,
+    required this.onCerrar,
+  });
+
+  static const _fila1 = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+  static const _fila2 = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
+  static const _fila3 = ['Z', 'X', 'C', 'V', 'B', 'N', 'M'];
+
+  Widget _tecla(String letra) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Material(
+          color: AppTheme.secondaryDark,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => onLetra(letra),
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              child: Text(letra, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w900, fontSize: 20)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _botonAccion({required Widget child, required VoidCallback onTap, Color? color, int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Material(
+          color: color ?? AppTheme.secondaryDark,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filaConMargen(List<String> letras, {double margen = 0}) {
+    return Row(
+      children: [
+        if (margen > 0) SizedBox(width: margen),
+        ...letras.map(_tecla),
+        if (margen > 0) SizedBox(width: margen),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryDark,
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _filaConMargen(_fila1),
+          const SizedBox(height: 4),
+          _filaConMargen(_fila2, margen: 18),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              ..._fila3.map(_tecla),
+              _botonAccion(
+                flex: 2,
+                onTap: onBorrar,
+                child: const Icon(Icons.backspace_outlined, color: AppTheme.textLight, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              _botonAccion(
+                flex: 5,
+                onTap: onEspacio,
+                child: const Text('ESPACIO', style: TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+              _botonAccion(
+                flex: 2,
+                color: AppTheme.accentColor,
+                onTap: onCerrar,
+                child: const Text('LISTO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
+              ),
+            ],
           ),
         ],
       ),
