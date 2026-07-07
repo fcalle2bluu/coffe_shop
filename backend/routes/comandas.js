@@ -74,11 +74,15 @@ const checkCocineroOAdmin = async (req, res, next) => {
 
 // Crear una nueva comanda (Mesero inicia pedido)
 router.post('/', checkMeseroOAdmin, async (req, res) => {
-    const { mesa, usuario_id, total, detalles } = req.body;
+    const { mesa, usuario_id, total, detalles, fecha_hora } = req.body;
 
     if (!mesa || !usuario_id || !detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'Datos de comanda incompletos o carrito vacío.' });
     }
+
+    // La fecha/hora la manda el navegador del mesero (hora local del punto de venta);
+    // si no llega por algún motivo, se usa la hora del servidor como respaldo.
+    const fechaHoraCliente = fecha_hora ? new Date(fecha_hora) : new Date();
 
     const client = await pool.connect();
     try {
@@ -104,11 +108,11 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
 
         // 1. Insertar Cabecera de Comanda
         const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total)
-            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4)
+            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente)
+            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5)
             RETURNING id
         `;
-        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total]);
+        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente]);
         const comandaId = resultComanda.rows[0].id;
 
         // 2. Insertar Detalle de Comanda
@@ -201,7 +205,7 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
 router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.estado_cocina, u.nombre as mesero_nombre,
+            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, u.nombre as mesero_nombre,
                 (
                     SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad))
                     FROM detalle_comandas dc

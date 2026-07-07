@@ -316,6 +316,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración estado_cocina:', estadoCocinaErr.message);
     }
 
+    // 5.97c Migración: fecha/hora del pedido tal como la envía el navegador del mesero
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS fecha_hora_cliente TIMESTAMP;');
+        console.log('✅ Columna fecha_hora_cliente en comandas verificada/creada.');
+    } catch (fechaClienteErr) {
+        console.log('Info Migración fecha_hora_cliente:', fechaClienteErr.message);
+    }
+
     // 5.98 Creación de tabla de Mesas y Poblamiento Inicial
     try {
         await pool.query(`

@@ -212,7 +212,8 @@ async function generarComanda() {
         mesa: mesa,
         usuario_id: parseInt(localStorage.getItem('usuario_id')),
         total: totalPedido,
-        detalles: carritoPedido
+        detalles: carritoPedido,
+        fecha_hora: new Date().toISOString()
     };
 
     try {
@@ -271,7 +272,7 @@ async function cargarMisComandas() {
                         ${c.estado_cocina || 'PENDIENTE'}
                     </span>
                 </div>
-                <p class="text-xs text-slate-400 font-medium">${new Date(c.fecha_creacion).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p class="text-xs text-slate-400 font-medium">${new Date(c.fecha_hora_cliente || c.fecha_creacion).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
                 <div class="flex items-center justify-between">
                     <span class="text-lg font-black text-slate-900">Bs. ${parseFloat(c.total).toFixed(2)}</span>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-full ${badgeEstado[c.estado] || 'bg-slate-100 text-slate-600'}">${c.estado}</span>

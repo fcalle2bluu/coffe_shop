@@ -23,6 +23,7 @@ import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
 import 'venta_mesa_screen.dart';
 import 'recetas_screen.dart';
+import 'realizar_pedido_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -378,6 +379,15 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     final esRolLimitado = ['PASTELERA', 'MESERO', 'COCINERO', 'BARISTA'].contains(userRolUpper);
 
     if (esRolLimitado) {
+      // 0. Realizar Pedido (flujo rápido y liviano para que el mesero mande comandas a cocina)
+      if (userRolUpper == 'MESERO') {
+        _menuItems.add({
+          'title': 'Realizar Pedido',
+          'icon': FontAwesomeIcons.bellConcierge,
+        });
+        _screens.add(const RealizarPedidoScreen());
+      }
+
       // 1. Venta por Mesa (para meseros/baristas que toman pedidos y cobran)
       if (userRolUpper == 'MESERO' || userRolUpper == 'BARISTA') {
         _menuItems.add({
