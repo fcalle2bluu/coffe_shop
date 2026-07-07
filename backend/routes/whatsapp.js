@@ -2,6 +2,14 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Reutiliza la misma clave de Gemini que ya usa el Asistente IA (Moka) del panel admin
+const geminiApiKey = process.env.GEMINI_API_KEY || '';
+let genAIWhatsapp = null;
+if (geminiApiKey) {
+    genAIWhatsapp = new GoogleGenerativeAI(geminiApiKey);
+}
 
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
@@ -187,17 +195,6 @@ async function borrarEstadoCliente(telefono) {
     }
 }
 
-// Helper para enviar el menú inicial con la opción de Tortas Personalizadas
-async function enviarMenuInicial(from) {
-    try {
-        const welcomeText = `¡Bienvenido a *Café La Paz*! ☕✨\n\nPor favor, responde con el número de la opción que deseas:\n\n1️⃣ Ver Menú de Productos 📄\n2️⃣ Cotizar/Pedir Torta Personalizada 🎂🍰`;
-        await enviarMensajeWhatsApp(from, welcomeText);
-        await actualizarEstadoCliente(from, 'MENU_PRINCIPAL');
-    } catch (err) {
-        console.error('Error al enviar menú inicial:', err.message);
-    }
-}
-
 // Helper para enviar el PDF de menú
 async function enviarPdfMenu(from, host) {
     try {
@@ -209,142 +206,182 @@ async function enviarPdfMenu(from, host) {
     }
 }
 
-// Lógica del Árbol de Decisiones (Embudo de Filtración de Tortas Personalizadas)
-async function procesarFlujoBot(from, textBody, host, rawMessage) {
-    const textClean = textBody.toLowerCase().trim();
-    
-    // Si escribe saludos comunes o cancelar, reiniciamos su estado al menú inicial
-    const saludosYComandos = ['hola', 'buen', 'tarde', 'dia', 'noche', 'menu', 'menú', 'iniciar', 'reset', 'cancelar'];
-    if (saludosYComandos.includes(textClean)) {
-        await borrarEstadoCliente(from);
-        await enviarMenuInicial(from);
+// Helper para reintentar generación de contenido ante rate limits (429) de Gemini
+async function generarConIAConRetry(model, prompt, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await model.generateContent(prompt);
+        } catch (error) {
+            const errorMsg = (error.message || '').toLowerCase();
+            const esRateLimit = errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('exhausted');
+            if (esRateLimit && i < retries - 1) {
+                console.warn(`⚠️ Rate limit de Gemini (WhatsApp IA). Reintentando en ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            } else {
+                throw error;
+            }
+        }
+    }
+}
+
+// Arma un texto legible del catálogo activo, agrupado por categoría, para dar contexto a la IA
+async function obtenerCatalogoTextoIA() {
+    try {
+        const { rows } = await pool.query(`
+            SELECT p.nombre, p.precio_venta, COALESCE(c.nombre, 'Otros') as categoria
+            FROM productos p
+            LEFT JOIN categorias c ON p.categoria_id = c.id
+            WHERE p.activo = true
+            ORDER BY categoria ASC, p.nombre ASC
+        `);
+        const porCategoria = {};
+        rows.forEach(p => {
+            if (!porCategoria[p.categoria]) porCategoria[p.categoria] = [];
+            porCategoria[p.categoria].push(`- ${p.nombre}: Bs. ${parseFloat(p.precio_venta).toFixed(2)}`);
+        });
+        return Object.entries(porCategoria)
+            .map(([cat, items]) => `*${cat}*\n${items.join('\n')}`)
+            .join('\n\n');
+    } catch (err) {
+        console.error('Error al obtener catálogo para IA de WhatsApp:', err.message);
+        return '(No se pudo cargar el catálogo de productos)';
+    }
+}
+
+// Arma el transcript reciente de la conversación (incluye el mensaje actual, ya guardado) para dar memoria a la IA
+async function obtenerHistorialTextoIA(telefono, limite = 20) {
+    try {
+        const { rows } = await pool.query(
+            `SELECT mensaje, remitente, TO_CHAR(fecha, 'HH24:MI DD/MM') as fecha_fmt
+             FROM whatsapp_mensajes WHERE telefono = $1 ORDER BY fecha DESC LIMIT $2`,
+            [telefono, limite]
+        );
+        return rows.reverse().map(m => `[${m.fecha_fmt}] ${m.remitente}: ${m.mensaje}`).join('\n');
+    } catch (err) {
+        console.error('Error al obtener historial para IA de WhatsApp:', err.message);
+        return '';
+    }
+}
+
+/**
+ * Agente de IA que reemplaza el antiguo árbol de decisiones fijo: entiende lenguaje libre,
+ * responde dudas sobre el menú, toma pedidos y cotiza tortas personalizadas, registrando
+ * todo en las mismas tablas (pedidos_whatsapp, whatsapp_estados) que ya usa el panel admin.
+ */
+async function procesarFlujoBotIA(from, textBody, host, rawMessage) {
+    if (!genAIWhatsapp) {
+        await enviarMensajeWhatsApp(from, 'Estamos presentando un inconveniente técnico en este momento. Un asesor de Café La Paz te responderá a la brevedad. ¡Gracias por tu paciencia! 🙏');
+        console.error('❌ GEMINI_API_KEY no configurada: no se puede procesar el mensaje de WhatsApp con IA.');
         return;
     }
 
-    const estadoRow = await obtenerEstadoCliente(from);
-    if (!estadoRow) {
-        await enviarMenuInicial(from);
-        return;
-    }
+    try {
+        const [catalogoTexto, historialTexto, estadoRow] = await Promise.all([
+            obtenerCatalogoTextoIA(),
+            obtenerHistorialTextoIA(from),
+            obtenerEstadoCliente(from),
+        ]);
 
-    const estado = estadoRow.estado;
+        let memoriaPrevia = {};
+        try {
+            memoriaPrevia = JSON.parse((estadoRow && estadoRow.producto_seleccionado) || '{}');
+        } catch (e) {
+            memoriaPrevia = {};
+        }
 
-    // --- MENÚ INICIAL: ESPERANDO SELECCIÓN ---
-    if (estado === 'MENU_PRINCIPAL') {
-        if (textClean === '1' || textClean.includes('producto') || textClean === '1️⃣') {
+        const fechaHoraActual = new Date().toLocaleString('es-BO', { timeZone: 'America/La_Paz' });
+
+        const systemInstruction = `
+Eres el asistente virtual de pedidos por WhatsApp de "Café La Paz", una cafetería. Escribes en español, cálido y cercano,
+con emojis moderados y formato de WhatsApp (*negrita*, _cursiva_), igual que un mesero atento por chat.
+
+La fecha y hora actual en Bolivia es: ${fechaHoraActual}. Úsala para interpretar fechas relativas ("mañana", "el sábado", etc.) en pedidos de tortas.
+
+MENÚ ACTUAL DE PRODUCTOS (precios reales, es la única fuente de verdad sobre productos y precios):
+${catalogoTexto}
+
+MEMORIA DE ESTA CONVERSACIÓN (datos que ya recopilaste en turnos anteriores, puede estar vacía si es la primera vez):
+${JSON.stringify(memoriaPrevia)}
+
+HISTORIAL RECIENTE DE LA CONVERSACIÓN (el último mensaje, de CLIENTE, es al que debes responder ahora):
+${historialTexto}
+
+TU TRABAJO:
+1. Si el cliente saluda o pregunta el menú, salúdalo cordialmente y ofrécele mandarle el menú en PDF (usa "adjuntar_menu_pdf": true) o cuéntale las categorías disponibles.
+2. Si el cliente quiere hacer un pedido normal (productos del menú para recoger en el local), confirma producto(s) y cantidad, y cuando el pedido esté claro y confirmado por el cliente, regístralo con "registrar_pedido".
+3. Si el cliente quiere una torta personalizada, sigue este embudo de forma conversacional y natural (sin sonar a formulario robótico), pidiendo un dato a la vez si falta: fecha y hora del evento, cantidad de porciones (mínimo 15), diseño/temática/colores (puede incluir foto de referencia), y sabor de bizcocho y relleno (opciones: Bizcochos: Vainilla, Chocolate, Red Velvet o Zanahoria; Rellenos: Dulce de Leche, Fudge de Chocolate, Crema de Queso o Crema con Frutillas). Ve guardando lo que el cliente te vaya diciendo en "memoria" para no volver a preguntarlo.
+4. Cuando ya tengas los 4 datos de la torta (fecha, porciones, diseño, sabor), agradece, registra la cotización con "registrar_pedido" (producto describiendo todos los detalles, cantidad 1), y explica que un pastelero enviará el precio exacto y que se requiere una seña del 50% para reservar la fecha; pregúntale si quiere los datos de transferencia bancaria ahora.
+5. Si el cliente pide los datos de pago/transferencia, dáselos tú mismo con este formato:
+   *DATOS PARA TRANSFERENCIA BANCARIA* 🏦
+   • Banco: Banco Nacional de Bolivia (BNB)
+   • Tipo de Cuenta: Caja de Ahorros
+   • Número de Cuenta: 150-1234567
+   • Titular: Café La Paz S.R.L.
+   • NIT: 123456789
+   Y pídele que envíe la captura del comprobante para confirmar.
+6. Si el cliente envía una imagen (verás "[Imagen]" en el historial), agradécele la foto de referencia y continúa el embudo normalmente.
+7. Si pide hablar con una persona o algo se sale de tu alcance, dile amablemente que un asesor de Café La Paz le escribirá pronto.
+8. Nunca inventes productos ni precios que no estén en el menú de arriba.
+
+FORMATO DE RESPUESTA OBLIGATORIO: responde ÚNICAMENTE con un JSON válido (sin texto fuera del JSON, sin markdown code fences) con esta forma exacta:
+{
+  "respuesta": "texto que se le enviará al cliente por WhatsApp",
+  "adjuntar_menu_pdf": false,
+  "registrar_pedido": null,
+  "memoria": {}
+}
+- "registrar_pedido" debe ser null salvo cuando corresponda registrar un pedido/cotización nuevo listo para pasar a cocina/administración; en ese caso usa {"producto": "descripción clara y completa", "cantidad": 1}.
+- "memoria" debe llevar TODOS los datos relevantes acumulados hasta ahora de la conversación en curso (por ejemplo el progreso del embudo de torta), para recordarlos en el siguiente turno. Si ya se completó y registró un pedido, reinicia "memoria" a {}.
+`;
+
+        const model = genAIWhatsapp.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            systemInstruction,
+            generationConfig: { responseMimeType: 'application/json' },
+        });
+
+        const result = await generarConIAConRetry(model, 'Responde ahora siguiendo tus instrucciones, en el formato JSON indicado.');
+        const rawText = result.response.text().trim();
+
+        let salida;
+        try {
+            salida = JSON.parse(rawText);
+        } catch (parseErr) {
+            console.error('⚠️ La IA de WhatsApp no devolvió JSON válido, se envía como texto plano:', rawText);
+            await enviarMensajeWhatsApp(from, rawText || 'Disculpa, ¿podrías repetir tu mensaje? 🙏');
+            return;
+        }
+
+        if (salida.respuesta) {
+            await enviarMensajeWhatsApp(from, salida.respuesta);
+        }
+
+        if (salida.adjuntar_menu_pdf) {
             await enviarPdfMenu(from, host);
-        } else if (textClean === '2' || textClean.includes('torta') || textClean.includes('personaliza') || textClean === '2️⃣') {
-            await actualizarEstadoCliente(from, 'TORTA_ESPERANDO_FECHA');
-            const msg = `¡Genial! 🎂 Hacemos tortas personalizadas hermosas y deliciosas.\n\nPara poder darte una cotización exacta y agendar, por favor respóndeme:\n\n*¿Para qué fecha y hora necesitas la torta?* 🗓️\n_(Ej: Sábado 15 de Julio a las 15:00)_`;
-            await enviarMensajeWhatsApp(from, msg);
+        }
+
+        if (salida.registrar_pedido && salida.registrar_pedido.producto) {
+            try {
+                await pool.query(
+                    `INSERT INTO pedidos_whatsapp (telefono_cliente, producto, cantidad, estado) VALUES ($1, $2, $3, 'PENDIENTE')`,
+                    [from, salida.registrar_pedido.producto, parseInt(salida.registrar_pedido.cantidad) || 1]
+                );
+                console.log(`🧾 Pedido de WhatsApp registrado vía IA para +${from}: ${salida.registrar_pedido.producto}`);
+            } catch (dbErr) {
+                console.error('Error al guardar pedido generado por IA en pedidos_whatsapp:', dbErr.message);
+            }
+        }
+
+        const memoriaNueva = salida.memoria && typeof salida.memoria === 'object' ? salida.memoria : {};
+        if (Object.keys(memoriaNueva).length === 0) {
+            await borrarEstadoCliente(from);
         } else {
-            await enviarMenuInicial(from);
+            await actualizarEstadoCliente(from, 'IA_CONVERSACION', JSON.stringify(memoriaNueva));
         }
-        return;
-    }
-
-    // --- EMBUDO TORTA: ESPERANDO FECHA ---
-    if (estado === 'TORTA_ESPERANDO_FECHA') {
-        const datos = { fecha: textBody };
-        await actualizarEstadoCliente(from, 'TORTA_ESPERANDO_PORCIONES', JSON.stringify(datos));
-        const msg = `¡Entendido! Fecha y hora registradas.\n\n*¿Para cuántas personas / porciones necesitas la torta?* 🍰\n\n_(Nota: El mínimo para diseños personalizados es de 15 porciones)_`;
-        await enviarMensajeWhatsApp(from, msg);
-        return;
-    }
-
-    // --- EMBUDO TORTA: ESPERANDO PORCIONES ---
-    if (estado === 'TORTA_ESPERANDO_PORCIONES') {
-        let datos = {};
-        try {
-            datos = JSON.parse(estadoRow.producto_seleccionado || '{}');
-        } catch (e) {
-            datos = {};
-        }
-        datos.porciones = textBody;
-
-        await actualizarEstadoCliente(from, 'TORTA_ESPERANDO_DISENO', JSON.stringify(datos));
-        const msg = `Perfecto, anotado.\n\n*¿Qué temática, diseño o colores tienes en mente?* 🎨\n\n_(Si tienes una foto de referencia, puedes enviarla ahora mismo por aquí para verla)_`;
-        await enviarMensajeWhatsApp(from, msg);
-        return;
-    }
-
-    // --- EMBUDO TORTA: ESPERANDO DISEÑO ---
-    if (estado === 'TORTA_ESPERANDO_DISENO') {
-        let datos = {};
-        try {
-            datos = JSON.parse(estadoRow.producto_seleccionado || '{}');
-        } catch (e) {
-            datos = {};
-        }
-
-        // Si mandaron una foto o imagen de referencia
-        if (rawMessage && rawMessage.type === 'image') {
-            datos.diseno = "[Foto de referencia enviada en WhatsApp]";
-        } else {
-            datos.diseno = textBody;
-        }
-
-        await actualizarEstadoCliente(from, 'TORTA_ESPERANDO_SABOR', JSON.stringify(datos));
-        const msg = `¡Excelente! Ya tenemos una idea del diseño.\n\nFinalmente, *¿qué sabor de masa y relleno prefieres?* 🎂😋\n\n🍰 *Bizcochos:* Vainilla, Chocolate, Red Velvet o Zanahoria.\n🍫 *Rellenos:* Dulce de Leche, Fudge de Chocolate, Crema de Queso o Crema con Frutillas.`;
-        await enviarMensajeWhatsApp(from, msg);
-        return;
-    }
-
-    // --- EMBUDO TORTA: ESPERANDO SABOR ---
-    if (estado === 'TORTA_ESPERANDO_SABOR') {
-        let datos = {};
-        try {
-            datos = JSON.parse(estadoRow.producto_seleccionado || '{}');
-        } catch (e) {
-            datos = {};
-        }
-        datos.sabor = textBody;
-
-        await actualizarEstadoCliente(from, 'TORTA_ESPERANDO_CONFIRMACION_CUENTA', JSON.stringify(datos));
-        
-        // Guardar solicitud de torta como un pedido de WhatsApp pendiente
-        try {
-            const descripcionCompleta = `[TORTA PERSONALIZADA] Fecha: ${datos.fecha} | Porc: ${datos.porciones} | Diseño: ${datos.diseno} | Sabor: ${datos.sabor}`;
-            await pool.query(
-                `INSERT INTO pedidos_whatsapp (telefono_cliente, producto, cantidad, estado) 
-                 VALUES ($1, $2, $3, $4)`,
-                [from, descripcionCompleta, 1, 'PENDIENTE']
-            );
-        } catch (dbErr) {
-            console.error('Error al guardar cotización de torta en pedidos_whatsapp:', dbErr.message);
-        }
-
-        const msg = `¡Muchas gracias! 🙌 Hemos tomado nota de todos tus detalles:\n\n` +
-                    `📅 *Fecha:* ${datos.fecha}\n` +
-                    `🍰 *Porciones:* ${datos.porciones}\n` +
-                    `🎨 *Diseño:* ${datos.diseno}\n` +
-                    `🎂 *Sabores:* ${datos.sabor}\n\n` +
-                    `Un pastelero de *Café La Paz* revisará tu diseño y te enviará la cotización exacta en unos minutos.\n\n` +
-                    `⚠️ *IMPORTANTE:* Para asegurar tu fecha y confirmar el pedido, requerimos una seña del **50% del total**.\n\n` +
-                    `*¿Deseas que te enviemos los datos de transferencia bancaria y QR ahora mismo?* 💳\n_(Responde *SÍ* o *NO*)_`;
-        await enviarMensajeWhatsApp(from, msg);
-        return;
-    }
-
-    // --- EMBUDO TORTA: ESPERANDO CONFIRMACIÓN CUENTA ---
-    if (estado === 'TORTA_ESPERANDO_CONFIRMACION_CUENTA') {
-        if (textClean.includes('si') || textClean === 'sí' || textClean === 's') {
-            const msgCuenta = `*DATOS PARA TRANSFERENCIA BANCARIA* 🏦\n\n` +
-                              `• *Banco:* Banco Nacional de Bolivia (BNB)\n` +
-                              `• *Tipo de Cuenta:* Caja de Ahorros\n` +
-                              `• *Número de Cuenta:* 150-1234567\n` +
-                              `• *Titular:* Café La Paz S.R.L.\n` +
-                              `• *NIT:* 123456789\n\n` +
-                              `📲 O si prefieres, puedes realizar el pago rápido mediante QR (pídelo a nuestro cajero cuando te envíe el precio).\n\n` +
-                              `*Una vez realizado el depósito, por favor envíanos la captura del comprobante por aquí para confirmar tu pedido.* 😊☕`;
-            await enviarMensajeWhatsApp(from, msgCuenta);
-        } else {
-            const msgNo = `Entendido. Un asesor te escribirá enseguida para darte el precio de tu cotización y responder tus dudas. ¡Gracias! ✨`;
-            await enviarMensajeWhatsApp(from, msgNo);
-        }
-        
-        await borrarEstadoCliente(from);
-        return;
+    } catch (err) {
+        console.error('❌ Error en el agente de IA de WhatsApp:', err.message);
+        await enviarMensajeWhatsApp(from, 'Disculpa, tuvimos un problema procesando tu mensaje. ¿Podrías intentar de nuevo en un momento? 🙏');
     }
 }
 
@@ -422,9 +459,9 @@ router.post('/webhook', async (req, res) => {
                 console.error('❌ Error al guardar mensaje en whatsapp_mensajes:', dbErr.message);
             }
 
-            // Procesamos la lógica de flujo del bot (para mensajes de texto, interactivos o imágenes)
+            // Procesamos el mensaje con el agente de IA (para mensajes de texto, interactivos o imágenes)
             if (message.type === 'text' || message.type === 'interactive' || message.type === 'button' || message.type === 'image') {
-                await procesarFlujoBot(from, textBody, host, message);
+                await procesarFlujoBotIA(from, textBody, host, message);
             }
         }
     } catch (error) {
