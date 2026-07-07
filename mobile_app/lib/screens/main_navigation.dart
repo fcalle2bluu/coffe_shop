@@ -852,7 +852,16 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       appBar: isLargeScreen
           ? null
           : AppBar(
-              title: Text(_menuItems[_selectedIndex]['title']),
+              title: _menuItems[_selectedIndex]['title'] == 'Realizar Pedido'
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Realizar Pedido', style: TextStyle(fontSize: 16)),
+                        Text(_userName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal)),
+                      ],
+                    )
+                  : Text(_menuItems[_selectedIndex]['title']),
               elevation: 0,
             ),
       drawer: isLargeScreen

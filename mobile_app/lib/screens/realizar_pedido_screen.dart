@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
@@ -28,7 +29,6 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   String _categoriaSeleccionada = 'Todas';
 
   int _userId = 1;
-  String _userName = 'Usuario';
 
   int _vista = 0; // 0 = Pedido, 1 = Control
   bool _loadingControl = false;
@@ -52,7 +52,6 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   Future<void> _iniciar() async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getInt('usuario_id') ?? 1;
-    _userName = prefs.getString('usuario_nombre') ?? 'Usuario';
     await _cargarDatos();
   }
 
@@ -233,18 +232,10 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 44,
-          title: Text(_userName, style: const TextStyle(fontSize: 14)),
-          actions: [
-            if (_vista == 1)
-              IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarMisComandas),
-          ],
-        ),
         body: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
@@ -484,6 +475,24 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   }
 
   Widget _buildVistaControl() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Tus comandas', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.textLight)),
+              IconButton(icon: const Icon(Icons.refresh, color: AppTheme.textLight), onPressed: _cargarMisComandas),
+            ],
+          ),
+        ),
+        Expanded(child: _buildListaComandas()),
+      ],
+    );
+  }
+
+  Widget _buildListaComandas() {
     if (_loadingControl) {
       return const Center(child: PulsingCoffeeLoader(message: 'Cargando tus comandas...'));
     }
@@ -754,6 +763,8 @@ class _TecladoQwerty extends StatelessWidget {
   static const _fila2 = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'];
   static const _fila3 = ['Z', 'X', 'C', 'V', 'B', 'N', 'M'];
 
+  static void _vibrar() => HapticFeedback.heavyImpact();
+
   Widget _tecla(String letra) {
     return Expanded(
       child: Padding(
@@ -763,11 +774,14 @@ class _TecladoQwerty extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: () => onLetra(letra),
+            onTap: () {
+              _vibrar();
+              onLetra(letra);
+            },
             child: Container(
-              height: 46,
+              height: 56,
               alignment: Alignment.center,
-              child: Text(letra, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w900, fontSize: 20)),
+              child: Text(letra, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w900, fontSize: 22)),
             ),
           ),
         ),
@@ -785,9 +799,12 @@ class _TecladoQwerty extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
-            onTap: onTap,
+            onTap: () {
+              _vibrar();
+              onTap();
+            },
             child: Container(
-              height: 46,
+              height: 56,
               alignment: Alignment.center,
               child: child,
             ),
