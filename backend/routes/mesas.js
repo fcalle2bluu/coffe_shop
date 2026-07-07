@@ -25,14 +25,34 @@ const checkAdminPermission = async (req, res, next) => {
     }
 };
 
-router.use(checkAdminPermission);
+// Middleware MESERO o Admin/Cajero: acceso de solo lectura para elegir mesa al armar un pedido
+const checkMeseroLecturaOAdmin = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'MESERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de mesero en mesas:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
 
-// 1. Obtener todas las mesas activas
-router.get('/', async (req, res) => {
+// 1. Obtener todas las mesas activas (también accesible para MESERO al elegir mesa)
+router.get('/', checkMeseroLecturaOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT * FROM mesas 
-            WHERE activo = true 
+            SELECT * FROM mesas
+            WHERE activo = true
             ORDER BY piso DESC, numero ASC
         `;
         const result = await pool.query(query);
@@ -42,6 +62,8 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener mesas' });
     }
 });
+
+router.use(checkAdminPermission);
 
 // 2. Crear una nueva mesa (o reactivar una inactiva con el mismo nombre)
 router.post('/', async (req, res) => {

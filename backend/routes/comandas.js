@@ -25,6 +25,226 @@ const checkAdminPermission = async (req, res, next) => {
     }
 };
 
+// Middleware MESERO o Admin/Cajero: para que el mesero cree/liste/elimine sus propios pedidos
+const checkMeseroOAdmin = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'MESERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
+        }
+        req.rolActual = rol;
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de mesero en comandas:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
+
+// Middleware COCINERO o Admin/Cajero: para la pantalla de cocina (leer/actualizar pendientes)
+const checkCocineroOAdmin = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'COCINERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de cocinero en comandas:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
+
+// === Rutas de MESERO (deben ir antes del router.use admin-only) ===
+
+// Crear una nueva comanda (Mesero inicia pedido)
+router.post('/', checkMeseroOAdmin, async (req, res) => {
+    const { mesa, usuario_id, total, detalles } = req.body;
+
+    if (!mesa || !usuario_id || !detalles || detalles.length === 0) {
+        return res.status(400).json({ error: 'Datos de comanda incompletos o carrito vacío.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Validar si la mesa ya tiene una comanda activa
+        const checkQuery = `
+            SELECT id FROM comandas
+            WHERE mesa = $1 AND estado IN ('CREADA', 'ENTREGADA')
+            LIMIT 1
+        `;
+        const checkResult = await client.query(checkQuery, [mesa]);
+        if (checkResult.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `La mesa ${mesa} ya tiene una comanda activa.` });
+        }
+
+        // Obtener caja abierta (si existe)
+        const cajaRes = await client.query(`
+            SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1
+        `);
+        const cajaId = cajaRes.rows.length > 0 ? cajaRes.rows[0].id : null;
+
+        // 1. Insertar Cabecera de Comanda
+        const insertComanda = `
+            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total)
+            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4)
+            RETURNING id
+        `;
+        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total]);
+        const comandaId = resultComanda.rows[0].id;
+
+        // 2. Insertar Detalle de Comanda
+        for (let item of detalles) {
+            await client.query(`
+                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [comandaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
+        }
+
+        await client.query('COMMIT');
+        res.status(201).json({ success: true, comanda_id: comandaId });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al crear comanda:', error);
+        res.status(500).json({ error: 'Error interno al guardar comanda: ' + error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Listar las comandas activas del mesero (para su pestaña de "Control")
+router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
+    const { usuario_id } = req.query;
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
+    }
+    try {
+        const query = `
+            SELECT c.*, u.nombre as mesero_nombre
+            FROM comandas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.usuario_id = $1 AND c.estado != 'CANCELADA'
+              AND c.fecha_creacion >= CURRENT_DATE
+            ORDER BY c.fecha_creacion DESC
+        `;
+        const result = await pool.query(query, [usuario_id]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener comandas del mesero:', error);
+        res.status(500).json({ error: 'Error al obtener comandas del mesero' });
+    }
+});
+
+// Eliminar una comanda propia desde "Control" (solo si el mesero es el creador, o admin/cajero)
+router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const comandaRes = await client.query('SELECT usuario_id, estado FROM comandas WHERE id = $1', [id]);
+        if (comandaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+
+        const comanda = comandaRes.rows[0];
+        const esDueño = parseInt(comanda.usuario_id) === parseInt(usuario_id);
+        if (!esDueño && req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR' && req.rolActual !== 'CAJERO') {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Solo puedes eliminar tus propias comandas.' });
+        }
+
+        if (comanda.estado === 'PAGADA') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No se puede eliminar una comanda ya cobrada.' });
+        }
+
+        await client.query('DELETE FROM detalle_comandas WHERE comanda_id = $1', [id]);
+        await client.query('DELETE FROM comandas WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Comanda eliminada correctamente' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al eliminar comanda:', error);
+        res.status(500).json({ error: 'Error al eliminar comanda: ' + error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// === Rutas de COCINERO (deben ir antes del router.use admin-only) ===
+
+// Obtener las comandas pendientes para la pantalla/impresión de cocina
+router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
+    try {
+        const query = `
+            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.estado_cocina, u.nombre as mesero_nombre,
+                (
+                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad))
+                    FROM detalle_comandas dc
+                    JOIN productos p ON dc.producto_id = p.id
+                    WHERE dc.comanda_id = c.id
+                ) as items
+            FROM comandas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.estado_cocina = 'PENDIENTE' AND c.estado IN ('CREADA', 'ENTREGADA')
+            ORDER BY c.fecha_creacion ASC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener comandas pendientes de cocina:', error);
+        res.status(500).json({ error: 'Error al obtener comandas pendientes de cocina' });
+    }
+});
+
+// Actualizar el estado de cocina de una comanda (RECHAZADA / COMPLETADA)
+router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { estado_cocina } = req.body;
+
+    if (!['RECHAZADA', 'COMPLETADA'].includes(estado_cocina)) {
+        return res.status(400).json({ error: "El estado de cocina debe ser 'RECHAZADA' o 'COMPLETADA'." });
+    }
+
+    try {
+        const result = await pool.query(
+            'UPDATE comandas SET estado_cocina = $1, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
+            [estado_cocina, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+        res.json({ success: true, message: `Comanda actualizada a estado de cocina ${estado_cocina}` });
+    } catch (error) {
+        console.error('Error al actualizar estado de cocina:', error);
+        res.status(500).json({ error: 'Error al actualizar estado de cocina' });
+    }
+});
+
 router.use(checkAdminPermission);
 
 
@@ -129,65 +349,6 @@ router.get('/mesa/:numero', async (req, res) => {
     } catch (error) {
         console.error(`Error al obtener comanda de mesa ${numero}:`, error);
         res.status(500).json({ error: 'Error al obtener comanda de la mesa' });
-    }
-});
-
-// 4. Crear una nueva comanda (Mesero inicia pedido)
-router.post('/', async (req, res) => {
-    const { mesa, usuario_id, total, detalles } = req.body;
-
-    if (!mesa || !usuario_id || !detalles || detalles.length === 0) {
-        return res.status(400).json({ error: 'Datos de comanda incompletos o carrito vacío.' });
-    }
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        // Validar si la mesa ya tiene una comanda activa
-        const checkQuery = `
-            SELECT id FROM comandas 
-            WHERE mesa = $1 AND estado IN ('CREADA', 'ENTREGADA') 
-            LIMIT 1
-        `;
-        const checkResult = await client.query(checkQuery, [mesa]);
-        if (checkResult.rows.length > 0) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({ error: `La mesa ${mesa} ya tiene una comanda activa.` });
-        }
-
-        // Obtener caja abierta (si existe)
-        const cajaRes = await client.query(`
-            SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1
-        `);
-        const cajaId = cajaRes.rows.length > 0 ? cajaRes.rows[0].id : null;
-
-        // 1. Insertar Cabecera de Comanda
-        const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, total)
-            VALUES ($1, $2, $3, 'CREADA', $4)
-            RETURNING id
-        `;
-        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total]);
-        const comandaId = resultComanda.rows[0].id;
-
-        // 2. Insertar Detalle de Comanda
-        for (let item of detalles) {
-            await client.query(`
-                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal)
-                VALUES ($1, $2, $3, $4, $5)
-            `, [comandaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
-        }
-
-        await client.query('COMMIT');
-        res.status(201).json({ success: true, comanda_id: comandaId });
-
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Error al crear comanda:', error);
-        res.status(500).json({ error: 'Error interno al guardar comanda: ' + error.message });
-    } finally {
-        client.release();
     }
 });
 

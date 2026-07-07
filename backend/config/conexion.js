@@ -308,6 +308,14 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tablas Comandas:', comandasErr.message);
     }
 
+    // 5.97b Migración: estado de cocina independiente del estado de cobro (para app de Cocina)
+    try {
+        await pool.query("ALTER TABLE comandas ADD COLUMN IF NOT EXISTS estado_cocina VARCHAR(20) DEFAULT 'PENDIENTE';");
+        console.log('✅ Columna estado_cocina en comandas verificada/creada.');
+    } catch (estadoCocinaErr) {
+        console.log('Info Migración estado_cocina:', estadoCocinaErr.message);
+    }
+
     // 5.98 Creación de tabla de Mesas y Poblamiento Inicial
     try {
         await pool.query(`

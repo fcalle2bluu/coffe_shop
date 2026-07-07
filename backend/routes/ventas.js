@@ -26,13 +26,33 @@ const checkAdminPermission = async (req, res, next) => {
     }
 };
 
-router.use(checkAdminPermission);
+// Middleware MESERO o Admin/Cajero: acceso de solo lectura al catálogo para armar pedidos
+const checkMeseroLecturaOAdmin = async (req, res, next) => {
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    if (!usuario_id) {
+        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
+        }
+        const rol = userRes.rows[0].rol.toUpperCase();
+        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'MESERO') {
+            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
+        }
+        next();
+    } catch (err) {
+        console.error('Error al validar permisos de mesero en ventas:', err);
+        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
+    }
+};
 
-// 1. Obtener catálogo de productos para el POS
-router.get('/productos', async (req, res) => {
+// 1. Obtener catálogo de productos para el POS (también accesible para MESERO al armar un pedido)
+router.get('/productos', checkMeseroLecturaOAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria 
+            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria
             FROM productos p
             LEFT JOIN categorias c ON p.categoria_id = c.id
             WHERE p.activo = TRUE
@@ -44,6 +64,9 @@ router.get('/productos', async (req, res) => {
         res.status(500).json({ error: 'Error al cargar el catálogo' });
     }
 });
+
+router.use(checkAdminPermission);
+
 // 1.5. Obtener categorías para el dropdown
 router.get('/categorias', async (req, res) => {
     try {

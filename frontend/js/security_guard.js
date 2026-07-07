@@ -353,22 +353,22 @@
     // REGLAS PARA ROLES LIMITADOS (PASTELERA, MESERO, COCINERO, BARISTA)
     const esRolLimitado = ['PASTELERA', 'PASTELERO', 'MESERO', 'COCINERO', 'BARISTA'].some(r => rol.includes(r));
     if (esRolLimitado) {
-        const paginasPermitidas = ['asistencia.html', 'pedidos_internos.html', 'index.html', ''];
-        
+        const esMesero = rol.includes('MESERO');
+        const paginasPermitidas = esMesero
+            ? ['asistencia.html', 'pedidos_internos.html', 'realizar_pedido.html', 'index.html', '']
+            : ['asistencia.html', 'pedidos_internos.html', 'index.html', ''];
+
         if (!paginasPermitidas.includes(pageName)) {
-            window.location.href = 'asistencia.html';
+            window.location.href = esMesero ? 'realizar_pedido.html' : 'asistencia.html';
             return;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Ocultar todos los enlaces del sidebar excepto Asistencia y Pedidos Internos
+            // Ocultar todos los enlaces del sidebar excepto las páginas permitidas para este rol
             document.querySelectorAll('aside nav a').forEach(el => {
                 const href = el.getAttribute('href') || '';
-                if (!href.includes('asistencia.html') && !href.includes('pedidos_internos.html')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = 'flex';
-                }
+                const visible = paginasPermitidas.some(p => p && href.includes(p));
+                el.style.display = visible ? 'flex' : 'none';
             });
             // Ocultar botones y elementos de admin
             document.querySelectorAll('.solo-admin').forEach(el => {

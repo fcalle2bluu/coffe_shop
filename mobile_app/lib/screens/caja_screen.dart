@@ -109,8 +109,9 @@ class _CajaScreenState extends State<CajaScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       _rolActual = prefs.getString('usuario_rol') ?? '';
+      final userId = prefs.getInt('usuario_id') ?? 1;
 
-      final res = await ApiConfig.get('/caja/estado');
+      final res = await ApiConfig.get('/caja/estado?usuario_id=$userId');
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
