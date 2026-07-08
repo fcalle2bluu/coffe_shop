@@ -320,7 +320,10 @@ async function generarConGroq(systemInstruction, retries = 3, delay = 1000) {
     }
 }
 
-// Arma un texto legible del catálogo activo, agrupado por categoría, para dar contexto a la IA
+// Arma un texto compacto del catálogo activo, agrupado por categoría, para dar contexto a la IA.
+// Formato denso (una línea por categoría, sin viñetas ni saltos de línea por producto) porque el
+// catálogo se reenvía completo en cada mensaje y con ~150+ productos activos pesa varios miles de
+// tokens: cada mensaje cuenta contra la cuota gratuita diaria del proveedor de IA.
 async function obtenerCatalogoTextoIA() {
     try {
         const { rows } = await pool.query(`
@@ -333,11 +336,11 @@ async function obtenerCatalogoTextoIA() {
         const porCategoria = {};
         rows.forEach(p => {
             if (!porCategoria[p.categoria]) porCategoria[p.categoria] = [];
-            porCategoria[p.categoria].push(`- ${p.nombre}: Bs. ${parseFloat(p.precio_venta).toFixed(2)}`);
+            porCategoria[p.categoria].push(`${p.nombre} Bs.${parseFloat(p.precio_venta).toFixed(0)}`);
         });
         return Object.entries(porCategoria)
-            .map(([cat, items]) => `*${cat}*\n${items.join('\n')}`)
-            .join('\n\n');
+            .map(([cat, items]) => `${cat}: ${items.join(', ')}`)
+            .join('\n');
     } catch (err) {
         console.error('Error al obtener catálogo para IA de WhatsApp:', err.message);
         return '(No se pudo cargar el catálogo de productos)';
@@ -347,16 +350,16 @@ async function obtenerCatalogoTextoIA() {
 // Arma el transcript reciente de la conversación (incluye el mensaje actual, ya guardado) para dar memoria a la IA.
 // Solo toma mensajes de las últimas horas: una conversación vieja de días/semanas atrás no debe "contaminar"
 // la sesión actual del cliente (evita que el bot imite respuestas rotas de pruebas o chats muy antiguos).
-async function obtenerHistorialTextoIA(telefono, limite = 12, horasVentana = 3) {
+async function obtenerHistorialTextoIA(telefono, limite = 8, horasVentana = 2) {
     try {
         const { rows } = await pool.query(
-            `SELECT mensaje, remitente, TO_CHAR(fecha, 'HH24:MI DD/MM') as fecha_fmt
+            `SELECT mensaje, remitente
              FROM whatsapp_mensajes
              WHERE telefono = $1 AND fecha >= NOW() - ($2 || ' hours')::INTERVAL
              ORDER BY fecha DESC LIMIT $3`,
             [telefono, horasVentana, limite]
         );
-        return rows.reverse().map(m => `[${m.fecha_fmt}] ${m.remitente}: ${m.mensaje}`).join('\n');
+        return rows.reverse().map(m => `${m.remitente}: ${m.mensaje}`).join('\n');
     } catch (err) {
         console.error('Error al obtener historial para IA de WhatsApp:', err.message);
         return '';
@@ -392,40 +395,29 @@ async function procesarFlujoBotIA(from, textBody, host, rawMessage) {
         const fechaHoraActual = new Date().toLocaleString('es-BO', { timeZone: 'America/La_Paz' });
 
         const systemInstruction = `
-Eres el asistente virtual de pedidos por WhatsApp de "Café La Paz", una cafetería. Escribes en español, cálido y cercano,
-con emojis moderados y formato de WhatsApp (*negrita*, _cursiva_), igual que un mesero atento por chat.
+Asistente de pedidos por WhatsApp de "Café La Paz" (cafetería). Español, cálido, emojis moderados, formato WhatsApp (*negrita*).
+Fecha/hora Bolivia: ${fechaHoraActual} (úsala para fechas relativas de tortas).
 
-La fecha y hora actual en Bolivia es: ${fechaHoraActual}. Úsala para interpretar fechas relativas ("mañana", "el sábado", etc.) en pedidos de tortas.
-
-MENÚ ACTUAL DE PRODUCTOS (precios reales, es la única fuente de verdad sobre productos y precios):
+MENÚ (única fuente de verdad de productos/precios):
 ${catalogoTexto}
 
-MEMORIA DE ESTA CONVERSACIÓN (datos que ya recopilaste en turnos anteriores, puede estar vacía si es la primera vez):
-${JSON.stringify(memoriaPrevia)}
+MEMORIA PREVIA: ${JSON.stringify(memoriaPrevia)}
 
-HISTORIAL RECIENTE DE LA CONVERSACIÓN (solo de las últimas horas, para darte contexto de la charla en curso):
-${historialTexto || '(sin mensajes previos recientes, es el inicio de la conversación)'}
+HISTORIAL (últimas horas):
+${historialTexto || '(inicio de conversación)'}
 
-MENSAJE ACTUAL DEL CLIENTE AL QUE DEBES RESPONDER AHORA MISMO (ignora cualquier patrón repetitivo que veas en el historial de arriba; responde específicamente a esto): "${textBody}"
+MENSAJE ACTUAL DEL CLIENTE (responde a esto, ignora patrones repetitivos del historial): "${textBody}"
+${(estadoRow && estadoRow.foto_referencia_url) ? 'Ya guardaste su foto de referencia de torta, no la pidas de nuevo.' : ''}
 
-${(estadoRow && estadoRow.foto_referencia_url) ? 'El cliente ya envió y se guardó una foto de referencia para esta cotización. NO se la vuelvas a pedir.' : ''}
-
-TU TRABAJO:
-1. Si el cliente saluda o pregunta el menú, salúdalo cordialmente y ofrécele mandarle el menú en PDF (usa "adjuntar_menu_pdf": true) o cuéntale las categorías disponibles.
-2. Si el cliente quiere hacer un pedido normal (productos del menú para recoger en el local), confirma producto(s) y cantidad, y cuando el pedido esté claro y confirmado por el cliente, regístralo con "registrar_pedido".
-3. Si el cliente quiere una torta personalizada, sigue este embudo de forma conversacional y natural (sin sonar a formulario robótico), pidiendo un dato a la vez si falta: fecha y hora del evento, cantidad de porciones (mínimo 15), diseño/temática/colores (puede incluir foto de referencia), y sabor de bizcocho y relleno (opciones: Bizcochos: Vainilla, Chocolate, Red Velvet o Zanahoria; Rellenos: Dulce de Leche, Fudge de Chocolate, Crema de Queso o Crema con Frutillas). Ve guardando lo que el cliente te vaya diciendo en "memoria" para no volver a preguntarlo.
-4. Cuando ya tengas los 4 datos de la torta (fecha, porciones, diseño, sabor), agradece, registra la cotización con "registrar_pedido" (producto describiendo todos los detalles, cantidad 1), y explica que un pastelero enviará el precio exacto y que se requiere una seña del 50% para reservar la fecha; pregúntale si quiere los datos de transferencia bancaria ahora.
-5. Si el cliente pide los datos de pago/transferencia, dáselos tú mismo con este formato:
-   *DATOS PARA TRANSFERENCIA BANCARIA* 🏦
-   • Banco: Banco Nacional de Bolivia (BNB)
-   • Tipo de Cuenta: Caja de Ahorros
-   • Número de Cuenta: 150-1234567
-   • Titular: Café La Paz S.R.L.
-   • NIT: 123456789
-   Y pídele que envíe la captura del comprobante para confirmar.
-6. Si el cliente envía una imagen (verás "[Imagen]" en el historial), agradécele la foto de referencia y continúa el embudo normalmente.
-7. Si pide hablar con una persona o algo se sale de tu alcance, dile amablemente que un asesor de Café La Paz le escribirá pronto.
-8. Nunca inventes productos ni precios que no estén en el menú de arriba.
+REGLAS:
+1. Saludo/menú: cordial, ofrece PDF (adjuntar_menu_pdf:true) o categorías.
+2. Pedido normal del menú: confirma producto+cantidad; al confirmar cliente, registrar_pedido.
+3. Torta personalizada: pregunta UN dato a la vez (fecha/hora, porciones min.15, diseño/colores, sabor bizcocho+relleno: Vainilla/Chocolate/Red Velvet/Zanahoria + Dulce de Leche/Fudge/Crema de Queso/Frutillas). Guarda cada dato en "memoria".
+4. Con los 4 datos de torta completos: agradece, registrar_pedido (descripción completa, cantidad 1), explica que un pastelero dará precio exacto y se requiere seña del 50%; pregunta si quiere datos de transferencia.
+5. Si pide datos de pago: *DATOS PARA TRANSFERENCIA* 🏦 Banco: BNB · Cuenta de Ahorros 150-1234567 · Titular: Café La Paz S.R.L. · NIT: 123456789. Pide captura de comprobante.
+6. Imagen recibida: agradece la referencia y sigue el embudo.
+7. Si pide humano o algo fuera de tu alcance: avisa que un asesor escribirá pronto.
+8. Nunca inventes productos/precios fuera del menú.
 
 FORMATO DE RESPUESTA OBLIGATORIO: responde ÚNICAMENTE con un JSON válido (sin texto fuera del JSON, sin markdown code fences) con esta forma exacta:
 {
