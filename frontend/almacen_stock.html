@@ -188,10 +188,24 @@
                     </button>
                 </div>
                 
-                <div class="bg-slate-50 relative p-2 sm:p-4 rounded-b">
-                    <div id="tabla-insumos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        <!-- Las tarjetas se generan aquí vía JS -->
-                    </div>
+                <div class="bg-slate-50 relative rounded-b overflow-x-auto">
+                    <table class="min-w-full w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-100 border-b border-gray-200 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Foto</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Insumo</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Unidad</th>
+                                <th class="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Stock Actual</th>
+                                <th class="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Stock Mínimo</th>
+                                <th class="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
+                                <th class="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-insumos" class="divide-y divide-gray-200 bg-white">
+                            <!-- Las filas se generan aquí vía JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

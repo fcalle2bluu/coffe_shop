@@ -26,55 +26,54 @@ function renderizarTabla(insumos) {
     const tbody = document.getElementById('tabla-insumos');
     tbody.innerHTML = '';
 
-    insumos.forEach(insumo => {
+    // Vista de lista ordenada por fecha de registro (más reciente primero)
+    const ordenados = [...insumos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if (ordenados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-gray-400 font-semibold">No hay insumos registrados.</td></tr>`;
+        return;
+    }
+
+    ordenados.forEach(insumo => {
         const alerta = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
-        const badgeClase = alerta ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
-        const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Bajo Stock' : 'Normal';
-        const imgHtml = insumo.imagen_url 
-            ? `<img src="${insumo.imagen_url}" class="w-full h-40 object-cover cursor-pointer hover:scale-105 transition-transform" onclick="window.open('${insumo.imagen_url}', '_blank')">` 
-            : `<div class="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-300 text-5xl"><i class="fa-solid fa-image"></i></div>`;
+        const badgeTexto = alerta ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Bajo Stock' : 'Normal';
+        const imgHtml = insumo.imagen_url
+            ? `<img src="${insumo.imagen_url}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-150 transition-transform" onclick="window.open('${insumo.imagen_url}', '_blank')">`
+            : `<div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300"><i class="fa-solid fa-image"></i></div>`;
+        const fechaRegistro = insumo.created_at
+            ? new Date(insumo.created_at).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+            : '—';
 
         tbody.innerHTML += `
-            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
-                <!-- Foto Grande -->
-                <div class="relative w-full h-40 overflow-hidden shrink-0 bg-gray-50 border-b border-gray-100">
-                    ${imgHtml}
-                    <!-- Badge superpuesto -->
-                    <div class="absolute top-2 right-2">
-                        <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide uppercase shadow-sm border bg-white ${alerta ? 'text-red-600 border-red-300' : 'text-green-600 border-green-300'}">
-                            ${badgeTexto}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Info (2 líneas principales) -->
-                <div class="p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                        <h3 class="font-bold text-gray-900 text-lg leading-tight truncate mb-2" title="${insumo.nombre}">${insumo.nombre}</h3>
-                        <div class="flex justify-between items-baseline mb-1">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Detalle</span>
-                            <span class="text-2xl font-black tracking-tight ${alerta ? 'text-red-600' : 'text-stone-800'}">${insumo.stock_actual} <span class="text-sm text-gray-500 font-bold">${insumo.unidad_medida}</span></span>
-                        </div>
-                    </div>
-                    
-                    <!-- Acciones Inferiores -->
-                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                        <button onclick="eliminarInsumo(${insumo.id}, '${insumo.nombre}')" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors" title="Eliminar Insumo">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                        
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-3 py-2">${imgHtml}</td>
+                <td class="px-3 py-2 font-bold text-gray-900">${insumo.nombre}</td>
+                <td class="px-3 py-2 text-gray-600">${insumo.unidad_medida}</td>
+                <td class="px-3 py-2 text-right font-black ${alerta ? 'text-red-600' : 'text-stone-800'}">${insumo.stock_actual}</td>
+                <td class="px-3 py-2 text-right text-gray-500">${insumo.stock_minimo}</td>
+                <td class="px-3 py-2 text-center">
+                    <span class="px-2 py-1 rounded-full text-[10px] font-black tracking-wide uppercase border ${alerta ? 'bg-red-50 text-red-600 border-red-300' : 'bg-green-50 text-green-600 border-green-300'}">
+                        ${badgeTexto}
+                    </span>
+                </td>
+                <td class="px-3 py-2 text-gray-500">${fechaRegistro}</td>
+                <td class="px-3 py-2">
+                    <div class="flex items-center justify-center gap-2">
                         <div class="flex items-center rounded-lg border border-gray-300 overflow-hidden shadow-sm">
-                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-gray-50 hover:bg-red-500 hover:text-white text-gray-600 w-9 h-8 flex items-center justify-center transition-colors">
+                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'MERMA')" class="bg-gray-50 hover:bg-red-500 hover:text-white text-gray-600 w-8 h-8 flex items-center justify-center transition-colors">
                                 <i class="fa-solid fa-minus"></i>
                             </button>
                             <input type="number" id="qty-${insumo.id}" value="10" min="0.1" step="0.1" class="w-14 text-center text-sm outline-none bg-white font-bold h-8 border-x border-gray-200">
-                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-gray-50 hover:bg-green-500 hover:text-white text-gray-600 w-9 h-8 flex items-center justify-center transition-colors">
+                            <button onclick="aplicarAjusteRapido(${insumo.id}, 'AJUSTE')" class="bg-gray-50 hover:bg-green-500 hover:text-white text-gray-600 w-8 h-8 flex items-center justify-center transition-colors">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
+                        <button onclick="eliminarInsumo(${insumo.id}, '${insumo.nombre}')" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors" title="Eliminar Insumo">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
-                </div>
-            </div>
+                </td>
+            </tr>
         `;
     });
 }

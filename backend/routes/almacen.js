@@ -21,10 +21,10 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 
 router.get('/insumos', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo, imagen_url 
-            FROM insumos 
-            WHERE activo = TRUE 
-            ORDER BY nombre ASC
+            SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo, imagen_url, created_at
+            FROM insumos
+            WHERE activo = TRUE
+            ORDER BY created_at DESC
         `);
         res.json(result.rows);
     } catch (error) {
