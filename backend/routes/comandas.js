@@ -74,7 +74,7 @@ const checkCocineroOAdmin = async (req, res, next) => {
 
 // Crear una nueva comanda (Mesero inicia pedido)
 router.post('/', checkMeseroOAdmin, async (req, res) => {
-    const { mesa, usuario_id, total, detalles, fecha_hora } = req.body;
+    const { mesa, usuario_id, total, detalles, fecha_hora, notas } = req.body;
 
     if (!mesa || !usuario_id || !detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'Datos de comanda incompletos o carrito vacío.' });
@@ -108,19 +108,19 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
 
         // 1. Insertar Cabecera de Comanda
         const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente)
-            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5)
+            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas)
+            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6)
             RETURNING id
         `;
-        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente]);
+        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente, notas || null]);
         const comandaId = resultComanda.rows[0].id;
 
         // 2. Insertar Detalle de Comanda
         for (let item of detalles) {
             await client.query(`
-                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal)
-                VALUES ($1, $2, $3, $4, $5)
-            `, [comandaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
+                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal, notas)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [comandaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.notas || null]);
         }
 
         await client.query('COMMIT');
@@ -143,7 +143,21 @@ router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
     }
     try {
         const query = `
-            SELECT c.*, u.nombre as mesero_nombre
+            SELECT c.*, u.nombre as mesero_nombre,
+                (
+                    SELECT json_agg(json_build_object(
+                        'id', dc.id,
+                        'producto_id', dc.producto_id,
+                        'nombre', p.nombre,
+                        'cantidad', dc.cantidad,
+                        'precio_unitario', dc.precio_unitario,
+                        'subtotal', dc.subtotal,
+                        'notas', dc.notas
+                    ) ORDER BY dc.id)
+                    FROM detalle_comandas dc
+                    JOIN productos p ON dc.producto_id = p.id
+                    WHERE dc.comanda_id = c.id
+                ) as items
             FROM comandas c
             LEFT JOIN usuarios u ON c.usuario_id = u.id
             WHERE c.usuario_id = $1 AND c.estado != 'CANCELADA'
@@ -155,6 +169,66 @@ router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error al obtener comandas del mesero:', error);
         res.status(500).json({ error: 'Error al obtener comandas del mesero' });
+    }
+});
+
+// Editar una comanda propia desde "Control": permite cambiar cantidades, agregar/quitar productos y notas.
+// Al guardar, se reemplaza el detalle completo y se marca estado_cocina = PENDIENTE para que cocina
+// vea el pedido actualizado en su próxima consulta (mismo mecanismo que una comanda nueva).
+router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const { detalles, total, notas } = req.body;
+
+    if (!detalles || detalles.length === 0) {
+        return res.status(400).json({ error: 'La comanda debe tener al menos un producto.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const comandaRes = await client.query('SELECT usuario_id, estado FROM comandas WHERE id = $1', [id]);
+        if (comandaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+
+        const comanda = comandaRes.rows[0];
+        const esDueño = parseInt(comanda.usuario_id) === parseInt(usuario_id);
+        if (!esDueño && req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR' && req.rolActual !== 'CAJERO') {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Solo puedes editar tus propias comandas.' });
+        }
+
+        if (comanda.estado === 'PAGADA') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No se puede editar una comanda ya cobrada.' });
+        }
+
+        // Reemplazar el detalle completo (más simple y confiable que hacer un diff item por item)
+        await client.query('DELETE FROM detalle_comandas WHERE comanda_id = $1', [id]);
+        for (const item of detalles) {
+            await client.query(`
+                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal, notas)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [id, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.notas || null]);
+        }
+
+        await client.query(`
+            UPDATE comandas
+            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = $3
+        `, [total, notas || null, id]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Comanda actualizada correctamente' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al editar comanda:', error);
+        res.status(500).json({ error: 'Error interno al editar comanda: ' + error.message });
+    } finally {
+        client.release();
     }
 });
 
@@ -205,9 +279,9 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
 router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, u.nombre as mesero_nombre,
+            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, c.notas, u.nombre as mesero_nombre,
                 (
-                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad))
+                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas))
                     FROM detalle_comandas dc
                     JOIN productos p ON dc.producto_id = p.id
                     WHERE dc.comanda_id = c.id

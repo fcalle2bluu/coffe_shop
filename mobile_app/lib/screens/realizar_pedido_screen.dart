@@ -145,7 +145,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<String?> _generarComanda(String mesa) async {
+  Future<String?> _generarComanda(String mesa, String? notasGenerales, Map<int, String> notasPorProducto) async {
     try {
       final detalles = _carrito.entries.map((e) {
         final prod = _productos.firstWhere((p) => p.id == e.key);
@@ -154,6 +154,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           'cantidad': e.value,
           'precio_unitario': prod.precioVenta,
           'subtotal': prod.precioVenta * e.value,
+          'notas': notasPorProducto[prod.id],
         };
       }).toList();
 
@@ -163,6 +164,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         'total': _totalCarrito,
         'detalles': detalles,
         'fecha_hora': DateTime.now().toIso8601String(),
+        'notas': (notasGenerales != null && notasGenerales.isNotEmpty) ? notasGenerales : null,
       });
 
       final data = jsonDecode(res.body);
@@ -174,6 +176,39 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
       return null;
     } catch (e) {
       return 'Error de conexión: $e';
+    }
+  }
+
+  Future<String?> _guardarEdicionComanda(int comandaId, List<Map<String, dynamic>> detalles, double total, String? notas) async {
+    try {
+      final res = await ApiConfig.put('/comandas/mesero/$comandaId?usuario_id=$_userId', {
+        'detalles': detalles,
+        'total': total,
+        'notas': notas,
+      });
+      final data = jsonDecode(res.body);
+      if (res.statusCode != 200) {
+        return data['error']?.toString() ?? 'Error al editar la comanda';
+      }
+      return null;
+    } catch (e) {
+      return 'Error de conexión: $e';
+    }
+  }
+
+  Future<void> _abrirEdicionComanda(dynamic comanda) async {
+    final actualizado = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditarComandaSheet(
+        comanda: comanda,
+        productos: _productos,
+        onGuardar: _guardarEdicionComanda,
+      ),
+    );
+    if (actualizado == true) {
+      _cargarMisComandas();
     }
   }
 
@@ -518,6 +553,8 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           final c = _misComandas[index];
           final estadoCocina = c['estado_cocina'] ?? 'PENDIENTE';
           final estado = c['estado'] ?? '';
+          final items = (c['items'] as List<dynamic>?) ?? [];
+          final notasGenerales = (c['notas'] as String?) ?? '';
           final colorCocina = estadoCocina == 'COMPLETADA'
               ? Colors.green
               : (estadoCocina == 'RECHAZADA' ? Colors.redAccent : AppTheme.accentColor);
@@ -543,6 +580,41 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                     ),
                   ],
                 ),
+                if (items.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryDark,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: items.map((it) {
+                        final nota = (it['notas'] as String?) ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${it['cantidad']}x ${it['nombre']}',
+                                style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                              if (nota.isNotEmpty)
+                                Text('  📝 $nota', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  if (notasGenerales.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('Nota del pedido: $notasGenerales', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic)),
+                    ),
+                ],
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -553,14 +625,26 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                 ),
                 if (estado != 'PAGADA') ...[
                   const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _eliminarComanda(c['id']),
-                      icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                      label: const Text('Eliminar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _abrirEdicionComanda(c),
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppTheme.accentColor),
+                          label: const Text('Editar', style: TextStyle(color: AppTheme.accentColor, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accentColor)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _eliminarComanda(c['id']),
+                          icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                          label: const Text('Eliminar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
@@ -578,7 +662,7 @@ class _CarritoSheet extends StatefulWidget {
   final Map<int, int> carrito;
   final List<dynamic> mesas;
   final void Function(int productoId, int delta) onCambiarCantidad;
-  final Future<String?> Function(String mesa) onGenerarComanda;
+  final Future<String?> Function(String mesa, String? notasGenerales, Map<int, String> notasPorProducto) onGenerarComanda;
 
   const _CarritoSheet({
     required this.productos,
@@ -596,6 +680,14 @@ class _CarritoSheetState extends State<_CarritoSheet> {
   String? _mesaSeleccionada;
   bool _enviando = false;
   String? _error;
+  final Map<int, String> _notasPorProducto = {};
+  final TextEditingController _notasGeneralCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _notasGeneralCtrl.dispose();
+    super.dispose();
+  }
 
   double get _total {
     double total = 0;
@@ -604,6 +696,43 @@ class _CarritoSheetState extends State<_CarritoSheet> {
       total += prod.precioVenta * cant;
     });
     return total;
+  }
+
+  Future<void> _editarNotaProducto(int productoId, String nombre) async {
+    final controller = TextEditingController(text: _notasPorProducto[productoId] ?? '');
+    final resultado = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.secondaryDark,
+        title: Text('Nota para $nombre', style: const TextStyle(color: AppTheme.textLight, fontSize: 15)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 2,
+          style: const TextStyle(color: AppTheme.textLight),
+          decoration: InputDecoration(
+            hintText: 'Ej: sin azúcar, extra caliente...',
+            hintStyle: const TextStyle(color: AppTheme.textMuted),
+            filled: true,
+            fillColor: AppTheme.primaryDark,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (resultado != null) {
+      setState(() {
+        if (resultado.isEmpty) {
+          _notasPorProducto.remove(productoId);
+        } else {
+          _notasPorProducto[productoId] = resultado;
+        }
+      });
+    }
   }
 
   Future<void> _confirmar() async {
@@ -615,7 +744,7 @@ class _CarritoSheetState extends State<_CarritoSheet> {
       _enviando = true;
       _error = null;
     });
-    final error = await widget.onGenerarComanda(_mesaSeleccionada!);
+    final error = await widget.onGenerarComanda(_mesaSeleccionada!, _notasGeneralCtrl.text.trim(), _notasPorProducto);
     if (!mounted) return;
     if (error != null) {
       setState(() {
@@ -651,33 +780,67 @@ class _CarritoSheetState extends State<_CarritoSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: widget.carrito.entries.map((e) {
                 final prod = widget.productos.firstWhere((p) => p.id == e.key);
+                final nota = _notasPorProducto[prod.id] ?? '';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(prod.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(prod.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
+                          ),
+                          IconButton(
+                            onPressed: () => _editarNotaProducto(prod.id, prod.nombre),
+                            icon: Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 20),
+                            color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
+                          IconButton(
+                            onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, -1)),
+                            icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted),
+                            iconSize: 34,
+                            padding: EdgeInsets.zero,
+                          ),
+                          SizedBox(
+                            width: 28,
+                            child: Text('${e.value}', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold, fontSize: 18)),
+                          ),
+                          IconButton(
+                            onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, 1)),
+                            icon: const Icon(Icons.add_circle, color: AppTheme.accentColor),
+                            iconSize: 34,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, -1)),
-                        icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted),
-                        iconSize: 34,
-                        padding: EdgeInsets.zero,
-                      ),
-                      SizedBox(
-                        width: 28,
-                        child: Text('${e.value}', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold, fontSize: 18)),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, 1)),
-                        icon: const Icon(Icons.add_circle, color: AppTheme.accentColor),
-                        iconSize: 34,
-                        padding: EdgeInsets.zero,
-                      ),
+                      if (nota.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 2, top: 2),
+                          child: Text('📝 $nota', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                        ),
                     ],
                   ),
                 );
               }).toList(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _notasGeneralCtrl,
+              maxLines: 2,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Notas generales del pedido (opcional)...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                filled: true,
+                fillColor: AppTheme.primaryDark,
+                prefixIcon: const Icon(Icons.edit_note, color: AppTheme.textMuted, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
             ),
           ),
           Padding(
@@ -734,6 +897,350 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : Text('GENERAR COMANDA · Bs. ${_total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet para editar una comanda ya enviada desde la pestaña "Control":
+/// cambiar cantidades, quitar productos, agregar productos nuevos y editar notas.
+/// Al guardar, el backend marca la comanda como pendiente de nuevo para cocina.
+class _EditarComandaSheet extends StatefulWidget {
+  final dynamic comanda;
+  final List<Product> productos;
+  final Future<String?> Function(int comandaId, List<Map<String, dynamic>> detalles, double total, String? notas) onGuardar;
+
+  const _EditarComandaSheet({
+    required this.comanda,
+    required this.productos,
+    required this.onGuardar,
+  });
+
+  @override
+  State<_EditarComandaSheet> createState() => _EditarComandaSheetState();
+}
+
+class _EditarComandaSheetState extends State<_EditarComandaSheet> {
+  // Cada item: {producto_id, nombre, cantidad, precio_unitario, notas}
+  late List<Map<String, dynamic>> _items;
+  late TextEditingController _notasGeneralCtrl;
+  bool _guardando = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final itemsOriginales = (widget.comanda['items'] as List<dynamic>?) ?? [];
+    _items = itemsOriginales.map((it) => {
+      'producto_id': it['producto_id'],
+      'nombre': it['nombre'],
+      'cantidad': it['cantidad'],
+      'precio_unitario': double.tryParse(it['precio_unitario'].toString()) ?? 0.0,
+      'notas': it['notas'],
+    }).toList();
+    _notasGeneralCtrl = TextEditingController(text: (widget.comanda['notas'] as String?) ?? '');
+  }
+
+  @override
+  void dispose() {
+    _notasGeneralCtrl.dispose();
+    super.dispose();
+  }
+
+  double get _total {
+    double total = 0;
+    for (final it in _items) {
+      total += (it['precio_unitario'] as double) * (it['cantidad'] as int);
+    }
+    return total;
+  }
+
+  void _cambiarCantidad(int index, int delta) {
+    setState(() {
+      final nuevaCantidad = (_items[index]['cantidad'] as int) + delta;
+      if (nuevaCantidad <= 0) {
+        _items.removeAt(index);
+      } else {
+        _items[index]['cantidad'] = nuevaCantidad;
+      }
+    });
+  }
+
+  Future<void> _editarNota(int index) async {
+    final controller = TextEditingController(text: (_items[index]['notas'] as String?) ?? '');
+    final resultado = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.secondaryDark,
+        title: Text('Nota para ${_items[index]['nombre']}', style: const TextStyle(color: AppTheme.textLight, fontSize: 15)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 2,
+          style: const TextStyle(color: AppTheme.textLight),
+          decoration: InputDecoration(
+            hintText: 'Ej: sin azúcar, extra caliente...',
+            hintStyle: const TextStyle(color: AppTheme.textMuted),
+            filled: true,
+            fillColor: AppTheme.primaryDark,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (resultado != null) {
+      setState(() => _items[index]['notas'] = resultado.isEmpty ? null : resultado);
+    }
+  }
+
+  Future<void> _agregarProducto() async {
+    final producto = await showModalBottomSheet<Product>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SelectorProductoSheet(productos: widget.productos),
+    );
+    if (producto == null) return;
+
+    setState(() {
+      final indiceExistente = _items.indexWhere((it) => it['producto_id'] == producto.id);
+      if (indiceExistente != -1) {
+        _items[indiceExistente]['cantidad'] = (_items[indiceExistente]['cantidad'] as int) + 1;
+      } else {
+        _items.add({
+          'producto_id': producto.id,
+          'nombre': producto.nombre,
+          'cantidad': 1,
+          'precio_unitario': producto.precioVenta,
+          'notas': null,
+        });
+      }
+    });
+  }
+
+  Future<void> _guardar() async {
+    if (_items.isEmpty) {
+      setState(() => _error = 'La comanda debe tener al menos un producto.');
+      return;
+    }
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+
+    final detalles = _items.map((it) => {
+      'producto_id': it['producto_id'],
+      'cantidad': it['cantidad'],
+      'precio_unitario': it['precio_unitario'],
+      'subtotal': (it['precio_unitario'] as double) * (it['cantidad'] as int),
+      'notas': it['notas'],
+    }).toList();
+
+    final notasGenerales = _notasGeneralCtrl.text.trim();
+    final error = await widget.onGuardar(widget.comanda['id'], detalles, _total, notasGenerales.isEmpty ? null : notasGenerales);
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _guardando = false;
+        _error = error;
+      });
+    } else {
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Comanda actualizada, cocina verá los cambios')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: AppTheme.secondaryDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Editar comanda · Mesa ${widget.comanda['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppTheme.textLight)),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                ..._items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final it = entry.value;
+                  final nota = (it['notas'] as String?) ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(it['nombre'], style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
+                            ),
+                            IconButton(
+                              onPressed: () => _editarNota(index),
+                              icon: Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 20),
+                              color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                            IconButton(
+                              onPressed: () => _cambiarCantidad(index, -1),
+                              icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted),
+                              iconSize: 34,
+                              padding: EdgeInsets.zero,
+                            ),
+                            SizedBox(
+                              width: 28,
+                              child: Text('${it['cantidad']}', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.bold, fontSize: 18)),
+                            ),
+                            IconButton(
+                              onPressed: () => _cambiarCantidad(index, 1),
+                              icon: const Icon(Icons.add_circle, color: AppTheme.accentColor),
+                              iconSize: 34,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ],
+                        ),
+                        if (nota.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2, top: 2),
+                            child: Text('📝 $nota', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  onPressed: _agregarProducto,
+                  icon: const Icon(Icons.add, color: AppTheme.accentColor),
+                  label: const Text('Agregar producto', style: TextStyle(color: AppTheme.accentColor)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.accentColor),
+                    minimumSize: const Size(double.infinity, 44),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: TextField(
+              controller: _notasGeneralCtrl,
+              maxLines: 2,
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Notas generales del pedido (opcional)...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                filled: true,
+                fillColor: AppTheme.primaryDark,
+                prefixIcon: const Icon(Icons.edit_note, color: AppTheme.textMuted, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _guardando ? null : _guardar,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: _guardando
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('GUARDAR CAMBIOS · Bs. ${_total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Selector simple de producto (buscador + lista) para agregar un producto nuevo
+/// a una comanda que ya se está editando.
+class _SelectorProductoSheet extends StatefulWidget {
+  final List<Product> productos;
+
+  const _SelectorProductoSheet({required this.productos});
+
+  @override
+  State<_SelectorProductoSheet> createState() => _SelectorProductoSheetState();
+}
+
+class _SelectorProductoSheetState extends State<_SelectorProductoSheet> {
+  String _busqueda = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filtrados = widget.productos
+        .where((p) => p.nombre.toLowerCase().contains(_busqueda.toLowerCase()))
+        .toList();
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: AppTheme.secondaryDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              autofocus: true,
+              onChanged: (v) => setState(() => _busqueda = v),
+              style: const TextStyle(color: AppTheme.textLight),
+              decoration: InputDecoration(
+                hintText: 'Buscar producto...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: AppTheme.primaryDark,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filtrados.length,
+              itemBuilder: (context, index) {
+                final p = filtrados[index];
+                return ListTile(
+                  onTap: () => Navigator.pop(context, p),
+                  title: Text(p.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                  trailing: Text('Bs. ${p.precioVenta.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold)),
+                );
+              },
             ),
           ),
         ],

@@ -1291,6 +1291,15 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al crear tabla control_diario_cocina:', cdcErr.message);
     }
 
+    // Migración: detalles/notas de comandas (para que el mesero agregue notas al pedido y por producto)
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS notas TEXT;');
+        await pool.query('ALTER TABLE detalle_comandas ADD COLUMN IF NOT EXISTS notas TEXT;');
+        console.log('✅ Columnas notas en comandas/detalle_comandas verificadas/creadas.');
+    } catch (notasComandaErr) {
+        console.error('Error al migrar notas de comandas:', notasComandaErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
