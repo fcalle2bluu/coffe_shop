@@ -511,9 +511,24 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                                 top: 6,
                                 right: 6,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(10)),
-                                  child: Text('$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                  decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(14)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => _cambiarCantidad(p.id, -1),
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(3),
+                                          child: Icon(Icons.remove, color: Colors.white, size: 14),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        child: Text('$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                           ],
