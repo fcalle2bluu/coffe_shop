@@ -1300,6 +1300,15 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al migrar notas de comandas:', notasComandaErr.message);
     }
 
+    // Migración: contador de versión de la comanda (se incrementa al editar o pedir reimpresión),
+    // para que la app de cocina detecte cambios y reimprima marcando explícitamente que es una edición.
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;');
+        console.log('✅ Columna version en comandas verificada/creada.');
+    } catch (versionComandaErr) {
+        console.error('Error al migrar version de comandas:', versionComandaErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

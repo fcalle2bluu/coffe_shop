@@ -8,7 +8,7 @@ import '../services/alert_service.dart';
 import '../services/printer_service.dart';
 import 'login_screen.dart';
 
-const _kImpresasPrefsKey = 'comandas_impresas_ids';
+const _kVersionesPrefsKey = 'comandas_version_impresa';
 
 class CocinaScreen extends StatefulWidget {
   const CocinaScreen({super.key});
@@ -21,7 +21,10 @@ class _CocinaScreenState extends State<CocinaScreen> {
   static const _pollInterval = Duration(seconds: 7);
 
   List<dynamic> _pendientes = [];
-  final Set<int> _impresas = {};
+  // Guarda la última versión de cada comanda que ya se imprimió (en vez de solo
+  // el ID) para poder detectar cuándo el mesero editó una comanda ya impresa
+  // y así reimprimirla marcando explícitamente que es un cambio, no un pedido nuevo.
+  final Map<int, int> _versionesImpresas = {};
   final Set<int> _imprimiendo = {};
   final Set<int> _enCola = {};
   final List<Map<String, dynamic>> _colaImpresion = [];
@@ -76,13 +79,20 @@ class _CocinaScreenState extends State<CocinaScreen> {
 
   Future<void> _cargarImpresasPersistidas() async {
     final prefs = await SharedPreferences.getInstance();
-    final ids = prefs.getStringList(_kImpresasPrefsKey) ?? [];
-    _impresas.addAll(ids.map(int.parse));
+    final raw = prefs.getString(_kVersionesPrefsKey);
+    if (raw == null) return;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      decoded.forEach((k, v) => _versionesImpresas[int.parse(k)] = v as int);
+    } catch (_) {
+      // Formato viejo o corrupto: se ignora y arranca de cero.
+    }
   }
 
   Future<void> _guardarImpresasPersistidas() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kImpresasPrefsKey, _impresas.map((e) => e.toString()).toList());
+    final mapString = {for (final e in _versionesImpresas.entries) e.key.toString(): e.value};
+    await prefs.setString(_kVersionesPrefsKey, jsonEncode(mapString));
   }
 
   Future<void> _chequearPapel() async {
@@ -116,11 +126,13 @@ class _CocinaScreenState extends State<CocinaScreen> {
       }
 
       // Ya no está pendiente en el servidor (se completó/rechazó): se puede
-      // olvidar del set persistido, así no crece sin límite.
+      // olvidar del registro persistido, así no crece sin límite.
       final idsPendientes = data.map((c) => c['id'] as int).toSet();
-      final huerfanas = _impresas.difference(idsPendientes);
+      final huerfanas = _versionesImpresas.keys.toSet().difference(idsPendientes);
       if (huerfanas.isNotEmpty) {
-        _impresas.removeAll(huerfanas);
+        for (final id in huerfanas) {
+          _versionesImpresas.remove(id);
+        }
         _guardarImpresasPersistidas();
       }
 
@@ -145,8 +157,9 @@ class _CocinaScreenState extends State<CocinaScreen> {
   /// Por eso todo pasa por esta cola y se imprime de a una.
   void _encolarImpresion(Map<String, dynamic> comanda, {bool forzar = false}) {
     final id = comanda['id'] as int;
+    final version = (comanda['version'] as int?) ?? 1;
     if (_enCola.contains(id)) return;
-    if (!forzar && _impresas.contains(id)) return;
+    if (!forzar && (_versionesImpresas[id] ?? 0) >= version) return;
 
     _enCola.add(id);
     _colaImpresion.add(comanda);
@@ -177,14 +190,19 @@ class _CocinaScreenState extends State<CocinaScreen> {
       final itemsRaw = comanda['items'] as List<dynamic>? ?? [];
       final items = itemsRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       final fechaRaw = comanda['fecha_hora_cliente'] ?? comanda['fecha_creacion'];
+      final version = (comanda['version'] as int?) ?? 1;
+      // Si la comanda ya tiene más de una versión, es porque el mesero la editó
+      // o pidió reimpresión: se marca explícitamente en el ticket como un cambio.
+      final esEdicion = version > 1;
       await PrinterService.printComanda(
         comandaId: id,
         mesa: comanda['mesa'].toString(),
         items: items,
         mesero: comanda['mesero_nombre']?.toString(),
         fechaHora: fechaRaw != null ? DateTime.tryParse(fechaRaw.toString())?.toLocal() : null,
+        esEdicion: esEdicion,
       );
-      _impresas.add(id);
+      _versionesImpresas[id] = version;
       _errorImpresionMensaje.remove(id);
       _guardarImpresasPersistidas();
       if (mounted) {
@@ -363,14 +381,18 @@ class _CocinaScreenState extends State<CocinaScreen> {
     final enCola = _enCola.contains(id);
     final errorImpresion = _errorImpresion.contains(id);
     final itemsRaw = comanda['items'] as List<dynamic>? ?? [];
+    final esEdicion = ((comanda['version'] as int?) ?? 1) > 1;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: esEdicion ? Colors.amber.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: errorImpresion ? Colors.redAccent.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.08),
+          width: esEdicion ? 1.5 : 1,
+          color: errorImpresion
+              ? Colors.redAccent.withValues(alpha: 0.5)
+              : (esEdicion ? Colors.amber.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08)),
         ),
       ),
       child: Column(
@@ -397,6 +419,16 @@ class _CocinaScreenState extends State<CocinaScreen> {
                     tooltip: 'Reimprimir',
                     visualDensity: VisualDensity.compact,
                   ),
+                  if (esEdicion)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('MODIFICADO', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -409,6 +441,20 @@ class _CocinaScreenState extends State<CocinaScreen> {
               ),
             ],
           ),
+          if (esEdicion)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                '⚠️ PEDIDO MODIFICADO — revisa los productos, cambió desde la última vez',
+                style: TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.w900),
+              ),
+            ),
           if ((comanda['mesero_nombre'] ?? '').toString().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),

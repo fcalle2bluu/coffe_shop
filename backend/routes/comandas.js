@@ -208,7 +208,7 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
 
         await client.query(`
             UPDATE comandas
-            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP
+            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, version = version + 1
             WHERE id = $3
         `, [total, notas || null, id]);
 
@@ -220,6 +220,29 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
         res.status(500).json({ error: 'Error interno al editar comanda: ' + error.message });
     } finally {
         client.release();
+    }
+});
+
+// Solicitar reimpresión manual desde "Control" (el mesero pide que la comanda se
+// vuelva a imprimir/mostrar en cocina, sin necesidad de cambiar productos). Se
+// incrementa version para que la app de cocina la detecte y reimprima, y vuelve
+// a marcarla como PENDIENTE por si ya estaba completada/rechazada.
+router.post('/mesero/:id/imprimir', checkMeseroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            UPDATE comandas
+            SET estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, version = version + 1
+            WHERE id = $1
+            RETURNING id, version
+        `, [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+        res.json({ success: true, message: 'Se solicitó la reimpresión a cocina', version: result.rows[0].version });
+    } catch (error) {
+        console.error('Error al solicitar reimpresión:', error);
+        res.status(500).json({ error: 'Error al solicitar reimpresión: ' + error.message });
     }
 });
 
@@ -263,7 +286,7 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
 router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, c.notas, u.nombre as mesero_nombre,
+            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, c.notas, c.version, u.nombre as mesero_nombre,
                 (
                     SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas))
                     FROM detalle_comandas dc

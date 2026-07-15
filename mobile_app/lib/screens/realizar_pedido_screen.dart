@@ -287,6 +287,26 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     }
   }
 
+  Future<void> _solicitarImpresion(int id) async {
+    try {
+      final res = await ApiConfig.post('/comandas/mesero/$id/imprimir?usuario_id=$_userId', {});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🖨️ Se envió a imprimir en cocina')),
+        );
+        _cargarMisComandas();
+      } else {
+        final data = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['error'] ?? 'Error al solicitar impresión')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   Future<void> _eliminarComanda(int id) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -659,10 +679,22 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                           Text(c['mesero_nombre'], style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: colorCocina.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                      child: Text(estadoCocina, style: TextStyle(color: colorCocina, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (((c['version'] as int?) ?? 1) > 1)
+                          Container(
+                            margin: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.amber.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('EDITADO', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: colorCocina.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                          child: Text(estadoCocina, style: TextStyle(color: colorCocina, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -718,16 +750,25 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                           onPressed: () => _abrirEdicionComanda(c),
                           icon: const Icon(Icons.edit_outlined, size: 16, color: AppTheme.accentColor),
                           label: const Text('Editar', style: TextStyle(color: AppTheme.accentColor, fontSize: 12)),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accentColor)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accentColor), padding: const EdgeInsets.symmetric(horizontal: 4)),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _solicitarImpresion(c['id']),
+                          icon: const Icon(Icons.print_outlined, size: 16, color: Colors.blueAccent),
+                          label: const Text('Imprimir', style: TextStyle(color: Colors.blueAccent, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.blueAccent), padding: const EdgeInsets.symmetric(horizontal: 4)),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _eliminarComanda(c['id']),
                           icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
                           label: const Text('Eliminar', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent), padding: const EdgeInsets.symmetric(horizontal: 4)),
                         ),
                       ),
                     ],

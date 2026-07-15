@@ -42,8 +42,9 @@ class PrinterService {
     required List<Map<String, dynamic>> items,
     String? mesero,
     DateTime? fechaHora,
+    bool esEdicion = false,
   }) async {
-    await _imprimir(comandaId, mesa, items, mesero, fechaHora).timeout(
+    await _imprimir(comandaId, mesa, items, mesero, fechaHora, esEdicion).timeout(
       const Duration(seconds: 20),
       onTimeout: () => throw Exception('La impresora no respondió (tiempo de espera agotado)'),
     );
@@ -60,6 +61,7 @@ class PrinterService {
     List<Map<String, dynamic>> items,
     String? mesero,
     DateTime? fechaHora,
+    bool esEdicion,
   ) async {
     await init();
 
@@ -68,6 +70,20 @@ class PrinterService {
       style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.CENTER),
     );
     await _printer.lineWrap(times: 1);
+
+    // Aviso muy explícito de que esto NO es un pedido nuevo, sino un cambio
+    // sobre uno que cocina ya podría estar preparando o haber visto antes.
+    if (esEdicion) {
+      await _printer.printText(
+        text: ' *** PEDIDO MODIFICADO *** ',
+        style: SunmiTextStyle(bold: true, fontSize: 30, align: SunmiPrintAlign.CENTER, reverse: true),
+      );
+      await _printer.printText(
+        text: 'Revisar cambios en la mesa',
+        style: SunmiTextStyle(bold: true, fontSize: 22, align: SunmiPrintAlign.CENTER),
+      );
+      await _printer.lineWrap(times: 1);
+    }
 
     // Marco negro (video invertido: texto blanco sobre fondo negro) para que la
     // mesa resalte al instante, incluso con la vista cansada o el cabezal gastado.
