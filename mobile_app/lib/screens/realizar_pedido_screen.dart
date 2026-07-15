@@ -917,7 +917,7 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                 final prod = widget.productos.firstWhere((p) => p.id == e.key);
                 final nota = _notasPorProducto[prod.id] ?? '';
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -925,13 +925,6 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                         children: [
                           Expanded(
                             child: Text(prod.nombre, style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
-                          ),
-                          IconButton(
-                            onPressed: () => _editarNotaProducto(prod.id, prod.nombre),
-                            icon: Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 20),
-                            color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                           ),
                           IconButton(
                             onPressed: () => setState(() => widget.onCambiarCantidad(prod.id, -1)),
@@ -951,11 +944,32 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                           ),
                         ],
                       ),
-                      if (nota.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 2, top: 2),
-                          child: Text('📝 $nota', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () => _editarNotaProducto(prod.id, prod.nombre),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: nota.isNotEmpty ? AppTheme.accentColor.withOpacity(0.15) : AppTheme.primaryDark,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: nota.isNotEmpty ? AppTheme.accentColor : Colors.white24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 16, color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  nota.isNotEmpty ? nota : 'Agregar nota a este producto',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
                     ],
                   ),
                 );
@@ -1226,7 +1240,7 @@ class _EditarComandaSheetState extends State<_EditarComandaSheet> {
                   final it = entry.value;
                   final nota = (it['notas'] as String?) ?? '';
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1234,13 +1248,6 @@ class _EditarComandaSheetState extends State<_EditarComandaSheet> {
                           children: [
                             Expanded(
                               child: Text(it['nombre'], style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w600, fontSize: 15)),
-                            ),
-                            IconButton(
-                              onPressed: () => _editarNota(index),
-                              icon: Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 20),
-                              color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             ),
                             IconButton(
                               onPressed: () => _cambiarCantidad(index, -1),
@@ -1260,11 +1267,32 @@ class _EditarComandaSheetState extends State<_EditarComandaSheet> {
                             ),
                           ],
                         ),
-                        if (nota.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 2, top: 2),
-                            child: Text('📝 $nota', style: const TextStyle(color: AppTheme.accentColor, fontSize: 12, fontStyle: FontStyle.italic)),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => _editarNota(index),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: nota.isNotEmpty ? AppTheme.accentColor.withOpacity(0.15) : AppTheme.primaryDark,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: nota.isNotEmpty ? AppTheme.accentColor : Colors.white24),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(nota.isNotEmpty ? Icons.sticky_note_2 : Icons.note_add_outlined, size: 16, color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    nota.isNotEmpty ? nota : 'Agregar nota a este producto',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: nota.isNotEmpty ? AppTheme.accentColor : AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ),
                       ],
                     ),
                   );
