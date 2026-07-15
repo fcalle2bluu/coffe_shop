@@ -510,25 +510,28 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                               Positioned(
                                 top: 6,
                                 right: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                  decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(14)),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      GestureDetector(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Material(
+                                      color: Colors.black87,
+                                      shape: const CircleBorder(),
+                                      child: InkWell(
+                                        customBorder: const CircleBorder(),
                                         onTap: () => _cambiarCantidad(p.id, -1),
                                         child: const Padding(
-                                          padding: EdgeInsets.all(3),
-                                          child: Icon(Icons.remove, color: Colors.white, size: 14),
+                                          padding: EdgeInsets.all(6),
+                                          child: Icon(Icons.remove, color: Colors.white, size: 16),
                                         ),
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                                        child: Text('$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(10)),
+                                      child: Text('+$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    ),
+                                  ],
                                 ),
                               ),
                           ],
