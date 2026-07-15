@@ -135,12 +135,10 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
     }
 });
 
-// Listar las comandas activas del mesero (para su pestaña de "Control")
+// Listar TODAS las comandas activas (pendientes de cobro) para la pestaña "Control":
+// visible para cualquier mesero, sin importar quién la creó ni el día, ya que el
+// salón es compartido y cualquier mesero puede necesitar sumar o revisar una mesa.
 router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
-    }
     try {
         const query = `
             SELECT c.*, u.nombre as mesero_nombre,
@@ -160,24 +158,23 @@ router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
                 ) as items
             FROM comandas c
             LEFT JOIN usuarios u ON c.usuario_id = u.id
-            WHERE c.usuario_id = $1 AND c.estado != 'CANCELADA'
-              AND c.fecha_creacion >= CURRENT_DATE
+            WHERE c.estado IN ('CREADA', 'ENTREGADA')
             ORDER BY c.fecha_creacion DESC
         `;
-        const result = await pool.query(query, [usuario_id]);
+        const result = await pool.query(query);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error al obtener comandas del mesero:', error);
-        res.status(500).json({ error: 'Error al obtener comandas del mesero' });
+        console.error('Error al obtener comandas activas:', error);
+        res.status(500).json({ error: 'Error al obtener comandas activas' });
     }
 });
 
 // Editar una comanda propia desde "Control": permite cambiar cantidades, agregar/quitar productos y notas.
 // Al guardar, se reemplaza el detalle completo y se marca estado_cocina = PENDIENTE para que cocina
 // vea el pedido actualizado en su próxima consulta (mismo mecanismo que una comanda nueva).
+// Cualquier mesero puede editar cualquier comanda activa (el salón es compartido), no solo la propia.
 router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     const { id } = req.params;
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
     const { detalles, total, notas } = req.body;
 
     if (!detalles || detalles.length === 0) {
@@ -188,19 +185,13 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        const comandaRes = await client.query('SELECT usuario_id, estado FROM comandas WHERE id = $1', [id]);
+        const comandaRes = await client.query('SELECT estado FROM comandas WHERE id = $1', [id]);
         if (comandaRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Comanda no encontrada.' });
         }
 
         const comanda = comandaRes.rows[0];
-        const esDueño = parseInt(comanda.usuario_id) === parseInt(usuario_id);
-        if (!esDueño && req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR' && req.rolActual !== 'CAJERO') {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ error: 'Solo puedes editar tus propias comandas.' });
-        }
-
         if (comanda.estado === 'PAGADA') {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'No se puede editar una comanda ya cobrada.' });
@@ -232,28 +223,21 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     }
 });
 
-// Eliminar una comanda propia desde "Control" (solo si el mesero es el creador, o admin/cajero)
+// Eliminar una comanda activa desde "Control" (cualquier mesero, admin o cajero, ya que el salón es compartido)
 router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
     const { id } = req.params;
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        const comandaRes = await client.query('SELECT usuario_id, estado FROM comandas WHERE id = $1', [id]);
+        const comandaRes = await client.query('SELECT estado FROM comandas WHERE id = $1', [id]);
         if (comandaRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Comanda no encontrada.' });
         }
 
         const comanda = comandaRes.rows[0];
-        const esDueño = parseInt(comanda.usuario_id) === parseInt(usuario_id);
-        if (!esDueño && req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR' && req.rolActual !== 'CAJERO') {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ error: 'Solo puedes eliminar tus propias comandas.' });
-        }
-
         if (comanda.estado === 'PAGADA') {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'No se puede eliminar una comanda ya cobrada.' });
@@ -328,7 +312,21 @@ router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
 router.get('/mesas-estado', checkMeseroOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT c.*, u.nombre as mesero_nombre
+            SELECT c.*, u.nombre as mesero_nombre,
+                (
+                    SELECT json_agg(json_build_object(
+                        'id', dc.id,
+                        'producto_id', dc.producto_id,
+                        'nombre', p.nombre,
+                        'cantidad', dc.cantidad,
+                        'precio_unitario', dc.precio_unitario,
+                        'subtotal', dc.subtotal,
+                        'notas', dc.notas
+                    ) ORDER BY dc.id)
+                    FROM detalle_comandas dc
+                    JOIN productos p ON dc.producto_id = p.id
+                    WHERE dc.comanda_id = c.id
+                ) as items
             FROM comandas c
             LEFT JOIN usuarios u ON c.usuario_id = u.id
             WHERE c.estado IN ('CREADA', 'ENTREGADA')

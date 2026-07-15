@@ -147,7 +147,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   Future<String?> _generarComanda(String mesa, String? notasGenerales, Map<int, String> notasPorProducto) async {
     try {
-      final detalles = _carrito.entries.map((e) {
+      final detallesNuevos = _carrito.entries.map((e) {
         final prod = _productos.firstWhere((p) => p.id == e.key);
         return {
           'producto_id': prod.id,
@@ -158,11 +158,20 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         };
       }).toList();
 
+      // Si la mesa ya tiene un pedido activo (de cualquier mesero), se suman estos
+      // productos a esa misma comanda en vez de bloquear o crear una duplicada.
+      final mesaInfo = _mesas.firstWhere((m) => m['mesa'].toString() == mesa, orElse: () => null);
+      final comandaExistente = (mesaInfo != null && mesaInfo['estado'] == 'ocupada') ? mesaInfo['comanda'] : null;
+
+      if (comandaExistente != null) {
+        return await _sumarAComandaExistente(comandaExistente, detallesNuevos, notasGenerales);
+      }
+
       final res = await ApiConfig.post('/comandas', {
         'mesa': mesa,
         'usuario_id': _userId,
         'total': _totalCarrito,
-        'detalles': detalles,
+        'detalles': detallesNuevos,
         'fecha_hora': DateTime.now().toIso8601String(),
         'notas': (notasGenerales != null && notasGenerales.isNotEmpty) ? notasGenerales : null,
       });
@@ -170,6 +179,58 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
       final data = jsonDecode(res.body);
       if (res.statusCode != 201) {
         return data['error']?.toString() ?? 'Error al generar la comanda';
+      }
+
+      setState(() => _carrito.clear());
+      return null;
+    } catch (e) {
+      return 'Error de conexión: $e';
+    }
+  }
+
+  /// Suma los productos del carrito a una comanda ya existente en la mesa elegida
+  /// (de cualquier mesero), en vez de crear una comanda duplicada para esa mesa.
+  Future<String?> _sumarAComandaExistente(dynamic comandaExistente, List<Map<String, dynamic>> detallesNuevos, String? notasGenerales) async {
+    try {
+      final itemsActuales = (comandaExistente['items'] as List<dynamic>?) ?? [];
+      final detallesFinales = itemsActuales.map((it) => {
+        'producto_id': it['producto_id'],
+        'cantidad': it['cantidad'],
+        'precio_unitario': it['precio_unitario'],
+        'subtotal': it['subtotal'],
+        'notas': it['notas'],
+      }).toList();
+
+      for (final nuevo in detallesNuevos) {
+        final indiceExistente = detallesFinales.indexWhere((it) => it['producto_id'] == nuevo['producto_id']);
+        if (indiceExistente != -1) {
+          final cantidadSumada = (detallesFinales[indiceExistente]['cantidad'] as num) + (nuevo['cantidad'] as num);
+          final precio = double.tryParse(detallesFinales[indiceExistente]['precio_unitario'].toString()) ?? 0.0;
+          detallesFinales[indiceExistente]['cantidad'] = cantidadSumada;
+          detallesFinales[indiceExistente]['subtotal'] = precio * cantidadSumada;
+          if (nuevo['notas'] != null) {
+            detallesFinales[indiceExistente]['notas'] = nuevo['notas'];
+          }
+        } else {
+          detallesFinales.add(nuevo);
+        }
+      }
+
+      final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));
+
+      final notaPrevia = (comandaExistente['notas'] as String?) ?? '';
+      final notaNueva = notasGenerales ?? '';
+      final notasCombinadas = [notaPrevia, notaNueva].where((n) => n.isNotEmpty).join(' | ');
+
+      final res = await ApiConfig.put('/comandas/mesero/${comandaExistente['id']}?usuario_id=$_userId', {
+        'detalles': detallesFinales,
+        'total': totalFinal,
+        'notas': notasCombinadas.isEmpty ? null : notasCombinadas,
+      });
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode != 200) {
+        return data['error']?.toString() ?? 'Error al sumar productos a la mesa';
       }
 
       setState(() => _carrito.clear());
@@ -517,7 +578,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tus comandas', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.textLight)),
+              const Text('Comandas activas', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.textLight)),
               IconButton(icon: const Icon(Icons.refresh, color: AppTheme.textLight), onPressed: _cargarMisComandas),
             ],
           ),
@@ -529,7 +590,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   Widget _buildListaComandas() {
     if (_loadingControl) {
-      return const Center(child: PulsingCoffeeLoader(message: 'Cargando tus comandas...'));
+      return const Center(child: PulsingCoffeeLoader(message: 'Cargando comandas activas...'));
     }
     if (_misComandas.isEmpty) {
       return Center(
@@ -538,7 +599,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           children: [
             const FaIcon(FontAwesomeIcons.clipboardCheck, size: 48, color: AppTheme.textMuted),
             const SizedBox(height: 12),
-            const Text('No tienes comandas registradas hoy.', style: TextStyle(color: AppTheme.textMuted)),
+            const Text('No hay comandas activas en este momento.', style: TextStyle(color: AppTheme.textMuted)),
           ],
         ),
       );
@@ -572,7 +633,14 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Mesa ${c['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.textLight)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Mesa ${c['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.textLight)),
+                        if ((c['mesero_nombre'] as String?)?.isNotEmpty == true)
+                          Text(c['mesero_nombre'], style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                      ],
+                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: colorCocina.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
@@ -698,6 +766,12 @@ class _CarritoSheetState extends State<_CarritoSheet> {
     return total;
   }
 
+  bool get _mesaOcupadaSeleccionada {
+    if (_mesaSeleccionada == null) return false;
+    final mesa = widget.mesas.firstWhere((m) => m['mesa'].toString() == _mesaSeleccionada, orElse: () => null);
+    return mesa != null && mesa['estado'] == 'ocupada';
+  }
+
   Future<void> _editarNotaProducto(int productoId, String nombre) async {
     final controller = TextEditingController(text: _notasPorProducto[productoId] ?? '');
     final resultado = await showDialog<String>(
@@ -740,6 +814,7 @@ class _CarritoSheetState extends State<_CarritoSheet> {
       setState(() => _error = 'Selecciona una mesa.');
       return;
     }
+    final sumandoAMesaOcupada = _mesaOcupadaSeleccionada;
     setState(() {
       _enviando = true;
       _error = null;
@@ -753,9 +828,10 @@ class _CarritoSheetState extends State<_CarritoSheet> {
       });
     } else {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Comanda enviada a cocina para la mesa $_mesaSeleccionada')),
-      );
+      final mensaje = sumandoAMesaOcupada
+          ? '✅ Productos sumados al pedido de la mesa $_mesaSeleccionada'
+          : '✅ Comanda enviada a cocina para la mesa $_mesaSeleccionada';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     }
   }
 
@@ -861,14 +937,13 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                 final ocupada = m['estado'] == 'ocupada';
                 return DropdownMenuItem(
                   value: m['mesa'].toString(),
-                  enabled: !ocupada,
                   child: Row(
                     children: [
-                      Icon(Icons.circle, size: 10, color: ocupada ? Colors.redAccent : Colors.green),
+                      Icon(Icons.circle, size: 10, color: ocupada ? Colors.orange : Colors.green),
                       const SizedBox(width: 8),
                       Text(
-                        'Mesa ${m['mesa']}${ocupada ? ' (ocupada)' : ''}',
-                        style: TextStyle(color: ocupada ? AppTheme.textMuted : AppTheme.textLight),
+                        'Mesa ${m['mesa']}${ocupada ? ' (ocupada, se sumará)' : ''}',
+                        style: const TextStyle(color: AppTheme.textLight),
                       ),
                     ],
                   ),
@@ -877,6 +952,14 @@ class _CarritoSheetState extends State<_CarritoSheet> {
               onChanged: (v) => setState(() => _mesaSeleccionada = v),
             ),
           ),
+          if (_mesaOcupadaSeleccionada)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                '⚠️ Esta mesa ya tiene un pedido activo. Estos productos se sumarán a esa comanda.',
+                style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
+              ),
+            ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
