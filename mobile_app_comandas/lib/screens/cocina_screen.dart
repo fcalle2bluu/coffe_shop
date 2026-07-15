@@ -201,6 +201,7 @@ class _CocinaScreenState extends State<CocinaScreen> {
         mesero: comanda['mesero_nombre']?.toString(),
         fechaHora: fechaRaw != null ? DateTime.tryParse(fechaRaw.toString())?.toLocal() : null,
         esEdicion: esEdicion,
+        notasGenerales: comanda['notas']?.toString(),
       );
       _versionesImpresas[id] = version;
       _errorImpresionMensaje.remove(id);
@@ -483,15 +484,43 @@ class _CocinaScreenState extends State<CocinaScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: itemsRaw.map((item) {
               final m = item as Map;
+              final notaItem = (m['notas'] as String?) ?? '';
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '${m['cantidad']} x ${m['nombre']}',
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${m['cantidad']} x ${m['nombre']}',
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                    ),
+                    if (notaItem.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 2),
+                        child: Text(
+                          '📝 $notaItem',
+                          style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                  ],
                 ),
               );
             }).toList(),
           ),
+          if ((comanda['notas'] as String?)?.isNotEmpty == true)
+            Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 4),
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '📝 Nota del pedido: ${comanda['notas']}',
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
+              ),
+            ),
           const SizedBox(height: 12),
           Row(
             children: [

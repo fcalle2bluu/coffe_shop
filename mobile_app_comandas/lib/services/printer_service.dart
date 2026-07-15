@@ -43,8 +43,9 @@ class PrinterService {
     String? mesero,
     DateTime? fechaHora,
     bool esEdicion = false,
+    String? notasGenerales,
   }) async {
-    await _imprimir(comandaId, mesa, items, mesero, fechaHora, esEdicion).timeout(
+    await _imprimir(comandaId, mesa, items, mesero, fechaHora, esEdicion, notasGenerales).timeout(
       const Duration(seconds: 20),
       onTimeout: () => throw Exception('La impresora no respondió (tiempo de espera agotado)'),
     );
@@ -62,6 +63,7 @@ class PrinterService {
     String? mesero,
     DateTime? fechaHora,
     bool esEdicion,
+    String? notasGenerales,
   ) async {
     await init();
 
@@ -112,9 +114,24 @@ class PrinterService {
     for (final item in items) {
       final cant = item['cantidad']?.toString() ?? '1';
       final nombre = (item['nombre'] ?? 'Producto').toString();
+      final notaItem = (item['notas'] as String?) ?? '';
       await _printer.printText(
         text: '$cant x $nombre',
         style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.LEFT),
+      );
+      if (notaItem.isNotEmpty) {
+        await _printer.printText(
+          text: '  >> $notaItem',
+          style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.LEFT),
+        );
+      }
+    }
+
+    if (notasGenerales != null && notasGenerales.isNotEmpty) {
+      await _printer.lineWrap(times: 1);
+      await _printer.printText(
+        text: 'NOTA: $notasGenerales',
+        style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.LEFT),
       );
     }
 
