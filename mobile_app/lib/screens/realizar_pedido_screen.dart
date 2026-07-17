@@ -36,6 +36,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   bool _tecladoAbierto = false;
+  bool _vistaLista = false; // false = mosaicos (grid), true = listado
 
   @override
   void initState() {
@@ -103,10 +104,15 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   List<Product> get _productosFiltrados {
     // Si hay texto de búsqueda, se busca en TODOS los productos sin importar
     // la categoría seleccionada. La categoría solo filtra cuando no se busca.
+    List<Product> resultado;
     if (_busqueda.isNotEmpty) {
-      return _productos.where((p) => p.nombre.toLowerCase().contains(_busqueda.toLowerCase())).toList();
+      resultado = _productos.where((p) => p.nombre.toLowerCase().contains(_busqueda.toLowerCase())).toList();
+    } else {
+      resultado = _productos.where((p) => _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada).toList();
     }
-    return _productos.where((p) => _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada).toList();
+    // Los más vendidos primero, para que lo que más se pide aparezca de entrada.
+    resultado.sort((a, b) => b.cantidadVendida.compareTo(a.cantidadVendida));
+    return resultado;
   }
 
   int get _cantidadTotal => _carrito.values.fold(0, (a, b) => a + b);
@@ -476,28 +482,78 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         ),
         SizedBox(
           height: 32,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: _categorias.map((c) {
-              final seleccionado = c == _categoriaSeleccionada;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: ChoiceChip(
-                  label: Text(c, style: const TextStyle(fontSize: 11)),
-                  selected: seleccionado,
-                  onSelected: (_) => setState(() => _categoriaSeleccionada = c),
-                  selectedColor: AppTheme.accentColor,
-                  backgroundColor: AppTheme.secondaryDark,
-                  labelStyle: TextStyle(color: seleccionado ? Colors.white : AppTheme.textMuted, fontWeight: FontWeight.bold),
+          child: Row(
+            children: [
+              Expanded(
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: _categorias.map((c) {
+                    final seleccionado = c == _categoriaSeleccionada;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ChoiceChip(
+                        label: Text(c, style: const TextStyle(fontSize: 11)),
+                        selected: seleccionado,
+                        onSelected: (_) => setState(() => _categoriaSeleccionada = c),
+                        selectedColor: AppTheme.accentColor,
+                        backgroundColor: AppTheme.secondaryDark,
+                        labelStyle: TextStyle(color: seleccionado ? Colors.white : AppTheme.textMuted, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }).toList(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () => setState(() => _vistaLista = !_vistaLista),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryDark,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _vistaLista ? Icons.grid_view_rounded : Icons.view_list_rounded,
+                      color: AppTheme.textLight,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 4),
         Expanded(
-          child: GridView.builder(
+          child: _vistaLista ? _buildProductosLista() : _buildProductosGrid(),
+        ),
+        if (_tecladoAbierto)
+          _TecladoQwerty(
+            onLetra: (letra) => setState(() {
+              _busqueda += letra;
+              _searchController.text = _busqueda;
+            }),
+            onEspacio: () => setState(() {
+              _busqueda += ' ';
+              _searchController.text = _busqueda;
+            }),
+            onBorrar: () {
+              if (_busqueda.isEmpty) return;
+              setState(() {
+                _busqueda = _busqueda.substring(0, _busqueda.length - 1);
+                _searchController.text = _busqueda;
+              });
+            },
+            onCerrar: () => setState(() => _tecladoAbierto = false),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProductosGrid() {
+    return GridView.builder(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -592,28 +648,90 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                 ),
               );
             },
+    );
+  }
+
+  Widget _buildProductosLista() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
+      itemCount: _productosFiltrados.length,
+      itemBuilder: (context, index) {
+        final p = _productosFiltrados[index];
+        final enCarrito = _carrito[p.id] ?? 0;
+        return GestureDetector(
+          onTap: () => _agregarProducto(p),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.secondaryDark,
+              borderRadius: BorderRadius.circular(14),
+              border: enCarrito > 0 ? Border.all(color: AppTheme.accentColor, width: 2) : null,
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: (p.imagenUrl != null && p.imagenUrl!.isNotEmpty)
+                        ? Image.network(
+                            p.imagenUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => _placeholderImagen(),
+                            loadingBuilder: (context, child, progress) => progress == null ? child : _placeholderImagen(),
+                          )
+                        : _placeholderImagen(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.nombre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textLight),
+                      ),
+                      Text(
+                        'Bs. ${p.precioVenta.toStringAsFixed(2)}',
+                        style: const TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.w900, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ),
+                if (enCarrito > 0)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Material(
+                        color: Colors.black87,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _cambiarCantidad(p.id, -1),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: Icon(Icons.remove, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: AppTheme.accentColor, borderRadius: BorderRadius.circular(10)),
+                        child: Text('+$enCarrito', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
-        ),
-        if (_tecladoAbierto)
-          _TecladoQwerty(
-            onLetra: (letra) => setState(() {
-              _busqueda += letra;
-              _searchController.text = _busqueda;
-            }),
-            onEspacio: () => setState(() {
-              _busqueda += ' ';
-              _searchController.text = _busqueda;
-            }),
-            onBorrar: () {
-              if (_busqueda.isEmpty) return;
-              setState(() {
-                _busqueda = _busqueda.substring(0, _busqueda.length - 1);
-                _searchController.text = _busqueda;
-              });
-            },
-            onCerrar: () => setState(() => _tecladoAbierto = false),
-          ),
-      ],
+        );
+      },
     );
   }
 

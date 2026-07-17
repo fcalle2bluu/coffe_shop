@@ -52,7 +52,10 @@ const checkMeseroLecturaOAdmin = async (req, res, next) => {
 router.get('/productos', checkMeseroLecturaOAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria
+            SELECT p.id, p.nombre, p.precio_venta, p.imagen_url, c.nombre as categoria,
+                COALESCE((
+                    SELECT SUM(dv.cantidad) FROM detalle_ventas dv WHERE dv.producto_id = p.id
+                ), 0) as cantidad_vendida
             FROM productos p
             LEFT JOIN categorias c ON p.categoria_id = c.id
             WHERE p.activo = TRUE
