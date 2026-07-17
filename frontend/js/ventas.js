@@ -581,8 +581,11 @@ function toggleCategoriaCollapse(catId) {
 
 window.imprimirUltimoRecibo = imprimirUltimoRecibo;
 
-// === 5. COBRO DE MESAS ENTREGADAS/COMPLETADAS (Cajero y Admin) ===
-// Una mesa aparece aquí en cuanto cocina marca el pedido COMPLETADA o el mesero lo ENTREGA.
+// === 5. PEDIDOS DE MESA EN VIVO: estado y cobro (Cajero y Admin) ===
+// Muestra TODOS los pedidos que el mesero envía a una mesa, con su estado de
+// cocina y de entrega. El botón "Cobrar" solo se habilita cuando cocina marcó
+// COMPLETADA o el mesero ya ENTREGÓ el pedido.
+let mesasActivasTodas = [];
 let mesasListasCobro = [];
 let comandaSeleccionadaCobro = null;
 let primeraCargaMesasCobroHecha = false;
@@ -593,12 +596,13 @@ async function cargarMesasParaCobrar() {
         if (!res.ok) return;
         const data = await res.json();
 
-        const listas = data.filter(m => {
+        const activas = data.filter(m => m.estado === 'ocupada' && m.comanda);
+        const listas = activas.filter(m => {
             const c = m.comanda;
-            return m.estado === 'ocupada' && c && (c.estado === 'ENTREGADA' || c.estado_cocina === 'COMPLETADA');
+            return c.estado === 'ENTREGADA' || c.estado_cocina === 'COMPLETADA';
         });
 
-        // Avisar de inmediato cuando aparece una mesa nueva (no en la primera carga)
+        // Avisar de inmediato cuando una mesa pasa a estar lista (no en la primera carga)
         if (primeraCargaMesasCobroHecha) {
             const idsAnteriores = new Set(mesasListasCobro.map(m => m.comanda.id));
             listas.filter(m => !idsAnteriores.has(m.comanda.id)).forEach(m => {
@@ -607,6 +611,7 @@ async function cargarMesasParaCobrar() {
         }
         primeraCargaMesasCobroHecha = true;
 
+        mesasActivasTodas = activas;
         mesasListasCobro = listas;
         actualizarBadgeMesasCobro();
 
@@ -641,29 +646,74 @@ function cerrarModalMesasCobro() {
     document.getElementById('modalMesasCobro').classList.add('hidden');
 }
 
+function chipEstadoPedido(estado, estadoCocina) {
+    let chips = '';
+    if (estadoCocina === 'PENDIENTE') {
+        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700">🕐 En cocina</span>`;
+    } else if (estadoCocina === 'COMPLETADA') {
+        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">✅ Cocina lista</span>`;
+    } else if (estadoCocina === 'RECHAZADA') {
+        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-rose-100 text-rose-700">✖ Rechazado en cocina</span>`;
+    }
+
+    if (estado === 'ENTREGADA') {
+        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-sky-100 text-sky-700">🍽️ Entregado</span>`;
+    } else if (estado === 'CREADA') {
+        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-slate-100 text-slate-600">📋 Pedido abierto</span>`;
+    }
+
+    return chips;
+}
+
 function renderizarListaMesasCobro() {
     const cont = document.getElementById('lista-mesas-cobro');
     if (!cont) return;
 
-    if (mesasListasCobro.length === 0) {
-        cont.innerHTML = `<div class="text-center text-slate-400 text-sm py-10 italic">No hay mesas listas para cobrar por ahora.</div>`;
+    if (mesasActivasTodas.length === 0) {
+        cont.innerHTML = `<div class="text-center text-slate-400 text-sm py-10 italic">No hay pedidos activos de mesero por ahora.</div>`;
         return;
     }
 
-    cont.innerHTML = mesasListasCobro.map(m => {
+    cont.innerHTML = mesasActivasTodas.map(m => {
         const c = m.comanda;
         const total = parseFloat(c.total).toFixed(2);
+        const listaParaCobrar = c.estado === 'ENTREGADA' || c.estado_cocina === 'COMPLETADA';
+
+        const itemsHtml = (c.items || []).map(it => `
+            <div class="flex justify-between text-xs text-slate-500 py-0.5">
+                <span>${it.cantidad}x ${it.nombre}${it.notas ? ` <span class="italic text-slate-400">(${it.notas})</span>` : ''}</span>
+                <span class="shrink-0 pl-2">Bs. ${parseFloat(it.subtotal).toFixed(2)}</span>
+            </div>
+        `).join('');
+
         return `
-            <button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-colors btn-bounce text-left">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black">${m.mesa}</div>
-                    <div>
-                        <p class="font-bold text-stone-800 text-sm">Mesa ${m.mesa}</p>
-                        <p class="text-xs text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
+            <div class="rounded-xl border ${listaParaCobrar ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200'} p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black shrink-0">${m.mesa}</div>
+                        <div>
+                            <p class="font-bold text-stone-800 text-sm">Mesa ${m.mesa}</p>
+                            <p class="text-xs text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
+                        </div>
                     </div>
+                    <p class="font-black text-orange-600 shrink-0">Bs. ${total}</p>
                 </div>
-                <p class="font-black text-orange-600">Bs. ${total}</p>
-            </button>
+                <div class="flex flex-wrap items-center gap-1.5 mb-2">
+                    ${chipEstadoPedido(c.estado, c.estado_cocina)}
+                </div>
+                <div class="border-t border-dashed border-gray-200 pt-1.5 mb-2">
+                    ${itemsHtml}
+                </div>
+                ${c.notas ? `<p class="text-xs italic text-slate-500 mb-2">📝 ${c.notas}</p>` : ''}
+                ${listaParaCobrar
+                    ? `<button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition-colors btn-bounce">
+                        <i class="fa-solid fa-cash-register mr-1"></i> Cobrar Mesa
+                    </button>`
+                    : `<div class="w-full bg-gray-100 text-gray-400 text-xs font-bold py-2 rounded-lg text-center">
+                        <i class="fa-solid fa-hourglass-half mr-1"></i> Todavía preparándose
+                    </div>`
+                }
+            </div>
         `;
     }).join('');
 }
