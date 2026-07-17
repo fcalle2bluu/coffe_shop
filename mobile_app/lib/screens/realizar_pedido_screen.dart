@@ -505,6 +505,24 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                 ),
               ),
               Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: GestureDetector(
+                  onTap: _cargarDatos,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryDark,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.refresh,
+                      color: AppTheme.textLight,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: GestureDetector(
                   onTap: () => setState(() => _vistaLista = !_vistaLista),
