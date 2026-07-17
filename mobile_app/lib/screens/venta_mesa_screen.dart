@@ -432,8 +432,8 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     ticket.writeln('Mesa: ${_activeComanda!['mesa']}');
     ticket.writeln('Mesero: ${_activeComanda!['mesero_nombre'] ?? _userName}');
     ticket.writeln('Estado: ${_activeComanda!['estado']}');
-    final String fecha = _activeComanda!['fecha_creacion'] != null 
-        ? _activeComanda!['fecha_creacion'].toString().substring(0, 16).replaceAll('T', ' ')
+    final String fecha = _activeComanda!['fecha_creacion'] != null
+        ? (DateTime.tryParse(_activeComanda!['fecha_creacion'].toString())?.toLocal().toString().substring(0, 16) ?? DateTime.now().toString().substring(0, 16))
         : DateTime.now().toString().substring(0, 16);
     ticket.writeln('Fecha: $fecha');
     ticket.writeln('--------------------------------');
@@ -853,6 +853,10 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     final isCreada = _activeComanda!['estado'] == 'CREADA';
     final total = double.parse(_activeComanda!['total'].toString());
     final cajeroOAdmin = _userRol == 'CAJERO' || _userRol == 'ADMIN' || _userRol == 'ADMINISTRADOR';
+    final horaComanda = DateTime.tryParse((_activeComanda!['fecha_creacion'] ?? '').toString())?.toLocal();
+    final horaComandaTexto = horaComanda != null
+        ? '${horaComanda.hour.toString().padLeft(2, '0')}:${horaComanda.minute.toString().padLeft(2, '0')}'
+        : '';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -884,6 +888,11 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                           'Atendido por: ${_activeComanda!['mesero_nombre'] ?? 'Mesero'}',
                           style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted),
                         ),
+                        if (horaComandaTexto.isNotEmpty)
+                          Text(
+                            'Hora: $horaComandaTexto',
+                            style: GoogleFonts.outfit(fontSize: 12, color: AppTheme.textMuted),
+                          ),
                       ],
                     ),
                     Container(

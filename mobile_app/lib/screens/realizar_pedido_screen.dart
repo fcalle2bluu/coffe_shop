@@ -55,6 +55,15 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     await _cargarDatos();
   }
 
+  String _formatearHoraComanda(Map<String, dynamic> c) {
+    final raw = c['fecha_hora_cliente'] ?? c['fecha_creacion'];
+    if (raw == null) return '';
+    final dt = DateTime.tryParse(raw.toString())?.toLocal();
+    if (dt == null) return '';
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return 'Hora: ${dos(dt.hour)}:${dos(dt.minute)}';
+  }
+
   Future<void> _cargarDatos() async {
     setState(() {
       _loading = true;
@@ -172,7 +181,7 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         'usuario_id': _userId,
         'total': _totalCarrito,
         'detalles': detallesNuevos,
-        'fecha_hora': DateTime.now().toIso8601String(),
+        'fecha_hora': DateTime.now().toUtc().toIso8601String(),
         'notas': (notasGenerales != null && notasGenerales.isNotEmpty) ? notasGenerales : null,
       });
 
@@ -677,6 +686,8 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                         Text('Mesa ${c['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.textLight)),
                         if ((c['mesero_nombre'] as String?)?.isNotEmpty == true)
                           Text(c['mesero_nombre'], style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                        if (_formatearHoraComanda(c).isNotEmpty)
+                          Text(_formatearHoraComanda(c), style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
                       ],
                     ),
                     Row(
