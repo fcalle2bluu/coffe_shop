@@ -13,9 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('buscarProducto').addEventListener('input', (e) => {
         renderizarCatalogo(e.target.value);
     });
-    
+
     // Cargar categorias para el modal
     cargarCategoriasSelect();
+
+    // Mesas listas para cobrar: primera carga + sondeo periódico (tiempo casi real)
+    cargarMesasParaCobrar();
+    setInterval(cargarMesasParaCobrar, 8000);
 });
 
 // --- 1. CATÁLOGO DE PRODUCTOS ---
@@ -576,3 +580,159 @@ function toggleCategoriaCollapse(catId) {
 }
 
 window.imprimirUltimoRecibo = imprimirUltimoRecibo;
+
+// === 5. COBRO DE MESAS ENTREGADAS/COMPLETADAS (Cajero y Admin) ===
+// Una mesa aparece aquí en cuanto cocina marca el pedido COMPLETADA o el mesero lo ENTREGA.
+let mesasListasCobro = [];
+let comandaSeleccionadaCobro = null;
+let primeraCargaMesasCobroHecha = false;
+
+async function cargarMesasParaCobrar() {
+    try {
+        const res = await fetch('/api/comandas/mesas-estado');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const listas = data.filter(m => {
+            const c = m.comanda;
+            return m.estado === 'ocupada' && c && (c.estado === 'ENTREGADA' || c.estado_cocina === 'COMPLETADA');
+        });
+
+        // Avisar de inmediato cuando aparece una mesa nueva (no en la primera carga)
+        if (primeraCargaMesasCobroHecha) {
+            const idsAnteriores = new Set(mesasListasCobro.map(m => m.comanda.id));
+            listas.filter(m => !idsAnteriores.has(m.comanda.id)).forEach(m => {
+                mostrarToast(`🔔 Mesa ${m.mesa} está lista para cobrar`);
+            });
+        }
+        primeraCargaMesasCobroHecha = true;
+
+        mesasListasCobro = listas;
+        actualizarBadgeMesasCobro();
+
+        // Si el panel de lista está abierto, refrescarlo también
+        const modal = document.getElementById('modalMesasCobro');
+        if (modal && !modal.classList.contains('hidden')) {
+            renderizarListaMesasCobro();
+        }
+    } catch (e) {
+        console.error('Error al cargar mesas para cobrar:', e);
+    }
+}
+
+function actualizarBadgeMesasCobro() {
+    const badge = document.getElementById('badge-mesas-cobro');
+    if (!badge) return;
+    if (mesasListasCobro.length > 0) {
+        badge.innerText = mesasListasCobro.length;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function abrirModalMesasCobro() {
+    renderizarListaMesasCobro();
+    document.getElementById('modalMesasCobro').classList.remove('hidden');
+    cargarMesasParaCobrar();
+}
+
+function cerrarModalMesasCobro() {
+    document.getElementById('modalMesasCobro').classList.add('hidden');
+}
+
+function renderizarListaMesasCobro() {
+    const cont = document.getElementById('lista-mesas-cobro');
+    if (!cont) return;
+
+    if (mesasListasCobro.length === 0) {
+        cont.innerHTML = `<div class="text-center text-slate-400 text-sm py-10 italic">No hay mesas listas para cobrar por ahora.</div>`;
+        return;
+    }
+
+    cont.innerHTML = mesasListasCobro.map(m => {
+        const c = m.comanda;
+        const total = parseFloat(c.total).toFixed(2);
+        return `
+            <button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-colors btn-bounce text-left">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black">${m.mesa}</div>
+                    <div>
+                        <p class="font-bold text-stone-800 text-sm">Mesa ${m.mesa}</p>
+                        <p class="text-xs text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
+                    </div>
+                </div>
+                <p class="font-black text-orange-600">Bs. ${total}</p>
+            </button>
+        `;
+    }).join('');
+}
+
+function abrirModalPagoMesa(comandaId, numMesa, total) {
+    comandaSeleccionadaCobro = { id: comandaId, mesa: numMesa, total: total };
+    document.getElementById('lbl-mesa-pago').innerText = numMesa;
+    document.getElementById('lbl-monto-pago-mesa').innerText = `Bs. ${parseFloat(total).toFixed(2)}`;
+    cerrarModalMesasCobro();
+    document.getElementById('modalPagoMesa').classList.remove('hidden');
+}
+
+function cerrarModalPagoMesa() {
+    document.getElementById('modalPagoMesa').classList.add('hidden');
+    comandaSeleccionadaCobro = null;
+}
+
+async function confirmarPagoMesa() {
+    if (!comandaSeleccionadaCobro) return;
+    const btn = document.getElementById('btn-confirmar-pago-mesa');
+    const metodoPago = document.getElementById('sel-metodo-pago-mesa').value;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+    try {
+        const res = await fetch(`/api/comandas/${comandaSeleccionadaCobro.id}/pagar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                metodo_pago: metodoPago,
+                usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al cobrar la mesa');
+
+        const numMesa = comandaSeleccionadaCobro.mesa;
+        ultimaVentaId = data.venta_id;
+
+        cerrarModalPagoMesa();
+        cargarMesasParaCobrar();
+
+        // Reutiliza el modal de éxito / impresión que ya usa el Punto de Venta directo
+        document.getElementById('info-ticket').innerText = `Mesa ${numMesa} cobrada | Ticket #${ultimaVentaId}`;
+        document.getElementById('modalExito').classList.remove('hidden');
+    } catch (e) {
+        alert('❌ Error al cobrar: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Cobrar';
+    }
+}
+
+function mostrarToast(mensaje) {
+    const cont = document.getElementById('toast-container');
+    if (!cont) return;
+    const toast = document.createElement('div');
+    toast.className = 'animate-fade-in-up bg-slate-900 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg max-w-xs';
+    toast.innerText = mensaje;
+    cont.appendChild(toast);
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s ease';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+window.abrirModalMesasCobro = abrirModalMesasCobro;
+window.cerrarModalMesasCobro = cerrarModalMesasCobro;
+window.abrirModalPagoMesa = abrirModalPagoMesa;
+window.cerrarModalPagoMesa = cerrarModalPagoMesa;
+window.confirmarPagoMesa = confirmarPagoMesa;
