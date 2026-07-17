@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -27,9 +28,15 @@ class _PosScreenState extends State<PosScreen> {
   final Map<int, int> _cart = {}; // Map of product ID to quantity
   bool _isLoading = true;
   bool _isAdmin = false;
+  bool _isCajeroOAdmin = false;
   String _searchQuery = '';
   final Set<String> _expandedCategories = {};
   int? _selectedCajaId;
+
+  // Mesas listas para cobrar desde Punto de Venta (cocina completó o mesero entregó)
+  List<dynamic> _mesasParaCobrar = [];
+  Timer? _pollMesasTimer;
+  bool _primeraCargaMesasHecha = false;
 
   // Controllers for Product dialog
   final _prodNameController = TextEditingController();
@@ -85,6 +92,7 @@ class _PosScreenState extends State<PosScreen> {
 
   @override
   void dispose() {
+    _pollMesasTimer?.cancel();
     _prodNameController.dispose();
     _prodPriceController.dispose();
     _prodImageUrlController.dispose();
@@ -94,9 +102,58 @@ class _PosScreenState extends State<PosScreen> {
   Future<void> _checkRole() async {
     final prefs = await SharedPreferences.getInstance();
     final rol = prefs.getString('usuario_rol') ?? 'CAJERO';
+    final rolUpper = rol.toUpperCase();
     setState(() {
-      _isAdmin = rol.toUpperCase() == 'ADMIN' || rol.toUpperCase() == 'ADMINISTRADOR';
+      _isAdmin = rolUpper == 'ADMIN' || rolUpper == 'ADMINISTRADOR';
+      _isCajeroOAdmin = _isAdmin || rolUpper == 'CAJERO';
     });
+    if (_isCajeroOAdmin) {
+      _cargarMesasParaCobrar();
+      _pollMesasTimer?.cancel();
+      _pollMesasTimer = Timer.periodic(const Duration(seconds: 8), (_) => _cargarMesasParaCobrar());
+    }
+  }
+
+  // Mesas listas para cobrar: cocina marcó COMPLETADA el pedido, o el mesero ya lo ENTREGÓ
+  Future<void> _cargarMesasParaCobrar() async {
+    try {
+      final res = await ApiConfig.get('/comandas/mesas-estado');
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        final listas = data.where((m) {
+          final comanda = m['comanda'];
+          if (m['estado'] != 'ocupada' || comanda == null) return false;
+          return comanda['estado'] == 'ENTREGADA' || comanda['estado_cocina'] == 'COMPLETADA';
+        }).toList();
+
+        if (!mounted) return;
+
+        // Avisar de inmediato al cajero cuando aparece una mesa nueva (no en la primera carga)
+        if (_primeraCargaMesasHecha) {
+          final idsAnteriores = _mesasParaCobrar.map((m) => m['comanda']['id']).toSet();
+          final nuevas = listas.where((m) => !idsAnteriores.contains(m['comanda']['id']));
+          for (final m in nuevas) {
+            _mostrarAvisoMesaLista(m['mesa'].toString());
+          }
+        }
+        _primeraCargaMesasHecha = true;
+
+        setState(() => _mesasParaCobrar = listas);
+      }
+    } catch (e) {
+      print('Error al cargar mesas para cobrar: $e');
+    }
+  }
+
+  void _mostrarAvisoMesaLista(String numMesa) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🔔 Mesa $numMesa está lista para cobrar'),
+        backgroundColor: AppTheme.accentColor,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<void> _loadCajaId() async {
@@ -708,6 +765,351 @@ class _PosScreenState extends State<PosScreen> {
     }
   }
 
+  // Abre la lista de mesas listas para cobrar (cocina completó o mesero entregó)
+  void _abrirCobroMesas() async {
+    await _cargarMesasParaCobrar();
+    if (!mounted) return;
+
+    Timer? pollSheetTimer;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.secondaryDark,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          // Mientras el panel esté abierto, refresca solo (tiempo casi real)
+          pollSheetTimer ??= Timer.periodic(const Duration(seconds: 5), (_) async {
+            await _cargarMesasParaCobrar();
+            if (ctx.mounted) setSheetState(() {});
+          });
+
+          Future<void> refrescar() async {
+            await _cargarMesasParaCobrar();
+            setSheetState(() {});
+          }
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.3,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (context, scrollController) => Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Mesas Entregadas · Por Cobrar',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, fontFamily: 'Outfit'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 20, color: AppTheme.textMuted),
+                        onPressed: refrescar,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.white10, height: 1),
+                Expanded(
+                  child: _mesasParaCobrar.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No hay mesas entregadas pendientes de cobro',
+                            style: TextStyle(color: Colors.white.withOpacity(0.4), fontStyle: FontStyle.italic),
+                          ),
+                        )
+                      : ListView.separated(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _mesasParaCobrar.length,
+                          separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+                          itemBuilder: (context, index) {
+                            final m = _mesasParaCobrar[index];
+                            final comanda = m['comanda'];
+                            final total = double.tryParse(comanda['total'].toString()) ?? 0.0;
+                            return ListTile(
+                              leading: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${m['mesa']}',
+                                  style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                                ),
+                              ),
+                              title: Text('Mesa ${m['mesa']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('Mesero: ${comanda['mesero_nombre'] ?? '-'}'),
+                              trailing: Text(
+                                'Bs. ${total.toStringAsFixed(2)}',
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                              ),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                _procesarCobroMesa(comanda, m['mesa'].toString());
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    pollSheetTimer?.cancel();
+  }
+
+  void _procesarCobroMesa(Map<String, dynamic> comanda, String numMesa) {
+    final total = double.tryParse(comanda['total'].toString()) ?? 0.0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cobrar Mesa $numMesa'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total a cobrar: Bs. ${total.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentColor),
+            ),
+            const SizedBox(height: 16),
+            const Text('Selecciona el método de pago:'),
+            const SizedBox(height: 12),
+            _buildPaymentMethodButtonMesa('EFECTIVO', FontAwesomeIcons.moneyBillWave, comanda, numMesa),
+            const SizedBox(height: 8),
+            _buildPaymentMethodButtonMesa('QR DIGITAL', FontAwesomeIcons.qrcode, comanda, numMesa),
+            const SizedBox(height: 8),
+            _buildPaymentMethodButtonMesa('CONSUME LO NUESTRO', FontAwesomeIcons.wallet, comanda, numMesa),
+            const SizedBox(height: 8),
+            _buildPaymentMethodButtonMesa('TARJETA DE DÉBITO/CRÉDITO', FontAwesomeIcons.creditCard, comanda, numMesa),
+            const SizedBox(height: 8),
+            _buildPaymentMethodButtonMesa('BILLETERA MOVIL', FontAwesomeIcons.mobileScreen, comanda, numMesa),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodButtonMesa(String method, FaIconData icon, Map<String, dynamic> comanda, String numMesa) {
+    return ElevatedButton.icon(
+      onPressed: () => _confirmarCobroMesa(comanda, numMesa, method),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        alignment: Alignment.centerLeft,
+      ),
+      icon: FaIcon(icon, size: 16, color: AppTheme.accentColor),
+      label: Text(method, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Future<void> _confirmarCobroMesa(Map<String, dynamic> comanda, String numMesa, String method) async {
+    Navigator.pop(context); // Cerrar diálogo de método de pago
+    setState(() => _isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('usuario_id') ?? 1;
+      final comandaId = comanda['id'];
+
+      final response = await ApiConfig.post('/comandas/$comandaId/pagar', {
+        'metodo_pago': method,
+        'usuario_id': userId,
+      });
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final ventaId = data['venta_id'] ?? 0;
+        final total = double.tryParse(comanda['total'].toString()) ?? 0.0;
+
+        final List<dynamic> items = comanda['items'] ?? [];
+        final List<Map<String, dynamic>> resumenItems = items.map((it) => {
+          'nombre': it['nombre'] ?? '',
+          'cantidad': it['cantidad'] ?? 1,
+          'precio': double.tryParse(it['precio_unitario'].toString()) ?? 0.0,
+          'subtotal': double.tryParse(it['subtotal'].toString()) ?? 0.0,
+        }).toList();
+
+        await _cargarMesasParaCobrar();
+        if (mounted) setState(() => _isLoading = false);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Mesa $numMesa cobrada y liberada')),
+        );
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.secondaryDark,
+            contentPadding: const EdgeInsets.all(20),
+            title: Column(
+              children: [
+                const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 48),
+                const SizedBox(height: 8),
+                Text(
+                  '¡Mesa $numMesa Cobrada!',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                Text(
+                  'Ticket #${ventaId.toString().padLeft(5, '0')}',
+                  style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(color: Colors.white10),
+                ...resumenItems.map((item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item['cantidad']}x ${item['nombre']}',
+                          style: const TextStyle(fontSize: 13, color: AppTheme.textLight),
+                        ),
+                      ),
+                      Text(
+                        'Bs. ${(item['subtotal'] as double).toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textLight),
+                      ),
+                    ],
+                  ),
+                )),
+                const Divider(color: Colors.white10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('TOTAL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.accentColor)),
+                    Text(
+                      'Bs. ${total.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.accentColor),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Pago: $method',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const FaIcon(FontAwesomeIcons.xmark, size: 14),
+                      label: const Text('Cerrar', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.textMuted,
+                        side: const BorderSide(color: Colors.white10),
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: StatefulBuilder(
+                      builder: (context, setBtn) {
+                        bool printing = false;
+                        return ElevatedButton.icon(
+                          onPressed: printing ? null : () async {
+                            setBtn(() => printing = true);
+                            try {
+                              await SunmiPrinterService.printTicketVenta(
+                                ventaId: ventaId,
+                                fecha: DateTime.now().toString().substring(0, 16),
+                                items: resumenItems,
+                                total: total,
+                                metodoPago: method,
+                              );
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(content: Text('✅ Ticket impreso')),
+                                );
+                              }
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text('❌ Error: $e')),
+                                );
+                              }
+                            } finally {
+                              setBtn(() => printing = false);
+                            }
+                          },
+                          icon: printing
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const FaIcon(FontAwesomeIcons.print, size: 14),
+                          label: Text(printing ? 'Imprimiendo' : 'Imprimir', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentColor,
+                            minimumSize: const Size(0, 44),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      } else {
+        final err = jsonDecode(response.body);
+        throw Exception(err['error'] ?? 'Error al cobrar la mesa');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error al cobrar'),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -1089,6 +1491,40 @@ class _PosScreenState extends State<PosScreen> {
                           ),
                         ),
                       ),
+                      if (_isCajeroOAdmin) ...[
+                        const SizedBox(width: 12),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _abrirCobroMesas,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              icon: const FaIcon(FontAwesomeIcons.bellConcierge, size: 14),
+                              label: const Text('COBRAR MESAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                            ),
+                            if (_mesasParaCobrar.isNotEmpty)
+                              Positioned(
+                                top: -6,
+                                right: -6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                  decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                  child: Text(
+                                    '${_mesasParaCobrar.length}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                       if (_isAdmin) ...[
                         const SizedBox(width: 12),
                         ElevatedButton.icon(
