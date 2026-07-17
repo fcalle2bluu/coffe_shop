@@ -50,6 +50,10 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
   final List<Map<String, dynamic>> _menuItems = [];
   final List<Widget> _screens = [];
 
+  // Para controlar los botones de refrescar/vista de "Realizar Pedido" desde
+  // la barra de título compartida, en vez de tenerlos dentro de esa pantalla.
+  final GlobalKey<RealizarPedidoScreenState> _realizarPedidoKey = GlobalKey<RealizarPedidoScreenState>();
+
   // Polling de notificaciones en vivo
   Timer? _notificationTimer;
   List<dynamic> _previousOrders = [];
@@ -385,7 +389,7 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
           'title': 'Realizar Pedido',
           'icon': FontAwesomeIcons.bellConcierge,
         });
-        _screens.add(const RealizarPedidoScreen());
+        _screens.add(RealizarPedidoScreen(key: _realizarPedidoKey));
       }
 
       // 1. Venta por Mesa (para meseros/baristas que toman pedidos y cobran)
@@ -863,6 +867,22 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
                     )
                   : Text(_menuItems[_selectedIndex]['title']),
               elevation: 0,
+              actions: _menuItems[_selectedIndex]['title'] == 'Realizar Pedido'
+                  ? [
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        tooltip: 'Refrescar catálogo',
+                        onPressed: () => _realizarPedidoKey.currentState?.refrescarCatalogo(),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          (_realizarPedidoKey.currentState?.vistaLista ?? false) ? Icons.grid_view_rounded : Icons.view_list_rounded,
+                        ),
+                        tooltip: 'Cambiar vista',
+                        onPressed: () => setState(() => _realizarPedidoKey.currentState?.toggleVista()),
+                      ),
+                    ]
+                  : null,
             ),
       drawer: isLargeScreen
           ? null

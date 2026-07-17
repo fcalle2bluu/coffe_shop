@@ -15,10 +15,10 @@ class RealizarPedidoScreen extends StatefulWidget {
   const RealizarPedidoScreen({super.key});
 
   @override
-  State<RealizarPedidoScreen> createState() => _RealizarPedidoScreenState();
+  State<RealizarPedidoScreen> createState() => RealizarPedidoScreenState();
 }
 
-class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
+class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   bool _loading = true;
   String? _error;
 
@@ -37,6 +37,12 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _tecladoAbierto = false;
   bool _vistaLista = false; // false = mosaicos (grid), true = listado
+
+  // Expuestos para que main_navigation controle estos botones desde la barra
+  // de título compartida (a través de un GlobalKey a este estado).
+  bool get vistaLista => _vistaLista;
+  void toggleVista() => setState(() => _vistaLista = !_vistaLista);
+  Future<void> refrescarCatalogo() => _cargarDatos();
 
   @override
   void initState() {
@@ -482,65 +488,23 @@ class _RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         ),
         SizedBox(
           height: 32,
-          child: Row(
-            children: [
-              Expanded(
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: _categorias.map((c) {
-                    final seleccionado = c == _categoriaSeleccionada;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ChoiceChip(
-                        label: Text(c, style: const TextStyle(fontSize: 11)),
-                        selected: seleccionado,
-                        onSelected: (_) => setState(() => _categoriaSeleccionada = c),
-                        selectedColor: AppTheme.accentColor,
-                        backgroundColor: AppTheme.secondaryDark,
-                        labelStyle: TextStyle(color: seleccionado ? Colors.white : AppTheme.textMuted, fontWeight: FontWeight.bold),
-                      ),
-                    );
-                  }).toList(),
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            children: _categorias.map((c) {
+              final seleccionado = c == _categoriaSeleccionada;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(c, style: const TextStyle(fontSize: 11)),
+                  selected: seleccionado,
+                  onSelected: (_) => setState(() => _categoriaSeleccionada = c),
+                  selectedColor: AppTheme.accentColor,
+                  backgroundColor: AppTheme.secondaryDark,
+                  labelStyle: TextStyle(color: seleccionado ? Colors.white : AppTheme.textMuted, fontWeight: FontWeight.bold),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: GestureDetector(
-                  onTap: _cargarDatos,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.secondaryDark,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.refresh,
-                      color: AppTheme.textLight,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: GestureDetector(
-                  onTap: () => setState(() => _vistaLista = !_vistaLista),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.secondaryDark,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _vistaLista ? Icons.grid_view_rounded : Icons.view_list_rounded,
-                      color: AppTheme.textLight,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 4),
