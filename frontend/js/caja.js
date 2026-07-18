@@ -59,15 +59,25 @@ window.toggleCensura = toggleCensura;
 document.addEventListener('DOMContentLoaded', () => {
     actualizarBotonCensuraUI();
     cargarEstadoCaja();
-    
+
     const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
     if (rolActual !== 'CAJERO') {
         cargarHistorial();
     }
-    
+
     if (rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR') {
         cargarHistorialVentasAdmin();
     }
+
+    // La pantalla se queda abierta toda la jornada en la caja física, pero antes
+    // solo se cargaba una vez al abrir la página: si se cobraba una venta desde
+    // otro dispositivo (ej. el mesero cerrando una mesa), los totales de este
+    // panel se quedaban desactualizados hasta que alguien recargaba manualmente.
+    // Por eso se refresca sola cada 20s mientras la pestaña esté visible.
+    setInterval(() => {
+        if (document.hidden) return;
+        cargarEstadoCaja();
+    }, 20000);
 });
 
 async function cargarEstadoCaja() {
