@@ -17,7 +17,7 @@ class CocinaScreen extends StatefulWidget {
   State<CocinaScreen> createState() => _CocinaScreenState();
 }
 
-class _CocinaScreenState extends State<CocinaScreen> {
+class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderStateMixin {
   static const _pollInterval = Duration(seconds: 7);
 
   List<dynamic> _pendientes = [];
@@ -34,15 +34,26 @@ class _CocinaScreenState extends State<CocinaScreen> {
   final Set<int> _procesando = {};
   Timer? _pollTimer;
   bool _loading = true;
-  String? _error;
   String _nombreUsuario = '';
   EstadoPapel _estadoPapel = EstadoPapel.desconocido;
   bool _alertasActivadas = true;
+
+  // --- Alerta de desconexión ---
+  DateTime? _sinConexionDesde;
+  int _pollsSinConexion = 0;
+  Timer? _relojBannerTimer;
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
     WakelockPlus.enable();
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..repeat(reverse: true);
+    // Refresca el contador de "hace X" del banner de desconexión sin depender
+    // del poll (que puede tardar en volver a intentar).
+    _relojBannerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_sinConexionDesde != null && mounted) setState(() {});
+    });
     // Inicializa/vincula la impresora apenas se abre la pantalla, en vez de
     // esperar a que llegue la primera comanda (evita el primer intento fallido).
     PrinterService.init();
@@ -104,6 +115,8 @@ class _CocinaScreenState extends State<CocinaScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _relojBannerTimer?.cancel();
+    _pulseController.dispose();
     WakelockPlus.disable();
     super.dispose();
   }
@@ -140,14 +153,25 @@ class _CocinaScreenState extends State<CocinaScreen> {
       setState(() {
         _pendientes = data;
         _loading = false;
-        _error = null;
+        _sinConexionDesde = null;
+        _pollsSinConexion = 0;
       });
     } catch (e) {
       if (!mounted) return;
+      final estabaConectado = _sinConexionDesde == null;
       setState(() {
         _loading = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        if (estabaConectado) _sinConexionDesde = DateTime.now();
       });
+      if (estabaConectado) {
+        _pollsSinConexion = 0;
+        AlertService.sinConexion();
+      } else {
+        _pollsSinConexion++;
+        // Repite la alerta cada ~35s mientras siga sin conexión, para que no
+        // se pierda si nadie estaba mirando la pantalla en el primer aviso.
+        if (_pollsSinConexion % 5 == 0) AlertService.sinConexion();
+      }
     }
   }
 
@@ -285,42 +309,93 @@ class _CocinaScreenState extends State<CocinaScreen> {
           IconButton(icon: const Icon(Icons.logout), onPressed: _cerrarSesion),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF97316)))
-          : RefreshIndicator(
-              onRefresh: _cargarPendientes,
-              child: _pendientes.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.35),
-                        const Icon(Icons.check_circle_outline, size: 72, color: Colors.white24),
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Text(
-                            'No hay comandas pendientes',
-                            style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        if (_error != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Center(
-                              child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+      body: Column(
+        children: [
+          if (_sinConexionDesde != null) _buildBannerSinConexion(),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFF97316)))
+                : RefreshIndicator(
+                    onRefresh: _cargarPendientes,
+                    child: _pendientes.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.35),
+                              const Icon(Icons.check_circle_outline, size: 72, color: Colors.white24),
+                              const SizedBox(height: 16),
+                              const Center(
+                                child: Text(
+                                  'No hay comandas pendientes',
+                                  style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(12),
+                            itemCount: _pendientes.length,
+                            itemBuilder: (context, index) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildComandaCard(_pendientes[index]),
                             ),
                           ),
-                      ],
-                    )
-                  : ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _pendientes.length,
-                      itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildComandaCard(_pendientes[index]),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannerSinConexion() {
+    final segundos = DateTime.now().difference(_sinConexionDesde!).inSeconds;
+    final tiempoTexto = segundos < 60 ? 'hace ${segundos}s' : 'hace ${(segundos / 60).floor()} min';
+
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final color = Color.lerp(const Color(0xFFB91C1C), const Color(0xFFEF4444), _pulseController.value)!;
+        return Material(
+          color: color,
+          child: InkWell(
+            onTap: _cargarPendientes,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 30),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            '⚠️ SIN CONEXIÓN',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                          ),
+                          Text(
+                            'No se reciben comandas nuevas ($tiempoTexto) — revisa el internet',
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                     ),
+                    IconButton(
+                      onPressed: _cargarPendientes,
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      tooltip: 'Reintentar ahora',
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ),
+        );
+      },
     );
   }
 

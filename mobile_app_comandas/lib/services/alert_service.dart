@@ -50,4 +50,19 @@ class AlertService {
       print('Error al vibrar: $e');
     }
   }
+
+  /// Vibra fuerte para avisar que se perdió la conexión (sin sonido, para no
+  /// confundirlo con la alerta de comanda nueva). Se ignora la preferencia de
+  /// alertas activadas/desactivadas: la desconexión es un problema operativo,
+  /// no una notificación cualquiera, así que siempre debe avisar.
+  static Future<void> sinConexion() async {
+    try {
+      final tieneVibrador = await Vibration.hasVibrator();
+      if (tieneVibrador) {
+        Vibration.vibrate(pattern: [0, 400, 200, 400, 200, 400, 200, 400]);
+      }
+    } catch (e) {
+      print('Error al vibrar (sin conexión): $e');
+    }
+  }
 }
