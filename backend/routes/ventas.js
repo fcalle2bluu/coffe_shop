@@ -175,11 +175,10 @@ router.post('/clear-all-products', async (req, res) => {
 
 // 2. Procesar una nueva venta (Transacción Completa)
 router.post('/', async (req, res) => {
-    let { usuario_id, caja_id, total, metodo_pago, detalles } = req.body;
-    
+    let { usuario_id, total, metodo_pago, detalles } = req.body;
+
     // Valores por defecto si no vienen especificados
     usuario_id = usuario_id || 1;
-    caja_id = caja_id || null;
 
     // Validaciones básicas
     if (!detalles || detalles.length === 0) {
@@ -191,10 +190,22 @@ router.post('/', async (req, res) => {
     try {
         await client.query('BEGIN'); // 🔒 Inicia la transacción
 
+        // La caja del cobro se determina SIEMPRE en el servidor, nunca se confía en un
+        // caja_id que mande el cliente: si el turno cambiaba (se cerraba una caja y se
+        // abría otra) mientras la pantalla de venta seguía abierta en el navegador sin
+        // recargar, el caja_id quedaba pegado en localStorage a la caja ya cerrada y
+        // esas ventas desaparecían del turno realmente activo.
+        const cajaAbiertaRes = await client.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
+        if (cajaAbiertaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No hay una caja abierta. Actualiza la página y abre la caja antes de cobrar.' });
+        }
+        const caja_id = cajaAbiertaRes.rows[0].id;
+
         // Paso 1: Registrar la cabecera de la venta
         const insertVenta = `
-            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago) 
-            VALUES ($1, $2, $3, $4) 
+            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago)
+            VALUES ($1, $2, $3, $4)
             RETURNING id
         `;
         const resultVenta = await client.query(insertVenta, [usuario_id, caja_id, total, metodo_pago]);

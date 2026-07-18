@@ -20,6 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mesas listas para cobrar: primera carga + sondeo periódico (tiempo casi real)
     cargarMesasParaCobrar();
     setInterval(cargarMesasParaCobrar, 8000);
+
+    // Si esta pantalla se queda abierta y en otro lado se cierra la caja y se abre
+    // una nueva (cambio de turno), antes el botón de cobrar seguía "activo" con el
+    // caja_id viejo guardado en localStorage. El backend ya no confía en ese valor,
+    // pero igual se revisa el estado periódicamente para que el botón refleje la
+    // realidad (ej. mostrar "CAJA CERRADA" si corresponde) sin esperar un recargo manual.
+    setInterval(() => {
+        if (document.hidden) return;
+        verificarEstadoCaja();
+    }, 20000);
 });
 
 // --- 1. CATÁLOGO DE PRODUCTOS ---
