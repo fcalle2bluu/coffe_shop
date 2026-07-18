@@ -36,7 +36,7 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   bool _tecladoAbierto = false;
-  bool _vistaLista = false; // false = mosaicos (grid), true = listado
+  bool _vistaLista = true; // false = mosaicos (grid), true = listado
 
   // Expuestos para que main_navigation controle estos botones desde la barra
   // de título compartida (a través de un GlobalKey a este estado).
@@ -109,16 +109,99 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   List<Product> get _productosFiltrados {
     // Si hay texto de búsqueda, se busca en TODOS los productos sin importar
-    // la categoría seleccionada. La categoría solo filtra cuando no se busca.
-    List<Product> resultado;
+    // la categoría seleccionada, con tolerancia a errores de tecleo (distancia
+    // de edición). La categoría solo filtra cuando no se busca.
     if (_busqueda.isNotEmpty) {
-      resultado = _productos.where((p) => p.nombre.toLowerCase().contains(_busqueda.toLowerCase())).toList();
-    } else {
-      resultado = _productos.where((p) => _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada).toList();
+      final coincidencias = <MapEntry<Product, int>>[];
+      for (final p in _productos) {
+        final puntaje = _puntajeCoincidencia(p.nombre, _busqueda);
+        if (puntaje != null) coincidencias.add(MapEntry(p, puntaje));
+      }
+      coincidencias.sort((a, b) {
+        final cmp = a.value.compareTo(b.value);
+        if (cmp != 0) return cmp;
+        return b.key.cantidadVendida.compareTo(a.key.cantidadVendida);
+      });
+      return coincidencias.map((e) => e.key).toList();
     }
+    final resultado = _productos.where((p) => _categoriaSeleccionada == 'Todas' || p.categoria == _categoriaSeleccionada).toList();
     // Los más vendidos primero, para que lo que más se pide aparezca de entrada.
     resultado.sort((a, b) => b.cantidadVendida.compareTo(a.cantidadVendida));
     return resultado;
+  }
+
+  /// Quita tildes/ñ para que "cafe"/"café" o "nino"/"niño" se traten igual.
+  String _normalizarTexto(String s) {
+    const conAcento = 'áéíóúÁÉÍÓÚñÑüÜ';
+    const sinAcento = 'aeiouAEIOUnNuU';
+    var resultado = s.toLowerCase();
+    for (int i = 0; i < conAcento.length; i++) {
+      resultado = resultado.replaceAll(conAcento[i].toLowerCase(), sinAcento[i].toLowerCase());
+    }
+    return resultado;
+  }
+
+  /// Distancia de edición (Levenshtein): cuántas letras hay que cambiar/agregar/
+  /// quitar para convertir una palabra en la otra. 0 = idéntica, mientras más
+  /// alto, más distinta. Es la base del "corrector" tolerante a errores de tecleo.
+  int _distanciaLevenshtein(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    final costos = List<int>.generate(b.length + 1, (i) => i);
+    for (int i = 0; i < a.length; i++) {
+      int anterior = costos[0];
+      costos[0] = i + 1;
+      for (int j = 0; j < b.length; j++) {
+        final actual = costos[j + 1];
+        costos[j + 1] = a[i] == b[j]
+            ? anterior
+            : 1 + [anterior, actual, costos[j]].reduce((v, e) => v < e ? v : e);
+        anterior = actual;
+      }
+    }
+    return costos[b.length];
+  }
+
+  /// Puntaje de qué tan bien "busqueda" coincide con "nombreProducto":
+  /// 0 = coincidencia directa (substring), 1+ = cantidad de errores de tecleo
+  /// tolerados, null = no coincide ni de cerca. Soporta búsquedas de varias
+  /// palabras (cada palabra de la búsqueda debe encontrar algo parecido).
+  int? _puntajeCoincidencia(String nombreProducto, String busqueda) {
+    final nombre = _normalizarTexto(nombreProducto);
+    final query = _normalizarTexto(busqueda).trim();
+    if (query.isEmpty) return 0;
+    if (nombre.contains(query)) return 0;
+
+    // Se ignoran palabras muy cortas del producto (conectores: "de", "y", "a")
+    // para que no generen falsos positivos con búsquedas cortas.
+    final palabrasProducto = nombre.split(' ').where((w) => w.length >= 3).toList();
+    final palabrasQuery = query.split(' ').where((w) => w.isNotEmpty).toList();
+    if (palabrasProducto.isEmpty || palabrasQuery.isEmpty) return null;
+
+    int total = 0;
+    for (final qp in palabrasQuery) {
+      if (qp.length < 3) {
+        // Palabra de búsqueda muy corta: solo cuenta si aparece tal cual.
+        if (!palabrasProducto.contains(qp)) return null;
+        continue;
+      }
+      final umbral = (qp.length / 3).ceil().clamp(1, 4);
+      int mejor = 999;
+      for (final pp in palabrasProducto) {
+        // Compara contra la palabra completa y también contra su prefijo del
+        // mismo largo que la búsqueda, para que un typo a medio escribir
+        // ("capuc" por "cappuccino") también encuentre el producto.
+        final distanciaCompleta = _distanciaLevenshtein(pp, qp);
+        final prefijo = pp.length > qp.length ? pp.substring(0, qp.length) : pp;
+        final distanciaPrefijo = _distanciaLevenshtein(prefijo, qp);
+        final distancia = distanciaCompleta < distanciaPrefijo ? distanciaCompleta : distanciaPrefijo;
+        if (distancia < mejor) mejor = distancia;
+      }
+      if (mejor > umbral) return null;
+      total += mejor;
+    }
+    return total;
   }
 
   int get _cantidadTotal => _carrito.values.fold(0, (a, b) => a + b);
