@@ -197,10 +197,12 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
         const users = usersRes.rows;
 
         // Obtener asistencias del mes/año especificado
+        // asistencia.hora_entrada es "timestamp sin zona" pero guarda el valor en
+        // UTC (ver el mismo patrón, ya correcto, en asistencia.js).
         const asistenciaRes = await pool.query(`
-            SELECT 
+            SELECT
                 usuario_id,
-                TO_CHAR(hora_entrada AT TIME ZONE 'America/La_Paz', 'HH24:MI:SS') as hora_entrada_bolivia,
+                TO_CHAR(hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI:SS') as hora_entrada_bolivia,
                 fecha
             FROM asistencia
             WHERE EXTRACT(YEAR FROM fecha) = $1 AND EXTRACT(MONTH FROM fecha) = $2

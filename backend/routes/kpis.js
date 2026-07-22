@@ -35,14 +35,18 @@ router.get('/', async (req, res) => {
         const gastosCajaResult = await pool.query(`
             SELECT COALESCE(SUM(monto), 0) AS total 
             FROM gastos_caja 
-            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
-              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `);
 
-        // Gastos generales del mes
+        // Gastos generales del mes. A diferencia de gastos_caja (que siempre lleva
+        // CURRENT_TIMESTAMP real), gastos_generales.fecha SIEMPRE se guarda a
+        // medianoche exacta (00:00:00): es una fecha de calendario elegida a mano en
+        // un selector de fecha, no un instante real, así que NO se le debe restar
+        // horario para "convertir a local" — eso correría la fecha al día anterior.
         const gastosGeneralesResult = await pool.query(`
-            SELECT COALESCE(SUM(monto), 0) AS total 
-            FROM gastos_generales 
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `);
@@ -105,8 +109,8 @@ router.get('/meses-disponibles', async (req, res) => {
                        EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM compras
                 UNION
-                SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS anio,
-                       EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS mes
+                SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz')::integer AS anio,
+                       EXTRACT(MONTH FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz')::integer AS mes
                 FROM gastos_caja
                 UNION
                 SELECT EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz')::integer AS anio,
@@ -171,13 +175,13 @@ router.get('/rendimiento-mensual', async (req, res) => {
             ) v ON d.fecha = v.fecha_dia
             LEFT JOIN (
                 SELECT 
-                    (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
+                    (fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(monto) AS total
                 FROM gastos_caja
-                GROUP BY (fecha AT TIME ZONE 'America/La_Paz')::date
+                GROUP BY (fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz')::date
             ) g_caja ON d.fecha = g_caja.fecha_dia
             LEFT JOIN (
-                SELECT 
+                SELECT
                     (fecha AT TIME ZONE 'America/La_Paz')::date AS fecha_dia,
                     SUM(monto) AS total
                 FROM gastos_generales
@@ -510,22 +514,24 @@ router.get('/gerencial', async (req, res) => {
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
+        // Nota: esta consulta antes seleccionaba filas individuales (id, monto,
+        // descripcion, fecha) en vez de sumarlas, así que "gastosCajaRes.rows[0].total"
+        // nunca existía y los egresos de caja del semáforo gerencial siempre daban 0.
         const queryGastosCaja = `
-            SELECT id, monto, descripcion, fecha,
-                   TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI:SS') as fecha_bolivia
-            FROM gastos_caja 
-            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
-              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_caja
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
         const queryGastosGenerales = `
-            SELECT COALESCE(SUM(monto), 0) AS total 
-            FROM gastos_generales 
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
         const queryGastosFijos = `
-            SELECT COALESCE(SUM(monto), 0) AS total 
-            FROM gastos_generales 
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
             WHERE categoria = 'Gastos Fijos'
               AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
@@ -596,12 +602,12 @@ router.get('/breakdown', async (req, res) => {
         const queryGastosCaja = `
             SELECT COALESCE(SUM(monto), 0) AS total 
             FROM gastos_caja 
-            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
-              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;
         const queryGastosGenerales = `
-            SELECT COALESCE(SUM(monto), 0) AS total 
-            FROM gastos_generales 
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(MONTH FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')
         `;

@@ -71,21 +71,29 @@ router.get('/', async (req, res) => {
         const resCompras = await pool.query(queryCompras, [mes, anio]);
 
         // 3. Obtener gastos de caja del mes/año
+        // gastos_caja.fecha es "timestamp sin zona" pero guarda el valor en UTC
+        // (CURRENT_TIMESTAMP bajo sesión UTC), por eso hay que etiquetarlo como UTC
+        // antes de convertir a hora local; una sola conversión desplaza la fecha/hora
+        // 8 horas de más.
         const queryGastosCaja = `
             SELECT gc.id, gc.monto, gc.descripcion, gc.fecha,
                    gc.categoria,
-                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
-                   TO_CHAR(gc.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
-                   EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'America/La_Paz') as dia_semana_num,
+                   TO_CHAR(gc.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
+                   TO_CHAR(gc.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
+                   EXTRACT(DOW FROM gc.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    u.nombre as usuario_nombre
             FROM gastos_caja gc
             LEFT JOIN usuarios u ON gc.usuario_id = u.id
-            WHERE EXTRACT(MONTH FROM gc.fecha AT TIME ZONE 'America/La_Paz') = $1
-              AND EXTRACT(YEAR FROM gc.fecha AT TIME ZONE 'America/La_Paz') = $2
+            WHERE EXTRACT(MONTH FROM gc.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM gc.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = $2
         `;
         const resGastosCaja = await pool.query(queryGastosCaja, [mes, anio]);
 
         // 4. Obtener gastos generales contables del mes/año
+        // A diferencia de gastos_caja, gastos_generales.fecha SIEMPRE se guarda a
+        // medianoche exacta (00:00:00): es una fecha de calendario elegida a mano,
+        // no un instante real, así que aquí NO se debe restar horario (correría la
+        // fecha al día anterior). Se deja con la conversión simple original.
         const queryGastosGenerales = `
             SELECT gg.id, gg.monto, gg.descripcion, gg.fecha, gg.categoria, gg.metodo_pago,
                    TO_CHAR(gg.fecha AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
@@ -265,10 +273,14 @@ router.post('/gastos', async (req, res) => {
 router.get('/gastos', async (req, res) => {
     const { mes, anio } = req.query;
     try {
-        let query = 'SELECT *, TO_CHAR(fecha, \'YYYY-MM-DD\') as fecha_formateada FROM gastos_generales';
+        // gastos_generales.fecha siempre es una fecha de calendario a medianoche
+        // (00:00:00), no un instante real, así que se usa la conversión simple
+        // (restar horario correría la fecha al día anterior). Ver nota igual más
+        // arriba en este archivo.
+        let query = "SELECT *, TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_formateada FROM gastos_generales";
         const params = [];
         if (mes && anio) {
-            query += ' WHERE EXTRACT(MONTH FROM fecha) = $1 AND EXTRACT(YEAR FROM fecha) = $2';
+            query += ' WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE \'America/La_Paz\') = $1 AND EXTRACT(YEAR FROM fecha AT TIME ZONE \'America/La_Paz\') = $2';
             params.push(parseInt(mes), parseInt(anio));
         }
         query += ' ORDER BY fecha DESC';
@@ -417,6 +429,9 @@ router.get('/stats/gastos-categorias', async (req, res) => {
     let whereClause = '';
     const params = [];
 
+    // gastos_generales.fecha siempre es una fecha de calendario a medianoche
+    // (00:00:00), no un instante real, así que se usa la conversión simple (ver
+    // misma nota más arriba en este archivo).
     if (filtro === 'hoy') {
         whereClause = `WHERE DATE(fecha AT TIME ZONE 'America/La_Paz') = CURRENT_DATE AT TIME ZONE 'America/La_Paz'`;
     } else if (filtro === 'mes') {

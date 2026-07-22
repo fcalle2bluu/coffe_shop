@@ -108,7 +108,7 @@ router.get('/ordenes', async (req, res) => {
         const ordersRes = await pool.query(`
             SELECT 
                 op.id,
-                TO_CHAR(op.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_formateada,
+                TO_CHAR(op.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_formateada,
                 op.estado,
                 op.observaciones,
                 u.nombre AS solicitante
@@ -353,7 +353,7 @@ router.get('/auditorias', async (req, res) => {
         const auditRes = await pool.query(`
             SELECT 
                 ap.id,
-                TO_CHAR(ap.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_formateada,
+                TO_CHAR(ap.fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_formateada,
                 ap.observaciones,
                 u.nombre AS auditor
             FROM auditorias_pasteleria ap
