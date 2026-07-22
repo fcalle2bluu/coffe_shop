@@ -340,9 +340,16 @@ router.get('/gastos/:caja_id', async (req, res) => {
         // de un día para otro (ej. un local que cierra pasada la medianoche); mostrar
         // solo "HH:MI" hacía que la lista pareciera desordenada cuando en realidad
         // los gastos más antiguos con hora numéricamente mayor eran del día anterior.
+        // gastos_caja.fecha es "timestamp sin zona horaria" pero se llena con
+        // CURRENT_TIMESTAMP bajo una sesión en UTC, o sea que el valor crudo YA es
+        // UTC aunque la columna no lo declare. Por eso hay que etiquetarlo como UTC
+        // primero y recién ahí convertir a hora local; hacer solo "AT TIME ZONE
+        // 'America/La_Paz'" directamente interpreta el valor al revés (como si ya
+        // fuera hora local) y lo desplaza 8 horas de más en vez de restar las 4
+        // horas correctas.
         const result = await pool.query(`
             SELECT id, monto, descripcion,
-                   TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'DD/MM HH24:MI') as hora
+                   TO_CHAR(fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'DD/MM HH24:MI') as hora
             FROM gastos_caja
             WHERE caja_id = $1
             ORDER BY fecha DESC
