@@ -147,8 +147,8 @@ router.post('/abrir', async (req, res) => {
 
 // 3. Cerrar el turno de caja
 router.post('/cerrar', async (req, res) => {
-    const { caja_id, saldo_final, usuario_id } = req.body;
-    
+    const { saldo_final, usuario_id } = req.body;
+
     if (!usuario_id) {
         return res.status(400).json({ error: 'Identificador de usuario es requerido para cerrar caja.' });
     }
@@ -161,24 +161,31 @@ router.post('/cerrar', async (req, res) => {
         }
         const userRol = userRes.rows[0].rol.toUpperCase();
 
-        // Obtener la caja activa
-        const cajaRes = await pool.query('SELECT usuario_id FROM cajas WHERE id = $1', [caja_id]);
-        if (cajaRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Turno de caja no encontrado.' });
+        // La caja a cerrar SIEMPRE es la que está realmente abierta según el servidor,
+        // nunca un caja_id que mande el navegador: si la pantalla llevaba rato abierta
+        // y el turno ya había cambiado (alguien más cerró y abrió una caja nueva
+        // mientras tanto), el id viejo guardado en el cliente apuntaba a una caja que
+        // ya estaba cerrada. El UPDATE no tocaba ninguna fila pero igual respondía
+        // "Caja cerrada correctamente", dejando la caja realmente activa abierta sin
+        // que nadie se diera cuenta.
+        const cajaAbiertaRes = await pool.query('SELECT id, usuario_id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
+        if (cajaAbiertaRes.rows.length === 0) {
+            return res.status(400).json({ error: 'No hay ninguna caja abierta para cerrar. Actualiza la página.' });
         }
-        const creadorId = cajaRes.rows[0].usuario_id;
+        const caja_id = cajaAbiertaRes.rows[0].id;
+        const creadorId = cajaAbiertaRes.rows[0].usuario_id;
 
         // Validar permisos: solo el creador o un administrador
         if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN' && parseInt(usuario_id) !== parseInt(creadorId)) {
-            return res.status(403).json({ 
-                error: 'No tienes permisos para cerrar este turno. Solo puede cerrarlo el cajero que lo abrió o un Administrador.' 
+            return res.status(403).json({
+                error: 'No tienes permisos para cerrar este turno. Solo puede cerrarlo el cajero que lo abrió o un Administrador.'
             });
         }
 
         await pool.query(`
-            UPDATE cajas 
-            SET saldo_final = $1, fecha_cierre = NOW() 
-            WHERE id = $2 AND fecha_cierre IS NULL
+            UPDATE cajas
+            SET saldo_final = $1, fecha_cierre = NOW()
+            WHERE id = $2
         `, [saldo_final, caja_id]);
 
         res.json({ message: 'Caja cerrada correctamente' });
@@ -297,14 +304,23 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
 
 // 6. Registrar un gasto de caja
 router.post('/gastos', async (req, res) => {
-    const { caja_id, usuario_id, monto, descripcion } = req.body;
-    if (!caja_id || !usuario_id || !monto || !descripcion) {
+    const { usuario_id, monto, descripcion } = req.body;
+    if (!usuario_id || !monto || !descripcion) {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
     if (parseFloat(monto) <= 0) {
         return res.status(400).json({ error: 'El monto debe ser mayor a cero' });
     }
     try {
+        // Igual que en /cerrar: la caja del gasto se determina en el servidor, no con
+        // el caja_id que traiga el navegador, para que un gasto nunca quede pegado a
+        // una caja vieja/cerrada si la pantalla no se había refrescado.
+        const cajaAbiertaRes = await pool.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
+        if (cajaAbiertaRes.rows.length === 0) {
+            return res.status(400).json({ error: 'No hay una caja abierta para registrar el gasto.' });
+        }
+        const caja_id = cajaAbiertaRes.rows[0].id;
+
         await pool.query(`
             INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion)
             VALUES ($1, $2, $3, $4)
