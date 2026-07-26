@@ -38,6 +38,10 @@
         }
     </script>
     <style>
+        @page {
+            size: 58mm auto;
+            margin: 0;
+        }
         @media print {
             /* Ocultar elementos principales de la interfaz al imprimir ticket */
             body.print-ticket #sidebar, 
@@ -66,10 +70,14 @@
                 transform: none !important;
                 visibility: visible !important;
             }
-            body.print-ticket #modalTicket button, 
-            body.print-ticket #modalTicket h3, 
+            body.print-ticket #modalTicket button,
+            body.print-ticket #modalTicket h3,
             body.print-ticket #modalTicket .shrink-0 {
                 display: none !important;
+            }
+            body.print-ticket #modalTicket * {
+                overflow: visible !important;
+                max-height: none !important;
             }
             body.print-ticket #zona-impresion {
                 display: block !important;
@@ -101,6 +109,15 @@
             body.print-ticket #zona-impresion th:nth-child(3), body.print-ticket #zona-impresion td:nth-child(3) { width: 65px !important; text-align: right !important; }
             body.print-ticket #zona-impresion .text-center { text-align: center !important; }
             body.print-ticket #zona-impresion .text-right { text-align: right !important; }
+            body.print-ticket #zona-impresion,
+            body.print-ticket #zona-impresion table,
+            body.print-ticket #zona-impresion tr,
+            body.print-ticket #zona-impresion th,
+            body.print-ticket #zona-impresion td,
+            body.print-ticket #zona-impresion * {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
 
             body.print-auditoria * { visibility: hidden; }
             body.print-auditoria #seccion-auditoria-cajeros,

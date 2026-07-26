@@ -13,12 +13,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
+        @page {
+            size: 58mm auto;
+            margin: 0;
+        }
         @media print {
             /* Ocultar elementos principales de la interfaz */
             #sidebar, #sidebarOverlay, topbar, header, main, nav, .no-print, button {
                 display: none !important;
             }
             body { background: white !important; color: black !important; }
+            #modalImpresion, #modalImpresion > div {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                transform: none !important;
+                visibility: visible !important;
+            }
+            #modalImpresion h3, #modalImpresion button {
+                display: none !important;
+            }
+            #modalImpresion * {
+                overflow: visible !important;
+                max-height: none !important;
+            }
             #zona-impresion {
                 display: block !important;
                 visibility: visible !important;
@@ -49,6 +74,15 @@
             #zona-impresion th:nth-child(3), #zona-impresion td:nth-child(3) { width: 65px !important; text-align: right !important; }
             #zona-impresion .text-center { text-align: center !important; }
             #zona-impresion .text-right { text-align: right !important; }
+            #zona-impresion,
+            #zona-impresion table,
+            #zona-impresion tr,
+            #zona-impresion th,
+            #zona-impresion td,
+            #zona-impresion * {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
         }
     </style>
 
