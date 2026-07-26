@@ -1,8 +1,11 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 
 // Importamos el pool de conexiones nativo de Postgres
-const pool = require('../config/conexion'); 
+const pool = require('../config/conexion');
+
+const DURACION_SESION_DIAS = 30;
 
 router.post('/login', async (req, res) => {
     try {
@@ -18,12 +21,13 @@ router.post('/login', async (req, res) => {
         console.log(`2. Consultando BD con SQL para el usuario: ${username}...`);
         
         // Usamos SQL puro con parámetros ($1, $2) para evitar inyecciones SQL (Hackers)
+        // El PIN se compara contra su hash bcrypt (columna pin) usando pgcrypto
         const query = `
-            SELECT id, nombre, rol, activo, 
-                   perm_stock, perm_compras, perm_proveedores, 
-                   perm_auditoria, perm_parametros, perm_informe 
-            FROM usuarios 
-            WHERE username = $1 AND pin = $2
+            SELECT id, nombre, rol, activo,
+                   perm_stock, perm_compras, perm_proveedores,
+                   perm_auditoria, perm_parametros, perm_informe
+            FROM usuarios
+            WHERE username = $1 AND pin = crypt($2, pin)
         `;
         const { rows } = await pool.query(query, [username, pin]);
 
@@ -97,7 +101,15 @@ router.post('/login', async (req, res) => {
             console.error('⚠️ No se pudo registrar el historial de acceso:', logErr.message);
         }
 
-        res.json({ success: true, usuario });
+        // Generar token de sesión: las rutas de la API ya no confían en el usuario_id
+        // que manda el cliente, sino en este token verificado contra la tabla `sesiones`.
+        const token = crypto.randomBytes(32).toString('hex');
+        await pool.query(
+            `INSERT INTO sesiones (usuario_id, token, expira_en) VALUES ($1, $2, now() + interval '${DURACION_SESION_DIAS} days')`,
+            [usuario.id, token]
+        );
+
+        res.json({ success: true, usuario, token });
 
     } catch (err) {
         console.error('🚨 ERROR CRÍTICO EN EL BACKEND:', err);
@@ -111,10 +123,8 @@ router.post('/login', async (req, res) => {
 
 // Endpoint para verificar permisos actualizados de un usuario en tiempo real
 router.get('/check-permissions', async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Falta ID de usuario' });
-    }
+    // El id viene de la sesión verificada (req.usuario), no del query string del cliente
+    const usuario_id = req.usuario.id;
 
     try {
         const query = `
@@ -138,9 +148,11 @@ router.get('/check-permissions', async (req, res) => {
 
 // Registrar o actualizar token de dispositivo FCM
 router.post('/registrar-token', async (req, res) => {
-    const { usuario_id, token } = req.body;
-    if (!usuario_id || !token) {
-        return res.status(400).json({ error: 'Falta ID de usuario o token de dispositivo' });
+    // El id viene de la sesión verificada (req.usuario), no del body del cliente
+    const usuario_id = req.usuario.id;
+    const { token } = req.body;
+    if (!token) {
+        return res.status(400).json({ error: 'Falta token de dispositivo' });
     }
 
     try {

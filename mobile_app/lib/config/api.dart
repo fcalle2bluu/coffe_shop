@@ -5,14 +5,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiConfig {
   static const String baseUrl = 'https://coffe-shop-4ffg.onrender.com/api';
 
-  // Helper para construir cabeceras con el ID de usuario
+  // Helper para construir cabeceras con el ID de usuario y el token de sesión
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('usuario_id');
+    final token = prefs.getString('token');
     return {
       'Content-Type': 'application/json',
       'User-Agent': 'CafeLaPazApp/1.0',
       if (userId != null) 'x-usuario-id': userId.toString(),
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -100,10 +102,14 @@ class ApiConfig {
       final request = http.MultipartRequest('POST', url);
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('usuario_id');
-      
+      final token = prefs.getString('token');
+
       request.headers['User-Agent'] = 'CafeLaPazApp/1.0';
       if (userId != null) {
         request.headers['x-usuario-id'] = userId.toString();
+      }
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
       }
       request.files.add(await http.MultipartFile.fromPath('imagen', filePath));
       

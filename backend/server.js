@@ -12,7 +12,14 @@ const app = express();
 // 2. MIDDLEWARES (TRADUCTORES)
 // ==========================================
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
+
+// ==========================================
+// 2.1 SEGURIDAD: exigir sesión válida para toda la API
+// (excepto login y el webhook público de WhatsApp)
+// ==========================================
+const verificarSesion = require('./middleware/auth');
+app.use(verificarSesion);
 
 // ==========================================
 // 3. IMPORTAR RUTAS

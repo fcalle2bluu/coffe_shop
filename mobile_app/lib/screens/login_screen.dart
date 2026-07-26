@@ -219,6 +219,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // Guardar sesión y permisos en SharedPreferences
           final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', data['token'] ?? '');
           await prefs.setInt('usuario_id', user['id']);
           await prefs.setString('usuario_nombre', user['nombre']);
           await prefs.setString('usuario_rol', user['rol']);

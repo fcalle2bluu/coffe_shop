@@ -217,6 +217,7 @@
                 const data = await response.json();
 
                 if (response.ok) {
+                    localStorage.setItem('token', data.token);
                     localStorage.setItem('usuario_id', data.usuario.id);
                     localStorage.setItem('usuario_nombre', data.usuario.nombre);
                     localStorage.setItem('usuario_rol', data.usuario.rol);

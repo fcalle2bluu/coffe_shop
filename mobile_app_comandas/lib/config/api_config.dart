@@ -8,10 +8,12 @@ class ApiConfig {
   static Future<Map<String, String>> _headers() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getInt('usuario_id');
+    final token = prefs.getString('token');
     return {
       'Content-Type': 'application/json',
       'User-Agent': 'CafeLaPazCocinaApp/1.0',
       if (usuarioId != null) 'x-usuario-id': usuarioId.toString(),
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 

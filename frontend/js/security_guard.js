@@ -1,20 +1,32 @@
 // frontend/js/security_guard.js
 
 (function() {
-    // === MONKEY PATCH FETCH PARA INYECTAR USUARIO ID ===
+    // === MONKEY PATCH FETCH PARA INYECTAR USUARIO ID Y TOKEN DE SESIÓN ===
     const originalFetch = window.fetch;
     window.fetch = function(input, init) {
         const usuarioId = localStorage.getItem('usuario_id');
-        if (usuarioId) {
-            init = init || {};
-            init.headers = init.headers || {};
+        const token = localStorage.getItem('token');
+        init = init || {};
+        init.headers = init.headers || {};
+        const setHeader = (name, value) => {
             if (init.headers instanceof Headers) {
-                init.headers.set('x-usuario-id', usuarioId);
+                init.headers.set(name, value);
             } else {
-                init.headers['x-usuario-id'] = usuarioId;
+                init.headers[name] = value;
             }
-        }
-        return originalFetch(input, init);
+        };
+        if (usuarioId) setHeader('x-usuario-id', usuarioId);
+        if (token) setHeader('Authorization', `Bearer ${token}`);
+
+        return originalFetch(input, init).then(response => {
+            // Sesión inválida/expirada en el backend: mandar de vuelta al login
+            const urlStr = typeof input === 'string' ? input : (input && input.url) || '';
+            if (response.status === 401 && urlStr.includes('/api/')) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+            return response;
+        });
     };
 
     // === LÓGICA GLOBAL DE MODO OSCURO ===
