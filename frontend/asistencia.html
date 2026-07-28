@@ -50,6 +50,10 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        @page {
+            size: letter portrait;
+            margin: 1cm;
+        }
         @media print {
             aside, header, .no-print {
                 display: none !important;
@@ -59,9 +63,20 @@
                 padding: 0 !important;
                 background: white !important;
             }
+            main > div {
+                padding: 0 !important;
+            }
+            /* Sin el QR (oculto en impresión) el grid de 3 columnas dejaba 1/3 de
+               la hoja en blanco a la derecha; en impresión se vuelve un bloque
+               simple para que el reporte use el ancho completo de la página. */
+            #grid-asistencia-principal {
+                display: block !important;
+            }
             .print-area {
                 box-shadow: none !important;
                 border: none !important;
+                padding: 0 !important;
+                width: 100% !important;
             }
             #tabla-asistencia-contenedor {
                 max-height: none !important;
@@ -70,8 +85,15 @@
                 box-shadow: none !important;
                 background: transparent !important;
             }
+            #tabla-asistencia-contenedor table {
+                width: 100% !important;
+                font-size: 10px !important;
+            }
             #tabla-asistencia-contenedor table thead {
                 position: static !important;
+            }
+            #tabla-asistencia-contenedor table tr {
+                break-inside: avoid;
             }
         }
     </style>
@@ -181,8 +203,8 @@
 
         <div class="flex-grow p-4 sm:p-6 bg-mainBg space-y-6 overflow-y-auto">
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+            <div id="grid-asistencia-principal" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
                 <!-- Tarjeta 1: QR del Día -->
                 <div id="tarjeta-qr-asistencia" class="bg-white rounded-2xl border border-gray-200/60 shadow-premium p-6 flex flex-col items-center justify-center text-center no-print">
                     <!-- Sección de generación de QR para administrador -->
@@ -303,9 +325,8 @@
                     </div>
 
                     <!-- Resumen del Reporte en Impresión -->
-                    <div class="hidden print:block mt-8 flex justify-between text-xs text-slate-600">
+                    <div class="hidden print:block mt-8 text-xs text-slate-600">
                         <p>Total registros impresos: <span id="print-total-rows" class="font-bold">0</span></p>
-                        <p class="border-t border-slate-400 pt-3 w-48 text-center font-semibold mt-12">Firma Administrador</p>
                     </div>
 
                 </div>
