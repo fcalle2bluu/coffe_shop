@@ -369,6 +369,47 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
     }
   }
 
+  Future<void> _finalizarTurno(int usuarioId, String fecha) async {
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      helpText: 'Hora de salida',
+    );
+    if (hora == null || !mounted) return;
+
+    final horaStr = '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}';
+
+    setState(() => _isLoading = true);
+    try {
+      // No se manda hora_entrada: el backend conserva la ya registrada para
+      // este empleado/fecha y solo cierra la salida con la hora elegida.
+      final res = await ApiConfig.post('/asistencia/manual', {
+        'usuario_id': usuarioId,
+        'fecha': fecha,
+        'hora_salida': horaStr,
+      });
+
+      if (!mounted) return;
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['mensaje'] ?? 'Turno finalizado con éxito.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _cargarDatos();
+      } else {
+        _mostrarAlertaError(data['error'] ?? 'Error al finalizar el turno.');
+      }
+    } catch (e) {
+      _mostrarAlertaError('Error de conexión al finalizar el turno.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -591,6 +632,17 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                     ),
                                   ],
                                 ),
+                              ),
+                            ],
+                            if (!hasSalida) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
+                                onPressed: () => _finalizarTurno(
+                                  int.parse(r['usuario_id'].toString()),
+                                  r['fecha'] as String,
+                                ),
+                                tooltip: 'Finalizar Turno',
                               ),
                             ],
                             const SizedBox(width: 8),

@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 9,
-    "versionName": "1.0.8",
+    "versionCode": 10,
+    "versionName": "1.0.9",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "El aviso de actualización ahora revisa cada pocos minutos mientras la app está abierta, sin necesidad de cerrarla y volver a abrirla.",
+    "notas": "Agrega un botón para finalizar rápido el turno de alguien que olvidó marcar su salida, junto al de eliminar en el historial de asistencia del admin.",
     "obligatoria": false
   },
   "comandas": {
