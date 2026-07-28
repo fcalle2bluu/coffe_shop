@@ -17,36 +17,26 @@ const obtenerTokenHoy = () => {
 
 // Endpoint para obtener el token QR de hoy (Solo Administradores)
 router.get('/qr-token', async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Falta ID de usuario para verificar permisos.' });
+    // El rol viene de la sesión verificada (req.usuario), no de un usuario_id que mande el cliente:
+    // así un empleado no-admin no puede pedir el token pasando el id de otra persona.
+    const rol = (req.usuario.rol || '').toUpperCase();
+    if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden generar o ver el código QR.' });
     }
 
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
-        }
-
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
-            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden generar o ver el código QR.' });
-        }
-
-        const token = obtenerTokenHoy();
-        res.json({ success: true, token });
-    } catch (error) {
-        console.error('Error al generar token QR:', error);
-        res.status(500).json({ error: 'Error interno del servidor al generar el token QR.' });
-    }
+    const token = obtenerTokenHoy();
+    res.json({ success: true, token });
 });
 
 // 1. Marcar Entrada o Salida (Escaneando QR)
 router.post('/marcar', async (req, res) => {
-    const { usuario_id, token } = req.body;
+    // El empleado que marca es el dueño de la sesión, no un usuario_id que mande el body:
+    // evita que alguien marque entrada/salida a nombre de otro usando su propio token válido.
+    const usuario_id = req.usuario.id;
+    const { token } = req.body;
 
-    if (!usuario_id || !token) {
-        return res.status(400).json({ error: 'Faltan datos requeridos (usuario_id y token).' });
+    if (!token) {
+        return res.status(400).json({ error: 'Falta el token del código QR.' });
     }
 
     // Validar el token diario
@@ -189,7 +179,9 @@ router.get('/', async (req, res) => {
 
 // 3. Obtener Historial de Asistencia Individual (Para Empleados)
 router.get('/mi-historial/:usuario_id', async (req, res) => {
-    const { usuario_id } = req.params;
+    // Ignoramos el usuario_id de la URL: cada quien solo puede ver su propio historial,
+    // el real viene de la sesión verificada (req.usuario), no de un id manipulable en el path.
+    const usuario_id = req.usuario.id;
 
     try {
         const result = await pool.query(
@@ -214,26 +206,13 @@ router.get('/mi-historial/:usuario_id', async (req, res) => {
 
 // 4. Registrar Asistencia Manual (Solo Administradores)
 router.post('/manual', async (req, res) => {
-    const { usuario_id, fecha, hora_entrada, hora_salida, editor_rol, editor_id } = req.body;
+    const { usuario_id, fecha, hora_entrada, hora_salida } = req.body;
 
-    // Validar rol de administrador en base de datos para seguridad
-    const adminId = editor_id;
-    if (!adminId) {
-        return res.status(400).json({ error: 'Faltan datos de autorización (editor_id).' });
-    }
-
-    try {
-        const adminCheck = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [adminId]);
-        if (adminCheck.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario administrador no encontrado.' });
-        }
-        const rolReal = adminCheck.rows[0].rol.toUpperCase();
-        if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
-            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden registrar asistencia manualmente.' });
-        }
-    } catch (dbErr) {
-        console.error('Error al validar editor:', dbErr);
-        return res.status(500).json({ error: 'Error interno al validar permisos.' });
+    // El rol de quien edita viene de la sesión verificada, no de editor_id/editor_rol del body:
+    // así nadie puede pasar el id de un admin para registrar asistencia manual sin serlo.
+    const rolReal = (req.usuario.rol || '').toUpperCase();
+    if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
+        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden registrar asistencia manualmente.' });
     }
 
     if (!usuario_id || !fecha || !hora_entrada) {
@@ -296,22 +275,14 @@ router.post('/manual', async (req, res) => {
 // 5. Eliminar un Registro de Asistencia (Solo Administradores)
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
-    const editor_id = req.headers['x-usuario-id'] || req.body.editor_id || req.query.editor_id;
 
-    if (!editor_id) {
-        return res.status(400).json({ error: 'Falta ID de editor para verificar permisos.' });
+    // El rol de quien borra viene de la sesión verificada, no de un editor_id que mande el cliente.
+    const rolReal = (req.usuario.rol || '').toUpperCase();
+    if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
+        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar registros de asistencia.' });
     }
 
     try {
-        const adminCheck = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [editor_id]);
-        if (adminCheck.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario administrador no encontrado.' });
-        }
-        const rolReal = adminCheck.rows[0].rol.toUpperCase();
-        if (rolReal !== 'ADMINISTRADOR' && rolReal !== 'ADMIN') {
-            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar registros de asistencia.' });
-        }
-
         const deleteResult = await pool.query('DELETE FROM asistencia WHERE id = $1 RETURNING id', [id]);
         if (deleteResult.rows.length === 0) {
             return res.status(404).json({ error: 'Registro de asistencia no encontrado.' });

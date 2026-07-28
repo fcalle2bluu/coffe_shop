@@ -1,0 +1,16 @@
+{
+  "mesero": {
+    "versionCode": 2,
+    "versionName": "1.0.1",
+    "apkUrl": "/apks/mesero.apk",
+    "notas": "Corrige el error de sesión que impedía marcar asistencia y usar el resto de la app.",
+    "obligatoria": true
+  },
+  "comandas": {
+    "versionCode": 2,
+    "versionName": "1.0.1",
+    "apkUrl": "/apks/comandas.apk",
+    "notas": "Corrige el error de sesión que impedía cargar los pedidos y el resto de la app.",
+    "obligatoria": true
+  }
+}

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../services/update_service.dart';
+import '../widgets/dialogo_actualizacion.dart';
 import 'login_screen.dart';
 import 'main_navigation.dart';
 
@@ -85,7 +87,15 @@ class _SplashAnimationScreenState extends State<SplashAnimationScreen> with Tick
     super.dispose();
   }
 
-  void _navigateToNextScreen() {
+  void _navigateToNextScreen() async {
+    if (!mounted) return;
+
+    // Chequeo de actualización: si el backend reporta una versión más nueva,
+    // se muestra antes de entrar a la app (bloqueante si es "obligatoria").
+    final actualizacion = await UpdateService.buscarActualizacion();
+    if (actualizacion != null && mounted) {
+      await mostrarDialogoActualizacion(context, actualizacion);
+    }
     if (!mounted) return;
 
     final targetScreen = widget.hasActiveSession ? const MainNavigation() : const LoginScreen();

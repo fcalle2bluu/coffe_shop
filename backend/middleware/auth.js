@@ -3,16 +3,21 @@ const pool = require('../config/conexion');
 // Rutas de la API que deben quedar públicas (sin sesión):
 // - login: es como se obtiene la sesión
 // - webhook de WhatsApp: lo llama Meta directamente, sin usuario logueado
+// - version: la app debe poder chequear actualizaciones incluso si su sesión
+//   expiró o antes de loguearse (ej. versión vieja que ya no puede autenticar)
 const RUTAS_PUBLICAS = [
     '/api/auth/login',
     '/api/whatsapp/webhook',
+];
+const PREFIJOS_PUBLICOS = [
+    '/api/version/',
 ];
 
 async function verificarSesion(req, res, next) {
     if (!req.path.startsWith('/api/')) {
         return next();
     }
-    if (RUTAS_PUBLICAS.includes(req.path)) {
+    if (RUTAS_PUBLICAS.includes(req.path) || PREFIJOS_PUBLICOS.some(p => req.path.startsWith(p))) {
         return next();
     }
 

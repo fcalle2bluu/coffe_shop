@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/cocina_screen.dart';
+import 'services/update_service.dart';
+import 'widgets/dialogo_actualizacion.dart';
 
 void main() {
   runApp(const CocinaApp());
@@ -51,6 +53,14 @@ class _SplashGateState extends State<_SplashGate> {
       _autenticado = usuarioId != null && rol == 'COCINERO';
       _loading = false;
     });
+    _chequearActualizacion();
+  }
+
+  Future<void> _chequearActualizacion() async {
+    final info = await UpdateService.buscarActualizacion();
+    if (info != null && mounted) {
+      await mostrarDialogoActualizacion(context, info);
+    }
   }
 
   @override
