@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 4,
-    "versionName": "1.0.3",
+    "versionCode": 5,
+    "versionName": "1.0.4",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrige un recuadro gris que aparecía al hacer scroll en el dashboard y muestra el detalle del error si algo falla.",
+    "notas": "Corrige el gráfico de Horas Pico del dashboard, que fallaba al leer datos del servidor.",
     "obligatoria": false
   },
   "comandas": {

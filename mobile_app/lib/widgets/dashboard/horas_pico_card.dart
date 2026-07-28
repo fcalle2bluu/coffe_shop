@@ -47,8 +47,12 @@ class _HorasPicoCardState extends State<HorasPicoCard> {
     }
   }
 
+  // El backend devuelve "hora" como texto (efecto del EXTRACT() de Postgres
+  // pasando por el driver pg), no como número — nunca asumir el tipo.
+  int _horaDe(dynamic item) => int.tryParse(item['hora'].toString()) ?? -1;
+
   double _valorHora(int hora) {
-    final match = _horas.firstWhere((h) => (h['hora'] as num).toInt() == hora, orElse: () => null);
+    final match = _horas.firstWhere((h) => _horaDe(h) == hora, orElse: () => null);
     if (match == null) return 0;
     return double.tryParse((_porDinero ? match['ingresos'] : match['ventas_cont']).toString()) ?? 0;
   }
@@ -70,7 +74,7 @@ class _HorasPicoCardState extends State<HorasPicoCard> {
   Widget build(BuildContext context) {
     final productosDeLaHora = _horaSeleccionada == null
         ? <dynamic>[]
-        : _productosHora.where((p) => (p['hora'] as num).toInt() == _horaSeleccionada).toList();
+        : _productosHora.where((p) => _horaDe(p) == _horaSeleccionada).toList();
 
     return Card(
       child: Padding(
