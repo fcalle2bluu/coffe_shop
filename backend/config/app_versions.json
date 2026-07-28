@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 11,
-    "versionName": "1.0.10",
+    "versionCode": 12,
+    "versionName": "1.0.11",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrige turnos de asistencia con más de 20 horas: ahora se muestran como 'Sin Marcar Salida' en vez de un número sin sentido, y el escaneo QR ya no cierra turnos abandonados de días anteriores.",
+    "notas": "Cuando un turno no tiene salida marcada, ahora se muestra una hora estimada según el promedio del empleado, en vez de una etiqueta de 'sin marcar'.",
     "obligatoria": false
   },
   "comandas": {

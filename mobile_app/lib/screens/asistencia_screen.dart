@@ -565,12 +565,14 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   itemCount: _historial.length,
                   itemBuilder: (context, index) {
                     final r = _historial[index];
-                    // Un turno sin salida solo es "Pendiente" si es de hoy; si ya pasó ese
-                    // día (o la salida guardada dio horas absurdas, ej. >20h por un escaneo
-                    // de días después), se muestra "Sin marcar" en vez de un dato sin sentido.
+                    // Un turno sin salida solo es "Pendiente" si es de hoy; si ya pasó ese día
+                    // (o la salida guardada dio horas absurdas, ej. >20h por un escaneo de días
+                    // después), el backend ya la reemplaza por una hora estimada según el
+                    // promedio de ese empleado, mostrada en cursiva para diferenciarla.
                     final estado = r['estado_salida'] as String? ?? (r['salida'] != null ? 'OK' : 'EN_TURNO');
                     final esOk = estado == 'OK';
                     final enTurno = estado == 'EN_TURNO';
+                    final esEstimado = estado == 'ESTIMADO';
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -604,11 +606,12 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                       Icon(Icons.logout, size: 10, color: esOk ? Colors.redAccent : Colors.grey),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Salida: ${esOk ? r['salida'] : (enTurno ? 'Pendiente' : 'Sin marcar')}',
+                                        'Salida: ${enTurno ? 'Pendiente' : (esEstimado ? '${r['salida']} (prom.)' : r['salida'])}',
                                         style: GoogleFonts.outfit(
                                           fontSize: 11,
-                                          color: esOk ? AppTheme.textLight : (enTurno ? Colors.greenAccent : Colors.amber),
-                                          fontWeight: esOk ? FontWeight.normal : FontWeight.bold,
+                                          color: enTurno ? Colors.greenAccent : (esEstimado ? AppTheme.textMuted : AppTheme.textLight),
+                                          fontWeight: enTurno ? FontWeight.bold : FontWeight.normal,
+                                          fontStyle: esEstimado ? FontStyle.italic : FontStyle.normal,
                                         ),
                                       ),
                                     ],
@@ -616,7 +619,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                 ],
                               ),
                             ),
-                            if (esOk && r['horas_trabajadas'] != null) ...[
+                            if (!enTurno && r['horas_trabajadas'] != null) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -629,7 +632,12 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                   children: [
                                     Text(
                                       double.parse(r['horas_trabajadas'].toString()).toStringAsFixed(2),
-                                      style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: AppTheme.accentColor, fontSize: 14),
+                                      style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.w900,
+                                        color: AppTheme.accentColor,
+                                        fontSize: 14,
+                                        fontStyle: esEstimado ? FontStyle.italic : FontStyle.normal,
+                                      ),
                                     ),
                                     Text(
                                       'horas',
@@ -771,6 +779,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                         final estado = r['estado_salida'] as String? ?? (r['salida'] != null ? 'OK' : 'EN_TURNO');
                         final esOk = estado == 'OK';
                         final enTurno = estado == 'EN_TURNO';
+                        final esEstimado = estado == 'ESTIMADO';
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -790,24 +799,30 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                   Icon(Icons.logout, size: 10, color: esOk ? Colors.redAccent : Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Salida: ${esOk ? r['salida'] : (enTurno ? 'Pendiente' : 'Sin marcar')}',
+                                    'Salida: ${enTurno ? 'Pendiente' : (esEstimado ? '${r['salida']} (prom.)' : r['salida'])}',
                                     style: GoogleFonts.outfit(
                                       fontSize: 11,
-                                      color: esOk ? AppTheme.textLight : (enTurno ? Colors.greenAccent : Colors.amber),
-                                      fontWeight: esOk ? FontWeight.normal : FontWeight.bold,
+                                      color: enTurno ? Colors.greenAccent : (esEstimado ? AppTheme.textMuted : AppTheme.textLight),
+                                      fontWeight: enTurno ? FontWeight.bold : FontWeight.normal,
+                                      fontStyle: esEstimado ? FontStyle.italic : FontStyle.normal,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            trailing: esOk && r['horas_trabajadas'] != null
+                            trailing: !enTurno && r['horas_trabajadas'] != null
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
                                         '${double.parse(r['horas_trabajadas'].toString()).toStringAsFixed(2)} hrs',
-                                        style: GoogleFonts.outfit(fontWeight: FontWeight.w900, color: AppTheme.accentColor, fontSize: 12),
+                                        style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.w900,
+                                          color: AppTheme.accentColor,
+                                          fontSize: 12,
+                                          fontStyle: esEstimado ? FontStyle.italic : FontStyle.normal,
+                                        ),
                                       ),
                                       Text('Trabajado', style: GoogleFonts.outfit(fontSize: 8, color: AppTheme.textMuted)),
                                     ],
