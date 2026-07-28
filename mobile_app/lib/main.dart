@@ -21,7 +21,26 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   // Asegurar inicialización de bindings para plugins nativos
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Por defecto, en release un widget que falla se ve como un recuadro gris
+  // vacío sin ninguna pista de qué pasó. Mostramos el error real para poder
+  // diagnosticar fallas reportadas por captura de pantalla.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: const Color(0xFF7F1D1D),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Center(
+          child: Text(
+            'Error al mostrar este panel:\n${details.exceptionAsString()}',
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  };
+
   // Inicializar formateo de fechas en español
   try {
     await initializeDateFormatting('es_ES', null);

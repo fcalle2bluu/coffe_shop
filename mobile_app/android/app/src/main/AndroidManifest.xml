@@ -27,6 +27,12 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Impeller (motor de render nuevo, activado por defecto desde Flutter 3.29)
+                 tiene bugs conocidos de renderizado en blanco/gris en ciertas GPUs de gama
+                 media/baja. Se desactiva para volver al motor Skia, más probado. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.EnableImpeller"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

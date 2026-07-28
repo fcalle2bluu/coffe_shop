@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 3,
-    "versionName": "1.0.2",
+    "versionCode": 4,
+    "versionName": "1.0.3",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Agrega todos los gráficos del panel web (semáforo contable, actividad semanal, rendimiento mensual, horas pico, matriz BCG, métodos de pago y gastos) al dashboard del admin.",
+    "notas": "Corrige un recuadro gris que aparecía al hacer scroll en el dashboard y muestra el detalle del error si algo falla.",
     "obligatoria": false
   },
   "comandas": {
