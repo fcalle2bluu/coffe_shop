@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filtroMes) filtroMes.value = horaBolivia.getMonth() + 1;
     if (filtroAnio) filtroAnio.value = horaBolivia.getFullYear();
 
-    cargarUsuarios();
+    cargarConfiguracionDescuentos();
+    cargarPlanillaSalarios();
 });
 
 // --- CAMBIAR ENTRE DIRECTORIO Y PAGO DE SALARIOS ---
