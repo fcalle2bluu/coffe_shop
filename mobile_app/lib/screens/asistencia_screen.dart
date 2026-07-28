@@ -688,10 +688,9 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
             ),
           ),
 
-          if (_userRol.toUpperCase() != 'CAJERO') ...[
-            const SizedBox(height: 24),
-            // Historial Personal
-            Align(
+          const SizedBox(height: 24),
+          // Historial Personal (visible para cualquier rol, cada quien ve solo el suyo)
+          Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Mis Marcaciones Recientes (Últimos 30 días)',
@@ -759,8 +758,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                         );
                       },
                     ),
-            ),
-          ],
+          ),
         ],
       ),
     );
