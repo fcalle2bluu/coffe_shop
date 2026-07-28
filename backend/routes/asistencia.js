@@ -46,9 +46,15 @@ router.post('/marcar', async (req, res) => {
     }
 
     try {
-        // Buscar si el empleado tiene un turno abierto (entrada registrada pero sin salida)
+        // Buscar si el empleado tiene un turno abierto HOY (entrada registrada pero sin salida).
+        // Solo se considera el día de hoy: un turno sin cerrar de un día anterior quedó
+        // abandonado (se le olvidó marcar salida) y no debe cerrarse con la hora actual,
+        // porque eso generaba turnos fantasma de 40, 90 e incluso 140 horas "trabajadas".
         const turnoAbierto = await pool.query(
-            'SELECT id, hora_entrada FROM asistencia WHERE usuario_id = $1 AND hora_salida IS NULL LIMIT 1',
+            `SELECT id, hora_entrada FROM asistencia
+             WHERE usuario_id = $1 AND hora_salida IS NULL
+               AND fecha = TIMEZONE('America/La_Paz', NOW())::date
+             LIMIT 1`,
             [usuario_id]
         );
 
@@ -134,7 +140,13 @@ router.get('/', async (req, res) => {
             TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha,
             TO_CHAR(a.hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada,
             TO_CHAR(a.hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as salida,
-            a.horas_trabajadas
+            a.horas_trabajadas,
+            CASE
+                WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN 'EN_TURNO'
+                WHEN a.hora_salida IS NULL THEN 'SIN_MARCAR'
+                WHEN a.horas_trabajadas > 20 THEN 'SIN_MARCAR'
+                ELSE 'OK'
+            END as estado_salida
         FROM asistencia a
         JOIN usuarios u ON a.usuario_id = u.id
     `;
@@ -185,15 +197,21 @@ router.get('/mi-historial/:usuario_id', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT 
+            `SELECT
                 id,
                 TO_CHAR(fecha, 'DD/MM/YYYY') as fecha,
                 TO_CHAR(hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada,
                 TO_CHAR(hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as salida,
-                horas_trabajadas
-             FROM asistencia 
-             WHERE usuario_id = $1 
-             ORDER BY fecha DESC, hora_entrada DESC 
+                horas_trabajadas,
+                CASE
+                    WHEN hora_salida IS NULL AND fecha = TIMEZONE('America/La_Paz', NOW())::date THEN 'EN_TURNO'
+                    WHEN hora_salida IS NULL THEN 'SIN_MARCAR'
+                    WHEN horas_trabajadas > 20 THEN 'SIN_MARCAR'
+                    ELSE 'OK'
+                END as estado_salida
+             FROM asistencia
+             WHERE usuario_id = $1
+             ORDER BY fecha DESC, hora_entrada DESC
              LIMIT 30`,
             [usuario_id]
         );

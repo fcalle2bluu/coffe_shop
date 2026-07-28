@@ -263,13 +263,21 @@ async function cargarHistorialAsistencia(silent) {
         }
         
         registros.forEach(r => {
-            const salidaText = r.salida 
-                ? `<span class="font-bold text-slate-700">${r.salida}</span>` 
-                : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-black text-[9px] uppercase tracking-wider animate-pulse">En Turno</span>`;
-                
-            const horasText = r.horas_trabajadas 
-                ? `<span class="font-black text-slate-800">${parseFloat(r.horas_trabajadas).toFixed(2)} hrs</span>` 
-                : '<span class="text-slate-400">-</span>';
+            // Un turno sin marcar salida solo cuenta como "En Turno" si es de hoy; si ya
+            // pasó ese día (o si la salida guardada dio horas absurdas, ej. >20h por un
+            // escaneo de días después), se muestra como "Sin marcar salida" en vez de
+            // un dato que no tiene sentido.
+            let salidaText, horasText;
+            if (r.estado_salida === 'EN_TURNO') {
+                salidaText = `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-black text-[9px] uppercase tracking-wider animate-pulse">En Turno</span>`;
+                horasText = '<span class="text-slate-400">-</span>';
+            } else if (r.estado_salida === 'SIN_MARCAR') {
+                salidaText = `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-black text-[9px] uppercase tracking-wider">Sin Marcar Salida</span>`;
+                horasText = '<span class="text-slate-400">-</span>';
+            } else {
+                salidaText = `<span class="font-bold text-slate-700">${r.salida}</span>`;
+                horasText = `<span class="font-black text-slate-800">${parseFloat(r.horas_trabajadas).toFixed(2)} hrs</span>`;
+            }
 
             const fila = document.createElement('tr');
             fila.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100';
@@ -281,7 +289,7 @@ async function cargarHistorialAsistencia(silent) {
                 <td class="px-4 py-3 text-center">${salidaText}</td>
                 <td class="px-4 py-3 text-right">${horasText}</td>
                 <td class="px-4 py-3 text-center no-print">
-                    ${!r.salida ? `
+                    ${r.estado_salida !== 'OK' ? `
                     <button onclick="abrirModalFinalizarTurno(${r.usuario_id}, '${r.fecha}')" class="text-emerald-600 hover:text-emerald-800 transition-colors p-1" title="Finalizar turno">
                         <i class="fa-solid fa-circle-check"></i>
                     </button>
