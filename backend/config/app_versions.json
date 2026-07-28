@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 6,
-    "versionName": "1.0.5",
+    "versionCode": 7,
+    "versionName": "1.0.6",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Agrega un indicador de versión en una esquina de la pantalla; si hay una actualización disponible, se convierte en un botón para instalarla al toque.",
+    "notas": "Mueve el indicador de versión a la esquina superior derecha.",
     "obligatoria": false
   },
   "comandas": {

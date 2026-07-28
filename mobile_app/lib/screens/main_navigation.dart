@@ -934,9 +934,9 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
         ),
         Positioned(
           right: 12,
-          bottom: 12,
+          top: 12,
           child: SafeArea(
-            minimum: const EdgeInsets.only(bottom: 4),
+            minimum: const EdgeInsets.only(top: 4),
             child: const VersionBadge(),
           ),
         ),
