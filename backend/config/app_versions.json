@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 10,
-    "versionName": "1.0.9",
+    "versionCode": 11,
+    "versionName": "1.0.10",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Agrega un botón para finalizar rápido el turno de alguien que olvidó marcar su salida, junto al de eliminar en el historial de asistencia del admin.",
+    "notas": "Corrige turnos de asistencia con más de 20 horas: ahora se muestran como 'Sin Marcar Salida' en vez de un número sin sentido, y el escaneo QR ya no cierra turnos abandonados de días anteriores.",
     "obligatoria": false
   },
   "comandas": {

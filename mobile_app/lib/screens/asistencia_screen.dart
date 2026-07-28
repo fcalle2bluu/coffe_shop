@@ -565,7 +565,12 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   itemCount: _historial.length,
                   itemBuilder: (context, index) {
                     final r = _historial[index];
-                    final hasSalida = r['salida'] != null;
+                    // Un turno sin salida solo es "Pendiente" si es de hoy; si ya pasó ese
+                    // día (o la salida guardada dio horas absurdas, ej. >20h por un escaneo
+                    // de días después), se muestra "Sin marcar" en vez de un dato sin sentido.
+                    final estado = r['estado_salida'] as String? ?? (r['salida'] != null ? 'OK' : 'EN_TURNO');
+                    final esOk = estado == 'OK';
+                    final enTurno = estado == 'EN_TURNO';
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -596,14 +601,14 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                         style: GoogleFonts.outfit(fontSize: 11, color: AppTheme.textLight),
                                       ),
                                       const SizedBox(width: 12),
-                                      Icon(Icons.logout, size: 10, color: hasSalida ? Colors.redAccent : Colors.grey),
+                                      Icon(Icons.logout, size: 10, color: esOk ? Colors.redAccent : Colors.grey),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Salida: ${hasSalida ? r['salida'] : 'Pendiente'}',
+                                        'Salida: ${esOk ? r['salida'] : (enTurno ? 'Pendiente' : 'Sin marcar')}',
                                         style: GoogleFonts.outfit(
                                           fontSize: 11,
-                                          color: hasSalida ? AppTheme.textLight : Colors.greenAccent,
-                                          fontWeight: hasSalida ? FontWeight.normal : FontWeight.bold,
+                                          color: esOk ? AppTheme.textLight : (enTurno ? Colors.greenAccent : Colors.amber),
+                                          fontWeight: esOk ? FontWeight.normal : FontWeight.bold,
                                         ),
                                       ),
                                     ],
@@ -611,7 +616,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                 ],
                               ),
                             ),
-                            if (r['horas_trabajadas'] != null) ...[
+                            if (esOk && r['horas_trabajadas'] != null) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -634,7 +639,7 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                 ),
                               ),
                             ],
-                            if (!hasSalida) ...[
+                            if (!esOk) ...[
                               const SizedBox(width: 4),
                               IconButton(
                                 icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 20),
@@ -763,7 +768,9 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                       itemCount: _historial.length,
                       itemBuilder: (context, index) {
                         final r = _historial[index];
-                        final hasSalida = r['salida'] != null;
+                        final estado = r['estado_salida'] as String? ?? (r['salida'] != null ? 'OK' : 'EN_TURNO');
+                        final esOk = estado == 'OK';
+                        final enTurno = estado == 'EN_TURNO';
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -780,20 +787,20 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                                   const SizedBox(width: 4),
                                   Text('Entrada: ${r['entrada']}', style: GoogleFonts.outfit(fontSize: 11)),
                                   const SizedBox(width: 14),
-                                  Icon(Icons.logout, size: 10, color: hasSalida ? Colors.redAccent : Colors.grey),
+                                  Icon(Icons.logout, size: 10, color: esOk ? Colors.redAccent : Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Salida: ${hasSalida ? r['salida'] : 'Pendiente'}',
+                                    'Salida: ${esOk ? r['salida'] : (enTurno ? 'Pendiente' : 'Sin marcar')}',
                                     style: GoogleFonts.outfit(
                                       fontSize: 11,
-                                      color: hasSalida ? AppTheme.textLight : Colors.greenAccent,
-                                      fontWeight: hasSalida ? FontWeight.normal : FontWeight.bold,
+                                      color: esOk ? AppTheme.textLight : (enTurno ? Colors.greenAccent : Colors.amber),
+                                      fontWeight: esOk ? FontWeight.normal : FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            trailing: r['horas_trabajadas'] != null
+                            trailing: esOk && r['horas_trabajadas'] != null
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
