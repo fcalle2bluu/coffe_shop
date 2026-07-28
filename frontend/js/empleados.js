@@ -479,7 +479,7 @@ async function cargarPlanillaSalarios() {
                     </div>
                 </td>
                 <td class="px-3 py-3">
-                    <div class="grid grid-cols-2 gap-1.5 w-48 mx-auto">
+                    <div class="w-52 mx-auto space-y-1.5">
                         <div>
                             <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Salario</label>
                             <div class="flex items-center gap-1">
@@ -489,24 +489,26 @@ async function cargarPlanillaSalarios() {
                                 <i id="guardado-${p.usuario_id}" class="fa-solid fa-check text-emerald-500 text-[10px] opacity-0 transition-opacity shrink-0"></i>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Días</label>
-                            <input type="number" min="0" ${inputsDisabled} value="${p.dias_trabajados}" id="input-dias-${p.usuario_id}"
-                                onchange="actualizarCampoPlanilla(${p.usuario_id})"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                        </div>
-                        <div>
-                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Horas</label>
-                            <input type="number" step="0.5" min="0" ${inputsDisabled} value="${p.horas_laborales}" id="input-horas-${p.usuario_id}"
-                                onchange="actualizarCampoPlanilla(${p.usuario_id})"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <div>
+                                <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Días</label>
+                                <input type="number" min="0" ${inputsDisabled} value="${p.dias_trabajados}" id="input-dias-${p.usuario_id}"
+                                    onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Horas</label>
+                                <input type="number" step="0.5" min="0" ${inputsDisabled} value="${p.horas_laborales}" id="input-horas-${p.usuario_id}"
+                                    onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Entrada</label>
                             <input type="time" ${inputsDisabled} value="${p.hora_entrada}" id="input-entrada-${p.usuario_id}"
                                 onchange="actualizarHoraEntrada(${p.usuario_id})"
                                 title="Hora de entrada oficial de este empleado (define desde cuándo cuenta como retraso)"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
                         </div>
                     </div>
                 </td>
