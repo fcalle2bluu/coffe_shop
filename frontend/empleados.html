@@ -220,24 +220,16 @@
                             </div>
                         </div>
                         <div class="p-8">
-                            <form id="formParametrosDescuento" onsubmit="guardarParametrosDescuento(event)" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <form id="formParametrosDescuento" onsubmit="guardarParametrosDescuento(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Entrada Patronal (HH:MM)</label>
-                                    <input type="time" id="paramHoraEntrada" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Descuento por Retraso (Bs. cada 5 min)</label>
+                                    <input type="number" step="0.01" min="0" id="paramDescuentoRetraso" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Descuento Retraso (Bs/min)</label>
-                                    <input type="number" step="0.01" min="0" id="paramDescuentoMinuto" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Descuento Falta (Bs/día)</label>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Descuento por Falta (Bs. por día)</label>
                                     <input type="number" step="0.01" min="0" id="paramDescuentoFalta" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold">
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Días Laborables en el Mes</label>
-                                    <input type="number" min="1" max="31" id="paramDiasLaborables" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold">
-                                </div>
-                                <div class="md:col-span-4 flex justify-end">
+                                <div class="md:col-span-2 flex justify-end">
                                     <button type="submit" id="btnGuardarParamDescuento" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-orange-100 transition-all text-sm flex items-center gap-2">
                                         <i class="fa-solid fa-floppy-disk"></i> Guardar Parámetros de Descuento
                                     </button>
@@ -286,6 +278,9 @@
                                         <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
                                             <th class="px-6 py-4">Colaborador</th>
                                             <th class="px-6 py-4 text-center">Salario Base</th>
+                                            <th class="px-6 py-4 text-center">Días Trab.</th>
+                                            <th class="px-6 py-4 text-center">Horas/Día</th>
+                                            <th class="px-6 py-4 text-center">Hora Entrada</th>
                                             <th class="px-6 py-4 text-center">Asistencias / Faltas</th>
                                             <th class="px-6 py-4 text-center">Descuento Faltas</th>
                                             <th class="px-6 py-4 text-center">Retraso Acumulado</th>
@@ -297,7 +292,7 @@
                                     </thead>
                                     <tbody id="lista-planilla" class="divide-y divide-slate-100">
                                         <tr>
-                                            <td colspan="9" class="text-center py-20 text-slate-300 italic">
+                                            <td colspan="12" class="text-center py-20 text-slate-300 italic">
                                                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block text-emerald-500"></i>
                                                 Preparando planilla mensual de asistencia y nómina...
                                             </td>

@@ -354,16 +354,21 @@ async function eliminarUser(id) {
 }
 
 // --- PANEL PAGO DE SALARIOS (PLANILLA & NOMINA) ---
+
+// Config y datos base de la planilla actual, guardados en memoria para poder
+// recalcular el salario neto en vivo sin tener que volver a golpear el servidor
+// cada vez que el admin edita el salario base o los días trabajados de una fila.
+let planillaConfigLocal = { descuento_retraso_bloque: 10, descuento_falta_dia: 200, bloque_retraso_minutos: 5 };
+let planillaDatosLocal = {}; // usuario_id -> { asistencias_count, minutos_retraso }
+
 async function cargarConfiguracionDescuentos() {
     try {
         const res = await fetch('/api/parametros');
         if (!res.ok) throw new Error('Error al cargar parámetros');
         const data = await res.json();
-        
-        document.getElementById('paramHoraEntrada').value = data.hora_entrada_patron ? data.hora_entrada_patron.substring(0, 5) : '08:30';
-        document.getElementById('paramDescuentoMinuto').value = parseFloat(data.descuento_minuto_retraso || 0);
-        document.getElementById('paramDescuentoFalta').value = parseFloat(data.descuento_falta_dia || 0);
-        document.getElementById('paramDiasLaborables').value = parseInt(data.dias_laborables || 26);
+
+        document.getElementById('paramDescuentoRetraso').value = parseFloat(data.descuento_retraso_bloque || 10);
+        document.getElementById('paramDescuentoFalta').value = parseFloat(data.descuento_falta_dia || 200);
     } catch (error) {
         console.error('Error al cargar parámetros de descuento:', error);
     }
@@ -375,12 +380,12 @@ async function guardarParametrosDescuento(event) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
 
-    const hora_entrada_patron = document.getElementById('paramHoraEntrada').value;
-    const descuento_minuto_retraso = parseFloat(document.getElementById('paramDescuentoMinuto').value);
+    const descuento_retraso_bloque = parseFloat(document.getElementById('paramDescuentoRetraso').value);
     const descuento_falta_dia = parseFloat(document.getElementById('paramDescuentoFalta').value);
-    const dias_laborables = parseInt(document.getElementById('paramDiasLaborables').value);
 
     try {
+        // Se preservan sin cambios el resto de los parámetros generales del sistema
+        // (nombre de empresa, moneda, impuestos, etc.) que viven en la misma tabla.
         const getRes = await fetch('/api/parametros');
         const currentParams = await getRes.json();
 
@@ -389,10 +394,8 @@ async function guardarParametrosDescuento(event) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ...currentParams,
-                hora_entrada_patron,
-                descuento_minuto_retraso,
-                descuento_falta_dia,
-                dias_laborables
+                descuento_retraso_bloque,
+                descuento_falta_dia
             })
         });
 
@@ -415,7 +418,7 @@ async function cargarPlanillaSalarios() {
 
     container.innerHTML = `
         <tr>
-            <td colspan="9" class="text-center py-20 text-slate-300 italic">
+            <td colspan="12" class="text-center py-20 text-slate-300 italic">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block text-emerald-500"></i>
                 Calculando planilla...
             </td>
@@ -426,16 +429,25 @@ async function cargarPlanillaSalarios() {
         const res = await fetch(`/api/parametros/usuarios/pagos/calcular?mes=${mes}&anio=${anio}`);
         if (!res.ok) throw new Error('Error al calcular planilla');
         const data = await res.json();
-        
+
+        planillaConfigLocal = data.config;
+        planillaDatosLocal = {};
+
         container.innerHTML = '';
         if (data.payroll.length === 0) {
-            container.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-300 italic">No hay empleados registrados para procesar nómina</td></tr>';
+            container.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-300 italic">No hay empleados registrados para procesar nómina</td></tr>';
             return;
         }
 
         data.payroll.forEach(p => {
+            planillaDatosLocal[p.usuario_id] = {
+                asistencias_count: p.asistencias_count,
+                minutos_retraso: p.minutos_retraso
+            };
+
             const row = document.createElement('tr');
             row.className = "hover:bg-slate-50 transition-colors group text-sm font-semibold";
+            row.id = `fila-planilla-${p.usuario_id}`;
 
             const fotoHtml = p.foto_url
                 ? `<img src="${p.foto_url}" class="w-9 h-9 rounded-xl object-cover ring-2 ring-slate-100 shadow-sm">`
@@ -449,10 +461,12 @@ async function cargarPlanillaSalarios() {
             if (p.pagado) {
                 accionHtml = `<button disabled class="bg-slate-100 text-slate-400 px-3 py-1.5 rounded-xl font-bold text-xs cursor-not-allowed">Procesado</button>`;
             } else {
-                accionHtml = `<button onclick="abrirModalPago(${p.usuario_id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.salario_base}, ${p.descuento_retrasos}, ${p.descuento_faltas}, ${p.salario_neto}, ${p.minutos_retraso}, ${p.faltas})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-md shadow-emerald-100 transition-all flex items-center gap-1">
+                accionHtml = `<button id="btn-pagar-${p.usuario_id}" onclick="abrirModalPagoDesdeFila(${p.usuario_id}, '${p.nombre.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-md shadow-emerald-100 transition-all flex items-center gap-1">
                     <i class="fa-solid fa-cash-register"></i> Pagar
                 </button>`;
             }
+
+            const inputsDisabled = p.pagado ? 'disabled' : '';
 
             row.innerHTML = `
                 <td class="px-6 py-4">
@@ -464,20 +478,130 @@ async function cargarPlanillaSalarios() {
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-center font-mono font-bold text-slate-700">${p.salario_base.toFixed(2)} Bs.</td>
-                <td class="px-6 py-4 text-center font-medium">${p.asistencias_count} / <span class="text-slate-400 font-bold">${data.config.dias_laborables}</span> <span class="text-slate-400 text-xs">(Faltas: ${p.faltas})</span></td>
-                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold">-${p.descuento_faltas.toFixed(2)} Bs.</td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <input type="number" step="0.01" min="0" ${inputsDisabled} value="${p.salario_base}" id="input-salario-${p.usuario_id}"
+                            onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                            class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i id="guardado-${p.usuario_id}" class="fa-solid fa-check text-emerald-500 text-xs opacity-0 transition-opacity"></i>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <input type="number" min="0" ${inputsDisabled} value="${p.dias_trabajados}" id="input-dias-${p.usuario_id}"
+                        onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                        class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <input type="number" step="0.5" min="0" ${inputsDisabled} value="${p.horas_laborales}" id="input-horas-${p.usuario_id}"
+                        onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                        class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <input type="time" ${inputsDisabled} value="${p.hora_entrada}" id="input-entrada-${p.usuario_id}"
+                        onchange="actualizarHoraEntrada(${p.usuario_id})"
+                        title="Hora de entrada oficial de este empleado (define desde cuándo cuenta como retraso)"
+                        class="w-28 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                </td>
+                <td class="px-6 py-4 text-center font-medium" id="txt-asist-${p.usuario_id}">${p.asistencias_count} / ${p.dias_trabajados} <span class="text-slate-400 text-xs">(Faltas: ${p.faltas})</span></td>
+                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold" id="txt-descfaltas-${p.usuario_id}">-${p.descuento_faltas.toFixed(2)} Bs.</td>
                 <td class="px-6 py-4 text-center font-medium">${p.minutos_retraso} min.</td>
-                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold">-${p.descuento_retrasos.toFixed(2)} Bs.</td>
-                <td class="px-6 py-4 text-center font-mono font-black text-emerald-600 text-base">${p.salario_neto.toFixed(2)} Bs.</td>
+                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold" id="txt-descretrasos-${p.usuario_id}">-${p.descuento_retrasos.toFixed(2)} Bs.</td>
+                <td class="px-6 py-4 text-center font-mono font-black text-emerald-600 text-base" id="txt-neto-${p.usuario_id}">${p.salario_neto.toFixed(2)} Bs.</td>
                 <td class="px-6 py-4 text-center">${pagoBadge}</td>
                 <td class="px-6 py-4 text-right">${accionHtml}</td>
             `;
             container.appendChild(row);
         });
     } catch (error) {
-        container.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-rose-500 font-bold">⚠️ Error al cargar planilla de salarios: ${error.message}</td></tr>`;
+        container.innerHTML = `<tr><td colspan="12" class="text-center py-10 text-rose-500 font-bold">⚠️ Error al cargar planilla de salarios: ${error.message}</td></tr>`;
     }
+}
+
+// Recalcula en vivo el salario neto de una fila (sin recargar la planilla completa)
+// y persiste el cambio (salario base / días trabajados / horas laborales) en la BD.
+function recalcularFilaVisual(usuarioId, salarioBase, diasTrabajados) {
+    const datos = planillaDatosLocal[usuarioId];
+    if (!datos) return null;
+
+    const faltas = Math.max(0, diasTrabajados - datos.asistencias_count);
+    const descuentoFaltas = parseFloat((faltas * (planillaConfigLocal.descuento_falta_dia || 0)).toFixed(2));
+    const bloqueMin = planillaConfigLocal.bloque_retraso_minutos || 5;
+    const bloquesRetraso = datos.minutos_retraso > 0 ? Math.ceil(datos.minutos_retraso / bloqueMin) : 0;
+    const descuentoRetrasos = parseFloat((bloquesRetraso * (planillaConfigLocal.descuento_retraso_bloque || 0)).toFixed(2));
+    const salarioNeto = Math.max(0, parseFloat((salarioBase - descuentoFaltas - descuentoRetrasos).toFixed(2)));
+
+    document.getElementById(`txt-asist-${usuarioId}`).innerHTML = `${datos.asistencias_count} / ${diasTrabajados} <span class="text-slate-400 text-xs">(Faltas: ${faltas})</span>`;
+    document.getElementById(`txt-descfaltas-${usuarioId}`).textContent = `-${descuentoFaltas.toFixed(2)} Bs.`;
+    document.getElementById(`txt-descretrasos-${usuarioId}`).textContent = `-${descuentoRetrasos.toFixed(2)} Bs.`;
+    document.getElementById(`txt-neto-${usuarioId}`).textContent = `${salarioNeto.toFixed(2)} Bs.`;
+
+    return { faltas, descuentoFaltas, descuentoRetrasos, salarioNeto };
+}
+
+async function actualizarCampoPlanilla(usuarioId) {
+    const salarioBase = parseFloat(document.getElementById(`input-salario-${usuarioId}`).value) || 0;
+    const diasTrabajados = parseInt(document.getElementById(`input-dias-${usuarioId}`).value) || 0;
+    const horasLaborales = parseFloat(document.getElementById(`input-horas-${usuarioId}`).value) || 0;
+
+    recalcularFilaVisual(usuarioId, salarioBase, diasTrabajados);
+
+    try {
+        const res = await fetch(`/api/parametros/usuarios/${usuarioId}/payroll`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ salario: salarioBase, dias_trabajados: diasTrabajados, horas_laborales: horasLaborales })
+        });
+        if (!res.ok) throw new Error('Error al guardar');
+
+        const icono = document.getElementById(`guardado-${usuarioId}`);
+        if (icono) {
+            icono.classList.remove('opacity-0');
+            setTimeout(() => icono.classList.add('opacity-0'), 1500);
+        }
+    } catch (error) {
+        alert('🚨 Error al guardar el dato: ' + error.message);
+    }
+}
+
+// La hora de entrada oficial cambia desde qué instante se cuenta el retraso, así
+// que a diferencia del salario/días trabajados no se puede recalcular en el
+// navegador: hay que volver a comparar cada marcación real contra la nueva hora
+// en el servidor. Por eso aquí se guarda y se refresca toda la planilla.
+async function actualizarHoraEntrada(usuarioId) {
+    const horaEntrada = document.getElementById(`input-entrada-${usuarioId}`).value;
+    if (!horaEntrada) return;
+
+    try {
+        const res = await fetch(`/api/parametros/usuarios/${usuarioId}/payroll`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hora_entrada: horaEntrada })
+        });
+        if (!res.ok) throw new Error('Error al guardar');
+        await cargarPlanillaSalarios();
+    } catch (error) {
+        alert('🚨 Error al guardar la hora de entrada: ' + error.message);
+    }
+}
+
+// Abre el modal de pago leyendo los valores YA recalculados/guardados de la fila,
+// para que el pago siempre refleje el salario base/días trabajados vigentes.
+function abrirModalPagoDesdeFila(usuarioId, nombre) {
+    const salarioBase = parseFloat(document.getElementById(`input-salario-${usuarioId}`).value) || 0;
+    const diasTrabajados = parseInt(document.getElementById(`input-dias-${usuarioId}`).value) || 0;
+    const resultado = recalcularFilaVisual(usuarioId, salarioBase, diasTrabajados);
+    const datos = planillaDatosLocal[usuarioId] || { minutos_retraso: 0 };
+
+    abrirModalPago(
+        usuarioId,
+        nombre,
+        salarioBase,
+        resultado.descuentoRetrasos,
+        resultado.descuentoFaltas,
+        resultado.salarioNeto,
+        datos.minutos_retraso,
+        resultado.faltas
+    );
 }
 
 function abrirModalPago(userId, nombre, salarioBase, descRetrasos, descFaltas, salarioNeto, minutos, faltas) {

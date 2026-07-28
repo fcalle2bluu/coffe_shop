@@ -16,32 +16,35 @@ router.get('/', async (req, res) => {
 
 // 2. Actualizar los parámetros
 router.put('/', async (req, res) => {
-    const { 
-        nombre_empresa, documento_empresa, direccion, telefono, 
-        moneda, impuesto_nombre, impuesto_porcentaje, 
+    const {
+        nombre_empresa, documento_empresa, direccion, telefono,
+        moneda, impuesto_nombre, impuesto_porcentaje,
         mensaje_ticket_superior, mensaje_ticket_inferior, impresora_papel,
-        hora_entrada_patron, descuento_minuto_retraso, descuento_falta_dia, dias_laborables
+        hora_entrada_patron, descuento_minuto_retraso, descuento_falta_dia, dias_laborables,
+        descuento_retraso_bloque
     } = req.body;
 
     try {
         await pool.query(`
-            UPDATE parametros SET 
+            UPDATE parametros SET
                 nombre_empresa = $1, documento_empresa = $2, direccion = $3, telefono = $4,
                 moneda = $5, impuesto_nombre = $6, impuesto_porcentaje = $7,
                 mensaje_ticket_superior = $8, mensaje_ticket_inferior = $9, impresora_papel = $10,
                 hora_entrada_patron = COALESCE($11, hora_entrada_patron),
                 descuento_minuto_retraso = COALESCE($12, descuento_minuto_retraso),
                 descuento_falta_dia = COALESCE($13, descuento_falta_dia),
-                dias_laborables = COALESCE($14, dias_laborables)
+                dias_laborables = COALESCE($14, dias_laborables),
+                descuento_retraso_bloque = COALESCE($15, descuento_retraso_bloque)
             WHERE id = 1
         `, [
-            nombre_empresa, documento_empresa, direccion, telefono, 
-            moneda, impuesto_nombre, impuesto_porcentaje, 
+            nombre_empresa, documento_empresa, direccion, telefono,
+            moneda, impuesto_nombre, impuesto_porcentaje,
             mensaje_ticket_superior, mensaje_ticket_inferior, impresora_papel,
             hora_entrada_patron || null,
             descuento_minuto_retraso !== undefined ? parseFloat(descuento_minuto_retraso) : null,
             descuento_falta_dia !== undefined ? parseFloat(descuento_falta_dia) : null,
-            dias_laborables !== undefined ? parseInt(dias_laborables) : null
+            dias_laborables !== undefined ? parseInt(dias_laborables) : null,
+            descuento_retraso_bloque !== undefined ? parseFloat(descuento_retraso_bloque) : null
         ]);
 
         res.json({ message: 'Configuración guardada exitosamente' });
@@ -184,6 +187,36 @@ router.put('/usuarios/:id', async (req, res) => {
     }
 });
 
+// 4.55. Actualizar datos de nómina de un empleado (salario base, días trabajados,
+// horas laborales, hora de entrada). Endpoint liviano usado por los inputs
+// editables de la sección "Pago de Salarios", separado de PUT /usuarios/:id
+// porque ese requiere nombre/username/rol y se usa desde el modal del Directorio.
+router.put('/usuarios/:id/payroll', async (req, res) => {
+    const { id } = req.params;
+    const { salario, dias_trabajados, horas_laborales, hora_entrada } = req.body;
+
+    try {
+        await pool.query(`
+            UPDATE usuarios SET
+                salario = COALESCE($1, salario),
+                dias_trabajados = COALESCE($2, dias_trabajados),
+                horas_laborales = COALESCE($3, horas_laborales),
+                hora_entrada = COALESCE($4, hora_entrada)
+            WHERE id = $5
+        `, [
+            salario !== undefined && salario !== null ? parseFloat(salario) : null,
+            dias_trabajados !== undefined && dias_trabajados !== null ? parseInt(dias_trabajados) : null,
+            horas_laborales !== undefined && horas_laborales !== null ? parseFloat(horas_laborales) : null,
+            hora_entrada || null,
+            id
+        ]);
+        res.json({ message: 'Datos de nómina actualizados correctamente' });
+    } catch (error) {
+        console.error('Error al actualizar datos de nómina:', error);
+        res.status(500).json({ error: 'Error al actualizar datos de nómina' });
+    }
+});
+
 // 4.6. Calcular pagos y descuentos por asistencia
 router.get('/usuarios/pagos/calcular', async (req, res) => {
     const mes = parseInt(req.query.mes);
@@ -196,19 +229,23 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
     const targetAnio = !isNaN(anio) ? anio : horaBolivia.getFullYear();
 
     try {
-        // Obtener configuración de descuentos
-        const paramRes = await pool.query('SELECT hora_entrada_patron, descuento_minuto_retraso, descuento_falta_dia, dias_laborables FROM parametros WHERE id = 1');
+        // Obtener configuración de descuentos (solo 2 parámetros editables: retraso y falta)
+        const paramRes = await pool.query('SELECT descuento_falta_dia, descuento_retraso_bloque FROM parametros WHERE id = 1');
         const config = paramRes.rows[0] || {
-            hora_entrada_patron: '08:30:00',
-            descuento_minuto_retraso: 1.00,
-            descuento_falta_dia: 50.00,
-            dias_laborables: 26
+            descuento_falta_dia: 200.00,
+            descuento_retraso_bloque: 10.00
         };
 
-        // Obtener todos los usuarios
+        // Obtener empleados (se excluye Administradores: la planilla es solo para el personal operativo)
+        // La hora de entrada, días trabajados y horas laborales son por empleado:
+        // no todos tienen el mismo horario ni la misma carga laboral.
         const usersRes = await pool.query(`
-            SELECT id, nombre, username, rol, activo, telefono, ci, salario, foto_url
+            SELECT id, nombre, username, rol, activo, telefono, ci, salario, foto_url,
+                   COALESCE(dias_trabajados, 27) as dias_trabajados,
+                   COALESCE(horas_laborales, 8.00) as horas_laborales,
+                   COALESCE(hora_entrada, '08:30:00') as hora_entrada
             FROM usuarios
+            WHERE rol NOT IN ('ADMIN', 'ADMINISTRADOR')
             ORDER BY nombre ASC
         `);
         const users = usersRes.rows;
@@ -237,14 +274,16 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
             pagosMap[p.usuario_id] = p;
         });
 
+        const BLOQUE_RETRASO_MINUTOS = 5;
+
         const payroll = users.map(user => {
             const userAsistencias = asistencias.filter(a => a.usuario_id === user.id);
             const asistenciasCount = userAsistencias.length;
-            const diasLaborables = config.dias_laborables || 26;
-            const faltas = Math.max(0, diasLaborables - asistenciasCount);
+            const diasTrabajados = parseInt(user.dias_trabajados) || 27;
+            const faltas = Math.max(0, diasTrabajados - asistenciasCount);
 
             let minutosRetraso = 0;
-            const limiteMinutos = timeToMinutes(config.hora_entrada_patron || '08:30:00');
+            const limiteMinutos = timeToMinutes(user.hora_entrada || '08:30:00');
 
             userAsistencias.forEach(a => {
                 const entradaMinutos = timeToMinutes(a.hora_entrada_bolivia);
@@ -254,7 +293,9 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
             });
 
             const salarioBase = parseFloat(user.salario || 0);
-            const descuentoRetrasos = parseFloat((minutosRetraso * (config.descuento_minuto_retraso || 0)).toFixed(2));
+            // Descuento por retraso: se cobra por cada bloque de 5 minutos (o fracción) de tardanza
+            const bloquesRetraso = minutosRetraso > 0 ? Math.ceil(minutosRetraso / BLOQUE_RETRASO_MINUTOS) : 0;
+            const descuentoRetrasos = parseFloat((bloquesRetraso * (config.descuento_retraso_bloque || 0)).toFixed(2));
             const descuentoFaltas = parseFloat((faltas * (config.descuento_falta_dia || 0)).toFixed(2));
             const salarioNeto = Math.max(0, parseFloat((salarioBase - descuentoRetrasos - descuentoFaltas).toFixed(2)));
 
@@ -270,6 +311,9 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
                 telefono: user.telefono,
                 foto_url: user.foto_url,
                 salario_base: salarioBase,
+                dias_trabajados: diasTrabajados,
+                horas_laborales: parseFloat(user.horas_laborales) || 8,
+                hora_entrada: (user.hora_entrada || '08:30:00').toString().substring(0, 5),
                 asistencias_count: asistenciasCount,
                 minutos_retraso: minutosRetraso,
                 faltas: faltas,
@@ -285,10 +329,9 @@ router.get('/usuarios/pagos/calcular', async (req, res) => {
             mes: targetMes,
             anio: targetAnio,
             config: {
-                hora_entrada_patron: config.hora_entrada_patron,
-                descuento_minuto_retraso: parseFloat(config.descuento_minuto_retraso),
+                descuento_retraso_bloque: parseFloat(config.descuento_retraso_bloque),
                 descuento_falta_dia: parseFloat(config.descuento_falta_dia),
-                dias_laborables: config.dias_laborables
+                bloque_retraso_minutos: BLOQUE_RETRASO_MINUTOS
             },
             payroll: payroll
         });

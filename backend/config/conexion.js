@@ -153,6 +153,15 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración Ubicaciones Historial:', migUbicacionErr.message);
     }
     
+    // 4.9. Asegurar que exista la fila de configuración (id = 1). Sin esto, todas
+    // las UPDATE ... WHERE id = 1 de esta sección (branding, descuentos de
+    // salarios, etc.) afectan 0 filas y nada se llega a persistir nunca.
+    try {
+        await pool.query('INSERT INTO parametros (id) VALUES (1) ON CONFLICT (id) DO NOTHING;');
+    } catch (paramSeedErr) {
+        console.log('Info Seed fila Parametros:', paramSeedErr.message);
+    }
+
     // 5. Branding Global
     try {
         await pool.query("UPDATE parametros SET nombre_empresa = 'Café La Paz' WHERE id = 1;");
@@ -164,8 +173,14 @@ pool.query('SELECT NOW()', async (err, res) => {
     const paramMigrations = [
         'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS hora_entrada_patron TIME DEFAULT \'08:30:00\';',
         'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_minuto_retraso NUMERIC(10, 2) DEFAULT 1.00;',
-        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_falta_dia NUMERIC(10, 2) DEFAULT 50.00;',
-        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS dias_laborables INT DEFAULT 26;'
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_falta_dia NUMERIC(10, 2) DEFAULT 200.00;',
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS dias_laborables INT DEFAULT 26;',
+        'ALTER TABLE parametros ADD COLUMN IF NOT EXISTS descuento_retraso_bloque NUMERIC(10, 2) DEFAULT 10.00;',
+        'ALTER TABLE parametros ALTER COLUMN descuento_falta_dia SET DEFAULT 200.00;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS dias_trabajados INT DEFAULT 27;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS horas_laborales NUMERIC(4, 2) DEFAULT 8.00;',
+        'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS hora_entrada TIME DEFAULT \'08:30:00\';',
+        'ALTER TABLE usuarios ALTER COLUMN salario SET DEFAULT 3300.00;'
     ];
     for (const sql of paramMigrations) {
         try {
@@ -173,6 +188,15 @@ pool.query('SELECT NOW()', async (err, res) => {
         } catch (migErr) {
             console.log('Info Migración Parametros Sueldos:', migErr.message);
         }
+    }
+
+    // Backfill: nuevo esquema simplificado de Salarios (solo para valores nunca configurados)
+    try {
+        await pool.query("UPDATE usuarios SET salario = 3300.00 WHERE salario IS NULL OR salario = 0;");
+        await pool.query("UPDATE parametros SET descuento_falta_dia = 200.00 WHERE id = 1 AND descuento_falta_dia = 50.00;");
+        console.log('✅ Backfill de Salarios (salario base, descuento falta) completado.');
+    } catch (backfillErr) {
+        console.log('Info Backfill Salarios:', backfillErr.message);
     }
 
     // Tabla Pagos de Salarios
