@@ -7,6 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import '../widgets/pulsing_coffee_loader.dart';
+import '../widgets/dashboard/semaforo_contable_card.dart';
+import '../widgets/dashboard/actividad_semanal_card.dart';
+import '../widgets/dashboard/rendimiento_mensual_card.dart';
+import '../widgets/dashboard/horas_pico_card.dart';
+import '../widgets/dashboard/bcg_matrix_card.dart';
+import '../widgets/dashboard/ventas_categoria_card.dart';
+import '../widgets/dashboard/metodos_pago_card.dart';
+import '../widgets/dashboard/gastos_categoria_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,7 +26,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   String _filtro = 'mes';
-  
+  bool _metricaDinero = false;
+
   String _ventasDia = '0.00';
   String _ventasMes = '0.00';
   String _gastosMes = '0.00';
@@ -80,7 +89,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _cargarTopProductos() async {
     try {
-      final topRes = await ApiConfig.get('/kpis/productos-mas-vendidos?filtro=$_filtro');
+      final metrica = _metricaDinero ? 'dinero' : 'cantidad';
+      final topRes = await ApiConfig.get('/kpis/top-productos?filtro=$_filtro&metrica=$metrica');
       if (topRes.statusCode == 200) {
         setState(() {
           _topProductos = jsonDecode(topRes.body);
@@ -99,6 +109,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _cargarTopProductos();
     setState(() => _isLoading = false);
   }
+
+  void _cambiarMetrica(bool esDinero) async {
+    setState(() {
+      _metricaDinero = esDinero;
+      _isLoading = true;
+    });
+    await _cargarTopProductos();
+    setState(() => _isLoading = false);
+  }
+
+  double _valorProducto(dynamic p) => double.tryParse((_metricaDinero ? p['total_dinero'] : p['total_cantidad']).toString()) ?? 0;
 
   final List<Color> _chartColors = [
     const Color(0xFFF97316),
@@ -305,6 +326,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
+                      const SemaforoContableCard(),
+                      const SizedBox(height: 20),
+                      const ActividadSemanalCard(),
+                      const SizedBox(height: 20),
+                      const RendimientoMensualCard(),
+                      const SizedBox(height: 20),
+                      const HorasPicoCard(),
+                      const SizedBox(height: 20),
+                      const BcgMatrixCard(),
+                      const SizedBox(height: 20),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -330,10 +361,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
                                   children: [
+                                    _buildFilterChip('hora', 'Última Hora'),
                                     _buildFilterChip('hoy', 'Hoy'),
                                     _buildFilterChip('semana', 'Semana'),
                                     _buildFilterChip('mes', 'Últimos 30 días'),
+                                    _buildFilterChip('anio', 'Este Año'),
                                     _buildFilterChip('todos', 'Histórico'),
+                                    const SizedBox(width: 12),
+                                    _buildMetricaChip(false, 'Cantidad'),
+                                    _buildMetricaChip(true, 'Dinero'),
                                   ],
                                 ),
                               ),
@@ -384,7 +420,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '${double.parse(p['total_vendido'].toString()).toStringAsFixed(0)} u.',
+                                            _metricaDinero
+                                                ? 'Bs. ${_valorProducto(p).toStringAsFixed(2)}'
+                                                : '${_valorProducto(p).toStringAsFixed(0)} u.',
                                             style: GoogleFonts.outfit(
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
@@ -401,6 +439,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      const VentasCategoriaCard(),
+                      const SizedBox(height: 20),
+                      const MetodosPagoCard(),
+                      const SizedBox(height: 20),
+                      const GastosCategoriaCard(),
                     ],
                   ],
                 ),
@@ -438,10 +482,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildMetricaChip(bool esDinero, String label) {
+    final isSelected = _metricaDinero == esDinero;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6.0),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        selectedColor: AppTheme.adminColor,
+        backgroundColor: AppTheme.primaryDark,
+        labelStyle: GoogleFonts.outfit(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? Colors.white : AppTheme.textMuted,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: isSelected ? AppTheme.adminColor : Colors.white.withOpacity(0.05),
+          ),
+        ),
+        onSelected: (selected) {
+          if (selected) {
+            _cambiarMetrica(esDinero);
+          }
+        },
+      ),
+    );
+  }
+
   List<PieChartSectionData> _buildChartSections() {
     return List.generate(_topProductos.length, (index) {
       final p = _topProductos[index];
-      final val = double.parse(p['total_vendido'].toString());
+      final val = _valorProducto(p);
       final color = _chartColors[index % _chartColors.length];
 
       return PieChartSectionData(

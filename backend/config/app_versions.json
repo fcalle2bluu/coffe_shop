@@ -1,10 +1,10 @@
 {
   "mesero": {
-    "versionCode": 2,
-    "versionName": "1.0.1",
+    "versionCode": 3,
+    "versionName": "1.0.2",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrige el error de sesión que impedía marcar asistencia y usar el resto de la app.",
-    "obligatoria": true
+    "notas": "Agrega todos los gráficos del panel web (semáforo contable, actividad semanal, rendimiento mensual, horas pico, matriz BCG, métodos de pago y gastos) al dashboard del admin.",
+    "obligatoria": false
   },
   "comandas": {
     "versionCode": 2,
