@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 5,
-    "versionName": "1.0.4",
+    "versionCode": 6,
+    "versionName": "1.0.5",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrige el gráfico de Horas Pico del dashboard, que fallaba al leer datos del servidor.",
+    "notas": "Agrega un indicador de versión en una esquina de la pantalla; si hay una actualización disponible, se convierte en un botón para instalarla al toque.",
     "obligatoria": false
   },
   "comandas": {

@@ -24,6 +24,7 @@ import 'dashboard_screen.dart';
 import 'venta_mesa_screen.dart';
 import 'recetas_screen.dart';
 import 'realizar_pedido_screen.dart';
+import '../widgets/version_badge.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -852,7 +853,9 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       );
     }
 
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       appBar: isLargeScreen
           ? null
           : AppBar(
@@ -928,6 +931,16 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
           ),
         ],
       ),
+        ),
+        Positioned(
+          right: 12,
+          bottom: 12,
+          child: SafeArea(
+            minimum: const EdgeInsets.only(bottom: 4),
+            child: const VersionBadge(),
+          ),
+        ),
+      ],
     );
   }
 }
