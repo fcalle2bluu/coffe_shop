@@ -418,7 +418,7 @@ async function cargarPlanillaSalarios() {
 
     container.innerHTML = `
         <tr>
-            <td colspan="12" class="text-center py-20 text-slate-300 italic">
+            <td colspan="7" class="text-center py-20 text-slate-300 italic">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block text-emerald-500"></i>
                 Calculando planilla...
             </td>
@@ -435,7 +435,7 @@ async function cargarPlanillaSalarios() {
 
         container.innerHTML = '';
         if (data.payroll.length === 0) {
-            container.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-300 italic">No hay empleados registrados para procesar nómina</td></tr>';
+            container.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-300 italic">No hay empleados registrados para procesar nómina</td></tr>';
             return;
         }
 
@@ -469,7 +469,7 @@ async function cargarPlanillaSalarios() {
             const inputsDisabled = p.pagado ? 'disabled' : '';
 
             row.innerHTML = `
-                <td class="px-6 py-4">
+                <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
                         ${fotoHtml}
                         <div>
@@ -478,42 +478,51 @@ async function cargarPlanillaSalarios() {
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-center">
-                    <div class="flex items-center justify-center gap-1.5">
-                        <input type="number" step="0.01" min="0" ${inputsDisabled} value="${p.salario_base}" id="input-salario-${p.usuario_id}"
-                            onchange="actualizarCampoPlanilla(${p.usuario_id})"
-                            class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i id="guardado-${p.usuario_id}" class="fa-solid fa-check text-emerald-500 text-xs opacity-0 transition-opacity"></i>
+                <td class="px-3 py-3">
+                    <div class="grid grid-cols-2 gap-1.5 w-48 mx-auto">
+                        <div>
+                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Salario</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" step="0.01" min="0" ${inputsDisabled} value="${p.salario_base}" id="input-salario-${p.usuario_id}"
+                                    onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i id="guardado-${p.usuario_id}" class="fa-solid fa-check text-emerald-500 text-[10px] opacity-0 transition-opacity shrink-0"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Días</label>
+                            <input type="number" min="0" ${inputsDisabled} value="${p.dias_trabajados}" id="input-dias-${p.usuario_id}"
+                                onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Horas</label>
+                            <input type="number" step="0.5" min="0" ${inputsDisabled} value="${p.horas_laborales}" id="input-horas-${p.usuario_id}"
+                                onchange="actualizarCampoPlanilla(${p.usuario_id})"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-[8px] text-slate-400 font-black uppercase tracking-wide mb-0.5">Entrada</label>
+                            <input type="time" ${inputsDisabled} value="${p.hora_entrada}" id="input-entrada-${p.usuario_id}"
+                                onchange="actualizarHoraEntrada(${p.usuario_id})"
+                                title="Hora de entrada oficial de este empleado (define desde cuándo cuenta como retraso)"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-1 py-1 text-center font-mono font-bold text-slate-700 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                        </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-center">
-                    <input type="number" min="0" ${inputsDisabled} value="${p.dias_trabajados}" id="input-dias-${p.usuario_id}"
-                        onchange="actualizarCampoPlanilla(${p.usuario_id})"
-                        class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                <td class="px-3 py-3 text-center font-medium text-xs" id="txt-asist-${p.usuario_id}">${p.asistencias_count} / ${p.dias_trabajados}<br><span class="text-slate-400">(Faltas: ${p.faltas})</span></td>
+                <td class="px-3 py-3 text-center font-mono text-rose-600 font-bold text-xs">
+                    <div id="txt-descfaltas-${p.usuario_id}">Faltas: -${p.descuento_faltas.toFixed(2)} Bs.</div>
+                    <div id="txt-descretrasos-${p.usuario_id}" class="mt-0.5">Retraso (${p.minutos_retraso}min): -${p.descuento_retrasos.toFixed(2)} Bs.</div>
                 </td>
-                <td class="px-6 py-4 text-center">
-                    <input type="number" step="0.5" min="0" ${inputsDisabled} value="${p.horas_laborales}" id="input-horas-${p.usuario_id}"
-                        onchange="actualizarCampoPlanilla(${p.usuario_id})"
-                        class="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <input type="time" ${inputsDisabled} value="${p.hora_entrada}" id="input-entrada-${p.usuario_id}"
-                        onchange="actualizarHoraEntrada(${p.usuario_id})"
-                        title="Hora de entrada oficial de este empleado (define desde cuándo cuenta como retraso)"
-                        class="w-28 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed">
-                </td>
-                <td class="px-6 py-4 text-center font-medium" id="txt-asist-${p.usuario_id}">${p.asistencias_count} / ${p.dias_trabajados} <span class="text-slate-400 text-xs">(Faltas: ${p.faltas})</span></td>
-                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold" id="txt-descfaltas-${p.usuario_id}">-${p.descuento_faltas.toFixed(2)} Bs.</td>
-                <td class="px-6 py-4 text-center font-medium">${p.minutos_retraso} min.</td>
-                <td class="px-6 py-4 text-center font-mono text-rose-600 font-bold" id="txt-descretrasos-${p.usuario_id}">-${p.descuento_retrasos.toFixed(2)} Bs.</td>
-                <td class="px-6 py-4 text-center font-mono font-black text-emerald-600 text-base" id="txt-neto-${p.usuario_id}">${p.salario_neto.toFixed(2)} Bs.</td>
-                <td class="px-6 py-4 text-center">${pagoBadge}</td>
-                <td class="px-6 py-4 text-right">${accionHtml}</td>
+                <td class="px-3 py-3 text-center font-mono font-black text-emerald-600 text-base" id="txt-neto-${p.usuario_id}">${p.salario_neto.toFixed(2)} Bs.</td>
+                <td class="px-3 py-3 text-center">${pagoBadge}</td>
+                <td class="px-3 py-3 text-right">${accionHtml}</td>
             `;
             container.appendChild(row);
         });
     } catch (error) {
-        container.innerHTML = `<tr><td colspan="12" class="text-center py-10 text-rose-500 font-bold">⚠️ Error al cargar planilla de salarios: ${error.message}</td></tr>`;
+        container.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-rose-500 font-bold">⚠️ Error al cargar planilla de salarios: ${error.message}</td></tr>`;
     }
 }
 
@@ -530,9 +539,9 @@ function recalcularFilaVisual(usuarioId, salarioBase, diasTrabajados) {
     const descuentoRetrasos = parseFloat((bloquesRetraso * (planillaConfigLocal.descuento_retraso_bloque || 0)).toFixed(2));
     const salarioNeto = Math.max(0, parseFloat((salarioBase - descuentoFaltas - descuentoRetrasos).toFixed(2)));
 
-    document.getElementById(`txt-asist-${usuarioId}`).innerHTML = `${datos.asistencias_count} / ${diasTrabajados} <span class="text-slate-400 text-xs">(Faltas: ${faltas})</span>`;
-    document.getElementById(`txt-descfaltas-${usuarioId}`).textContent = `-${descuentoFaltas.toFixed(2)} Bs.`;
-    document.getElementById(`txt-descretrasos-${usuarioId}`).textContent = `-${descuentoRetrasos.toFixed(2)} Bs.`;
+    document.getElementById(`txt-asist-${usuarioId}`).innerHTML = `${datos.asistencias_count} / ${diasTrabajados}<br><span class="text-slate-400">(Faltas: ${faltas})</span>`;
+    document.getElementById(`txt-descfaltas-${usuarioId}`).textContent = `Faltas: -${descuentoFaltas.toFixed(2)} Bs.`;
+    document.getElementById(`txt-descretrasos-${usuarioId}`).textContent = `Retraso (${datos.minutos_retraso}min): -${descuentoRetrasos.toFixed(2)} Bs.`;
     document.getElementById(`txt-neto-${usuarioId}`).textContent = `${salarioNeto.toFixed(2)} Bs.`;
 
     return { faltas, descuentoFaltas, descuentoRetrasos, salarioNeto };
