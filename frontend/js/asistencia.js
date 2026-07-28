@@ -259,6 +259,11 @@ async function cargarHistorialAsistencia(silent) {
                 <td class="px-4 py-3 text-center">${salidaText}</td>
                 <td class="px-4 py-3 text-right">${horasText}</td>
                 <td class="px-4 py-3 text-center no-print">
+                    ${!r.salida ? `
+                    <button onclick="abrirModalFinalizarTurno(${r.usuario_id}, '${r.fecha}')" class="text-emerald-600 hover:text-emerald-800 transition-colors p-1" title="Finalizar turno">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </button>
+                    ` : ''}
                     <button onclick="eliminarAsistencia(${r.id})" class="text-red-600 hover:text-red-800 transition-colors p-1" title="Eliminar registro">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
@@ -280,6 +285,18 @@ function formatearFechaIso(fechaIso) {
     const partes = fechaIso.split('-');
     if (partes.length < 3) return fechaIso;
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+// Abre el modal de asistencia manual ya listo para cerrar un turno abierto:
+// empleado y fecha preseleccionados, con la entrada precargada y el foco en
+// la salida, para finalizarlo en un par de clics.
+function abrirModalFinalizarTurno(usuario_id, fecha) {
+    abrirModalAsistenciaManual();
+    document.getElementById('manual-empleado').value = usuario_id;
+    document.getElementById('manual-fecha').value = fecha;
+    precargarRegistroExistente().then(() => {
+        document.getElementById('manual-salida').focus();
+    });
 }
 
 // --- MODAL DE ASISTENCIA MANUAL ---
