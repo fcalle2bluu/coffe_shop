@@ -309,9 +309,44 @@ function abrirModalAsistenciaManual() {
     // Reset de horas
     document.getElementById('manual-entrada').value = '';
     document.getElementById('manual-salida').value = '';
-    
+    document.getElementById('manual-aviso-existente').classList.add('hidden');
+
+    // Al cambiar empleado o fecha, buscar si ya hay un registro ese día y
+    // precargar su entrada/salida (así se puede solo agregar la salida sin
+    // tener que volver a escribir la hora de entrada).
+    selEmpleado.onchange = precargarRegistroExistente;
+    document.getElementById('manual-fecha').onchange = precargarRegistroExistente;
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+}
+
+async function precargarRegistroExistente() {
+    const usuario_id = document.getElementById('manual-empleado').value;
+    const fecha = document.getElementById('manual-fecha').value;
+    const aviso = document.getElementById('manual-aviso-existente');
+
+    if (!usuario_id || !fecha) return;
+
+    const [anio, mes, dia] = fecha.split('-');
+
+    try {
+        const res = await fetch(`/api/asistencia?usuario_id=${usuario_id}&anio=${anio}&mes=${parseInt(mes, 10)}&dia=${parseInt(dia, 10)}`);
+        if (!res.ok) return;
+        const registros = await res.json();
+
+        if (registros.length > 0) {
+            document.getElementById('manual-entrada').value = registros[0].entrada || '';
+            document.getElementById('manual-salida').value = registros[0].salida || '';
+            aviso.classList.remove('hidden');
+        } else {
+            document.getElementById('manual-entrada').value = '';
+            document.getElementById('manual-salida').value = '';
+            aviso.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error al buscar registro existente:', error);
+    }
 }
 
 function cerrarModalAsistenciaManual() {
@@ -328,7 +363,7 @@ async function guardarAsistenciaManual() {
 
     if (!usuario_id) return alert('Por favor, selecciona un empleado.');
     if (!fecha) return alert('Por favor, selecciona una fecha.');
-    if (!hora_entrada) return alert('Por favor, introduce la hora de entrada.');
+    if (!hora_entrada && !hora_salida) return alert('Introduce al menos una hora (entrada o salida).');
 
     const btn = document.getElementById('btnGuardarManual');
     btn.disabled = true;

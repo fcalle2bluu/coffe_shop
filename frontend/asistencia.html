@@ -345,18 +345,23 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Entrada *</label>
+                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Entrada</label>
                         <input type="time" id="manual-entrada" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Salida (Opcional)</label>
+                        <label class="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Hora Salida</label>
                         <input type="time" id="manual-salida" class="w-full text-xs font-bold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-800 outline-none">
                     </div>
                 </div>
-                
+
+                <div id="manual-aviso-existente" class="hidden text-[10px] text-emerald-700 bg-emerald-50 p-3 rounded-xl border border-emerald-100 flex items-start gap-2.5 font-medium leading-relaxed">
+                    <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 text-xs"></i>
+                    <span>Ya existe un registro para este empleado en esta fecha; se precargó su entrada/salida. Si solo quieres marcar la salida, deja la entrada tal cual y completa solo la salida.</span>
+                </div>
+
                 <div class="text-[10px] text-slate-400 bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-start gap-2.5 font-medium leading-relaxed">
                     <i class="fa-solid fa-circle-info text-orange-500 mt-0.5 text-xs"></i>
-                    <span>Si dejas la Hora de Salida vacía, el turno quedará marcado como <strong class="text-emerald-600 font-bold uppercase">En Turno</strong>. Si el empleado ya tenía un registro en esta fecha, este se sobreescribirá.</span>
+                    <span>Puedes dejar la Hora de Entrada vacía si el empleado ya tiene una entrada registrada ese día y solo quieres agregarle la salida. Si dejas la Hora de Salida vacía, el turno queda como <strong class="text-emerald-600 font-bold uppercase">En Turno</strong>.</span>
                 </div>
 
                 <button onclick="guardarAsistenciaManual()" id="btnGuardarManual" class="w-full bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-widest py-3 rounded-xl shadow transition-all flex items-center justify-center gap-2">

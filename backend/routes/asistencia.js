@@ -215,17 +215,34 @@ router.post('/manual', async (req, res) => {
         return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden registrar asistencia manualmente.' });
     }
 
-    if (!usuario_id || !fecha || !hora_entrada) {
-        return res.status(400).json({ error: 'Faltan datos requeridos: Empleado, Fecha y Hora de Entrada.' });
+    if (!usuario_id || !fecha) {
+        return res.status(400).json({ error: 'Faltan datos requeridos: Empleado y Fecha.' });
     }
 
     try {
+        // La hora de entrada es opcional: permite marcar SOLO la salida de un
+        // turno que ya tiene entrada registrada, sin tener que volver a
+        // escribirla. Si no se manda, se recupera la ya guardada para ese
+        // empleado/fecha; si no existe ninguna, recién ahí se pide.
+        let horaEntradaFinal = hora_entrada;
+        if (!horaEntradaFinal) {
+            const existente = await pool.query(
+                `SELECT TO_CHAR(hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as hora
+                 FROM asistencia WHERE usuario_id = $1 AND fecha = $2`,
+                [usuario_id, fecha]
+            );
+            if (existente.rows.length === 0 || !existente.rows[0].hora) {
+                return res.status(400).json({ error: 'No hay una hora de entrada registrada para ese empleado en esa fecha; indícala primero.' });
+            }
+            horaEntradaFinal = existente.rows[0].hora;
+        }
+
         let sql = '';
         let queryParams = [usuario_id, fecha];
 
         if (hora_salida) {
             // Calcular horas trabajadas
-            const ent = new Date(`${fecha}T${hora_entrada}`);
+            const ent = new Date(`${fecha}T${horaEntradaFinal}`);
             let sal = new Date(`${fecha}T${hora_salida}`);
             let diffMs = sal - ent;
             if (diffMs < 0) {
@@ -247,7 +264,7 @@ router.post('/manual', async (req, res) => {
                     hora_salida = EXCLUDED.hora_salida,
                     horas_trabajadas = EXCLUDED.horas_trabajadas;
             `;
-            queryParams.push(`${fecha} ${hora_entrada}:00`, `${fecha} ${hora_salida}:00`, horasTrabajadas);
+            queryParams.push(`${fecha} ${horaEntradaFinal}:00`, `${fecha} ${hora_salida}:00`, horasTrabajadas);
         } else {
             sql = `
                 INSERT INTO asistencia (usuario_id, fecha, hora_entrada, hora_salida, horas_trabajadas)
@@ -261,7 +278,7 @@ router.post('/manual', async (req, res) => {
                     hora_salida = NULL,
                     horas_trabajadas = NULL;
             `;
-            queryParams.push(`${fecha} ${hora_entrada}:00`);
+            queryParams.push(`${fecha} ${horaEntradaFinal}:00`);
         }
 
         await pool.query(sql, queryParams);
