@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 8,
-    "versionName": "1.0.7",
+    "versionCode": 9,
+    "versionName": "1.0.8",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Los cajeros ahora también pueden ver su propio historial de marcaciones de asistencia dentro de la app.",
+    "notas": "El aviso de actualización ahora revisa cada pocos minutos mientras la app está abierta, sin necesidad de cerrarla y volver a abrirla.",
     "obligatoria": false
   },
   "comandas": {

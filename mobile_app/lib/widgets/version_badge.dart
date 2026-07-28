@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/theme.dart';
@@ -5,7 +6,9 @@ import '../services/update_service.dart';
 import 'dialogo_actualizacion.dart';
 
 /// Chip flotante para una esquina de la pantalla: muestra la versión instalada
-/// y, si hay una más nueva disponible, cambia a un botón "Actualizar".
+/// y, si hay una más nueva disponible, cambia a un botón "Actualizar". Revisa
+/// periódicamente mientras la app está abierta, para no depender de que el
+/// usuario la cierre y la vuelva a abrir para enterarse de una nueva versión.
 class VersionBadge extends StatefulWidget {
   const VersionBadge({super.key});
 
@@ -16,18 +19,28 @@ class VersionBadge extends StatefulWidget {
 class _VersionBadgeState extends State<VersionBadge> {
   String _versionActual = '';
   InfoActualizacion? _actualizacionDisponible;
+  Timer? _timerChequeo;
 
   @override
   void initState() {
     super.initState();
-    _cargar();
+    _cargarVersionInstalada();
+    _chequearActualizacion();
+    _timerChequeo = Timer.periodic(const Duration(minutes: 3), (_) => _chequearActualizacion());
   }
 
-  Future<void> _cargar() async {
-    final paquete = await PackageInfo.fromPlatform();
-    if (!mounted) return;
-    setState(() => _versionActual = paquete.version);
+  @override
+  void dispose() {
+    _timerChequeo?.cancel();
+    super.dispose();
+  }
 
+  Future<void> _cargarVersionInstalada() async {
+    final paquete = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _versionActual = paquete.version);
+  }
+
+  Future<void> _chequearActualizacion() async {
     final info = await UpdateService.buscarActualizacion();
     if (mounted) setState(() => _actualizacionDisponible = info);
   }
