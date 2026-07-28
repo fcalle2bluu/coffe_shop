@@ -210,6 +210,26 @@ async function cargarEmpleados() {
     }
 }
 
+// Arma el resumen "Empleado · Período" que aparece en el encabezado del reporte impreso
+function actualizarResumenImpresion() {
+    const resumen = document.getElementById('print-filtros-resumen');
+    if (!resumen) return;
+
+    const empleadoSelect = document.getElementById('filtro-empleado');
+    const empleadoTexto = empleadoSelect.value
+        ? empleadoSelect.options[empleadoSelect.selectedIndex].innerText
+        : 'Todos los empleados';
+
+    const anio = document.getElementById('filtro-anio').value;
+    const mesSelect = document.getElementById('filtro-mes');
+    const dia = document.getElementById('filtro-dia').value;
+
+    let periodo = mesSelect.value ? `${mesSelect.options[mesSelect.selectedIndex].innerText} ${anio}` : anio;
+    if (dia) periodo += ` - Día ${dia.padStart(2, '0')}`;
+
+    resumen.innerText = `${empleadoTexto} · ${periodo}`;
+}
+
 // Recupera y renderiza las asistencias filtradas de la base de datos
 async function cargarHistorialAsistencia(silent) {
     const esSilencioso = silent === true;
@@ -222,7 +242,9 @@ async function cargarHistorialAsistencia(silent) {
     if (empleado) url += `&usuario_id=${empleado}`;
     if (mes) url += `&mes=${mes}`;
     if (dia) url += `&dia=${dia}`;
-    
+
+    actualizarResumenImpresion();
+
     const tbody = document.getElementById('tabla-asistencia-body');
     if (!esSilencioso) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-400 font-semibold">Cargando marcaciones...</td></tr>';
