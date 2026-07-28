@@ -263,17 +263,18 @@ async function cargarHistorialAsistencia(silent) {
         }
         
         registros.forEach(r => {
-            // Un turno sin marcar salida solo cuenta como "En Turno" si es de hoy; si ya
-            // pasó ese día (o si la salida guardada dio horas absurdas, ej. >20h por un
-            // escaneo de días después), se muestra como "Sin marcar salida" en vez de
-            // un dato que no tiene sentido.
+            // Un turno sin salida solo cuenta como "En Turno" si es de hoy. Si ya pasó ese
+            // día (se le olvidó marcar, o la salida guardada dio horas absurdas por un
+            // escaneo de días después), el backend ya lo reemplaza por una hora estimada
+            // según el promedio de ese empleado; aquí solo se marca en cursiva para saber
+            // que es un estimado, no lo que escaneó.
             let salidaText, horasText;
             if (r.estado_salida === 'EN_TURNO') {
                 salidaText = `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-black text-[9px] uppercase tracking-wider animate-pulse">En Turno</span>`;
                 horasText = '<span class="text-slate-400">-</span>';
-            } else if (r.estado_salida === 'SIN_MARCAR') {
-                salidaText = `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-black text-[9px] uppercase tracking-wider">Sin Marcar Salida</span>`;
-                horasText = '<span class="text-slate-400">-</span>';
+            } else if (r.estado_salida === 'ESTIMADO') {
+                salidaText = `<span class="italic font-semibold text-slate-500" title="Estimado: no se marcó salida, se usó el promedio del empleado">${r.salida} (prom.)</span>`;
+                horasText = `<span class="italic font-black text-slate-500">${parseFloat(r.horas_trabajadas).toFixed(2)} hrs</span>`;
             } else {
                 salidaText = `<span class="font-bold text-slate-700">${r.salida}</span>`;
                 horasText = `<span class="font-black text-slate-800">${parseFloat(r.horas_trabajadas).toFixed(2)} hrs</span>`;

@@ -131,24 +131,42 @@ router.post('/marcar', async (req, res) => {
 router.get('/', async (req, res) => {
     const { anio, mes, dia, usuario_id } = req.query;
 
+    // Si a un turno le falta la salida (o la que tiene es absurda, ej. >20h por un
+    // escaneo de días después), en vez de dejarlo en blanco se estima con el promedio
+    // de horas trabajadas que ese mismo empleado tiene en sus turnos válidos.
     let query = `
-        SELECT 
+        SELECT
             a.id,
             a.usuario_id,
             u.nombre as empleado,
             u.rol,
             TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha,
             TO_CHAR(a.hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada,
-            TO_CHAR(a.hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as salida,
-            a.horas_trabajadas,
+            CASE
+                WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN NULL
+                WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN
+                    TO_CHAR((a.hora_entrada + (COALESCE(prom.horas, 8) * INTERVAL '1 hour')) AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI')
+                ELSE TO_CHAR(a.hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI')
+            END as salida,
+            CASE
+                WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN NULL
+                WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN ROUND(COALESCE(prom.horas, 8), 2)
+                ELSE a.horas_trabajadas
+            END as horas_trabajadas,
             CASE
                 WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN 'EN_TURNO'
-                WHEN a.hora_salida IS NULL THEN 'SIN_MARCAR'
-                WHEN a.horas_trabajadas > 20 THEN 'SIN_MARCAR'
+                WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN 'ESTIMADO'
                 ELSE 'OK'
             END as estado_salida
         FROM asistencia a
         JOIN usuarios u ON a.usuario_id = u.id
+        LEFT JOIN LATERAL (
+            SELECT AVG(a2.horas_trabajadas) as horas
+            FROM asistencia a2
+            WHERE a2.usuario_id = a.usuario_id
+              AND a2.hora_salida IS NOT NULL
+              AND a2.horas_trabajadas <= 20
+        ) prom ON true
     `;
 
     const params = [];
@@ -197,21 +215,34 @@ router.get('/mi-historial/:usuario_id', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT
-                id,
-                TO_CHAR(fecha, 'DD/MM/YYYY') as fecha,
-                TO_CHAR(hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada,
-                TO_CHAR(hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as salida,
-                horas_trabajadas,
+            `WITH prom AS (
+                SELECT AVG(horas_trabajadas) as horas
+                FROM asistencia
+                WHERE usuario_id = $1 AND hora_salida IS NOT NULL AND horas_trabajadas <= 20
+             )
+             SELECT
+                a.id,
+                TO_CHAR(a.fecha, 'DD/MM/YYYY') as fecha,
+                TO_CHAR(a.hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada,
                 CASE
-                    WHEN hora_salida IS NULL AND fecha = TIMEZONE('America/La_Paz', NOW())::date THEN 'EN_TURNO'
-                    WHEN hora_salida IS NULL THEN 'SIN_MARCAR'
-                    WHEN horas_trabajadas > 20 THEN 'SIN_MARCAR'
+                    WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN NULL
+                    WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN
+                        TO_CHAR((a.hora_entrada + (COALESCE(prom.horas, 8) * INTERVAL '1 hour')) AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI')
+                    ELSE TO_CHAR(a.hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI')
+                END as salida,
+                CASE
+                    WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN NULL
+                    WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN ROUND(COALESCE(prom.horas, 8), 2)
+                    ELSE a.horas_trabajadas
+                END as horas_trabajadas,
+                CASE
+                    WHEN a.hora_salida IS NULL AND a.fecha = TIMEZONE('America/La_Paz', NOW())::date THEN 'EN_TURNO'
+                    WHEN a.hora_salida IS NULL OR a.horas_trabajadas > 20 THEN 'ESTIMADO'
                     ELSE 'OK'
                 END as estado_salida
-             FROM asistencia
-             WHERE usuario_id = $1
-             ORDER BY fecha DESC, hora_entrada DESC
+             FROM asistencia a, prom
+             WHERE a.usuario_id = $1
+             ORDER BY a.fecha DESC, a.hora_entrada DESC
              LIMIT 30`,
             [usuario_id]
         );
