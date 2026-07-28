@@ -121,7 +121,7 @@ router.post('/usuarios', async (req, res) => {
 
         await pool.query(`
             INSERT INTO usuarios (nombre, username, pin, rol, activo, telefono, ci, salario, foto_url)
-            VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8)
+            VALUES ($1, $2, crypt($3, gen_salt('bf', 6)), $4, true, $5, $6, $7, $8)
         `, [nombre, username, pin, rol, telefono || '', ci || '', salario ? parseFloat(salario) : 0.00, foto_url || '']);
 
         res.status(201).json({ message: 'Empleado creado exitosamente' });
@@ -136,8 +136,8 @@ router.put('/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     const { nombre, username, pin, rol, telefono, ci, salario, foto_url } = req.body;
 
-    if (!nombre || !username || !pin || !rol) {
-        return res.status(400).json({ error: 'Nombre, usuario, PIN y rol son obligatorios' });
+    if (!nombre || !username || !rol) {
+        return res.status(400).json({ error: 'Nombre, usuario y rol son obligatorios' });
     }
 
     try {
@@ -147,18 +147,35 @@ router.put('/usuarios/:id', async (req, res) => {
             return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
         }
 
-        await pool.query(`
-            UPDATE usuarios SET 
-                nombre = $1, 
-                username = $2, 
-                pin = $3, 
-                rol = $4,
-                telefono = $5,
-                ci = $6,
-                salario = $7,
-                foto_url = $8
-            WHERE id = $9
-        `, [nombre, username, pin, rol, telefono || '', ci || '', salario ? parseFloat(salario) : 0.00, foto_url || '', id]);
+        // El PIN es opcional al editar: si se manda uno nuevo se hashea y
+        // reemplaza; si se deja vacío, el PIN actual del empleado no se toca
+        // (el frontend ya no lo pre-llena para evitar re-hashear el hash existente).
+        if (pin && pin.trim()) {
+            await pool.query(`
+                UPDATE usuarios SET
+                    nombre = $1,
+                    username = $2,
+                    pin = crypt($3, gen_salt('bf', 6)),
+                    rol = $4,
+                    telefono = $5,
+                    ci = $6,
+                    salario = $7,
+                    foto_url = $8
+                WHERE id = $9
+            `, [nombre, username, pin, rol, telefono || '', ci || '', salario ? parseFloat(salario) : 0.00, foto_url || '', id]);
+        } else {
+            await pool.query(`
+                UPDATE usuarios SET
+                    nombre = $1,
+                    username = $2,
+                    rol = $3,
+                    telefono = $4,
+                    ci = $5,
+                    salario = $6,
+                    foto_url = $7
+                WHERE id = $8
+            `, [nombre, username, rol, telefono || '', ci || '', salario ? parseFloat(salario) : 0.00, foto_url || '', id]);
+        }
 
         res.json({ message: 'Empleado actualizado correctamente' });
     } catch (error) {

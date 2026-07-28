@@ -248,7 +248,10 @@ function abrirModalUsuario(id = null) {
         idInput.value = u.id;
         document.getElementById('userNombre').value = u.nombre || '';
         document.getElementById('userUsername').value = u.username || '';
-        document.getElementById('userPin').value = u.pin || '';
+        // El PIN NUNCA se pre-llena: está hasheado en la BD y no se puede
+        // ni se debe mostrar. Se deja vacío; si el admin no escribe uno
+        // nuevo, el backend conserva el PIN actual del empleado tal cual.
+        document.getElementById('userPin').value = '';
         document.getElementById('userCi').value = u.ci || '';
         document.getElementById('userTelefono').value = u.telefono || '';
         document.getElementById('userSalario').value = parseFloat(u.salario || 0);
@@ -259,6 +262,7 @@ function abrirModalUsuario(id = null) {
         sub.textContent = 'Modifica los datos de perfil y salario del empleado.';
         icon.className = 'fa-solid fa-user-pen text-2xl';
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Cambios';
+        document.getElementById('userPin').placeholder = 'Dejar en blanco para no cambiar';
     } else {
         // Modo Registro
         idInput.value = '';
@@ -266,6 +270,7 @@ function abrirModalUsuario(id = null) {
         sub.textContent = 'Configura el perfil de un colaborador en Café La Paz.';
         icon.className = 'fa-solid fa-user-plus text-2xl';
         btn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> Autorizar Usuario';
+        document.getElementById('userPin').placeholder = '****';
     }
 
     document.getElementById('modalUsuario').classList.remove('hidden');
@@ -286,8 +291,10 @@ async function guardarNuevoUsuario() {
     const salario = parseFloat(document.getElementById('userSalario').value || 0);
     const foto_url = document.getElementById('userFotoUrl').value.trim();
 
-    if (!nombre || !username || !pin || !rol) {
-        return alert("⚠️ Nombre, usuario, PIN y rol son obligatorios.");
+    if (!nombre || !username || !rol || (!id && !pin)) {
+        return alert(id
+            ? "⚠️ Nombre, usuario y rol son obligatorios."
+            : "⚠️ Nombre, usuario, PIN y rol son obligatorios.");
     }
 
     const btn = document.getElementById('btnGuardarUser');
