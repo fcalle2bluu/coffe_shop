@@ -406,6 +406,7 @@ function abrirModalGasto() {
         const hoy = new Date().toISOString().split('T')[0];
         document.getElementById('gastoFecha').value = hoy;
     }
+    ocultarSugerenciasGasto();
 }
 
 function cerrarModalGasto() {
@@ -415,6 +416,63 @@ function cerrarModalGasto() {
     }
     const form = document.getElementById('formGasto');
     if (form) form.reset();
+    ocultarSugerenciasGasto();
+}
+
+// === AVISO DE POSIBLES GASTOS DUPLICADOS (mientras se escribe) ===
+let _timeoutSugerenciasGasto = null;
+
+function ocultarSugerenciasGasto() {
+    const caja = document.getElementById('gastoSugerencias');
+    if (caja) {
+        caja.classList.add('hidden');
+        caja.innerHTML = '';
+    }
+}
+
+// Espera a que la persona deje de escribir (debounce) antes de consultar al
+// servidor, para no disparar una búsqueda en cada tecla.
+function buscarGastosParecidos() {
+    clearTimeout(_timeoutSugerenciasGasto);
+    const texto = document.getElementById('gastoDescripcion').value.trim();
+    if (texto.length < 3) {
+        ocultarSugerenciasGasto();
+        return;
+    }
+    _timeoutSugerenciasGasto = setTimeout(() => ejecutarBusquedaGastosParecidos(texto), 400);
+}
+
+async function ejecutarBusquedaGastosParecidos(texto) {
+    const monto = document.getElementById('gastoMonto').value;
+    try {
+        let url = `/api/libro-diario/gastos/sugerencias?texto=${encodeURIComponent(texto)}`;
+        if (monto) url += `&monto=${encodeURIComponent(monto)}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const sugerencias = await res.json();
+        renderizarSugerenciasGasto(sugerencias);
+    } catch (e) {
+        console.error('Error al buscar gastos parecidos:', e);
+    }
+}
+
+function renderizarSugerenciasGasto(sugerencias) {
+    const caja = document.getElementById('gastoSugerencias');
+    if (!caja) return;
+    if (!sugerencias.length) {
+        ocultarSugerenciasGasto();
+        return;
+    }
+    caja.innerHTML = `<p class="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1 mb-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> Posible duplicado, ya existe algo parecido:
+        </p>` +
+        sugerencias.map(s => `
+            <div class="text-xs text-amber-800 flex items-center justify-between gap-2">
+                <span class="truncate">${s.descripcion}${s.mismo_monto ? ' <span class="font-black">(mismo monto)</span>' : ''}</span>
+                <span class="font-bold shrink-0">Bs. ${formatearMonto(s.monto)} · ${s.fecha_formateada}</span>
+            </div>
+        `).join('');
+    caja.classList.remove('hidden');
 }
 
 async function guardarGastoGeneral(event) {

@@ -1333,6 +1333,17 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.error('Error al migrar version de comandas:', versionComandaErr.message);
     }
 
+    // Migración: pg_trgm para búsqueda de texto por similitud (sugerencias de
+    // gastos parecidos al registrar uno nuevo, y así evitar duplicados). El
+    // índice GIN es lo que mantiene esa búsqueda liviana con muchos registros.
+    try {
+        await pool.query('CREATE EXTENSION IF NOT EXISTS pg_trgm;');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_gastos_generales_descripcion_trgm ON gastos_generales USING gin (descripcion gin_trgm_ops);');
+        console.log('✅ pg_trgm y índice de similitud de gastos_generales verificados/creados.');
+    } catch (trgmErr) {
+        console.log('Info Migración pg_trgm:', trgmErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

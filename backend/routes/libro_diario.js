@@ -269,6 +269,42 @@ router.post('/gastos', async (req, res) => {
     }
 });
 
+// Sugerencias de gastos parecidos ya registrados, para avisar de posibles
+// duplicados mientras se escribe la descripción de un gasto nuevo. Usa
+// pg_trgm (con índice GIN) para que la búsqueda por similitud de texto sea
+// liviana incluso con muchos registros; se limita a los últimos 6 meses
+// porque ahí es donde de verdad importa detectar un duplicado reciente.
+router.get('/gastos/sugerencias', async (req, res) => {
+    const texto = (req.query.texto || '').trim();
+    if (texto.length < 3) {
+        return res.json([]);
+    }
+    // El monto es opcional (puede que aún no lo hayan escrito). Cuando viene,
+    // un monto EXACTO igual también cuenta como posible duplicado aunque la
+    // descripción sea muy distinta (ej. "chocolates y otros" vs "deuda de
+    // Jorge y Eliana" por Bs. 5714 en ambos casos) — la similitud de texto
+    // sola no detecta ese caso.
+    const montoNum = parseFloat(req.query.monto);
+    const monto = isNaN(montoNum) ? null : montoNum;
+    try {
+        const result = await pool.query(`
+            SELECT descripcion, monto, categoria,
+                   TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY') as fecha_formateada,
+                   similarity(descripcion, $1) as parecido,
+                   (monto = $2) as mismo_monto
+            FROM gastos_generales
+            WHERE fecha >= CURRENT_DATE - INTERVAL '180 days'
+              AND (similarity(descripcion, $1) > 0.25 OR monto = $2)
+            ORDER BY mismo_monto DESC, parecido DESC
+            LIMIT 5
+        `, [texto, monto]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error al buscar gastos similares:', error);
+        res.status(500).json({ error: 'Error al buscar gastos similares' });
+    }
+});
+
 // Obtener lista de gastos generales registrados
 router.get('/gastos', async (req, res) => {
     const { mes, anio } = req.query;

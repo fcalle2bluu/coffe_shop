@@ -397,12 +397,13 @@
             <form id="formGasto" class="mt-4 space-y-4" onsubmit="guardarGastoGeneral(event)">
                 <div>
                     <label class="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1">Descripción</label>
-                    <input type="text" id="gastoDescripcion" required placeholder="Ej. Alquiler de local - Junio" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:border-indigo-500 text-sm">
+                    <input type="text" id="gastoDescripcion" required placeholder="Ej. Alquiler de local - Junio" autocomplete="off" oninput="buscarGastosParecidos()" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:border-indigo-500 text-sm">
+                    <div id="gastoSugerencias" class="hidden mt-2 p-2 rounded-xl bg-amber-50 border border-amber-200 space-y-1"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1">Monto (Bs.)</label>
-                        <input type="number" step="0.01" id="gastoMonto" required placeholder="0.00" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:border-indigo-500 text-sm">
+                        <input type="number" step="0.01" id="gastoMonto" required placeholder="0.00" oninput="buscarGastosParecidos()" class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:border-indigo-500 text-sm">
                     </div>
                     <div>
                         <label class="block text-[11px] font-black uppercase text-slate-500 tracking-wider mb-1">Método de Pago</label>
