@@ -1344,6 +1344,25 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración pg_trgm:', trgmErr.message);
     }
 
+    // Migración: tabla de logs del sistema. Render (plan gratuito) borra los
+    // logs de consola al reiniciar/dormir la instancia, así que los errores
+    // reales (console.error, excepciones no capturadas) se guardan aquí para
+    // no perderlos.
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS logs_sistema (
+                id SERIAL PRIMARY KEY,
+                fecha TIMESTAMPTZ DEFAULT NOW(),
+                nivel TEXT DEFAULT 'ERROR',
+                mensaje TEXT
+            );
+        `);
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_logs_sistema_fecha ON logs_sistema(fecha DESC);');
+        console.log('✅ Tabla logs_sistema verificada/creada.');
+    } catch (logsErr) {
+        console.log('Info Migración logs_sistema:', logsErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

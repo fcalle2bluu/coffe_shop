@@ -6,6 +6,10 @@ const path = require('path');
 // 1. Cargar configuración de variables de entorno
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
+// Guarda en la BD los errores y excepciones no capturadas (Render gratuito
+// borra los logs de consola al reiniciar/dormir la instancia).
+require('./utils/logger');
+
 const app = express();
 
 // ==========================================
@@ -78,6 +82,21 @@ app.use('/api/produccion', rutasProduccion);
 app.use('/api/whatsapp', rutasWhatsapp);
 app.use('/api/control-diario', rutasControlDiario);
 app.use('/api/version', rutasVersion);
+
+// ==========================================
+// 4.1 HEALTH CHECK (para monitores externos tipo UptimeRobot)
+// No cuelga de /api/ para que quede pública sin sesión. Verifica también la
+// conexión a la BD, no solo que el proceso siga vivo.
+// ==========================================
+const pool = require('./config/conexion');
+app.get('/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(503).json({ status: 'error', db: 'error', error: error.message });
+    }
+});
 
 // ==========================================
 // 5. ARCHIVOS ESTÁTICOS (FRONTEND)
