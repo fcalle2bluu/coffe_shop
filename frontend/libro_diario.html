@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Café La Paz - Libro Diario</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -298,24 +297,6 @@
         <div class="flex-1 overflow-y-auto">
             <div class="max-w-7xl mx-auto p-6 space-y-6">
                 
-                <!-- GRÁFICO COSTOS VS GASTOS -->
-                <div class="bg-white rounded-2xl shadow-premium border border-slate-100 p-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 border-b border-slate-100 pb-3 gap-2">
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                <i class="fa-solid fa-chart-column text-indigo-500"></i> Comparativa: Costos vs Gastos
-                            </h3>
-                            <p class="text-xs text-slate-500">Muestra la sumatoria de Costos (Insumos/Inventarios) frente a Gastos (Operativos/Fijos) según los filtros activos.</p>
-                        </div>
-                        <div class="shrink-0">
-                            <span id="totalesChartInfo" class="text-xs font-extrabold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl block sm:inline text-center">Bs. 0.00 vs Bs. 0.00</span>
-                        </div>
-                    </div>
-                    <div class="relative w-full h-64 md:h-72">
-                        <canvas id="chartCostosGastos"></canvas>
-                    </div>
-                </div>
-
                 <!-- EXCEL CONTAINER -->
                 <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden p-8 flex flex-col items-center">
                     

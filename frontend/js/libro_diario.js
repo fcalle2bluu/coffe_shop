@@ -46,119 +46,6 @@ function limpiarFiltros() {
     filtrarYRenderizar();
 }
 
-let chartCostosGastosInstance = null;
-
-function actualizarGraficoCostosGastos(asientosFiltrados) {
-    let totalCostos = 0;
-    let totalGastos = 0;
-    
-    asientosFiltrados.forEach(asiento => {
-        asiento.cuentas.forEach(c => {
-            if (c.tipo === 'DEBE') {
-                const nombreCuenta = c.nombre.toUpperCase();
-                if (nombreCuenta === 'INVENTARIOS' || nombreCuenta.includes('COSTO')) {
-                    totalCostos += parseFloat(c.importe) || 0;
-                } else if (nombreCuenta.includes('GASTO')) {
-                    totalGastos += parseFloat(c.importe) || 0;
-                }
-            }
-        });
-    });
-    
-    const infoSpan = document.getElementById('totalesChartInfo');
-    if (infoSpan) {
-        infoSpan.textContent = `Costos: Bs. ${formatearMonto(totalCostos)} | Gastos: Bs. ${formatearMonto(totalGastos)}`;
-    }
-    
-    const canvas = document.getElementById('chartCostosGastos');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    if (chartCostosGastosInstance) {
-        chartCostosGastosInstance.destroy();
-    }
-    
-    chartCostosGastosInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Costos (Insumos)', 'Gastos (Operacionales)'],
-            datasets: [{
-                label: 'Total (Bs.)',
-                data: [totalCostos, totalGastos],
-                backgroundColor: [
-                    'rgba(59, 130, 246, 0.75)', // Indigo Blue
-                    'rgba(239, 68, 68, 0.75)'   // Red Gasto
-                ],
-                borderColor: [
-                    'rgb(37, 99, 235)',
-                    'rgb(220, 38, 38)'
-                ],
-                borderWidth: 2,
-                borderRadius: 12,
-                barPercentage: 0.5,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return ` Bs. ${formatearMonto(context.raw)}`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Bs. ' + value;
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    // Sincronizar colores del gráfico según el tema cargado
-    sincronizarGraficoConTema();
-}
-
-// === SINCRONIZACIÓN DEL GRÁFICO CON EL TEMA DIARIO (MODO OSCURO) ===
-function sincronizarGraficoConTema() {
-    if (!chartCostosGastosInstance) return;
-    const isDark = localStorage.getItem('darkMode') === 'true';
-    const textColor = isDark ? '#94a3b8' : '#475569';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
-
-    if (chartCostosGastosInstance.options.scales) {
-        for (let key in chartCostosGastosInstance.options.scales) {
-            const scale = chartCostosGastosInstance.options.scales[key];
-            if (scale.ticks) {
-                scale.ticks.color = textColor;
-            }
-            if (scale.grid) {
-                scale.grid.color = gridColor;
-            }
-        }
-    }
-    if (chartCostosGastosInstance.options.plugins && chartCostosGastosInstance.options.plugins.legend && chartCostosGastosInstance.options.plugins.legend.labels) {
-        chartCostosGastosInstance.options.plugins.legend.labels.color = textColor;
-    }
-    chartCostosGastosInstance.update();
-}
-
-window.addEventListener('themeChanged', function() {
-    sincronizarGraficoConTema();
-});
-
 // Aplica filtros client-side y re-renderiza la tabla
 function filtrarYRenderizar() {
     const textoBusqueda = (document.getElementById('buscadorDiario')?.value || '').toLowerCase().trim();
@@ -219,9 +106,6 @@ function filtrarYRenderizar() {
 
     // Renderizar
     renderizarAsientos(filtrados);
-    
-    // Actualizar gráfico de Costos vs Gastos
-    actualizarGraficoCostosGastos(filtrados);
 }
 
 
