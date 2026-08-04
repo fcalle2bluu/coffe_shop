@@ -99,6 +99,69 @@ app.get('/health', async (req, res) => {
 });
 
 // ==========================================
+// 4.2 SERVIDOR MCP (HTTP) — feature flag, apagado por defecto
+// Expone las herramientas de mcp/tools.js como conector remoto para
+// claude.ai y la app móvil. No cuelga de /api/ (así queda fuera del
+// middleware de sesión) — su propia autenticación exige
+// Authorization: Bearer <MCP_AUTH_TOKEN>.
+// ==========================================
+if (process.env.MCP_HTTP_ENABLED === 'true') {
+    const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
+    const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
+    const { registrarHerramientas } = require('./mcp/tools');
+
+    // Límite básico en memoria (sin dependencia nueva): máx. 30 peticiones
+    // por IP cada minuto a /mcp.
+    const contadorPorIp = new Map();
+    function limiteExcedido(ip) {
+        const ahora = Date.now();
+        const ventana = 60 * 1000;
+        const registro = contadorPorIp.get(ip) || { inicio: ahora, cantidad: 0 };
+        if (ahora - registro.inicio > ventana) {
+            registro.inicio = ahora;
+            registro.cantidad = 0;
+        }
+        registro.cantidad += 1;
+        contadorPorIp.set(ip, registro);
+        return registro.cantidad > 30;
+    }
+
+    app.post('/mcp', async (req, res) => {
+        const authHeader = req.headers['authorization'] || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!token || token !== process.env.MCP_AUTH_TOKEN) {
+            return res.status(401).json({ error: 'Token de autenticación inválido o faltante.' });
+        }
+        if (limiteExcedido(req.ip)) {
+            return res.status(429).json({ error: 'Demasiadas peticiones, esperá un momento.' });
+        }
+
+        // Sin estado: un McpServer y transporte nuevos por cada petición, que
+        // se cierran solos al terminar. Evita mantener sesiones en memoria.
+        const server = new McpServer({ name: 'cafe-la-paz', version: '1.0.0' });
+        registrarHerramientas(server);
+        const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+
+        res.on('close', () => {
+            transport.close();
+            server.close();
+        });
+
+        try {
+            await server.connect(transport);
+            await transport.handleRequest(req, res, req.body);
+        } catch (error) {
+            console.error('Error en el servidor MCP (HTTP):', error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Error interno del servidor MCP.' });
+            }
+        }
+    });
+
+    console.log('🔌 Servidor MCP montado en /mcp (MCP_HTTP_ENABLED=true).');
+}
+
+// ==========================================
 // 5. ARCHIVOS ESTÁTICOS (FRONTEND)
 // ==========================================
 app.use(express.static(path.join(__dirname, '../frontend')));

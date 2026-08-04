@@ -1,0 +1,234 @@
+// backend/mcp/tools.js
+//
+// Registra todas las herramientas del servidor MCP de Café La Paz sobre un
+// McpServer ya creado. Se usa igual desde stdio (mcp/stdio.js, para pruebas
+// locales) y desde el transporte HTTP montado en server.js.
+const { z } = require('zod');
+const poolReadonly = require('./pool-readonly');
+const pool = require('../config/conexion');
+const { ajustarInventarioInsumo } = require('../utils/inventario');
+
+const UMBRAL_CONFIANZA = 0.5;
+
+function textoResultado(objeto) {
+    return { content: [{ type: 'text', text: JSON.stringify(objeto, null, 2) }] };
+}
+
+function registrarHerramientas(server) {
+    // ── LECTURA (rol de solo lectura) ───────────────────────────────────────
+
+    server.registerTool(
+        'buscar_insumo',
+        {
+            title: 'Buscar insumo',
+            description:
+                'Busca insumos del catálogo real por nombre aproximado (ej. texto leído de una etiqueta o factura). ' +
+                'Devuelve hasta 5 candidatos con un score de similitud (0 a 1). ' +
+                'IMPORTANTE: si la respuesta trae confianza_baja=true, ningún candidato es un match confiable — ' +
+                'NUNCA asumas el más parecido ni lo uses para registrar una entrada; pregúntale a la persona qué insumo es exactamente. ' +
+                'Úsala siempre antes de registrar_entrada_inventario o registrar_merma, nunca inventes un insumo que no esté en el catálogo.',
+            inputSchema: { texto: z.string().min(2).describe('Nombre aproximado del insumo a buscar') },
+        },
+        async ({ texto }) => {
+            const r = await poolReadonly.query(
+                `SELECT id as insumo_id, nombre, unidad_medida, stock_actual, similarity(nombre, $1) as score
+                 FROM insumos
+                 WHERE activo = TRUE AND similarity(nombre, $1) > 0.15
+                 ORDER BY score DESC
+                 LIMIT 5`,
+                [texto]
+            );
+            const mejorScore = r.rows.length ? parseFloat(r.rows[0].score) : 0;
+            return textoResultado({
+                candidatos: r.rows,
+                confianza_baja: mejorScore < UMBRAL_CONFIANZA,
+                mensaje: mejorScore < UMBRAL_CONFIANZA
+                    ? 'Ningún insumo del catálogo coincide con confianza. No elijas uno parecido: pregúntale a la persona qué insumo es exactamente antes de continuar.'
+                    : undefined,
+            });
+        }
+    );
+
+    server.registerTool(
+        'consultar_stock',
+        {
+            title: 'Consultar stock',
+            description: 'Consulta el stock actual de insumos. Si umbral_bajo es true, solo devuelve los que están en o bajo su stock mínimo.',
+            inputSchema: {
+                insumo_id: z.number().int().optional().describe('Id de un insumo específico (obtenido de buscar_insumo)'),
+                umbral_bajo: z.boolean().optional().describe('Si es true, solo trae insumos con stock en o bajo el mínimo'),
+            },
+        },
+        async ({ insumo_id, umbral_bajo }) => {
+            const condiciones = ['activo = TRUE'];
+            const params = [];
+            if (insumo_id) {
+                params.push(insumo_id);
+                condiciones.push(`id = $${params.length}`);
+            }
+            if (umbral_bajo) {
+                condiciones.push('stock_actual <= stock_minimo');
+            }
+            const r = await poolReadonly.query(
+                `SELECT id as insumo_id, nombre, unidad_medida, stock_actual, stock_minimo
+                 FROM insumos WHERE ${condiciones.join(' AND ')}
+                 ORDER BY nombre`,
+                params
+            );
+            return textoResultado({ insumos: r.rows });
+        }
+    );
+
+    server.registerTool(
+        'ventas_resumen',
+        {
+            title: 'Resumen de ventas',
+            description: 'Resumen de ventas en un rango de fechas: total, desglose por método de pago y productos más vendidos.',
+            inputSchema: {
+                fecha_inicio: z.string().describe('Fecha de inicio en formato ISO (YYYY-MM-DD)'),
+                fecha_fin: z.string().describe('Fecha de fin en formato ISO (YYYY-MM-DD)'),
+            },
+        },
+        async ({ fecha_inicio, fecha_fin }) => {
+            const [totales, porMetodo, topProductos] = await Promise.all([
+                poolReadonly.query(
+                    `SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total
+                     FROM ventas
+                     WHERE fecha_venta::date BETWEEN $1 AND $2`,
+                    [fecha_inicio, fecha_fin]
+                ),
+                poolReadonly.query(
+                    `SELECT metodo_pago, COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total
+                     FROM ventas
+                     WHERE fecha_venta::date BETWEEN $1 AND $2
+                     GROUP BY metodo_pago ORDER BY total DESC`,
+                    [fecha_inicio, fecha_fin]
+                ),
+                poolReadonly.query(
+                    `SELECT p.nombre as producto, SUM(dv.cantidad) as cantidad, SUM(dv.subtotal) as ingresos
+                     FROM detalle_ventas dv
+                     JOIN ventas v ON dv.venta_id = v.id
+                     JOIN productos p ON dv.producto_id = p.id
+                     WHERE v.fecha_venta::date BETWEEN $1 AND $2
+                     GROUP BY p.nombre ORDER BY ingresos DESC LIMIT 5`,
+                    [fecha_inicio, fecha_fin]
+                ),
+            ]);
+            return textoResultado({
+                rango: { fecha_inicio, fecha_fin },
+                total_ventas: totales.rows[0].cantidad,
+                total_dinero: totales.rows[0].total,
+                por_metodo_pago: porMetodo.rows,
+                top_productos: topProductos.rows,
+            });
+        }
+    );
+
+    server.registerTool(
+        'pedidos_pendientes',
+        {
+            title: 'Pedidos pendientes',
+            description: 'Lista los pedidos/comandas en curso (no pagados aún), con su estado de cocina.',
+            inputSchema: {},
+        },
+        async () => {
+            const r = await poolReadonly.query(
+                `SELECT id, mesa, total, estado, estado_cocina,
+                        TO_CHAR(fecha_creacion AT TIME ZONE 'America/La_Paz', 'HH24:MI') as hora_creacion
+                 FROM comandas
+                 WHERE estado IN ('CREADA', 'ENTREGADA')
+                 ORDER BY fecha_creacion ASC`
+            );
+            return textoResultado({ pedidos: r.rows });
+        }
+    );
+
+    // ── ESCRITURA (pool principal, vía ajustarInventarioInsumo) ─────────────
+
+    server.registerTool(
+        'registrar_entrada_inventario',
+        {
+            title: 'Registrar entrada de inventario',
+            description:
+                'Registra una entrada de mercadería (ej. tras fotografiar lo que llegó). ' +
+                'SOLO usar con un insumo_id que haya salido de buscar_insumo con confianza alta (confianza_baja=false o ausente) — ' +
+                'nunca con un candidato de baja confianza. ' +
+                'IMPORTANTE: antes de invocar esta herramienta, el asistente DEBE confirmar con la persona ' +
+                '("Detecté <insumo>, cantidad <cantidad> <unidad>, ¿confirmo el registro?") y solo llamarla tras un sí explícito.',
+            inputSchema: {
+                insumo_id: z.number().int().describe('Id del insumo, obtenido de buscar_insumo'),
+                cantidad: z.number().positive().describe('Cantidad que entra'),
+                unidad: z.string().describe('Unidad de la cantidad (debe coincidir con la unidad_medida del insumo)'),
+                nota: z.string().optional().describe('Nota u observación libre'),
+                origen: z.enum(['foto', 'manual']).describe('Cómo se originó este registro'),
+            },
+        },
+        async ({ insumo_id, cantidad, unidad, nota, origen }) => {
+            try {
+                const insumoRes = await pool.query('SELECT unidad_medida FROM insumos WHERE id = $1 AND activo = TRUE', [insumo_id]);
+                if (insumoRes.rowCount === 0) {
+                    return textoResultado({ error: `No existe ningún insumo activo con id ${insumo_id}. No se registró nada.` });
+                }
+                if (insumoRes.rows[0].unidad_medida.toLowerCase() !== unidad.toLowerCase()) {
+                    return textoResultado({
+                        error: `La unidad "${unidad}" no coincide con la unidad del insumo ("${insumoRes.rows[0].unidad_medida}"). No se registró nada.`,
+                    });
+                }
+                const resultado = await ajustarInventarioInsumo({
+                    insumo_id, tipo: 'AJUSTE', cantidad, usuario_id: null, origen, nota,
+                });
+                return textoResultado({
+                    success: true,
+                    movimiento_id: resultado.movimientoId,
+                    insumo: resultado.insumo,
+                    stock_resultante: resultado.stockResultante,
+                });
+            } catch (error) {
+                return textoResultado({ error: error.message });
+            }
+        }
+    );
+
+    server.registerTool(
+        'registrar_merma',
+        {
+            title: 'Registrar merma',
+            description:
+                'Registra una merma/pérdida de un insumo existente. ' +
+                'Solo usar con un insumo_id que haya salido de buscar_insumo con confianza alta. ' +
+                'El asistente DEBE confirmar con la persona antes de invocar esta herramienta.',
+            inputSchema: {
+                insumo_id: z.number().int().describe('Id del insumo, obtenido de buscar_insumo'),
+                cantidad: z.number().positive().describe('Cantidad perdida/mermada'),
+                unidad: z.string().describe('Unidad de la cantidad (debe coincidir con la unidad_medida del insumo)'),
+                motivo: z.string().describe('Motivo de la merma'),
+            },
+        },
+        async ({ insumo_id, cantidad, unidad, motivo }) => {
+            try {
+                const insumoRes = await pool.query('SELECT unidad_medida FROM insumos WHERE id = $1 AND activo = TRUE', [insumo_id]);
+                if (insumoRes.rowCount === 0) {
+                    return textoResultado({ error: `No existe ningún insumo activo con id ${insumo_id}. No se registró nada.` });
+                }
+                if (insumoRes.rows[0].unidad_medida.toLowerCase() !== unidad.toLowerCase()) {
+                    return textoResultado({
+                        error: `La unidad "${unidad}" no coincide con la unidad del insumo ("${insumoRes.rows[0].unidad_medida}"). No se registró nada.`,
+                    });
+                }
+                const resultado = await ajustarInventarioInsumo({
+                    insumo_id, tipo: 'MERMA', cantidad, usuario_id: null, origen: 'mcp', nota: motivo,
+                });
+                return textoResultado({
+                    success: true,
+                    movimiento_id: resultado.movimientoId,
+                    insumo: resultado.insumo,
+                    stock_resultante: resultado.stockResultante,
+                });
+            } catch (error) {
+                return textoResultado({ error: error.message });
+            }
+        }
+    );
+}
+
+module.exports = { registrarHerramientas };
