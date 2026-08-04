@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require('../config/conexion');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
+const { ajustarInventarioInsumo } = require('../utils/inventario');
 
 // Configuración de Supabase
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -36,39 +37,20 @@ router.get('/insumos', async (req, res) => {
 // 2. Registrar un Ajuste Rápido (+ / -)
 router.post('/ajuste', async (req, res) => {
     const { insumo_id, tipo, cantidad } = req.body;
-    
+
     if (!insumo_id || !tipo || !cantidad || cantidad <= 0) {
         return res.status(400).json({ error: 'Datos inválidos' });
     }
-    
-    const cliente = await pool.connect(); 
+
     try {
-        await cliente.query('BEGIN'); 
-        
-        const cantidadReal = tipo === 'MERMA' ? -Math.abs(cantidad) : Math.abs(cantidad);
-        
-        const updateResult = await cliente.query(`
-            UPDATE insumos 
-            SET stock_actual = stock_actual + $1 
-            WHERE id = $2 
-            RETURNING stock_actual
-        `, [cantidadReal, insumo_id]);
-        
-        if (updateResult.rowCount === 0) throw new Error('Insumo no encontrado');
-        if (updateResult.rows[0].stock_actual < 0) throw new Error('Stock insuficiente');
-
-        await cliente.query(`
-            INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, fecha) 
-            VALUES ($1, $2, $3, NOW())
-        `, [insumo_id, tipo, Math.abs(cantidad)]);
-
-        await cliente.query('COMMIT'); 
-        res.json({ mensaje: 'Ajuste registrado', nuevoStock: updateResult.rows[0].stock_actual });
+        const resultado = await ajustarInventarioInsumo({
+            insumo_id, tipo, cantidad,
+            usuario_id: req.usuario?.id || null,
+            origen: 'dashboard',
+        });
+        res.json({ mensaje: 'Ajuste registrado', nuevoStock: resultado.stockResultante });
     } catch (error) {
-        await cliente.query('ROLLBACK'); 
         res.status(400).json({ error: error.message });
-    } finally {
-        cliente.release(); 
     }
 });
 

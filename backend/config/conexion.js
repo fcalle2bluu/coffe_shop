@@ -1363,6 +1363,19 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración logs_sistema:', logsErr.message);
     }
 
+    // Migración: auditoría de movimientos de inventario (usuario, origen, nota)
+    // y búsqueda por similitud sobre insumos, para el servidor MCP de registro
+    // de inventario por foto.
+    try {
+        await pool.query('ALTER TABLE movimientos_inventario ADD COLUMN IF NOT EXISTS usuario_id INT;');
+        await pool.query('ALTER TABLE movimientos_inventario ADD COLUMN IF NOT EXISTS origen TEXT;');
+        await pool.query('ALTER TABLE movimientos_inventario ADD COLUMN IF NOT EXISTS nota TEXT;');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_insumos_nombre_trgm ON insumos USING gin (nombre gin_trgm_ops);');
+        console.log('✅ Auditoría de movimientos_inventario e índice de similitud de insumos verificados/creados.');
+    } catch (mcpInvErr) {
+        console.log('Info Migración auditoría inventario/MCP:', mcpInvErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
