@@ -127,8 +127,14 @@ if (process.env.MCP_HTTP_ENABLED === 'true') {
     }
 
     app.post('/mcp', async (req, res) => {
+        // El diálogo de "conector personalizado" de claude.ai/app móvil solo
+        // trae campos de nombre, URL y credenciales OAuth — no hay un campo
+        // para pegar un token Bearer simple. Como alternativa, se acepta el
+        // token también como query param (?token=...), que sí se puede pegar
+        // directo en el campo de URL.
         const authHeader = req.headers['authorization'] || '';
-        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        const tokenHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        const token = tokenHeader || req.query.token || null;
         if (!token || token !== process.env.MCP_AUTH_TOKEN) {
             return res.status(401).json({ error: 'Token de autenticación inválido o faltante.' });
         }
