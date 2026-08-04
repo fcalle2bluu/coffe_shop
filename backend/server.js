@@ -117,8 +117,11 @@ if (process.env.MCP_HTTP_ENABLED === 'true') {
     const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
     const { crearServidorMcp } = require('./mcp/tools');
 
-    // Límite básico en memoria (sin dependencia nueva): máx. 30 peticiones
-    // por IP cada minuto a /mcp.
+    // Límite básico en memoria (sin dependencia nueva): máx. 300 peticiones
+    // por IP cada minuto a /mcp. Cada foto con varios insumos genera muchas
+    // peticiones seguidas (initialize, tools/list, y buscar/crear/registrar
+    // por cada insumo detectado), así que el límite tiene que tolerar un lote
+    // grande sin cortar la operación a la mitad.
     const contadorPorIp = new Map();
     function limiteExcedido(ip) {
         const ahora = Date.now();
@@ -130,7 +133,7 @@ if (process.env.MCP_HTTP_ENABLED === 'true') {
         }
         registro.cantidad += 1;
         contadorPorIp.set(ip, registro);
-        return registro.cantidad > 30;
+        return registro.cantidad > 300;
     }
 
     app.post('/mcp', async (req, res) => {
