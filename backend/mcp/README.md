@@ -10,6 +10,7 @@ Expone el inventario y las ventas de Café La Paz como herramientas para Claude,
 | `consultar_stock` | lectura | Stock actual, opcionalmente solo los que están bajo su mínimo |
 | `ventas_resumen` | lectura | Totales de ventas en un rango de fechas, por método de pago y top productos |
 | `pedidos_pendientes` | lectura | Comandas en curso (no pagadas), con su estado de cocina |
+| `crear_insumo` | escritura | Da de alta un insumo que no existe en el catálogo (bloquea si se parece a uno ya existente) |
 | `registrar_entrada_inventario` | escritura | Registra una entrada de mercadería (sube el stock) |
 | `registrar_merma` | escritura | Registra una pérdida/merma (baja el stock) |
 
@@ -66,6 +67,6 @@ Reiniciar Claude Desktop y probar pidiendo, por ejemplo: *"busca el insumo harin
 
 ## Qué NO hace (a propósito)
 
-- No crea/edita insumos nuevos, no cambia precios, no toca usuarios ni permisos.
+- No edita insumos existentes (solo los crea si son genuinamente nuevos), no cambia precios, no toca usuarios ni permisos.
 - No tiene una herramienta de SQL libre.
 - No registra en `compras`/`lotes_insumos` (esas requieren proveedor y costo, que no vienen de una foto) ni en `inventario_almacen` (desconectada del flujo real hoy) — solo ajusta `insumos.stock_actual` y dejar rastro en `movimientos_inventario`, igual que el botón de "Ajuste Rápido" del dashboard.

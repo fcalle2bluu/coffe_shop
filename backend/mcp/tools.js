@@ -146,6 +146,53 @@ function registrarHerramientas(server) {
     // ── ESCRITURA (pool principal, vía ajustarInventarioInsumo) ─────────────
 
     server.registerTool(
+        'crear_insumo',
+        {
+            title: 'Crear insumo nuevo',
+            description:
+                'Da de alta un insumo que NO existe todavía en el catálogo — solo usar después de que buscar_insumo ' +
+                'devolvió confianza_baja=true (si ya hay un match confiable, usa ESE insumo_id en vez de crear uno nuevo). ' +
+                'IMPORTANTE: el asistente DEBE confirmar con la persona antes de invocarla ' +
+                '("No encontré <texto> en el catálogo, ¿confirmo que es un insumo nuevo y lo doy de alta?"). ' +
+                'Esta herramienta solo crea el insumo con stock en 0; para registrar la cantidad que entró, ' +
+                'después hay que llamar a registrar_entrada_inventario con el insumo_id que devuelve esta.',
+            inputSchema: {
+                nombre: z.string().min(2).describe('Nombre del insumo nuevo'),
+                unidad_medida: z.string().describe('Unidad de medida (ej. Kg, Litro, Unidad)'),
+                stock_minimo: z.number().nonnegative().optional().describe('Stock mínimo antes de alertar (por defecto 0)'),
+            },
+        },
+        async ({ nombre, unidad_medida, stock_minimo }) => {
+            try {
+                // Mismo mecanismo anti-duplicado que buscar_insumo: si algo se
+                // parece mucho a un insumo ya existente, no se crea, se avisa.
+                const similares = await pool.query(
+                    `SELECT id as insumo_id, nombre, similarity(nombre, $1) as score
+                     FROM insumos WHERE activo = TRUE AND similarity(nombre, $1) > $2
+                     ORDER BY score DESC LIMIT 3`,
+                    [nombre, UMBRAL_CONFIANZA]
+                );
+                if (similares.rows.length > 0) {
+                    return textoResultado({
+                        error: 'Ya existe al menos un insumo parecido en el catálogo — no se creó uno nuevo.',
+                        candidatos_similares: similares.rows,
+                        mensaje: 'Confirma con la persona si es el mismo insumo (usa ese insumo_id existente) antes de insistir en crear uno nuevo.',
+                    });
+                }
+                const r = await pool.query(
+                    `INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo, activo)
+                     VALUES ($1, $2, 0, $3, true)
+                     RETURNING id as insumo_id, nombre, unidad_medida, stock_actual, stock_minimo`,
+                    [nombre, unidad_medida, stock_minimo ?? 0]
+                );
+                return textoResultado({ success: true, insumo: r.rows[0] });
+            } catch (error) {
+                return textoResultado({ error: error.message });
+            }
+        }
+    );
+
+    server.registerTool(
         'registrar_entrada_inventario',
         {
             title: 'Registrar entrada de inventario',
