@@ -26,12 +26,11 @@ Agregar al `.env`:
 DB_READONLY_USER=supabase_read_only_user
 DB_READONLY_PASSWORD=
 
-# Solo necesarias para la Etapa B (transporte HTTP remoto)
+# Solo necesaria para la Etapa B (transporte HTTP remoto)
 MCP_HTTP_ENABLED=false
-MCP_AUTH_TOKEN=
 ```
 
-`MCP_AUTH_TOKEN` puede ser cualquier cadena larga y aleatoria, por ejemplo generada con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+`/mcp` no pide autenticación (ver nota de seguridad en `server.js`): el diálogo de conector personalizado de claude.ai/la app siempre intenta primero un handshake OAuth antes de tocar el servidor, así que un token Bearer simple nunca llega a probarse. La única protección es que la URL no se publica.
 
 ## Etapa A — Probarlo local (stdio)
 
@@ -58,12 +57,14 @@ Reiniciar Claude Desktop y probar pidiendo, por ejemplo: *"busca el insumo harin
 
 ## Etapa B — Conector remoto en claude.ai / celular
 
-1. En el `.env` de producción (Render): `MCP_HTTP_ENABLED=true` y `MCP_AUTH_TOKEN=<token largo generado>`.
+1. En Render: variable de entorno `MCP_HTTP_ENABLED=true`.
 2. Desplegar (`git push`, Render lo levanta solo).
-3. En claude.ai → Configuración → Conectores → Agregar conector personalizado:
+3. En claude.ai/la app → Conectores → Agregar conector personalizado:
+   - Nombre: el que quieras (ej. "Café La Paz")
    - URL: `https://coffe-shop-4ffg.onrender.com/mcp`
-   - Autenticación: Bearer token, pegar el mismo `MCP_AUTH_TOKEN`.
-4. Probar: fotografiar una caja/factura y pedirle a Claude que identifique el insumo y registre la entrada — va a confirmar antes de escribir nada.
+   - Dejar vacíos los campos de OAuth Client ID / Secreto
+4. Tocar "Agregar" y luego "Conectar".
+5. Probar: fotografiar una caja/factura y pedirle a Claude que identifique el insumo y registre la entrada — va a confirmar antes de escribir nada.
 
 ## Qué NO hace (a propósito)
 

@@ -102,8 +102,16 @@ app.get('/health', async (req, res) => {
 // 4.2 SERVIDOR MCP (HTTP) — feature flag, apagado por defecto
 // Expone las herramientas de mcp/tools.js como conector remoto para
 // claude.ai y la app móvil. No cuelga de /api/ (así queda fuera del
-// middleware de sesión) — su propia autenticación exige
-// Authorization: Bearer <MCP_AUTH_TOKEN>.
+// middleware de sesión).
+//
+// Sin autenticación a propósito: el diálogo de "conector personalizado"
+// de claude.ai/la app siempre intenta primero un handshake OAuth (para eso
+// están los campos de Client ID/Secret) antes de tocar el servidor —  un
+// token Bearer o por query param nunca llega a probarse porque ese
+// handshake falla antes. Implementar OAuth de verdad es demasiado para
+// este caso; la única protección real es que nadie más conoce esta URL,
+// aceptable dado que las herramientas ya son limitadas (sin SQL libre, sin
+// borrar nada, todo con confirmación humana).
 // ==========================================
 if (process.env.MCP_HTTP_ENABLED === 'true') {
     const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
@@ -127,17 +135,6 @@ if (process.env.MCP_HTTP_ENABLED === 'true') {
     }
 
     app.post('/mcp', async (req, res) => {
-        // El diálogo de "conector personalizado" de claude.ai/app móvil solo
-        // trae campos de nombre, URL y credenciales OAuth — no hay un campo
-        // para pegar un token Bearer simple. Como alternativa, se acepta el
-        // token también como query param (?token=...), que sí se puede pegar
-        // directo en el campo de URL.
-        const authHeader = req.headers['authorization'] || '';
-        const tokenHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-        const token = tokenHeader || req.query.token || null;
-        if (!token || token !== process.env.MCP_AUTH_TOKEN) {
-            return res.status(401).json({ error: 'Token de autenticación inválido o faltante.' });
-        }
         if (limiteExcedido(req.ip)) {
             return res.status(429).json({ error: 'Demasiadas peticiones, esperá un momento.' });
         }
