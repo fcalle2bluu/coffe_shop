@@ -11,6 +11,21 @@ const { ajustarInventarioInsumo } = require('../utils/inventario');
 
 const UMBRAL_CONFIANZA = 0.5;
 
+// Tablas fuera de límites para escribir_dato: cuentas/roles, seguridad y
+// sueldos/parámetros del negocio. consultar_sql sí puede LEER estas tablas
+// (acceso de lectura total, decisión explícita del dueño del negocio) — la
+// restricción es solo sobre escritura.
+const TABLAS_PROHIBIDAS_ESCRITURA = new Set([
+    'usuarios',
+    'usuarios_pin_backup_20260726',
+    'sesiones',
+    'pagos_salarios',
+    'parametros',
+    'dispositivo_tokens',
+    'historial_accesos',
+    'logs_sistema',
+]);
+
 // Lo usa la persona de la cafetería directamente, sin manejo técnico — el
 // flujo tiene que ser: foto -> UN solo resumen de todo -> UNA sola palabra
 // de confirmación -> listo. Nunca una pregunta por cada insumo encontrado.
@@ -22,6 +37,8 @@ Este servidor es para que una persona de la cafetería (sin mucho manejo de tecn
 3. Después, escribe UN SOLO mensaje con la lista completa de todo lo que vas a registrar (insumo, cantidad, unidad) y termina con una pregunta simple tipo "¿Confirmas?". NUNCA preguntes insumo por insumo, ni pidas confirmar cada uno por separado.
 4. En cuanto la persona responda algo afirmativo (sí, dale, confirmo, ok, etc.), ejecuta TODAS las llamadas a registrar_entrada_inventario / registrar_merma / crear_insumo necesarias, una tras otra, SIN volver a preguntar nada.
 5. Sé breve y simple en el lenguaje. Evita explicaciones técnicas o mensajes largos.
+
+Para todo lo que no sea inventario (consultas de ventas, gastos, comandas, o agregar/actualizar datos en otras tablas): usa consultar_sql para leer y escribir_dato para agregar o modificar. Misma regla de confirmación: un solo resumen de lo que vas a escribir, una sola confirmación, después ejecutas todo sin volver a preguntar. Preferí siempre las herramientas específicas (buscar_insumo, registrar_entrada_inventario, etc.) sobre consultar_sql/escribir_dato cuando el caso ya está cubierto por ellas, porque esas ya validan duplicados y reglas del negocio.
 `.trim();
 
 function textoResultado(objeto) {
@@ -243,6 +260,131 @@ function registrarHerramientas(server) {
                     insumo: resultado.insumo,
                     stock_resultante: resultado.stockResultante,
                 });
+            } catch (error) {
+                return textoResultado({ error: error.message });
+            }
+        }
+    );
+
+    // ── SQL GENÉRICO (lectura total / escritura solo en tablas no sensibles) ─
+
+    server.registerTool(
+        'consultar_sql',
+        {
+            title: 'Consultar con SQL',
+            description:
+                'Ejecuta una consulta SQL de SOLO LECTURA (SELECT) sobre cualquier tabla del sistema — ventas, gastos, comandas, ' +
+                'productos, proveedores, compras, etc. No sirve para insertar/actualizar/borrar (usa escribir_dato para eso). ' +
+                'La consulta se envuelve automáticamente y se corta a 200 filas, no hace falta que pongas LIMIT vos mismo. ' +
+                'Para insumos, preferí buscar_insumo/consultar_stock si alcanzan — ya tienen la lógica de negocio armada.',
+            inputSchema: {
+                consulta: z.string().min(10).describe('Una sola sentencia SELECT en SQL estándar de Postgres'),
+            },
+        },
+        async ({ consulta }) => {
+            const limpia = consulta.trim().replace(/;+\s*$/, '');
+            const primerPalabra = limpia.split(/\s+/)[0].toLowerCase();
+            const palabrasProhibidas = /\b(insert|update|delete|drop|alter|truncate|grant|revoke|create|copy|execute|call|vacuum|into)\b/i;
+            if (primerPalabra !== 'select' && primerPalabra !== 'with') {
+                return textoResultado({ error: 'Solo se permiten consultas SELECT (o WITH ... SELECT). No se ejecutó nada.' });
+            }
+            if (palabrasProhibidas.test(limpia)) {
+                return textoResultado({ error: 'La consulta contiene una palabra no permitida (solo lectura). No se ejecutó nada.' });
+            }
+            if (limpia.includes(';')) {
+                return textoResultado({ error: 'No se permite más de una sentencia por consulta. No se ejecutó nada.' });
+            }
+            const client = await poolReadonly.connect();
+            try {
+                await client.query('SET LOCAL statement_timeout = 5000');
+                const r = await client.query(`SELECT * FROM (${limpia}) AS _consulta_mcp LIMIT 200`);
+                return textoResultado({ filas: r.rows, cantidad: r.rowCount });
+            } catch (error) {
+                return textoResultado({ error: error.message });
+            } finally {
+                client.release();
+            }
+        }
+    );
+
+    server.registerTool(
+        'escribir_dato',
+        {
+            title: 'Agregar o modificar un dato',
+            description:
+                'Inserta o actualiza una fila en una tabla del sistema que NO sea de cuentas/seguridad/sueldos (esas están bloqueadas: ' +
+                Array.from(TABLAS_PROHIBIDAS_ESCRITURA).join(', ') + '). ' +
+                'No borra filas (no existe esa opción acá). Para insumos, preferí crear_insumo/registrar_entrada_inventario/registrar_merma ' +
+                'si el caso ya está cubierto por esas — tienen validaciones de negocio (duplicados, unidades) que esta herramienta genérica no tiene. ' +
+                'Para "actualizar" es obligatorio pasar condicion (ej. {"id": 5}) para no modificar toda la tabla por error.',
+            inputSchema: {
+                tabla: z.string().describe('Nombre exacto de la tabla'),
+                operacion: z.enum(['insertar', 'actualizar']),
+                valores: z.record(z.string(), z.any()).describe('Columnas y valores a insertar/actualizar, ej. {"nombre": "Ron blanco", "precio": 45}'),
+                condicion: z.record(z.string(), z.any()).optional().describe('Solo para "actualizar": columnas que identifican la(s) fila(s) a modificar, ej. {"id": 5}'),
+            },
+        },
+        async ({ tabla, operacion, valores, condicion }) => {
+            try {
+                const nombreTabla = tabla.trim().toLowerCase();
+                if (!/^[a-z_][a-z0-9_]*$/.test(nombreTabla)) {
+                    return textoResultado({ error: 'Nombre de tabla inválido.' });
+                }
+                if (TABLAS_PROHIBIDAS_ESCRITURA.has(nombreTabla)) {
+                    return textoResultado({ error: `La tabla "${nombreTabla}" no se puede modificar desde acá (cuentas/seguridad/sueldos).` });
+                }
+                const colsInfo = await pool.query(
+                    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
+                    [nombreTabla]
+                );
+                if (colsInfo.rowCount === 0) {
+                    return textoResultado({ error: `No existe ninguna tabla "${nombreTabla}".` });
+                }
+                const columnasValidas = new Set(colsInfo.rows.map((r) => r.column_name));
+                for (const col of Object.keys(valores || {})) {
+                    if (!columnasValidas.has(col)) {
+                        return textoResultado({ error: `La columna "${col}" no existe en "${nombreTabla}". No se escribió nada.` });
+                    }
+                }
+
+                if (operacion === 'insertar') {
+                    const cols = Object.keys(valores);
+                    if (cols.length === 0) {
+                        return textoResultado({ error: 'No se pasaron valores para insertar.' });
+                    }
+                    const placeholders = cols.map((_, i) => `$${i + 1}`);
+                    const r = await pool.query(
+                        `INSERT INTO ${nombreTabla} (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+                        cols.map((c) => valores[c])
+                    );
+                    return textoResultado({ success: true, fila: r.rows[0] });
+                }
+
+                // actualizar
+                if (!condicion || Object.keys(condicion).length === 0) {
+                    return textoResultado({ error: 'Falta "condicion" — no se puede actualizar sin identificar qué fila(s). No se escribió nada.' });
+                }
+                for (const col of Object.keys(condicion)) {
+                    if (!columnasValidas.has(col)) {
+                        return textoResultado({ error: `La columna "${col}" (en condicion) no existe en "${nombreTabla}". No se escribió nada.` });
+                    }
+                }
+                const colsSet = Object.keys(valores || {});
+                if (colsSet.length === 0) {
+                    return textoResultado({ error: 'No se pasaron valores para actualizar.' });
+                }
+                const params = [];
+                const setClause = colsSet.map((c) => { params.push(valores[c]); return `${c} = $${params.length}`; }).join(', ');
+                const colsCond = Object.keys(condicion);
+                const whereClause = colsCond.map((c) => { params.push(condicion[c]); return `${c} = $${params.length}`; }).join(' AND ');
+                const r = await pool.query(
+                    `UPDATE ${nombreTabla} SET ${setClause} WHERE ${whereClause} RETURNING *`,
+                    params
+                );
+                if (r.rowCount === 0) {
+                    return textoResultado({ error: 'No se encontró ninguna fila con esa condición. No se modificó nada.' });
+                }
+                return textoResultado({ success: true, filas_modificadas: r.rowCount, filas: r.rows });
             } catch (error) {
                 return textoResultado({ error: error.message });
             }

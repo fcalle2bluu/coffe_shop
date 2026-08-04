@@ -13,6 +13,10 @@ Expone el inventario y las ventas de Café La Paz como herramientas para Claude,
 | `crear_insumo` | escritura | Da de alta un insumo que no existe en el catálogo (bloquea si se parece a uno ya existente) |
 | `registrar_entrada_inventario` | escritura | Registra una entrada de mercadería (sube el stock) |
 | `registrar_merma` | escritura | Registra una pérdida/merma (baja el stock) |
+| `consultar_sql` | lectura | SELECT libre sobre cualquier tabla del sistema (envuelto y cortado a 200 filas) |
+| `escribir_dato` | escritura | INSERT/UPDATE genérico sobre cualquier tabla que no sea de cuentas/seguridad/sueldos |
+
+`escribir_dato` no puede tocar: `usuarios`, `usuarios_pin_backup_20260726`, `sesiones`, `pagos_salarios`, `parametros`, `dispositivo_tokens`, `historial_accesos`, `logs_sistema`. No borra filas (no existe esa operación). `consultar_sql` sí puede leer esas tablas — la restricción es solo sobre escritura.
 
 Las de escritura **siempre requieren confirmación humana antes de invocarse** (así está indicado en su `description`, que Claude lee para decidir cómo comportarse) y validan todo del lado del servidor de todas formas.
 
@@ -68,6 +72,7 @@ Reiniciar Claude Desktop y probar pidiendo, por ejemplo: *"busca el insumo harin
 
 ## Qué NO hace (a propósito)
 
-- No edita insumos existentes (solo los crea si son genuinamente nuevos), no cambia precios, no toca usuarios ni permisos.
-- No tiene una herramienta de SQL libre.
-- No registra en `compras`/`lotes_insumos` (esas requieren proveedor y costo, que no vienen de una foto) ni en `inventario_almacen` (desconectada del flujo real hoy) — solo ajusta `insumos.stock_actual` y dejar rastro en `movimientos_inventario`, igual que el botón de "Ajuste Rápido" del dashboard.
+- `escribir_dato` no toca `usuarios`, `sesiones`, `pagos_salarios`, `parametros`, `dispositivo_tokens`, `historial_accesos`, `logs_sistema` — cuentas, seguridad y sueldos quedan fuera de alcance de escritura.
+- Ninguna herramienta borra filas (no existe esa operación en `escribir_dato`).
+- `consultar_sql` es de solo lectura (bloquea INSERT/UPDATE/DELETE/DROP/etc.), aunque sí puede leer las tablas listadas arriba.
+- Los flujos específicos de inventario (`crear_insumo`/`registrar_entrada_inventario`/`registrar_merma`) no registran en `compras`/`lotes_insumos` (requieren proveedor y costo, que no vienen de una foto) ni en `inventario_almacen` (desconectada del flujo real hoy) — solo ajustan `insumos.stock_actual` y dejan rastro en `movimientos_inventario`, igual que el botón de "Ajuste Rápido" del dashboard.
