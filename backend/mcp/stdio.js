@@ -14,14 +14,11 @@
 console.log = (...args) => console.error(...args);
 console.info = (...args) => console.error(...args);
 
-const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-const { registrarHerramientas } = require('./tools');
+const { crearServidorMcp } = require('./tools');
 
 async function main() {
-    const server = new McpServer({ name: 'cafe-la-paz', version: '1.0.0' });
-    registrarHerramientas(server);
-
+    const server = crearServidorMcp();
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }

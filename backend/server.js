@@ -114,9 +114,8 @@ app.get('/health', async (req, res) => {
 // borrar nada, todo con confirmación humana).
 // ==========================================
 if (process.env.MCP_HTTP_ENABLED === 'true') {
-    const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
     const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
-    const { registrarHerramientas } = require('./mcp/tools');
+    const { crearServidorMcp } = require('./mcp/tools');
 
     // Límite básico en memoria (sin dependencia nueva): máx. 30 peticiones
     // por IP cada minuto a /mcp.
@@ -141,8 +140,7 @@ if (process.env.MCP_HTTP_ENABLED === 'true') {
 
         // Sin estado: un McpServer y transporte nuevos por cada petición, que
         // se cierran solos al terminar. Evita mantener sesiones en memoria.
-        const server = new McpServer({ name: 'cafe-la-paz', version: '1.0.0' });
-        registrarHerramientas(server);
+        const server = crearServidorMcp();
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
         res.on('close', () => {

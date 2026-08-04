@@ -3,12 +3,26 @@
 // Registra todas las herramientas del servidor MCP de Café La Paz sobre un
 // McpServer ya creado. Se usa igual desde stdio (mcp/stdio.js, para pruebas
 // locales) y desde el transporte HTTP montado en server.js.
+const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { z } = require('zod');
 const poolReadonly = require('./pool-readonly');
 const pool = require('../config/conexion');
 const { ajustarInventarioInsumo } = require('../utils/inventario');
 
 const UMBRAL_CONFIANZA = 0.5;
+
+// Lo usa la persona de la cafetería directamente, sin manejo técnico — el
+// flujo tiene que ser: foto -> UN solo resumen de todo -> UNA sola palabra
+// de confirmación -> listo. Nunca una pregunta por cada insumo encontrado.
+const INSTRUCCIONES_SERVIDOR = `
+Este servidor es para que una persona de la cafetería (sin mucho manejo de tecnología) registre mercadería fotografiando lo que llega. El flujo tiene que ser lo más directo posible:
+
+1. Cuando te muestren una foto, identifica en una sola pasada TODOS los insumos y cantidades que veas.
+2. Para cada uno, resuelve su insumo_id con buscar_insumo (y crear_insumo si hace falta) ANTES de decir nada — esta parte es silenciosa, no le preguntes nada a la persona todavía.
+3. Después, escribe UN SOLO mensaje con la lista completa de todo lo que vas a registrar (insumo, cantidad, unidad) y termina con una pregunta simple tipo "¿Confirmas?". NUNCA preguntes insumo por insumo, ni pidas confirmar cada uno por separado.
+4. En cuanto la persona responda algo afirmativo (sí, dale, confirmo, ok, etc.), ejecuta TODAS las llamadas a registrar_entrada_inventario / registrar_merma / crear_insumo necesarias, una tras otra, SIN volver a preguntar nada.
+5. Sé breve y simple en el lenguaje. Evita explicaciones técnicas o mensajes largos.
+`.trim();
 
 function textoResultado(objeto) {
     return { content: [{ type: 'text', text: JSON.stringify(objeto, null, 2) }] };
@@ -152,8 +166,7 @@ function registrarHerramientas(server) {
             description:
                 'Da de alta un insumo que NO existe todavía en el catálogo — solo usar después de que buscar_insumo ' +
                 'devolvió confianza_baja=true (si ya hay un match confiable, usa ESE insumo_id en vez de crear uno nuevo). ' +
-                'IMPORTANTE: el asistente DEBE confirmar con la persona antes de invocarla ' +
-                '("No encontré <texto> en el catálogo, ¿confirmo que es un insumo nuevo y lo doy de alta?"). ' +
+                'No pidas confirmación aquí: menciónalo dentro del único resumen consolidado de todo el lote (ver instrucciones del servidor) y espera una sola confirmación general. ' +
                 'Esta herramienta solo crea el insumo con stock en 0; para registrar la cantidad que entró, ' +
                 'después hay que llamar a registrar_entrada_inventario con el insumo_id que devuelve esta.',
             inputSchema: {
@@ -200,8 +213,8 @@ function registrarHerramientas(server) {
                 'Registra una entrada de mercadería (ej. tras fotografiar lo que llegó). ' +
                 'SOLO usar con un insumo_id que haya salido de buscar_insumo con confianza alta (confianza_baja=false o ausente) — ' +
                 'nunca con un candidato de baja confianza. ' +
-                'IMPORTANTE: antes de invocar esta herramienta, el asistente DEBE confirmar con la persona ' +
-                '("Detecté <insumo>, cantidad <cantidad> <unidad>, ¿confirmo el registro?") y solo llamarla tras un sí explícito.',
+                'No pidas confirmación por cada llamada: la confirmación se pide UNA sola vez, para todo el lote junto (ver instrucciones del servidor). ' +
+                'Invócala en cuanto la persona haya confirmado el lote completo, sin volver a preguntar.',
             inputSchema: {
                 insumo_id: z.number().int().describe('Id del insumo, obtenido de buscar_insumo'),
                 cantidad: z.number().positive().describe('Cantidad que entra'),
@@ -243,7 +256,7 @@ function registrarHerramientas(server) {
             description:
                 'Registra una merma/pérdida de un insumo existente. ' +
                 'Solo usar con un insumo_id que haya salido de buscar_insumo con confianza alta. ' +
-                'El asistente DEBE confirmar con la persona antes de invocar esta herramienta.',
+                'No pidas confirmación por cada llamada: la confirmación se pide UNA sola vez, para todo el lote junto (ver instrucciones del servidor).',
             inputSchema: {
                 insumo_id: z.number().int().describe('Id del insumo, obtenido de buscar_insumo'),
                 cantidad: z.number().positive().describe('Cantidad perdida/mermada'),
@@ -278,4 +291,15 @@ function registrarHerramientas(server) {
     );
 }
 
-module.exports = { registrarHerramientas };
+// Crea un McpServer ya configurado (nombre, instrucciones globales y las 7
+// herramientas registradas), para no repetir esto en stdio.js y server.js.
+function crearServidorMcp() {
+    const server = new McpServer(
+        { name: 'cafe-la-paz', version: '1.0.0' },
+        { instructions: INSTRUCCIONES_SERVIDOR }
+    );
+    registrarHerramientas(server);
+    return server;
+}
+
+module.exports = { registrarHerramientas, crearServidorMcp };
