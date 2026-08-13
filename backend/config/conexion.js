@@ -1376,6 +1376,24 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración auditoría inventario/MCP:', mcpInvErr.message);
     }
 
+    // Seguridad: activar Row-Level Security en todas las tablas públicas.
+    // Sin esto, la API REST pública que Supabase genera sola para cada tabla
+    // queda accesible con solo tener la "anon key" del proyecto — cualquiera
+    // podría leer/editar/borrar todo sin pasar por el backend. El rol con el
+    // que se conecta esta app (postgres) bypassea RLS automáticamente, así
+    // que esto no afecta en nada el funcionamiento normal del sistema.
+    try {
+        const tablasPublicas = await pool.query(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+        );
+        for (const { tablename } of tablasPublicas.rows) {
+            await pool.query(`ALTER TABLE public."${tablename}" ENABLE ROW LEVEL SECURITY;`);
+        }
+        console.log(`✅ Row-Level Security activado en ${tablasPublicas.rows.length} tablas públicas.`);
+    } catch (rlsErr) {
+        console.log('Info Migración RLS:', rlsErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });
