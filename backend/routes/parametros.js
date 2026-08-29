@@ -425,6 +425,7 @@ router.get('/historial', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, h.ubicacion,
+                h.modelo_dispositivo, h.so_dispositivo, h.version_app,
                 TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_formateada
             FROM historial_accesos h
             JOIN usuarios u ON h.usuario_id = u.id

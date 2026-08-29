@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
 
         // Registrar en historial de accesos (Auditoría Avanzada)
         try {
-            const { lat, lon } = req.body;
+            const { lat, lon, modelo_dispositivo, so_dispositivo, version_app } = req.body;
             const userAgent = req.headers['user-agent'] || 'Desconocido';
             const ipRaw = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '0.0.0.0';
             const ip = ipRaw.split(',')[0].trim(); // La IP real es la primera en x-forwarded-for
@@ -94,8 +94,9 @@ router.post('/login', async (req, res) => {
             }
 
             await pool.query(
-                'INSERT INTO historial_accesos (usuario_id, dispositivo, ip, ubicacion) VALUES ($1, $2, $3, $4)',
-                [usuario.id, userAgent, ip, ubicacion]
+                `INSERT INTO historial_accesos (usuario_id, dispositivo, ip, ubicacion, modelo_dispositivo, so_dispositivo, version_app)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [usuario.id, userAgent, ip, ubicacion, modelo_dispositivo || null, so_dispositivo || null, version_app || null]
             );
         } catch (logErr) {
             console.error('⚠️ No se pudo registrar el historial de acceso:', logErr.message);

@@ -1,16 +1,16 @@
 {
   "mesero": {
-    "versionCode": 14,
-    "versionName": "1.0.13",
+    "versionCode": 15,
+    "versionName": "1.0.14",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Si la sesión venció, ahora lo dice claro en vez de mostrar un código de error. Además, a partir de esta versión toda actualización futura será obligatoria.",
+    "notas": "La bitácora de accesos ahora también registra el modelo del celular, sistema operativo y versión de la app en cada inicio de sesión.",
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 3,
-    "versionName": "1.0.2",
+    "versionCode": 4,
+    "versionName": "1.0.3",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "A partir de esta versión, toda actualización futura será obligatoria.",
+    "notas": "La bitácora de accesos ahora también registra el modelo del celular, sistema operativo y versión de la app en cada inicio de sesión.",
     "obligatoria": true
   }
 }

@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../config/api_config.dart';
 import 'cocina_screen.dart';
 
@@ -25,6 +28,33 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Modelo/SO del celular y versión de la app instalada, para la bitácora
+  // de accesos. Si algo falla no corta el login, simplemente no se manda.
+  Future<Map<String, dynamic>> _getInfoDispositivo() async {
+    final datos = <String, dynamic>{};
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        datos['modelo_dispositivo'] = '${info.manufacturer} ${info.model}'.trim();
+        datos['so_dispositivo'] = 'Android ${info.version.release}';
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        datos['modelo_dispositivo'] = info.utsname.machine;
+        datos['so_dispositivo'] = 'iOS ${info.systemVersion}';
+      }
+    } catch (e) {
+      print('No se pudo obtener info del dispositivo: $e');
+    }
+    try {
+      final paquete = await PackageInfo.fromPlatform();
+      datos['version_app'] = paquete.version;
+    } catch (e) {
+      print('No se pudo obtener la versión de la app: $e');
+    }
+    return datos;
+  }
+
   Future<void> _login() async {
     final username = _usernameController.text.trim();
     final pin = _pinController.text.trim();
@@ -38,13 +68,15 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
 
+    final infoDispositivo = await _getInfoDispositivo();
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
       final res = await http
           .post(
             url,
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'username': username, 'pin': pin}),
+            body: jsonEncode({'username': username, 'pin': pin, ...infoDispositivo}),
           )
           .timeout(const Duration(seconds: 15));
 

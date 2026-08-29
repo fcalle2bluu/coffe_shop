@@ -197,6 +197,8 @@ async function cargarHistorial() {
                 <td class="px-6 py-4 text-xs font-mono text-slate-400">
                     <div class="flex flex-col">
                         <span class="text-slate-600 font-bold"><i class="fa-solid fa-desktop mr-1 text-[10px] text-indigo-400"></i> ${deviceName}</span>
+                        ${h.modelo_dispositivo ? `<span class="text-[9px] opacity-70">${h.modelo_dispositivo}${h.so_dispositivo ? ' · ' + h.so_dispositivo : ''}</span>` : ''}
+                        ${h.version_app ? `<span class="text-[9px] opacity-70">App v${h.version_app}</span>` : ''}
                         <span class="text-[9px] opacity-70">CONEXIÓN IP: ${h.ip}</span>
                     </div>
                 </td>

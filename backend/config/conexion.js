@@ -1394,6 +1394,18 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración RLS:', rlsErr.message);
     }
 
+    // Migración: enriquecer la bitácora de accesos con modelo/SO del
+    // dispositivo y versión de la app (antes solo se guardaba el User-Agent
+    // genérico que mandan las apps móviles, que no distingue equipos).
+    try {
+        await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS modelo_dispositivo TEXT;');
+        await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS so_dispositivo TEXT;');
+        await pool.query('ALTER TABLE historial_accesos ADD COLUMN IF NOT EXISTS version_app TEXT;');
+        console.log('✅ Columnas de dispositivo/versión en historial_accesos verificadas/creadas.');
+    } catch (histErr) {
+        console.log('Info Migración historial_accesos dispositivo:', histErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

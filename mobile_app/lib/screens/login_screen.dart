@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
 import 'main_navigation.dart';
@@ -175,6 +178,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  // Modelo/SO del celular y versión de la app instalada, para la bitácora
+  // de accesos (Parámetros → Bitácora). Si algo falla (plugin no soportado
+  // en esta plataforma, etc.) simplemente no se manda ese dato, sin cortar
+  // el login por esto.
+  Future<Map<String, dynamic>> _getInfoDispositivo() async {
+    final datos = <String, dynamic>{};
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        datos['modelo_dispositivo'] = '${info.manufacturer} ${info.model}'.trim();
+        datos['so_dispositivo'] = 'Android ${info.version.release}';
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        datos['modelo_dispositivo'] = info.utsname.machine;
+        datos['so_dispositivo'] = 'iOS ${info.systemVersion}';
+      }
+    } catch (e) {
+      print('No se pudo obtener info del dispositivo: $e');
+    }
+    try {
+      final paquete = await PackageInfo.fromPlatform();
+      datos['version_app'] = paquete.version;
+    } catch (e) {
+      print('No se pudo obtener la versión de la app: $e');
+    }
+    return datos;
+  }
+
   Future<void> _login() async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
@@ -204,12 +236,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       print('Fallo al obtener coordenadas: $e');
     }
 
+    final infoDispositivo = await _getInfoDispositivo();
+
     try {
       final response = await ApiConfig.post('/auth/login', {
         'username': username,
         'pin': _pin,
         if (lat != null) 'lat': lat,
         if (lon != null) 'lon': lon,
+        ...infoDispositivo,
       });
 
       if (response.statusCode == 200) {
