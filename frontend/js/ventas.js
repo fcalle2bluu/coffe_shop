@@ -344,10 +344,13 @@ async function imprimirUltimoRecibo() {
         if (!res.ok) throw new Error(data.error);
 
         // Llenar datos de cabecera
+        document.getElementById('t-titulo').innerText = 'TICKET #';
         document.getElementById('t-id').innerText = data.ticket.id.toString().padStart(4, '0');
         document.getElementById('t-fecha').innerText = data.ticket.fecha;
         document.getElementById('t-total').innerText = `Bs. ${data.ticket.total}`;
+        document.getElementById('lbl-pago').innerText = 'PAGO:';
         document.getElementById('t-pago').innerText = data.ticket.metodo_pago;
+        document.getElementById('t-pie').innerHTML = '<p>¡Gracias por tu compra!</p><p>Vuelve pronto a Café La Paz</p>';
 
         // Llenar productos
         const tbodyItems = document.getElementById('t-items');
@@ -715,6 +718,9 @@ function renderizarListaMesasCobro() {
                     ${itemsHtml}
                 </div>
                 ${c.notas ? `<p class="text-xs italic text-slate-500 mb-2">📝 ${c.notas}</p>` : ''}
+                <button onclick="imprimirPreCuentaMesa(${c.id})" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2 rounded-lg transition-colors btn-bounce mb-1.5">
+                    <i class="fa-solid fa-receipt mr-1"></i> Imprimir Pre-cuenta
+                </button>
                 ${listaParaCobrar
                     ? `<button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition-colors btn-bounce">
                         <i class="fa-solid fa-cash-register mr-1"></i> Cobrar Mesa
@@ -726,6 +732,39 @@ function renderizarListaMesasCobro() {
             </div>
         `;
     }).join('');
+}
+
+function imprimirPreCuentaMesa(comandaId) {
+    const m = mesasActivasTodas.find(m => m.comanda.id === comandaId);
+    if (!m) {
+        alert('No se encontró el pedido de esa mesa.');
+        return;
+    }
+    const c = m.comanda;
+
+    document.getElementById('t-titulo').innerText = 'PRE-CUENTA - PEDIDO #';
+    document.getElementById('t-id').innerText = c.id;
+    document.getElementById('t-fecha').innerText = new Date().toLocaleString('es-BO');
+    document.getElementById('t-total').innerText = `Bs. ${parseFloat(c.total).toFixed(2)}`;
+    document.getElementById('lbl-pago').innerText = 'MESA:';
+    document.getElementById('t-pago').innerText = m.mesa;
+    document.getElementById('t-pie').innerHTML = '<p>Documento sin validez fiscal</p>';
+
+    const tbodyItems = document.getElementById('t-items');
+    tbodyItems.innerHTML = '';
+    (c.items || []).forEach(item => {
+        tbodyItems.innerHTML += `
+            <tr class="border-b border-gray-100">
+                <td class="py-2 text-center">${item.cantidad}</td>
+                <td class="py-2">${item.nombre}</td>
+                <td class="py-2 text-right">Bs. ${parseFloat(item.subtotal).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    document.body.classList.add('print-ticket');
+    window.print();
+    document.body.classList.remove('print-ticket');
 }
 
 function abrirModalPagoMesa(comandaId, numMesa, total) {
