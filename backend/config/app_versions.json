@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 15,
-    "versionName": "1.0.14",
+    "versionCode": 16,
+    "versionName": "1.0.15",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "La bitácora de accesos ahora también registra el modelo del celular, sistema operativo y versión de la app en cada inicio de sesión.",
+    "notas": "El usuario Cajero ahora también puede usar 'Realizar Pedido' para mandar comandas a cocina, igual que el Mesero.",
     "obligatoria": true
   },
   "comandas": {

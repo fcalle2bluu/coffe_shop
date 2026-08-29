@@ -431,6 +431,15 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
     });
     _screens.add(const DashboardScreen());
 
+    // 0.4 Realizar Pedido (flujo rápido para que el cajero también mande comandas a cocina)
+    if (userRolUpper == 'CAJERO') {
+      _menuItems.add({
+        'title': 'Realizar Pedido',
+        'icon': FontAwesomeIcons.bellConcierge,
+      });
+      _screens.add(RealizarPedidoScreen(key: _realizarPedidoKey));
+    }
+
     // 0.5 Venta por Mesa (Admin y Cajero)
     if (_isAdmin || userRolUpper == 'CAJERO') {
       _menuItems.add({
