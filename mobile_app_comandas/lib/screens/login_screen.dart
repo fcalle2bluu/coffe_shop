@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -71,14 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final infoDispositivo = await _getInfoDispositivo();
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
-      final res = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'username': username, 'pin': pin, ...infoDispositivo}),
-          )
-          .timeout(const Duration(seconds: 15));
+      final res = await ApiConfig.post('/auth/login', {'username': username, 'pin': pin, ...infoDispositivo});
 
       final data = jsonDecode(res.body);
       if (res.statusCode != 200) {

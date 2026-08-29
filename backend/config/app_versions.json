@@ -7,10 +7,10 @@
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 5,
-    "versionName": "1.0.4",
+    "versionCode": 6,
+    "versionName": "1.0.5",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "Cada comanda ahora tiene un número de control que se reinicia con cada turno de caja, en vez del ID interno que nunca se reiniciaba.",
+    "notas": "Corregido: el inicio de sesión no identificaba correctamente esta app en la bitácora de accesos.",
     "obligatoria": true
   }
 }
