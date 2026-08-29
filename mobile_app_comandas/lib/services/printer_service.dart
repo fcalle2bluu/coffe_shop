@@ -38,6 +38,7 @@ class PrinterService {
 
   static Future<void> printComanda({
     required int comandaId,
+    int? numeroComanda,
     required String mesa,
     required List<Map<String, dynamic>> items,
     String? mesero,
@@ -45,7 +46,7 @@ class PrinterService {
     bool esEdicion = false,
     String? notasGenerales,
   }) async {
-    await _imprimir(comandaId, mesa, items, mesero, fechaHora, esEdicion, notasGenerales).timeout(
+    await _imprimir(numeroComanda ?? comandaId, mesa, items, mesero, fechaHora, esEdicion, notasGenerales).timeout(
       const Duration(seconds: 20),
       onTimeout: () => throw Exception('La impresora no respondió (tiempo de espera agotado)'),
     );
@@ -57,7 +58,7 @@ class PrinterService {
   }
 
   static Future<void> _imprimir(
-    int comandaId,
+    int numeroComanda,
     String mesa,
     List<Map<String, dynamic>> items,
     String? mesero,
@@ -95,7 +96,7 @@ class PrinterService {
     );
 
     await _printer.printText(
-      text: 'Comanda #${comandaId.toString().padLeft(4, '0')}',
+      text: 'Comanda #${numeroComanda.toString().padLeft(3, '0')}',
       style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER),
     );
     await _printer.printText(

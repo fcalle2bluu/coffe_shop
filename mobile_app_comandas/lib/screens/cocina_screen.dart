@@ -206,6 +206,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
 
   Future<void> _imprimirComanda(Map<String, dynamic> comanda) async {
     final id = comanda['id'] as int;
+    final numeroMostrado = (comanda['numero_comanda'] as int?) ?? id;
     setState(() {
       _imprimiendo.add(id);
       _errorImpresion.remove(id);
@@ -220,6 +221,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
       final esEdicion = version > 1;
       await PrinterService.printComanda(
         comandaId: id,
+        numeroComanda: comanda['numero_comanda'] as int?,
         mesa: comanda['mesa'].toString(),
         items: items,
         mesero: comanda['mesero_nombre']?.toString(),
@@ -232,7 +234,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
       _guardarImpresasPersistidas();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Comanda #$id impresa'), duration: const Duration(seconds: 2)),
+          SnackBar(content: Text('✅ Comanda #$numeroMostrado impresa'), duration: const Duration(seconds: 2)),
         );
       }
     } catch (e) {
@@ -244,7 +246,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
           _errorImpresionMensaje[id] = mensaje;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Comanda #$id: $mensaje'), duration: const Duration(seconds: 5)),
+          SnackBar(content: Text('❌ Comanda #$numeroMostrado: $mensaje'), duration: const Duration(seconds: 5)),
         );
       }
     } finally {
@@ -453,6 +455,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
 
   Widget _buildComandaCard(Map<String, dynamic> comanda) {
     final id = comanda['id'] as int;
+    final numeroComanda = (comanda['numero_comanda'] as int?) ?? id;
     final procesando = _procesando.contains(id);
     final enCola = _enCola.contains(id);
     final errorImpresion = _errorImpresion.contains(id);
@@ -478,9 +481,19 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'MESA ${comanda['mesa']}',
-                style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'MESA ${comanda['mesa']}',
+                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    'Comanda #$numeroComanda',
+                    style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
               Row(
                 children: [

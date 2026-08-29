@@ -106,13 +106,21 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
         `);
         const cajaId = cajaRes.rows.length > 0 ? cajaRes.rows[0].id : null;
 
+        // Número de comanda correlativo por turno (control interno): reinicia
+        // en 1 con cada caja/turno nuevo. Si no hay caja abierta, se acota por
+        // el día para que igual sirva de control aunque no se haya abierto turno.
+        const numeroComandaRes = cajaId
+            ? await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id = $1`, [cajaId])
+            : await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id IS NULL AND fecha_creacion::date = CURRENT_DATE`);
+        const numeroComanda = numeroComandaRes.rows[0].siguiente;
+
         // 1. Insertar Cabecera de Comanda
         const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas)
-            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6)
-            RETURNING id
+            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas, numero_comanda)
+            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6, $7)
+            RETURNING id, numero_comanda
         `;
-        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente, notas || null]);
+        const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente, notas || null, numeroComanda]);
         const comandaId = resultComanda.rows[0].id;
 
         // 2. Insertar Detalle de Comanda
@@ -124,7 +132,7 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.status(201).json({ success: true, comanda_id: comandaId });
+        res.status(201).json({ success: true, comanda_id: comandaId, numero_comanda: numeroComanda });
 
     } catch (error) {
         await client.query('ROLLBACK');

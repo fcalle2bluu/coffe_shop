@@ -1406,6 +1406,16 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración historial_accesos dispositivo:', histErr.message);
     }
 
+    // Migración: número de comanda de control, correlativo por turno de caja
+    // (antes solo existía el id interno de la BD, que nunca se reinicia y no
+    // sirve para que cocina/mesero controlen el orden de pedidos del turno).
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS numero_comanda INT;');
+        console.log('✅ Columna numero_comanda en comandas verificada/creada.');
+    } catch (numComandaErr) {
+        console.log('Info Migración numero_comanda:', numComandaErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

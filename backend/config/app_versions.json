@@ -7,10 +7,10 @@
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 4,
-    "versionName": "1.0.3",
+    "versionCode": 5,
+    "versionName": "1.0.4",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "La bitácora de accesos ahora también registra el modelo del celular, sistema operativo y versión de la app en cada inicio de sesión.",
+    "notas": "Cada comanda ahora tiene un número de control que se reinicia con cada turno de caja, en vez del ID interno que nunca se reiniciaba.",
     "obligatoria": true
   }
 }
