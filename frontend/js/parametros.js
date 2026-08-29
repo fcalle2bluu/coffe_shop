@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Carga paralela para máxima velocidad
-    Promise.allSettled([
-        cargarParametros(),
-        cargarHistorial()
-    ]).then(() => {
+    // La bitácora ya no se carga sola al entrar a la página (queda plegada
+    // detrás de un botón, ver toggleBitacora) — solo se pide al servidor
+    // cuando alguien realmente la abre.
+    cargarParametros().then(() => {
         console.log("🚀 Carga de parámetros completada.");
     });
 
@@ -106,6 +105,20 @@ async function guardarParametros() {
 }
 
 // (Gestión de usuarios extraída a usuarios.js)
+
+function toggleBitacora() {
+    const panel = document.getElementById('panel-bitacora');
+    const icono = document.getElementById('icono-toggle-bitacora');
+    if (!panel || !icono) return;
+
+    const seAbre = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden');
+    icono.classList.toggle('rotate-180', seAbre);
+
+    if (seAbre) {
+        cargarHistorial();
+    }
+}
 
 async function cargarHistorial() {
     try {

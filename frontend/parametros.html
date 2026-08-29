@@ -324,7 +324,7 @@
                                 <!-- BITÁCORA DE ACCESOS -->
                 <section id="seccion-historial" class="pt-8 pb-20">
                     <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
-                        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <button type="button" onclick="toggleBitacora()" id="btn-toggle-bitacora" class="w-full px-8 py-6 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left hover:bg-slate-100 transition-colors focus:outline-none">
                             <div>
                                 <h2 class="text-lg font-black text-slate-900 flex items-center gap-3 italic tracking-tight uppercase">
                                     <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-100">
@@ -334,22 +334,25 @@
                                 </h2>
                                 <p class="text-xs text-slate-400 font-medium ml-13">Supervisa los últimos ingresos al sistema y dispositivos.</p>
                             </div>
-                        </div>
-                        <div class="p-8">
-                            <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-inner-soft">
-                                <table class="w-full text-left">
-                                    <thead class="bg-slate-50/50">
-                                        <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
-                                            <th class="px-6 py-4">Usuario</th>
-                                            <th class="px-6 py-4">Fecha/Hora</th>
-                                            <th class="px-6 py-4">Lugar Geográfico</th>
-                                            <th class="px-6 py-4">Dispositivo / IP</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="lista-historial" class="divide-y divide-slate-100 whitespace-nowrap">
-                                        <tr><td colspan="3" class="text-center py-10 text-slate-300 italic">Cargando bitácora...</td></tr>
-                                    </tbody>
-                                </table>
+                            <i id="icono-toggle-bitacora" class="fa-solid fa-chevron-down text-slate-400 text-lg transition-transform duration-300 self-end md:self-center"></i>
+                        </button>
+                        <div id="panel-bitacora" class="hidden">
+                            <div class="p-8">
+                                <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-inner-soft">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-slate-50/50">
+                                            <tr class="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                                                <th class="px-6 py-4">Usuario</th>
+                                                <th class="px-6 py-4">Fecha/Hora</th>
+                                                <th class="px-6 py-4">Lugar Geográfico</th>
+                                                <th class="px-6 py-4">Dispositivo / IP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="lista-historial" class="divide-y divide-slate-100 whitespace-nowrap">
+                                            <tr><td colspan="4" class="text-center py-10 text-slate-300 italic">Cargando bitácora...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
