@@ -53,7 +53,7 @@ router.get('/', checkMeseroLecturaOAdmin, async (req, res) => {
         const query = `
             SELECT * FROM mesas
             WHERE activo = true
-            ORDER BY piso DESC, numero ASC
+            ORDER BY piso DESC, (regexp_replace(numero, '\D', '', 'g'))::int ASC
         `;
         const result = await pool.query(query);
         res.json(result.rows);
