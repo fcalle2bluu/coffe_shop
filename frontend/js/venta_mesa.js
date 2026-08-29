@@ -232,6 +232,13 @@ function renderizarDetalleComandaActiva() {
         </button>
     `;
 
+    // A.2 Botón de Pre-cuenta (con precios, para el cliente antes de cobrar)
+    accionesCont.innerHTML += `
+        <button onclick="imprimirPreCuentaComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs mt-1.5">
+            <i class="fa-solid fa-receipt"></i> Imprimir Pre-cuenta
+        </button>
+    `;
+
     // B. Botón de Modificar Pedido (Solo para mesero, cajero o admin, y estado CREADA)
     if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
         accionesCont.innerHTML += `
@@ -596,6 +603,7 @@ function abrirModalImpresionComanda() {
         `;
     });
 
+    document.getElementById('titulo-modal-impresion').innerText = 'Vista Previa de Comanda';
     zona.innerHTML = `
         <div class="text-center font-bold mb-4">
             <h2 class="text-sm">*** COMANDA DE COCINA ***</h2>
@@ -610,6 +618,55 @@ function abrirModalImpresionComanda() {
         <hr class="border-t border-dashed border-gray-500 my-3">
         <div class="text-center text-[9px] mt-4">
             <p>Café La Paz - Cocina y Barra</p>
+        </div>
+    `;
+
+    document.getElementById('modalImpresion').classList.remove('hidden');
+}
+
+// Pre-cuenta: detalle completo con precios, para que el cliente revise antes
+// de cobrar. No registra ninguna venta, solo imprime lo que ya está en el pedido.
+function imprimirPreCuentaComanda() {
+    if (!comandaActivaMesa) return;
+
+    const zona = document.getElementById('zona-impresion');
+    let itemsHtml = '';
+    comandaActivaItems.forEach(item => {
+        itemsHtml += `
+            <tr class="border-b border-gray-100">
+                <td class="py-1 text-center">${item.cantidad}</td>
+                <td class="py-1">${item.producto_nombre}</td>
+                <td class="py-1 text-right">Bs. ${parseFloat(item.subtotal).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('titulo-modal-impresion').innerText = 'Vista Previa de Pre-cuenta';
+    zona.innerHTML = `
+        <div class="text-center font-bold mb-3">
+            <h2 class="text-sm uppercase tracking-wide">Café La Paz</h2>
+            <h1 class="text-lg font-black my-1.5">PRE-CUENTA (no es factura)</h1>
+            <p class="text-[10px]">Mesa # ${comandaActivaMesa.mesa}</p>
+            <p class="text-[9px] text-gray-500 font-mono">Pedido #${comandaActivaMesa.id}</p>
+        </div>
+        <hr class="border-t border-dashed border-gray-400 my-2">
+        <table class="w-full text-left font-mono text-[10px]">
+            <thead>
+                <tr class="border-b border-gray-300">
+                    <th class="py-1 w-8 text-center">Cant</th>
+                    <th class="py-1">Detalle</th>
+                    <th class="py-1 text-right w-16">Total</th>
+                </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+        </table>
+        <hr class="border-t border-dashed border-gray-400 my-2">
+        <div class="flex justify-between font-bold text-xs">
+            <span>TOTAL</span>
+            <span>Bs. ${parseFloat(comandaActivaMesa.total).toFixed(2)}</span>
+        </div>
+        <div class="text-center font-bold text-[9px] leading-tight mt-3">
+            <p class="text-gray-500 font-normal">Documento sin validez fiscal</p>
         </div>
     `;
 
@@ -695,6 +752,7 @@ async function imprimirVentaFinal() {
             `;
         });
 
+        document.getElementById('titulo-modal-impresion').innerText = 'Vista Previa de Factura';
         zona.innerHTML = `
             <div class="text-center font-bold mb-3">
                 <h2 class="text-sm uppercase tracking-wide">Café La Paz</h2>
