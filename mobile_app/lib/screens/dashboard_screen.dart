@@ -83,6 +83,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _mesas = jsonDecode(res.body);
           _errorMesas = null;
         });
+      } else if (res.statusCode == 401) {
+        setState(() {
+          _errorMesas = 'Tu sesión venció. Cerrá sesión y volvé a iniciarla.';
+        });
       } else {
         setState(() {
           _errorMesas = 'No se pudo cargar el estado de mesas (${res.statusCode}).';

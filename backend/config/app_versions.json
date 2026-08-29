@@ -1,16 +1,16 @@
 {
   "mesero": {
-    "versionCode": 13,
-    "versionName": "1.0.12",
+    "versionCode": 14,
+    "versionName": "1.0.13",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrige que el Dashboard se quedara trabado en 'Cargando estado de mesas...' para siempre si esa consulta fallaba — ahora muestra el error y un botón para reintentar.",
+    "notas": "Si la sesión venció, ahora lo dice claro en vez de mostrar un código de error. Además, a partir de esta versión toda actualización futura será obligatoria.",
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 2,
-    "versionName": "1.0.1",
+    "versionCode": 3,
+    "versionName": "1.0.2",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "Corrige el error de sesión que impedía cargar los pedidos y el resto de la app.",
+    "notas": "A partir de esta versión, toda actualización futura será obligatoria.",
     "obligatoria": true
   }
 }

@@ -27,7 +27,10 @@ class InfoActualizacion {
       versionName: json['versionName']?.toString() ?? '',
       apkUrl: json['apkUrl'] ?? '',
       notas: json['notas'] ?? '',
-      obligatoria: json['obligatoria'] == true,
+      // Toda actualización disponible es obligatoria, sin importar lo que
+      // mande el servidor: si hay una versión más nueva, hay que instalarla
+      // para poder seguir usando la app.
+      obligatoria: true,
     );
   }
 }
