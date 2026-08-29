@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 17,
-    "versionName": "1.0.16",
+    "versionCode": 18,
+    "versionName": "1.0.17",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "En 'Venta por Mesa' ahora se puede elegir entre crear una comanda nueva o sumar productos a una mesa ya con pedido activo, y el cajero puede imprimir una pre-cuenta con precios antes de cobrar.",
+    "notas": "'Realizar Pedido' ahora también tiene el selector explícito de Nueva comanda / Añadir a existente, junto al botón de generar comanda.",
     "obligatoria": true
   },
   "comandas": {

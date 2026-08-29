@@ -999,6 +999,7 @@ class _CarritoSheet extends StatefulWidget {
 
 class _CarritoSheetState extends State<_CarritoSheet> {
   String? _mesaSeleccionada;
+  bool _agregarAExistente = false;
   bool _enviando = false;
   String? _error;
   final Map<int, String> _notasPorProducto = {};
@@ -1186,34 +1187,44 @@ class _CarritoSheetState extends State<_CarritoSheet> {
               ),
             ),
           ),
+          if (widget.mesas.any((m) => m['estado'] == 'ocupada'))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Nueva comanda')),
+                  ButtonSegment(value: true, label: Text('Añadir a existente')),
+                ],
+                selected: {_agregarAExistente},
+                onSelectionChanged: (sel) {
+                  setState(() {
+                    _agregarAExistente = sel.first;
+                    _mesaSeleccionada = null;
+                  });
+                },
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: DropdownButtonFormField<String>(
               initialValue: _mesaSeleccionada,
               decoration: InputDecoration(
-                labelText: 'Mesa',
+                labelText: _agregarAExistente ? 'Mesa con pedido activo' : 'Mesa',
                 filled: true,
                 fillColor: AppTheme.primaryDark,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
               dropdownColor: AppTheme.secondaryDark,
-              selectedItemBuilder: (context) => widget.mesas.map<Widget>((m) {
-                return Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight));
-              }).toList(),
-              items: widget.mesas.map<DropdownMenuItem<String>>((m) {
-                final ocupada = m['estado'] == 'ocupada';
+              selectedItemBuilder: (context) => widget.mesas
+                  .where((m) => (m['estado'] == 'ocupada') == _agregarAExistente)
+                  .map<Widget>((m) => Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight)))
+                  .toList(),
+              items: widget.mesas
+                  .where((m) => (m['estado'] == 'ocupada') == _agregarAExistente)
+                  .map<DropdownMenuItem<String>>((m) {
                 return DropdownMenuItem(
                   value: m['mesa'].toString(),
-                  child: Row(
-                    children: [
-                      Icon(Icons.circle, size: 10, color: ocupada ? Colors.orange : Colors.green),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Mesa ${m['mesa']}${ocupada ? ' (ocupada, se sumará)' : ''}',
-                        style: const TextStyle(color: AppTheme.textLight),
-                      ),
-                    ],
-                  ),
+                  child: Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight)),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _mesaSeleccionada = v),
@@ -1223,7 +1234,7 @@ class _CarritoSheetState extends State<_CarritoSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
-                '⚠️ Esta mesa ya tiene un pedido activo. Estos productos se sumarán a esa comanda.',
+                '⚠️ Estos productos se sumarán al pedido activo de esa mesa.',
                 style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
               ),
             ),
@@ -1245,7 +1256,12 @@ class _CarritoSheetState extends State<_CarritoSheet> {
                 ),
                 child: _enviando
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('GENERAR COMANDA · Bs. ${_total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                    : Text(
+                        _agregarAExistente
+                            ? 'AGREGAR AL PEDIDO · Bs. ${_total.toStringAsFixed(2)}'
+                            : 'GENERAR COMANDA · Bs. ${_total.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      ),
               ),
             ),
           ),
