@@ -1,10 +1,10 @@
 {
   "mesero": {
-    "versionCode": 12,
-    "versionName": "1.0.11",
+    "versionCode": 13,
+    "versionName": "1.0.12",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Cuando un turno no tiene salida marcada, ahora se muestra una hora estimada según el promedio del empleado, en vez de una etiqueta de 'sin marcar'.",
-    "obligatoria": false
+    "notas": "Corrige que el Dashboard se quedara trabado en 'Cargando estado de mesas...' para siempre si esa consulta fallaba — ahora muestra el error y un botón para reintentar.",
+    "obligatoria": true
   },
   "comandas": {
     "versionCode": 2,

@@ -40,6 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _userRol = 'CAJERO';
   bool _isAdmin = false;
   List<dynamic> _mesas = [];
+  String? _errorMesas;
 
   @override
   void initState() {
@@ -80,10 +81,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (res.statusCode == 200) {
         setState(() {
           _mesas = jsonDecode(res.body);
+          _errorMesas = null;
+        });
+      } else {
+        setState(() {
+          _errorMesas = 'No se pudo cargar el estado de mesas (${res.statusCode}).';
         });
       }
     } catch (e) {
       print('Error al cargar estado de mesas: $e');
+      if (mounted) {
+        setState(() {
+          _errorMesas = 'No se pudo cargar el estado de mesas. Revisa tu conexión.';
+        });
+      }
     }
   }
 
@@ -214,10 +225,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ? Container(
                             height: 100,
                             alignment: Alignment.center,
-                            child: Text(
-                              'Cargando estado de mesas...',
-                              style: GoogleFonts.outfit(color: AppTheme.textMuted),
-                            ),
+                            child: _errorMesas == null
+                                ? Text(
+                                    'Cargando estado de mesas...',
+                                    style: GoogleFonts.outfit(color: AppTheme.textMuted),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _errorMesas!,
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.outfit(color: Colors.redAccent, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextButton(
+                                        onPressed: _cargarEstadoMesas,
+                                        child: Text('Reintentar', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                                      ),
+                                    ],
+                                  ),
                           )
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
