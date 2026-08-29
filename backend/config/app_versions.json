@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 16,
-    "versionName": "1.0.15",
+    "versionCode": 17,
+    "versionName": "1.0.16",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "El usuario Cajero ahora también puede usar 'Realizar Pedido' para mandar comandas a cocina, igual que el Mesero.",
+    "notas": "En 'Venta por Mesa' ahora se puede elegir entre crear una comanda nueva o sumar productos a una mesa ya con pedido activo, y el cajero puede imprimir una pre-cuenta con precios antes de cobrar.",
     "obligatoria": true
   },
   "comandas": {

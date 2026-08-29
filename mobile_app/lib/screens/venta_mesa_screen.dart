@@ -31,6 +31,11 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
   Map<String, dynamic>? _activeComanda;
   List<dynamic> _activeComandaItems = [];
 
+  // Al armar un pedido nuevo, permite elegir entre crear una comanda para la
+  // mesa (libre) o sumar los productos a una comanda ya activa en otra mesa.
+  bool _agregarAExistente = false;
+  String? _mesaDestinoExistente;
+
   // Variables para la creación de comanda
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
@@ -121,6 +126,8 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     if (estado == 'libre') {
       setState(() {
         _cart.clear();
+        _agregarAExistente = false;
+        _mesaDestinoExistente = null;
         _viewState = VentaMesaViewState.createComanda;
       });
     } else {
@@ -144,6 +151,8 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
           // La comanda se cerró en el intermedio, abrir creación
           setState(() {
             _cart.clear();
+            _agregarAExistente = false;
+            _mesaDestinoExistente = null;
             _viewState = VentaMesaViewState.createComanda;
           });
         }
@@ -183,9 +192,13 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     return total;
   }
 
-  // Guardar Comanda
+  // Guardar Comanda (nueva, o sumada a una comanda ya activa en otra mesa)
   Future<void> _guardarComanda() async {
     if (_cart.isEmpty) return;
+    if (_agregarAExistente) {
+      await _agregarProductosAComandaExistente();
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -236,6 +249,92 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       );
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  // Suma los productos del carrito a la comanda activa de la mesa elegida en
+  // "Añadir a existente", en vez de crear una comanda nueva y duplicada.
+  Future<void> _agregarProductosAComandaExistente() async {
+    if (_mesaDestinoExistente == null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Falta elegir la mesa'),
+          content: const Text('Selecciona a qué mesa con pedido activo quieres sumar estos productos.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar'))],
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+
+    try {
+      final resActual = await ApiConfig.get('/comandas/mesa/$_mesaDestinoExistente');
+      final dataActual = jsonDecode(resActual.body);
+      if (resActual.statusCode != 200 || dataActual['activa'] != true) {
+        throw Exception('La mesa $_mesaDestinoExistente ya no tiene un pedido activo.');
+      }
+      final comandaActual = dataActual['comanda'];
+      final itemsActuales = (dataActual['items'] as List<dynamic>? ?? []);
+
+      final detallesFinales = itemsActuales.map((it) => {
+        'producto_id': it['producto_id'],
+        'cantidad': it['cantidad'],
+        'precio_unitario': it['precio_unitario'],
+        'subtotal': it['subtotal'],
+      }).toList();
+
+      _cart.forEach((id, qty) {
+        final p = _allProducts.firstWhere((prod) => prod.id == id);
+        final indice = detallesFinales.indexWhere((it) => it['producto_id'] == id);
+        if (indice != -1) {
+          final cantidadSumada = (detallesFinales[indice]['cantidad'] as num) + qty;
+          detallesFinales[indice]['cantidad'] = cantidadSumada;
+          detallesFinales[indice]['subtotal'] = p.precioVenta * cantidadSumada;
+        } else {
+          detallesFinales.add({
+            'producto_id': id,
+            'cantidad': qty,
+            'precio_unitario': p.precioVenta,
+            'subtotal': p.precioVenta * qty,
+          });
+        }
+      });
+
+      final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));
+
+      final res = await ApiConfig.put('/comandas/mesero/${comandaActual['id']}?usuario_id=$_userId', {
+        'detalles': detallesFinales,
+        'total': totalFinal,
+        'notas': comandaActual['notas'],
+      });
+
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Productos sumados al pedido de la mesa $_mesaDestinoExistente')),
+        );
+        setState(() {
+          _cart.clear();
+          _agregarAExistente = false;
+          _mesaDestinoExistente = null;
+          _viewState = VentaMesaViewState.tableSelection;
+        });
+        await _cargarMesas();
+      } else {
+        final err = jsonDecode(res.body);
+        throw Exception(err['error'] ?? 'Error al sumar productos');
+      }
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error al sumar productos'),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar'))],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -304,6 +403,36 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       print('Error al cancelar comanda: $e');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  // Imprime el detalle completo (con precios) de la comanda activa antes de
+  // cobrar, para que el cliente lo revise. No registra ninguna venta.
+  Future<void> _imprimirPreCuenta() async {
+    if (_activeComanda == null) return;
+    try {
+      final items = _activeComandaItems.map((item) => {
+        'nombre': item['producto_nombre'] ?? '',
+        'cantidad': item['cantidad'] ?? 1,
+        'subtotal': item['subtotal']?.toString() ?? '0',
+      }).toList();
+      await SunmiPrinterService.printPreCuenta(
+        comandaId: _activeComanda!['id'],
+        mesa: _selectedMesa ?? _activeComanda!['mesa'].toString(),
+        items: List<Map<String, dynamic>>.from(items),
+        total: double.tryParse(_activeComanda!['total'].toString()) ?? 0.0,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Pre-cuenta impresa')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error al imprimir: $e')),
+        );
+      }
     }
   }
 
@@ -1032,6 +1161,17 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
               ),
               if (cajeroOAdmin) ...[
                 const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _imprimirPreCuenta,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.accentColor,
+                    side: const BorderSide(color: AppTheme.accentColor),
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.receipt_long, size: 16),
+                  label: const Text('Imprimir Pre-cuenta', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: _procesarCobro,
                   style: ElevatedButton.styleFrom(
@@ -1059,9 +1199,47 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
   // 3. Crear Comanda (Añadir productos)
   Widget _buildCreateComandaView() {
     final hasItems = _cart.isNotEmpty;
+    final mesasOcupadas = _mesas.where((m) => m['estado'] == 'ocupada').toList();
 
     return Column(
       children: [
+        // Elegir si el pedido es nuevo o se suma a uno ya activo en otra mesa
+        if (mesasOcupadas.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(value: false, label: Text('Nueva comanda (Mesa $_selectedMesa)')),
+                    const ButtonSegment(value: true, label: Text('Añadir a existente')),
+                  ],
+                  selected: {_agregarAExistente},
+                  onSelectionChanged: (sel) {
+                    setState(() {
+                      _agregarAExistente = sel.first;
+                      if (!_agregarAExistente) _mesaDestinoExistente = null;
+                    });
+                  },
+                ),
+                if (_agregarAExistente) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: _mesaDestinoExistente,
+                    decoration: const InputDecoration(labelText: 'Mesa con pedido activo'),
+                    items: mesasOcupadas
+                        .map((m) => DropdownMenuItem<String>(
+                              value: m['mesa'].toString(),
+                              child: Text('Mesa ${m['mesa']}'),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _mesaDestinoExistente = v),
+                  ),
+                ],
+              ],
+            ),
+          ),
         // Buscador
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1263,14 +1441,14 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
-                    onPressed: _guardarComanda,
+                    onPressed: (_agregarAExistente && _mesaDestinoExistente == null) ? null : _guardarComanda,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accentColor,
                       foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(50),
                     ),
                     icon: const Icon(Icons.receipt_long),
-                    label: const Text('GUARDAR COMANDA Y ENVIAR'),
+                    label: Text(_agregarAExistente ? 'AGREGAR A LA MESA $_mesaDestinoExistente' : 'GUARDAR COMANDA Y ENVIAR'),
                   ),
                 ],
               ),

@@ -167,6 +167,77 @@ class SunmiPrinterService {
     }
   }
 
+  /// Imprime una pre-cuenta (detalle con precios de un pedido aún no cobrado,
+  /// para que el cliente revise antes de pagar). No es un comprobante de venta.
+  static Future<void> printPreCuenta({
+    required int comandaId,
+    required String mesa,
+    required List<Map<String, dynamic>> items,
+    required double total,
+  }) async {
+    try {
+      await init();
+
+      await _printer.printText(
+        text: 'CAFÉ LA PAZ',
+        style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.CENTER),
+      );
+      await _printer.printText(
+        text: 'PRE-CUENTA (no es factura)',
+        style: SunmiTextStyle(bold: true, fontSize: 20, align: SunmiPrintAlign.CENTER),
+      );
+      await _printer.lineWrap(times: 1);
+
+      await _printer.printText(
+        text: 'Mesa: $mesa',
+        style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.LEFT),
+      );
+      await _printer.printText(
+        text: 'Pedido #$comandaId',
+        style: SunmiTextStyle(fontSize: 20, align: SunmiPrintAlign.LEFT),
+      );
+      await _printer.line();
+
+      await _printer.printRow(cols: [
+        SunmiColumn(text: 'CANT', width: 4, style: SunmiTextStyle(bold: true, fontSize: 18, align: SunmiPrintAlign.LEFT)),
+        SunmiColumn(text: 'DESCRIPCION', width: 16, style: SunmiTextStyle(bold: true, fontSize: 18, align: SunmiPrintAlign.LEFT)),
+        SunmiColumn(text: 'IMP', width: 10, style: SunmiTextStyle(bold: true, fontSize: 18, align: SunmiPrintAlign.RIGHT)),
+      ]);
+      await _printer.line();
+
+      for (final item in items) {
+        final cant = item['cantidad']?.toString() ?? '1';
+        final nombre = (item['nombre'] ?? 'Producto').toString();
+        final subtotal = double.tryParse(item['subtotal']?.toString() ?? '0') ?? 0.0;
+        final nombreCorto = nombre.length > 16 ? nombre.substring(0, 16) : nombre;
+
+        await _printer.printRow(cols: [
+          SunmiColumn(text: cant, width: 4, style: SunmiTextStyle(fontSize: 18, align: SunmiPrintAlign.LEFT)),
+          SunmiColumn(text: nombreCorto, width: 16, style: SunmiTextStyle(fontSize: 18, align: SunmiPrintAlign.LEFT)),
+          SunmiColumn(text: subtotal.toStringAsFixed(2), width: 10, style: SunmiTextStyle(fontSize: 18, align: SunmiPrintAlign.RIGHT)),
+        ]);
+      }
+
+      await _printer.line();
+      await _printer.printText(
+        text: 'TOTAL: Bs. ${total.toStringAsFixed(2)}',
+        style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.RIGHT),
+      );
+
+      await _printer.lineWrap(times: 1);
+      await _printer.printText(
+        text: 'Documento sin validez fiscal',
+        style: SunmiTextStyle(fontSize: 16, align: SunmiPrintAlign.CENTER),
+      );
+
+      await _printer.lineWrap(times: 3);
+      await _printer.cutPaper();
+    } catch (e) {
+      print('Error al imprimir pre-cuenta: $e');
+      rethrow;
+    }
+  }
+
   /// Imprime un resumen de arqueo de caja
   static Future<void> printArqueoCaja({
     required int turnoId,
