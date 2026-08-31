@@ -58,9 +58,9 @@ async function cargarMesas() {
     } catch (e) {
         console.error("Error mesas:", e);
         document.getElementById('lienzo-venta-mesas').innerHTML = `
-            <div class="absolute inset-0 flex flex-col items-center justify-center text-red-500 font-bold text-xs gap-1">
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-red-500 font-bold text-xs md:text-sm gap-1">
                 <span>Error al cargar el estado de las mesas:</span>
-                <span class="text-[10px] opacity-80 font-normal bg-red-50 px-2 py-1 rounded border border-red-200 mt-1">${e.message}</span>
+                <span class="text-[10px] md:text-xs opacity-80 font-normal bg-red-50 px-2 py-1 rounded border border-red-200 mt-1">${e.message}</span>
             </div>
         `;
     }
@@ -74,11 +74,11 @@ function cambiarPisoVentas(piso) {
     const btnPa = document.getElementById('btn-piso-pa');
     
     if (piso === 'PLANTA_BAJA') {
-        btnPb.className = "px-4 py-2 rounded-lg font-bold text-xs bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
-        btnPa.className = "px-4 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
+        btnPb.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
+        btnPa.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
     } else {
-        btnPb.className = "px-4 py-2 rounded-lg font-bold text-xs text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
-        btnPa.className = "px-4 py-2 rounded-lg font-bold text-xs bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
+        btnPb.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
+        btnPa.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
     }
     
     renderizarMesas();
@@ -94,7 +94,7 @@ function renderizarMesas() {
 
     if (mesasFiltradas.length === 0) {
         contenedor.innerHTML = `
-            <div class="absolute inset-0 flex items-center justify-center text-slate-500 font-medium text-xs">
+            <div class="absolute inset-0 flex items-center justify-center text-slate-500 font-medium text-xs md:text-sm">
                 No hay mesas registradas en este piso.
             </div>
         `;
@@ -110,19 +110,19 @@ function renderizarMesas() {
         const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
         const ringPulse = esOcupada ? 'ring-4 ring-rose-400/20' : 'hover:ring-4 hover:ring-emerald-400/20';
 
-        const totalComanda = esOcupada ? `<span class="text-[10px] text-rose-600 font-black leading-none mt-1">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
+        const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs text-rose-600 font-black leading-none mt-1">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
         const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
 
         const cardHtml = `
-            <div onclick="seleccionarMesa('${m.mesa}')" class="absolute w-20 h-20 rounded-2xl border-2 flex flex-col items-center justify-center shadow-md cursor-pointer select-none transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}"
+            <div onclick="seleccionarMesa('${m.mesa}')" class="absolute w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 flex flex-col items-center justify-center shadow-md cursor-pointer select-none transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}"
                  style="left: ${m.pos_x}%; top: ${m.pos_y}%; transform: translate(-50%, -50%);">
-                <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black leading-none ${badgeColor}">
+                <span class="w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center text-[10px] md:text-xs font-black leading-none ${badgeColor}">
                     ${m.mesa}
                 </span>
-                <span class="text-[9px] font-bold uppercase tracking-wider ${colorText} mt-1 leading-none">
+                <span class="text-[9px] md:text-xs font-bold uppercase tracking-wider ${colorText} mt-1 leading-none">
                     Mesa ${m.mesa}
                 </span>
-                <span class="text-[7px] text-slate-500 font-black uppercase mt-0.5 tracking-tight leading-none">
+                <span class="text-[7px] md:text-[9px] text-slate-500 font-black uppercase mt-0.5 tracking-tight leading-none">
                     ${estadoLabel}
                 </span>
                 ${totalComanda}
@@ -167,10 +167,10 @@ function renderizarComandaVacia() {
     
     const itemsCont = document.getElementById('ticket-items');
     itemsCont.innerHTML = `
-        <div class="text-center text-slate-400 mt-10 text-sm">
+        <div class="text-center text-slate-400 mt-10 text-sm md:text-base">
             <i class="fa-solid fa-mug-hot text-4xl mb-3 opacity-20 text-orange-600"></i>
             <p class="font-bold text-slate-700">Mesa Disponible</p>
-            <p class="text-xs mt-1">La mesa está vacía y lista para recibir clientes.</p>
+            <p class="text-xs md:text-sm mt-1">La mesa está vacía y lista para recibir clientes.</p>
         </div>
     `;
 
@@ -194,9 +194,9 @@ function renderizarDetalleComandaActiva() {
 
     // Colorear badge de estado
     if (estado === 'CREADA') {
-        estElem.className = 'text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border mt-1 bg-amber-50 text-amber-700 border-amber-200';
+        estElem.className = 'text-[10px] md:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded border mt-1 bg-amber-50 text-amber-700 border-amber-200';
     } else {
-        estElem.className = 'text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border mt-1 bg-indigo-50 text-indigo-700 border-indigo-200';
+        estElem.className = 'text-[10px] md:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded border mt-1 bg-indigo-50 text-indigo-700 border-indigo-200';
     }
 
     document.getElementById('btn-limpiar-pedido').classList.add('hidden');
@@ -208,10 +208,10 @@ function renderizarDetalleComandaActiva() {
         itemsCont.innerHTML += `
             <div class="flex items-center justify-between py-2 border-b border-slate-100">
                 <div class="flex-grow pr-2">
-                    <h4 class="text-xs font-bold text-slate-800 leading-tight">${item.producto_nombre}</h4>
-                    <span class="text-[10px] text-slate-400">Cant: ${item.cantidad} x Bs. ${item.precio_unitario}</span>
+                    <h4 class="text-xs md:text-sm font-bold text-slate-800 leading-tight">${item.producto_nombre}</h4>
+                    <span class="text-[10px] md:text-xs text-slate-400">Cant: ${item.cantidad} x Bs. ${item.precio_unitario}</span>
                 </div>
-                <div class="text-xs font-black text-slate-800 text-right shrink-0">
+                <div class="text-xs md:text-sm font-black text-slate-800 text-right shrink-0">
                     Bs. ${parseFloat(item.subtotal).toFixed(2)}
                 </div>
             </div>
@@ -227,14 +227,14 @@ function renderizarDetalleComandaActiva() {
 
     // A. Botón de Imprimir Comanda (Siempre visible para ver o llevar a cocina)
     accionesCont.innerHTML += `
-        <button onclick="abrirModalImpresionComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs">
+        <button onclick="abrirModalImpresionComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
             <i class="fa-solid fa-print"></i> Imprimir Comanda (Cocina)
         </button>
     `;
 
     // A.2 Botón de Pre-cuenta (con precios, para el cliente antes de cobrar)
     accionesCont.innerHTML += `
-        <button onclick="imprimirPreCuentaComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs mt-1.5">
+        <button onclick="imprimirPreCuentaComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm mt-1.5">
             <i class="fa-solid fa-receipt"></i> Imprimir Pre-cuenta
         </button>
     `;
@@ -242,7 +242,7 @@ function renderizarDetalleComandaActiva() {
     // B. Botón de Modificar Pedido (Solo para mesero, cajero o admin, y estado CREADA)
     if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
         accionesCont.innerHTML += `
-            <button onclick="modificarComandaActiva()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition-colors btn-bounce flex items-center justify-center gap-2 text-xs">
+            <button onclick="modificarComandaActiva()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
                 <i class="fa-solid fa-pen-to-square"></i> Modificar Pedido
             </button>
         `;
@@ -251,7 +251,7 @@ function renderizarDetalleComandaActiva() {
     // C. Botón "Entregar Comida" (Para mesero, cajero o admin, si está en estado CREADA)
     if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
         accionesCont.innerHTML += `
-            <button onclick="marcarComandaEntregada()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm mt-1">
+            <button onclick="marcarComandaEntregada()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm md:text-base mt-1">
                 <i class="fa-solid fa-hand-holding-hand"></i> Marcar como Entregado
             </button>
         `;
@@ -260,7 +260,7 @@ function renderizarDetalleComandaActiva() {
     // D. Botón "Cobrar Comanda" (Para cajero o admin)
     if (usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN') {
         accionesCont.innerHTML += `
-            <button onclick="abrirModalCobroComanda()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm mt-1">
+            <button onclick="abrirModalCobroComanda()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm md:text-base mt-1">
                 <i class="fa-solid fa-cash-register"></i> COBRAR COMANDA
             </button>
         `;
@@ -269,7 +269,7 @@ function renderizarDetalleComandaActiva() {
     // E. Botón de Cancelar Comanda (Solo Admin)
     if (usuarioRol === 'ADMIN') {
         accionesCont.innerHTML += `
-            <button onclick="cancelarComandaActiva()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 rounded-xl transition-colors btn-bounce text-xs mt-2 border border-rose-200">
+            <button onclick="cancelarComandaActiva()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 rounded-xl transition-colors btn-bounce text-xs md:text-sm mt-2 border border-rose-200">
                 <i class="fa-solid fa-ban mr-1"></i> Cancelar / Desocupar Mesa
             </button>
         `;
@@ -336,7 +336,7 @@ function renderizarCatalogo(filtro = '') {
     const categorias = Object.keys(prodPorCat).sort();
     if (categorias.length === 0) {
         contenedor.innerHTML = `
-            <div class="col-span-full py-8 text-center text-slate-400 font-medium italic text-xs">
+            <div class="col-span-full py-8 text-center text-slate-400 font-medium italic text-xs md:text-sm">
                 No se encontraron productos coincidentes.
             </div>
         `;
@@ -349,10 +349,10 @@ function renderizarCatalogo(filtro = '') {
         const headerHtml = `
             <div class="col-span-full mt-4 first:mt-1 mb-1 border-b pb-1">
                 <div class="w-full text-left flex items-center justify-between py-1">
-                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <h3 class="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                         <span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>
                         ${cat}
-                        <span class="text-[9px] text-slate-400 font-bold font-mono">(${prodPorCat[cat].length})</span>
+                        <span class="text-[9px] md:text-[10px] text-slate-400 font-bold font-mono">(${prodPorCat[cat].length})</span>
                     </h3>
                 </div>
             </div>
@@ -361,8 +361,8 @@ function renderizarCatalogo(filtro = '') {
         let productsHtml = '';
         prodPorCat[cat].forEach(prod => {
             productsHtml += `
-                <div onclick="agregarAlCarritoComanda(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all select-none flex flex-col justify-between overflow-hidden relative min-h-[140px] btn-bounce">
-                    <div class="h-20 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b relative overflow-hidden">
+                <div onclick="agregarAlCarritoComanda(${prod.id})" class="bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-500 transition-all select-none flex flex-col justify-between overflow-hidden relative min-h-[140px] md:min-h-[160px] btn-bounce">
+                    <div class="h-20 md:h-24 w-full bg-slate-100 flex items-center justify-center shrink-0 border-b relative overflow-hidden">
                         ${prod.imagen_url ? 
                             `<img src="${prod.imagen_url}" class="w-full h-full object-cover" alt="${prod.nombre}">` : 
                             `<div class="w-full h-full bg-gradient-to-br from-orange-50 to-orange-100/50 flex items-center justify-center">
@@ -371,8 +371,8 @@ function renderizarCatalogo(filtro = '') {
                         }
                     </div>
                     <div class="p-2.5 flex-grow flex flex-col justify-between">
-                        <h4 class="font-bold text-gray-800 leading-tight text-[11px] line-clamp-2">${prod.nombre}</h4>
-                        <div class="text-xs font-black text-slate-800 mt-1">
+                        <h4 class="font-bold text-gray-800 leading-tight text-[11px] md:text-sm line-clamp-2">${prod.nombre}</h4>
+                        <div class="text-xs md:text-sm font-black text-slate-800 mt-1">
                             Bs. ${parseFloat(prod.precio_venta).toFixed(2)}
                         </div>
                     </div>
@@ -445,7 +445,7 @@ function actualizarTicketEdicion() {
 
     if (carritoComanda.length === 0) {
         itemsCont.innerHTML = `
-            <div class="text-center text-gray-400 mt-10 text-xs">
+            <div class="text-center text-gray-400 mt-10 text-xs md:text-sm">
                 <i class="fa-solid fa-basket-shopping text-3xl mb-2 opacity-25"></i>
                 <p>El pedido está vacío.<br>Agrega productos desde el catálogo.</p>
             </div>
@@ -458,14 +458,14 @@ function actualizarTicketEdicion() {
         itemsCont.innerHTML += `
             <div class="flex items-center justify-between py-2 border-b border-slate-100">
                 <div class="flex-grow pr-2">
-                    <h4 class="text-xs font-bold text-slate-800 leading-tight">${item.nombre}</h4>
-                    <span class="text-[10px] text-slate-400">Bs. ${item.precio_unitario}</span>
+                    <h4 class="text-xs md:text-sm font-bold text-slate-800 leading-tight">${item.nombre}</h4>
+                    <span class="text-[10px] md:text-xs text-slate-400">Bs. ${item.precio_unitario}</span>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0 select-none">
-                    <button onclick="cambiarCantidadItem(${idx}, -1)" class="w-5 h-5 bg-slate-100 text-slate-600 rounded flex items-center justify-center font-bold text-xs hover:bg-orange-100 hover:text-orange-600 transition-colors btn-bounce">-</button>
-                    <span class="text-xs font-bold text-slate-800 w-4 text-center">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadItem(${idx}, 1)" class="w-5 h-5 bg-slate-100 text-slate-600 rounded flex items-center justify-center font-bold text-xs hover:bg-orange-100 hover:text-orange-600 transition-colors btn-bounce">+</button>
-                    <button onclick="eliminarItemCarrito(${idx})" class="text-slate-300 hover:text-red-500 ml-1.5 transition-colors btn-bounce" title="Quitar"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    <button onclick="cambiarCantidadItem(${idx}, -1)" class="w-5 h-5 md:w-6 md:h-6 bg-slate-100 text-slate-600 rounded flex items-center justify-center font-bold text-xs md:text-sm hover:bg-orange-100 hover:text-orange-600 transition-colors btn-bounce">-</button>
+                    <span class="text-xs md:text-sm font-bold text-slate-800 w-4 text-center">${item.cantidad}</span>
+                    <button onclick="cambiarCantidadItem(${idx}, 1)" class="w-5 h-5 md:w-6 md:h-6 bg-slate-100 text-slate-600 rounded flex items-center justify-center font-bold text-xs md:text-sm hover:bg-orange-100 hover:text-orange-600 transition-colors btn-bounce">+</button>
+                    <button onclick="eliminarItemCarrito(${idx})" class="text-slate-300 hover:text-red-500 ml-1.5 transition-colors btn-bounce" title="Quitar"><i class="fa-solid fa-trash-can text-[10px] md:text-xs"></i></button>
                 </div>
             </div>
         `;
@@ -478,10 +478,10 @@ function actualizarTicketEdicion() {
     const accionesCont = document.getElementById('seccion-acciones-mesa');
     accionesCont.innerHTML = `
         <div class="flex gap-2">
-            <button onclick="mostrarVistaMesas()" class="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors btn-bounce text-xs">
+            <button onclick="mostrarVistaMesas()" class="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-colors btn-bounce text-xs md:text-sm">
                 Atrás
             </button>
-            <button onclick="guardarComandaServidor()" ${carritoComanda.length === 0 ? 'disabled' : ''} class="w-2/3 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors btn-bounce disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-xs">
+            <button onclick="guardarComandaServidor()" ${carritoComanda.length === 0 ? 'disabled' : ''} class="w-2/3 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors btn-bounce disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-xs md:text-sm">
                 <i class="fa-solid fa-floppy-disk"></i> ${modoEdicionActivo ? 'Guardar Cambios' : 'Confirmar Pedido'}
             </button>
         </div>

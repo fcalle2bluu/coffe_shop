@@ -135,6 +135,17 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     }
   }
 
+  void _irAAgregarProductos() {
+    setState(() {
+      _cart.clear();
+      _searchQuery = '';
+      _agregarAExistente = true;
+      _mesaDestinoExistente = _selectedMesa;
+      _viewState = VentaMesaViewState.createComanda;
+    });
+    _filtrarCatalogo();
+  }
+
   Future<void> _cargarComandaActiva(String numMesa) async {
     setState(() => _isLoading = true);
     try {
@@ -1064,9 +1075,23 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Detalle de Productos',
-            style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Detalle de Productos',
+                style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              TextButton.icon(
+                onPressed: _irAAgregarProductos,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.accentColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: const Text('Agregar producto', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Expanded(

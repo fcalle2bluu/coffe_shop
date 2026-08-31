@@ -83,7 +83,7 @@
         <header class="min-h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-3 sm:px-6 py-2 sticky top-0 z-30 shadow-premium gap-2 flex-wrap">
             <div class="flex items-center gap-2 flex-1 min-w-0">
                 <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden shrink-0"><i class="fa-solid fa-bars text-xl"></i></button>
-                <h1 class="text-sm sm:text-lg font-bold tracking-wide truncate">Realizar Pedido</h1>
+                <h1 class="text-sm sm:text-lg md:text-xl font-bold tracking-wide truncate">Realizar Pedido</h1>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
@@ -95,10 +95,10 @@
                 </button>
 
                 <div class="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
-                    <button id="tab-btn-pedido" onclick="cambiarVista('pedido')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-white text-orange-500 shadow-sm">
+                    <button id="tab-btn-pedido" onclick="cambiarVista('pedido')" class="px-3 sm:px-4 md:px-5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all bg-white text-orange-500 shadow-sm">
                         <i class="fa-solid fa-cart-shopping mr-1"></i> Pedido
                     </button>
-                    <button id="tab-btn-control" onclick="cambiarVista('control')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all text-slate-500">
+                    <button id="tab-btn-control" onclick="cambiarVista('control')" class="px-3 sm:px-4 md:px-5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all text-slate-500">
                         <i class="fa-solid fa-list-check mr-1"></i> Control
                     </button>
                 </div>
@@ -110,7 +110,7 @@
 
             <div class="w-full md:w-2/3 p-2 sm:p-4 flex flex-col bg-mainBg overflow-hidden flex-1 md:flex-none h-1/2 md:h-full min-h-0">
                 <div class="mb-3 sm:mb-4 relative shrink-0">
-                    <input type="text" id="buscarProducto" autocomplete="off" placeholder="Buscar producto... (tolera errores de tecleo)" class="w-full pl-11 pr-10 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none text-slate-700 font-medium text-sm sm:text-base bg-white shadow-sm transition-all">
+                    <input type="text" id="buscarProducto" autocomplete="off" placeholder="Buscar producto... (tolera errores de tecleo)" class="w-full pl-11 pr-10 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none text-slate-700 font-medium text-sm sm:text-base md:text-lg bg-white shadow-sm transition-all">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <button id="btn-limpiar-busqueda" onclick="limpiarBusqueda()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <i class="fa-solid fa-circle-xmark"></i>
@@ -132,21 +132,21 @@
                             <i class="fa-solid fa-receipt text-orange-400"></i>
                         </div>
                         <div>
-                            <h2 class="font-bold text-sm tracking-tight leading-none">Pedido actual</h2>
-                            <p class="text-[10px] text-slate-400 font-semibold mt-1"><span id="ticket-count">0</span> artículos</p>
+                            <h2 class="font-bold text-sm md:text-base tracking-tight leading-none">Pedido actual</h2>
+                            <p class="text-[10px] md:text-xs text-slate-400 font-semibold mt-1"><span id="ticket-count">0</span> artículos</p>
                         </div>
                     </div>
-                    <button onclick="limpiarCarrito()" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1.5 btn-bounce">
+                    <button onclick="limpiarCarrito()" class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1.5 btn-bounce">
                         <i class="fa-solid fa-trash-can"></i> Limpiar
                     </button>
                 </div>
 
                 <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Mesa</label>
-                    <select id="select-mesa" onchange="onCambiarMesaSeleccionada()" class="w-full border border-slate-200 text-slate-800 rounded-xl px-3 py-2.5 bg-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none font-bold text-sm transition-all cursor-pointer">
+                    <label class="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">Mesa</label>
+                    <select id="select-mesa" onchange="onCambiarMesaSeleccionada()" class="w-full border border-slate-200 text-slate-800 rounded-xl px-3 py-2.5 md:py-3 bg-white focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none font-bold text-sm md:text-base transition-all cursor-pointer">
                         <option value="">Cargando mesas...</option>
                     </select>
-                    <p id="aviso-mesa-ocupada" class="hidden text-[11px] text-amber-600 font-semibold mt-1.5">
+                    <p id="aviso-mesa-ocupada" class="hidden text-[11px] md:text-xs text-amber-600 font-semibold mt-1.5">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> Esta mesa ya tiene un pedido activo. Estos productos se sumarán a esa comanda.
                     </p>
                 </div>
@@ -156,19 +156,19 @@
                         <div class="w-16 h-16 rounded-2xl bg-white border border-dashed border-slate-300 flex items-center justify-center mb-3">
                             <i class="fa-solid fa-basket-shopping text-2xl opacity-30"></i>
                         </div>
-                        <p class="text-sm font-semibold">Pedido vacío</p>
-                        <p class="text-xs text-slate-300 mt-1">Toca un producto para agregarlo</p>
+                        <p class="text-sm md:text-base font-semibold">Pedido vacío</p>
+                        <p class="text-xs md:text-sm text-slate-300 mt-1">Toca un producto para agregarlo</p>
                     </div>
                 </div>
 
                 <div class="bg-white border-t border-slate-200 p-3 sm:p-4 flex flex-col gap-2.5 shrink-0 shadow-[0_-8px_20px_-12px_rgba(0,0,0,0.18)]">
-                    <textarea id="nota-general-pedido" rows="2" placeholder="Notas generales del pedido (opcional)..." class="w-full text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none resize-none"></textarea>
+                    <textarea id="nota-general-pedido" rows="2" placeholder="Notas generales del pedido (opcional)..." class="w-full text-xs sm:text-sm md:text-base rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none resize-none"></textarea>
                     <div class="flex justify-between items-end">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1.5">Total pedido</span>
-                        <span class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight" id="total-ticket">Bs. 0.00</span>
+                        <span class="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-1.5">Total pedido</span>
+                        <span class="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight" id="total-ticket">Bs. 0.00</span>
                     </div>
 
-                    <button onclick="generarComanda()" id="btn-generar" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-[0.99] text-white font-black py-3.5 sm:py-4 rounded-2xl shadow-lg shadow-orange-500/30 text-base sm:text-lg tracking-wide transition-all disabled:from-slate-400 disabled:to-slate-500 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none btn-bounce">
+                    <button onclick="generarComanda()" id="btn-generar" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-[0.99] text-white font-black py-3.5 sm:py-4 md:py-5 rounded-2xl shadow-lg shadow-orange-500/30 text-base sm:text-lg md:text-xl tracking-wide transition-all disabled:from-slate-400 disabled:to-slate-500 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none btn-bounce">
                         <i class="fa-solid fa-bell-concierge mr-1"></i> GENERAR COMANDA
                     </button>
                 </div>
@@ -178,7 +178,7 @@
         <!-- VISTA: CONTROL -->
         <div id="vista-control" class="hidden flex-1 overflow-y-auto p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <h2 class="text-sm md:text-base font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-orange-500"></i> Comandas activas
                 </h2>
                 <button onclick="cargarComandasActivas()" class="text-xs font-bold text-slate-500 hover:text-orange-500 transition-colors">

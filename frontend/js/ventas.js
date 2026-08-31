@@ -662,17 +662,17 @@ function cerrarModalMesasCobro() {
 function chipEstadoPedido(estado, estadoCocina) {
     let chips = '';
     if (estadoCocina === 'PENDIENTE') {
-        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700">🕐 En cocina</span>`;
+        chips += `<span class="text-[9px] md:text-[11px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700">🕐 En cocina</span>`;
     } else if (estadoCocina === 'COMPLETADA') {
-        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">✅ Cocina lista</span>`;
+        chips += `<span class="text-[9px] md:text-[11px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">✅ Cocina lista</span>`;
     } else if (estadoCocina === 'RECHAZADA') {
-        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-rose-100 text-rose-700">✖ Rechazado en cocina</span>`;
+        chips += `<span class="text-[9px] md:text-[11px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-rose-100 text-rose-700">✖ Rechazado en cocina</span>`;
     }
 
     if (estado === 'ENTREGADA') {
-        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-sky-100 text-sky-700">🍽️ Entregado</span>`;
+        chips += `<span class="text-[9px] md:text-[11px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-sky-100 text-sky-700">🍽️ Entregado</span>`;
     } else if (estado === 'CREADA') {
-        chips += `<span class="text-[9px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-slate-100 text-slate-600">📋 Pedido abierto</span>`;
+        chips += `<span class="text-[9px] md:text-[11px] font-black uppercase tracking-wide px-2 py-1 rounded-full bg-slate-100 text-slate-600">📋 Pedido abierto</span>`;
     }
 
     return chips;
@@ -683,7 +683,7 @@ function renderizarListaMesasCobro() {
     if (!cont) return;
 
     if (mesasActivasTodas.length === 0) {
-        cont.innerHTML = `<div class="text-center text-slate-400 text-sm py-10 italic">No hay pedidos activos de mesero por ahora.</div>`;
+        cont.innerHTML = `<div class="text-center text-slate-400 text-sm md:text-base py-10 italic">No hay pedidos activos de mesero por ahora.</div>`;
         return;
     }
 
@@ -693,23 +693,23 @@ function renderizarListaMesasCobro() {
         const listaParaCobrar = c.estado === 'ENTREGADA' || c.estado_cocina === 'COMPLETADA';
 
         const itemsHtml = (c.items || []).map(it => `
-            <div class="flex justify-between text-xs text-slate-500 py-0.5">
+            <div class="flex justify-between text-xs md:text-sm text-slate-500 py-0.5">
                 <span>${it.cantidad}x ${it.nombre}${it.notas ? ` <span class="italic text-slate-400">(${it.notas})</span>` : ''}</span>
                 <span class="shrink-0 pl-2">Bs. ${parseFloat(it.subtotal).toFixed(2)}</span>
             </div>
         `).join('');
 
         return `
-            <div class="rounded-xl border ${listaParaCobrar ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200'} p-3">
+            <div class="rounded-xl border ${listaParaCobrar ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200'} p-3 md:p-4">
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black shrink-0">${m.mesa}</div>
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black shrink-0 md:text-lg">${m.mesa}</div>
                         <div>
-                            <p class="font-bold text-stone-800 text-sm">Mesa ${m.mesa}</p>
-                            <p class="text-xs text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
+                            <p class="font-bold text-stone-800 text-sm md:text-base">Mesa ${m.mesa}</p>
+                            <p class="text-xs md:text-sm text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
                         </div>
                     </div>
-                    <p class="font-black text-orange-600 shrink-0">Bs. ${total}</p>
+                    <p class="font-black text-orange-600 shrink-0 md:text-lg">Bs. ${total}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-1.5 mb-2">
                     ${chipEstadoPedido(c.estado, c.estado_cocina)}
@@ -717,15 +717,15 @@ function renderizarListaMesasCobro() {
                 <div class="border-t border-dashed border-gray-200 pt-1.5 mb-2">
                     ${itemsHtml}
                 </div>
-                ${c.notas ? `<p class="text-xs italic text-slate-500 mb-2">📝 ${c.notas}</p>` : ''}
-                <button onclick="imprimirPreCuentaMesa(${c.id})" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2 rounded-lg transition-colors btn-bounce mb-1.5">
+                ${c.notas ? `<p class="text-xs md:text-sm italic text-slate-500 mb-2">📝 ${c.notas}</p>` : ''}
+                <button onclick="imprimirPreCuentaMesa(${c.id})" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs md:text-sm font-bold py-2 md:py-2.5 rounded-lg transition-colors btn-bounce mb-1.5">
                     <i class="fa-solid fa-receipt mr-1"></i> Imprimir Pre-cuenta
                 </button>
                 ${listaParaCobrar
-                    ? `<button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition-colors btn-bounce">
+                    ? `<button onclick="abrirModalPagoMesa(${c.id}, '${m.mesa}', ${c.total})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-bold py-2 md:py-2.5 rounded-lg transition-colors btn-bounce">
                         <i class="fa-solid fa-cash-register mr-1"></i> Cobrar Mesa
                     </button>`
-                    : `<div class="w-full bg-gray-100 text-gray-400 text-xs font-bold py-2 rounded-lg text-center">
+                    : `<div class="w-full bg-gray-100 text-gray-400 text-xs md:text-sm font-bold py-2 md:py-2.5 rounded-lg text-center">
                         <i class="fa-solid fa-hourglass-half mr-1"></i> Todavía preparándose
                     </div>`
                 }

@@ -232,9 +232,9 @@ function renderizarGrid(filtrados, contenedor) {
                         </div>` : ''}
                 </div>
                 <div class="p-3 flex-grow flex flex-col justify-between">
-                    <h3 class="font-bold text-slate-800 leading-tight text-xs sm:text-sm line-clamp-2">${prod.nombre}</h3>
+                    <h3 class="font-bold text-slate-800 leading-tight text-xs sm:text-sm md:text-base line-clamp-2">${prod.nombre}</h3>
                     <div class="flex items-center justify-between mt-1.5">
-                        <span class="text-sm sm:text-base font-black text-slate-900">Bs. ${parseFloat(prod.precio_venta).toFixed(2)}</span>
+                        <span class="text-sm sm:text-base md:text-lg font-black text-slate-900">Bs. ${parseFloat(prod.precio_venta).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -255,8 +255,8 @@ function renderizarLista(filtrados, contenedor) {
                     ${prod.imagen_url ? `<img src="${prod.imagen_url}" class="w-full h-full object-cover" alt="${prod.nombre}">` : placeholderImagenHtml()}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-bold text-slate-800 text-sm truncate">${prod.nombre}</h3>
-                    <span class="text-sm font-black text-orange-500">Bs. ${parseFloat(prod.precio_venta).toFixed(2)}</span>
+                    <h3 class="font-bold text-slate-800 text-sm md:text-base truncate">${prod.nombre}</h3>
+                    <span class="text-sm md:text-base font-black text-orange-500">Bs. ${parseFloat(prod.precio_venta).toFixed(2)}</span>
                 </div>
                 ${enCarrito > 0 ? `
                     <div class="flex items-center gap-2 shrink-0">
@@ -351,8 +351,8 @@ function actualizarTicket() {
                 <div class="w-16 h-16 rounded-2xl bg-white border border-dashed border-slate-300 flex items-center justify-center mb-3">
                     <i class="fa-solid fa-basket-shopping text-2xl opacity-30"></i>
                 </div>
-                <p class="text-sm font-semibold">Pedido vacío</p>
-                <p class="text-xs text-slate-300 mt-1">Toca un producto para agregarlo</p>
+                <p class="text-sm md:text-base font-semibold">Pedido vacío</p>
+                <p class="text-xs md:text-sm text-slate-300 mt-1">Toca un producto para agregarlo</p>
             </div>`;
     } else {
         contenedor.innerHTML = entradas.map(([id, item]) => {
@@ -364,18 +364,18 @@ function actualizarTicket() {
                 <div class="mb-2 bg-white rounded-xl border border-slate-200/70 shadow-sm overflow-hidden">
                     <div class="flex justify-between items-center gap-2 py-2.5 px-2.5">
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-slate-800 text-sm truncate">${prod.nombre}</h4>
-                            <p class="text-[11px] text-slate-400 font-medium">Bs. ${parseFloat(prod.precio_venta).toFixed(2)} c/u</p>
+                            <h4 class="font-bold text-slate-800 text-sm md:text-base truncate">${prod.nombre}</h4>
+                            <p class="text-[11px] md:text-xs text-slate-400 font-medium">Bs. ${parseFloat(prod.precio_venta).toFixed(2)} c/u</p>
                         </div>
                         <div class="flex items-center bg-slate-100 rounded-full border border-slate-200 overflow-hidden shrink-0">
-                            <button onclick="cambiarCantidadCarrito(${id}, -1)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-500 font-bold transition-colors btn-bounce">−</button>
-                            <span class="px-1 text-sm font-black w-6 text-center text-slate-800">${item.cantidad}</span>
-                            <button onclick="cambiarCantidadCarrito(${id}, 1)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-white hover:bg-emerald-500 font-bold transition-colors btn-bounce">+</button>
+                            <button onclick="cambiarCantidadCarrito(${id}, -1)" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-500 font-bold transition-colors btn-bounce">−</button>
+                            <span class="px-1 text-sm md:text-base font-black w-6 text-center text-slate-800">${item.cantidad}</span>
+                            <button onclick="cambiarCantidadCarrito(${id}, 1)" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center text-slate-500 hover:text-white hover:bg-emerald-500 font-bold transition-colors btn-bounce">+</button>
                         </div>
-                        <div class="text-right font-black text-slate-900 w-16 text-sm shrink-0">Bs. ${subtotal.toFixed(2)}</div>
+                        <div class="text-right font-black text-slate-900 w-16 text-sm md:text-base shrink-0">Bs. ${subtotal.toFixed(2)}</div>
                     </div>
                     <button onclick="abrirModalNota('carrito', ${id}, '${prod.nombre.replace(/'/g, "\\'")}')" class="w-full flex items-center gap-1.5 px-2.5 pb-2 text-left">
-                        <span class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold truncate ${nota ? 'bg-orange-50 text-orange-600 border border-orange-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}">
+                        <span class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold truncate ${nota ? 'bg-orange-50 text-orange-600 border border-orange-200' : 'bg-slate-50 text-slate-400 border border-slate-200'}">
                             <i class="fa-solid ${nota ? 'fa-note-sticky' : 'fa-circle-plus'}"></i>
                             <span class="truncate">${nota ? nota.replace(/</g, '&lt;') : 'Agregar nota a este producto'}</span>
                         </span>
@@ -588,9 +588,9 @@ async function cargarComandasActivas() {
             <div class="bg-white rounded-2xl border ${editado ? 'border-amber-300' : 'border-slate-200/80'} shadow-sm p-4 flex flex-col gap-2">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h3 class="font-black text-slate-800 text-sm">Mesa ${c.mesa}</h3>
-                        ${c.mesero_nombre ? `<p class="text-[11px] text-slate-400 font-medium">${c.mesero_nombre}</p>` : ''}
-                        ${hora ? `<p class="text-[11px] text-slate-400 font-medium">${hora}</p>` : ''}
+                        <h3 class="font-black text-slate-800 text-sm md:text-base">Mesa ${c.mesa}</h3>
+                        ${c.mesero_nombre ? `<p class="text-[11px] md:text-xs text-slate-400 font-medium">${c.mesero_nombre}</p>` : ''}
+                        ${hora ? `<p class="text-[11px] md:text-xs text-slate-400 font-medium">${hora}</p>` : ''}
                     </div>
                     <div class="flex items-center gap-1.5">
                         ${editado ? `<span class="text-[10px] font-black px-2 py-1 rounded-full bg-amber-100 text-amber-700">EDITADO</span>` : ''}
@@ -598,7 +598,7 @@ async function cargarComandasActivas() {
                     </div>
                 </div>
                 ${items.length > 0 ? `
-                <div class="bg-slate-50 rounded-xl p-2.5 text-xs">
+                <div class="bg-slate-50 rounded-xl p-2.5 text-xs md:text-sm">
                     ${items.map(it => `
                         <div class="py-0.5">
                             <span class="font-semibold text-slate-700">${it.cantidad}x ${it.nombre}</span>
@@ -606,20 +606,20 @@ async function cargarComandasActivas() {
                         </div>
                     `).join('')}
                 </div>` : ''}
-                ${c.notas ? `<p class="text-[11px] text-slate-400 italic">Nota del pedido: ${c.notas.replace(/</g, '&lt;')}</p>` : ''}
+                ${c.notas ? `<p class="text-[11px] md:text-xs text-slate-400 italic">Nota del pedido: ${c.notas.replace(/</g, '&lt;')}</p>` : ''}
                 <div class="flex items-center justify-between">
-                    <span class="text-lg font-black text-slate-900">Bs. ${parseFloat(c.total).toFixed(2)}</span>
-                    <span class="text-[10px] font-bold text-slate-400">${c.estado}</span>
+                    <span class="text-lg md:text-xl font-black text-slate-900">Bs. ${parseFloat(c.total).toFixed(2)}</span>
+                    <span class="text-[10px] md:text-xs font-bold text-slate-400">${c.estado}</span>
                 </div>
                 ${c.estado !== 'PAGADA' ? `
                 <div class="grid grid-cols-3 gap-1.5 mt-1">
-                    <button onclick="abrirModalEditar(${c.id})" class="text-xs font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 rounded-xl py-2 transition-colors btn-bounce">
+                    <button onclick="abrirModalEditar(${c.id})" class="text-xs md:text-sm font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 rounded-xl py-2 md:py-2.5 transition-colors btn-bounce">
                         <i class="fa-solid fa-pen mr-1"></i> Editar
                     </button>
-                    <button onclick="solicitarImpresion(${c.id})" class="text-xs font-bold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-xl py-2 transition-colors btn-bounce">
+                    <button onclick="solicitarImpresion(${c.id})" class="text-xs md:text-sm font-bold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-xl py-2 md:py-2.5 transition-colors btn-bounce">
                         <i class="fa-solid fa-print mr-1"></i> Imprimir
                     </button>
-                    <button onclick="eliminarComanda(${c.id})" class="text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl py-2 transition-colors btn-bounce">
+                    <button onclick="eliminarComanda(${c.id})" class="text-xs md:text-sm font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl py-2 md:py-2.5 transition-colors btn-bounce">
                         <i class="fa-solid fa-trash-can mr-1"></i> Eliminar
                     </button>
                 </div>` : ''}

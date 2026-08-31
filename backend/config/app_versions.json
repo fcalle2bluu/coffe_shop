@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 20,
-    "versionName": "1.0.19",
+    "versionCode": 21,
+    "versionName": "1.0.20",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Los usuarios que no son Admin ya no ven su historial de marcaciones en Asistencia (solo pueden escanear el QR de entrada/salida).",
+    "notas": "Nuevo botón 'Agregar producto' en el detalle de Venta por Mesa para sumar más productos a un pedido ya abierto sin salir de esa pantalla.",
     "obligatoria": true
   },
   "comandas": {
