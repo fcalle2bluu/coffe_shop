@@ -376,7 +376,7 @@ router.get('/mesas-estado', checkMeseroOAdmin, async (req, res) => {
         const mesasQuery = `
             SELECT * FROM mesas 
             WHERE activo = true 
-            ORDER BY piso DESC, (regexp_replace(numero, '[^0-9]', '', 'g'))::int ASC
+            ORDER BY piso DESC, COALESCE(NULLIF(regexp_replace(numero, '[^0-9]', '', 'g'), '')::int, 999999) ASC, numero ASC
         `;
         const mesasResult = await pool.query(mesasQuery);
 
