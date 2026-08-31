@@ -282,8 +282,11 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
         'cantidad': it['cantidad'],
         'precio_unitario': it['precio_unitario'],
         'subtotal': it['subtotal'],
+        'es_nuevo': false,
       }).toList();
 
+      // Marca es_nuevo:true en lo que se suma ahora, para que cocina distinga
+      // en pantalla/ticket lo recién añadido de lo que ya estaba en el pedido.
       _cart.forEach((id, qty) {
         final p = _allProducts.firstWhere((prod) => prod.id == id);
         final indice = detallesFinales.indexWhere((it) => it['producto_id'] == id);
@@ -291,12 +294,14 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
           final cantidadSumada = (detallesFinales[indice]['cantidad'] as num) + qty;
           detallesFinales[indice]['cantidad'] = cantidadSumada;
           detallesFinales[indice]['subtotal'] = p.precioVenta * cantidadSumada;
+          detallesFinales[indice]['es_nuevo'] = true;
         } else {
           detallesFinales.add({
             'producto_id': id,
             'cantidad': qty,
             'precio_unitario': p.precioVenta,
             'subtotal': p.precioVenta * qty,
+            'es_nuevo': true,
           });
         }
       });

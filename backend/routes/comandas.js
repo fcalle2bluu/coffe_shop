@@ -205,13 +205,15 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
             return res.status(400).json({ error: 'No se puede editar una comanda ya cobrada.' });
         }
 
-        // Reemplazar el detalle completo (más simple y confiable que hacer un diff item por item)
+        // Reemplazar el detalle completo (más simple y confiable que hacer un diff item por item).
+        // es_nuevo lo calcula el cliente (que ya sabe qué se sumó en esta edición) y es opcional:
+        // si no llega (apps o pantallas viejas), queda en false y simplemente no se resalta nada.
         await client.query('DELETE FROM detalle_comandas WHERE comanda_id = $1', [id]);
         for (const item of detalles) {
             await client.query(`
-                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal, notas)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            `, [id, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.notas || null]);
+                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal, notas, es_nuevo)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [id, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.notas || null, item.es_nuevo === true]);
         }
 
         await client.query(`
@@ -294,9 +296,9 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
 router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
     try {
         const query = `
-            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado_cocina, c.notas, c.version, u.nombre as mesero_nombre,
+            SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado, c.estado_cocina, c.notas, c.version, c.numero_comanda, u.nombre as mesero_nombre,
                 (
-                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas))
+                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas, 'es_nuevo', dc.es_nuevo))
                     FROM detalle_comandas dc
                     JOIN productos p ON dc.producto_id = p.id
                     WHERE dc.comanda_id = c.id

@@ -227,6 +227,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
         mesero: comanda['mesero_nombre']?.toString(),
         fechaHora: fechaRaw != null ? DateTime.tryParse(fechaRaw.toString())?.toLocal() : null,
         esEdicion: esEdicion,
+        comandaYaEntregada: comanda['estado'] == 'ENTREGADA',
         notasGenerales: comanda['notas']?.toString(),
       );
       _versionesImpresas[id] = version;
@@ -295,8 +296,8 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Cocina', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white70)),
-            Text(_nombreUsuario, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('Cocina', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white70)),
+            Text(_nombreUsuario, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           ],
         ),
         actions: [
@@ -329,7 +330,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                               const Center(
                                 child: Text(
                                   'No hay comandas pendientes',
-                                  style: TextStyle(color: Colors.white38, fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Colors.white38, fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
@@ -377,11 +378,11 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                         children: [
                           const Text(
                             '⚠️ SIN CONEXIÓN',
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.3),
                           ),
                           Text(
                             'No se reciben comandas nuevas ($tiempoTexto) — revisa el internet',
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -461,6 +462,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
     final errorImpresion = _errorImpresion.contains(id);
     final itemsRaw = comanda['items'] as List<dynamic>? ?? [];
     final esEdicion = ((comanda['version'] as int?) ?? 1) > 1;
+    final comandaYaEntregada = comanda['estado'] == 'ENTREGADA';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -487,11 +489,11 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                 children: [
                   Text(
                     'MESA ${comanda['mesa']}',
-                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                    style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900),
                   ),
                   Text(
                     'Comanda #$numeroComanda',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -516,7 +518,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                         color: Colors.amber.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text('MODIFICADO', style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: const Text('MODIFICADO', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -524,7 +526,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                       color: const Color(0xFFF97316).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text('PENDIENTE', style: TextStyle(color: Color(0xFFF97316), fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: const Text('PENDIENTE', style: TextStyle(color: Color(0xFFF97316), fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -541,7 +543,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
               ),
               child: const Text(
                 '⚠️ PEDIDO MODIFICADO — revisa los productos, cambió desde la última vez',
-                style: TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.w900),
+                style: TextStyle(color: Colors.amber, fontSize: 15, fontWeight: FontWeight.w900),
               ),
             ),
           if ((comanda['mesero_nombre'] ?? '').toString().isNotEmpty)
@@ -549,14 +551,14 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Mesero: ${comanda['mesero_nombre']}',
-                style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w700),
+                style: const TextStyle(color: Colors.white70, fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               _formatearFechaHoraComanda(comanda),
-              style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w700),
+              style: const TextStyle(color: Colors.white70, fontSize: 17, fontWeight: FontWeight.w700),
             ),
           ),
           if (errorImpresion)
@@ -564,7 +566,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 '⚠️ No se pudo imprimir: ${_errorImpresionMensaje[id] ?? 'error desconocido'}',
-                style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ),
           const Divider(color: Colors.white12, height: 20),
@@ -573,6 +575,11 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
             children: itemsRaw.map((item) {
               final m = item as Map;
               final notaItem = (m['notas'] as String?) ?? '';
+              final esNuevo = m['es_nuevo'] == true;
+              // Solo tiene sentido distinguir nuevo/ya-entregado en una edición:
+              // en un pedido recién creado todo es igual de nuevo.
+              final mostrarNuevo = esEdicion && esNuevo;
+              final mostrarYaEntregado = esEdicion && !esNuevo && comandaYaEntregada;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Column(
@@ -580,14 +587,35 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                   children: [
                     Text(
                       '${m['cantidad']} x ${m['nombre']}',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
                     ),
+                    if (mostrarNuevo)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8, top: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.greenAccent.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          '🆕 NUEVO - RECIÉN AÑADIDO',
+                          style: TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    if (mostrarYaEntregado)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 3),
+                        child: Text(
+                          '✔ Ya entregado antes',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
+                        ),
+                      ),
                     if (notaItem.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(left: 8, top: 2),
                         child: Text(
                           '📝 $notaItem',
-                          style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
+                          style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
                         ),
                       ),
                   ],
@@ -606,7 +634,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
               ),
               child: Text(
                 '📝 Nota del pedido: ${comanda['notas']}',
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
+                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
               ),
             ),
           const SizedBox(height: 12),
@@ -618,9 +646,9 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Colors.redAccent),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -629,11 +657,11 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                   onPressed: procesando ? null : () => _actualizarEstado(id, 'COMPLETADA'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: procesando
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Completada', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      : const Text('Completada', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
                 ),
               ),
             ],

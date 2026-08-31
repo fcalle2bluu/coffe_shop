@@ -1416,6 +1416,17 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración numero_comanda:', numComandaErr.message);
     }
 
+    // Migración: marca por producto de si fue agregado en la última edición
+    // de la comanda (para que cocina distinga en pantalla/ticket lo recién
+    // añadido de lo que ya estaba en el pedido). Por defecto false: no afecta
+    // comandas existentes ni el flujo normal de creación.
+    try {
+        await pool.query('ALTER TABLE detalle_comandas ADD COLUMN IF NOT EXISTS es_nuevo BOOLEAN DEFAULT FALSE;');
+        console.log('✅ Columna es_nuevo en detalle_comandas verificada/creada.');
+    } catch (esNuevoErr) {
+        console.log('Info Migración es_nuevo:', esNuevoErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

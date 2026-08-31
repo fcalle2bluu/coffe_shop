@@ -44,9 +44,10 @@ class PrinterService {
     String? mesero,
     DateTime? fechaHora,
     bool esEdicion = false,
+    bool comandaYaEntregada = false,
     String? notasGenerales,
   }) async {
-    await _imprimir(numeroComanda ?? comandaId, mesa, items, mesero, fechaHora, esEdicion, notasGenerales).timeout(
+    await _imprimir(numeroComanda ?? comandaId, mesa, items, mesero, fechaHora, esEdicion, comandaYaEntregada, notasGenerales).timeout(
       const Duration(seconds: 20),
       onTimeout: () => throw Exception('La impresora no respondió (tiempo de espera agotado)'),
     );
@@ -64,13 +65,14 @@ class PrinterService {
     String? mesero,
     DateTime? fechaHora,
     bool esEdicion,
+    bool comandaYaEntregada,
     String? notasGenerales,
   ) async {
     await init();
 
     await _printer.printText(
       text: 'CAFÉ LA PAZ - COCINA',
-      style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.CENTER),
+      style: SunmiTextStyle(bold: true, fontSize: 36, align: SunmiPrintAlign.CENTER),
     );
     await _printer.lineWrap(times: 1);
 
@@ -79,11 +81,11 @@ class PrinterService {
     if (esEdicion) {
       await _printer.printText(
         text: ' *** PEDIDO MODIFICADO *** ',
-        style: SunmiTextStyle(bold: true, fontSize: 30, align: SunmiPrintAlign.CENTER, reverse: true),
+        style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.CENTER, reverse: true),
       );
       await _printer.printText(
         text: 'Revisar cambios en la mesa',
-        style: SunmiTextStyle(bold: true, fontSize: 22, align: SunmiPrintAlign.CENTER),
+        style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER),
       );
       await _printer.lineWrap(times: 1);
     }
@@ -97,16 +99,16 @@ class PrinterService {
 
     await _printer.printText(
       text: 'Comanda #${numeroComanda.toString().padLeft(3, '0')}',
-      style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER),
+      style: SunmiTextStyle(bold: true, fontSize: 30, align: SunmiPrintAlign.CENTER),
     );
     await _printer.printText(
       text: _formatearFechaHora(fechaHora ?? DateTime.now()),
-      style: SunmiTextStyle(bold: true, fontSize: 22, align: SunmiPrintAlign.CENTER),
+      style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER),
     );
     if (mesero != null && mesero.isNotEmpty) {
       await _printer.printText(
         text: 'Mesero: $mesero',
-        style: SunmiTextStyle(bold: true, fontSize: 22, align: SunmiPrintAlign.CENTER),
+        style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER),
       );
     }
     await _printer.line();
@@ -116,14 +118,28 @@ class PrinterService {
       final cant = item['cantidad']?.toString() ?? '1';
       final nombre = (item['nombre'] ?? 'Producto').toString();
       final notaItem = (item['notas'] as String?) ?? '';
+      final esNuevo = item['es_nuevo'] == true;
       await _printer.printText(
         text: '$cant x $nombre',
-        style: SunmiTextStyle(bold: true, fontSize: 32, align: SunmiPrintAlign.LEFT),
+        style: SunmiTextStyle(bold: true, fontSize: 36, align: SunmiPrintAlign.LEFT),
       );
+      // Solo tiene sentido distinguir nuevo/ya-entregado cuando esta impresión
+      // es de una edición: en un pedido recién creado todo es igual de nuevo.
+      if (esEdicion && esNuevo) {
+        await _printer.printText(
+          text: '  >> NUEVO - RECIEN AGREGADO',
+          style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.LEFT, reverse: true),
+        );
+      } else if (esEdicion && !esNuevo && comandaYaEntregada) {
+        await _printer.printText(
+          text: '  >> ya entregado antes',
+          style: SunmiTextStyle(bold: false, fontSize: 24, align: SunmiPrintAlign.LEFT),
+        );
+      }
       if (notaItem.isNotEmpty) {
         await _printer.printText(
           text: '  >> $notaItem',
-          style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.LEFT),
+          style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.LEFT),
         );
       }
     }
@@ -132,7 +148,7 @@ class PrinterService {
       await _printer.lineWrap(times: 1);
       await _printer.printText(
         text: 'NOTA: $notasGenerales',
-        style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.LEFT),
+        style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.LEFT),
       );
     }
 
@@ -142,7 +158,7 @@ class PrinterService {
     // Cierre del marco negro, como remate visual del pedido.
     await _printer.printText(
       text: '   *** FIN DE COMANDA ***   ',
-      style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.CENTER, reverse: true),
+      style: SunmiTextStyle(bold: true, fontSize: 30, align: SunmiPrintAlign.CENTER, reverse: true),
     );
 
     await _printer.lineWrap(times: 3);

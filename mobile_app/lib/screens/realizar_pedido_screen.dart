@@ -303,8 +303,11 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         'precio_unitario': it['precio_unitario'],
         'subtotal': it['subtotal'],
         'notas': it['notas'],
+        'es_nuevo': false,
       }).toList();
 
+      // Marca es_nuevo:true en lo que se suma ahora, para que cocina distinga
+      // en pantalla/ticket lo recién añadido de lo que ya estaba en el pedido.
       for (final nuevo in detallesNuevos) {
         final indiceExistente = detallesFinales.indexWhere((it) => it['producto_id'] == nuevo['producto_id']);
         if (indiceExistente != -1) {
@@ -312,11 +315,12 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
           final precio = double.tryParse(detallesFinales[indiceExistente]['precio_unitario'].toString()) ?? 0.0;
           detallesFinales[indiceExistente]['cantidad'] = cantidadSumada;
           detallesFinales[indiceExistente]['subtotal'] = precio * cantidadSumada;
+          detallesFinales[indiceExistente]['es_nuevo'] = true;
           if (nuevo['notas'] != null) {
             detallesFinales[indiceExistente]['notas'] = nuevo['notas'];
           }
         } else {
-          detallesFinales.add(nuevo);
+          detallesFinales.add({...nuevo, 'es_nuevo': true});
         }
       }
 

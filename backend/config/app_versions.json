@@ -1,16 +1,16 @@
 {
   "mesero": {
-    "versionCode": 18,
-    "versionName": "1.0.17",
+    "versionCode": 19,
+    "versionName": "1.0.18",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "'Realizar Pedido' ahora también tiene el selector explícito de Nueva comanda / Añadir a existente, junto al botón de generar comanda.",
+    "notas": "Al sumar productos a una mesa con pedido activo, ahora se marcan como recién añadidos para que cocina los distinga.",
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 6,
-    "versionName": "1.0.5",
+    "versionCode": 7,
+    "versionName": "1.0.6",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "Corregido: el inicio de sesión no identificaba correctamente esta app en la bitácora de accesos.",
+    "notas": "Letras más grandes en pantalla y en el ticket impreso. Los productos recién añadidos a un pedido ya enviado ahora se marcan como NUEVO, y los que ya estaban se marcan como ya entregados cuando corresponde.",
     "obligatoria": true
   }
 }
