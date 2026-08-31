@@ -32,11 +32,12 @@ router.get('/', async (req, res) => {
     try {
         // 1. Obtener ventas del mes/año
         const queryVentas = `
-            SELECT v.id, v.total, v.metodo_pago, v.fecha_venta,
+            SELECT v.id, v.total, v.metodo_pago, v.fecha_venta, v.comanda_id,
                    TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD-mon-YYYY HH24:MI') as fecha_diario,
                    TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_iso,
                    EXTRACT(DOW FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') as dia_semana_num,
                    u.nombre as cajero,
+                   cm.mesa as mesa_origen,
                    (
                        SELECT string_agg(p.nombre || ' (x' || dv.cantidad || ')', ', ')
                        FROM detalle_ventas dv
@@ -45,8 +46,10 @@ router.get('/', async (req, res) => {
                    ) as detalle_items
             FROM ventas v
             LEFT JOIN usuarios u ON v.usuario_id = u.id
+            LEFT JOIN comandas cm ON v.comanda_id = cm.id
             WHERE EXTRACT(MONTH FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $1
               AND EXTRACT(YEAR FROM v.fecha_venta AT TIME ZONE 'America/La_Paz') = $2
+            ORDER BY v.id ASC
         `;
         const resVentas = await pool.query(queryVentas, [mes, anio]);
 
@@ -108,19 +111,71 @@ router.get('/', async (req, res) => {
         // 5. Combinar y estructurar movimientos
         const movimientos = [];
 
-        // Mapear Ventas (Ingresos)
+        // Mapear Ventas (Ingresos). El cobro dividido de una comanda deja varias
+        // filas en 'ventas' (una por método de pago) con el mismo comanda_id: acá
+        // se agrupan en un solo asiento con una línea al Debe por cada método y un
+        // único Haber por el total, en vez de mostrarlas como ventas separadas
+        // (lo que ocultaba el detalle de productos en la fila que no lo llevaba).
+        const gruposPorComanda = new Map();
         resVentas.rows.forEach(v => {
-            const total = parseFloat(v.total) || 0;
-            const metodo = (v.metodo_pago || 'EFECTIVO').toUpperCase();
-            
-            // Determinamos cuenta del Debe
-            let cuentaDebe = 'BANCO BISA';
-            if (metodo === 'EFECTIVO') {
-                cuentaDebe = 'CAJA CHICA';
-            }
+            if (!v.comanda_id) return;
+            if (!gruposPorComanda.has(v.comanda_id)) gruposPorComanda.set(v.comanda_id, []);
+            gruposPorComanda.get(v.comanda_id).push(v);
+        });
 
+        const idsYaProcesados = new Set();
+
+        resVentas.rows.forEach(v => {
+            if (idsYaProcesados.has(v.id)) return;
+
+            const grupo = v.comanda_id ? gruposPorComanda.get(v.comanda_id) : null;
             const diaSemana = diasSemana[parseInt(v.dia_semana_num)] || 'S/D';
             const fechaDiario = formatearFechaDiario(v.fecha_diario);
+            const origenTexto = v.mesa_origen ? `Mesa ${v.mesa_origen}` : 'POS';
+
+            if (grupo && grupo.length > 1) {
+                // Cobro dividido: un solo asiento para todo el grupo.
+                grupo.forEach(g => idsYaProcesados.add(g.id));
+
+                const totalCombinado = grupo.reduce((acc, g) => acc + (parseFloat(g.total) || 0), 0);
+                // La única fila con detalle_items es la "venta principal" (donde quedaron
+                // los productos); las demás son solo el resto del pago.
+                const principal = grupo.find(g => g.detalle_items) || grupo[0];
+                const itemsDetalle = principal.detalle_items ? ` Detalle: ${principal.detalle_items}.` : '';
+
+                // Una línea al Debe por cada método usado, fusionando si se repite la
+                // misma cuenta contable (ej. dos pagos en efectivo).
+                const debePorCuenta = new Map();
+                grupo.forEach(g => {
+                    const metodo = (g.metodo_pago || 'EFECTIVO').toUpperCase();
+                    const cuenta = metodo === 'EFECTIVO' ? 'CAJA CHICA' : 'BANCO BISA';
+                    debePorCuenta.set(cuenta, (debePorCuenta.get(cuenta) || 0) + (parseFloat(g.total) || 0));
+                });
+
+                const desglose = grupo
+                    .map(g => `${(g.metodo_pago || 'EFECTIVO').toUpperCase()} Bs. ${(parseFloat(g.total) || 0).toFixed(2)}`)
+                    .join(' + ');
+
+                movimientos.push({
+                    fecha: fechaDiario,
+                    fecha_iso: v.fecha_iso,
+                    dia_semana: diaSemana,
+                    fecha_raw: new Date(v.fecha_venta),
+                    tipo: 'venta',
+                    ref_id: principal.id,
+                    glosa: `Venta #${principal.id.toString().padStart(5, '0')} (${origenTexto}, cobro dividido). Cajero: ${v.cajero || 'Desconocido'}. Pago: ${desglose}.${itemsDetalle}`,
+                    cuentas: [
+                        ...Array.from(debePorCuenta.entries()).map(([nombre, importe]) => ({ nombre, tipo: 'DEBE', importe })),
+                        { nombre: 'VENTA', tipo: 'HABER', importe: totalCombinado }
+                    ]
+                });
+                return;
+            }
+
+            // Venta normal: un solo método de pago (POS directo, o comanda pagada con "Cobrar Total").
+            const total = parseFloat(v.total) || 0;
+            const metodo = (v.metodo_pago || 'EFECTIVO').toUpperCase();
+            const cuentaDebe = metodo === 'EFECTIVO' ? 'CAJA CHICA' : 'BANCO BISA';
             const itemsDetalle = v.detalle_items ? ` Detalle: ${v.detalle_items}.` : '';
 
             movimientos.push({
@@ -130,7 +185,7 @@ router.get('/', async (req, res) => {
                 fecha_raw: new Date(v.fecha_venta),
                 tipo: 'venta',
                 ref_id: v.id,
-                glosa: `Venta #${v.id.toString().padStart(5, '0')} (POS). Cajero: ${v.cajero || 'Desconocido'}. Pago: ${metodo}.${itemsDetalle}`,
+                glosa: `Venta #${v.id.toString().padStart(5, '0')} (${origenTexto}). Cajero: ${v.cajero || 'Desconocido'}. Pago: ${metodo}.${itemsDetalle}`,
                 cuentas: [
                     { nombre: cuentaDebe, tipo: 'DEBE', importe: total },
                     { nombre: 'VENTA', tipo: 'HABER', importe: total }
@@ -391,9 +446,25 @@ router.patch('/gasto-caja/:id/categoria', async (req, res) => {
 router.delete('/venta/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        // Eliminar detalles primero (FK constraint)
-        await pool.query('DELETE FROM detalle_ventas WHERE venta_id = $1', [id]);
-        await pool.query('DELETE FROM ventas WHERE id = $1', [id]);
+        const ventaRes = await pool.query('SELECT comanda_id FROM ventas WHERE id = $1', [id]);
+        if (ventaRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Venta no encontrada' });
+        }
+        const comandaId = ventaRes.rows[0].comanda_id;
+
+        if (comandaId) {
+            // Cobro dividido: el asiento representa varias filas en 'ventas' (una por
+            // método de pago) ligadas a la misma comanda. Se borran todas juntas para
+            // no dejar a medias un pago que se repartió en varios métodos.
+            const idsRes = await pool.query('SELECT id FROM ventas WHERE comanda_id = $1', [comandaId]);
+            const ids = idsRes.rows.map(r => r.id);
+            await pool.query('DELETE FROM detalle_ventas WHERE venta_id = ANY($1)', [ids]);
+            await pool.query('DELETE FROM ventas WHERE id = ANY($1)', [ids]);
+        } else {
+            // Eliminar detalles primero (FK constraint)
+            await pool.query('DELETE FROM detalle_ventas WHERE venta_id = $1', [id]);
+            await pool.query('DELETE FROM ventas WHERE id = $1', [id]);
+        }
         res.json({ success: true, message: 'Venta eliminada correctamente' });
     } catch (error) {
         console.error('Error al eliminar venta:', error);
