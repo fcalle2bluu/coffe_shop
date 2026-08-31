@@ -306,22 +306,12 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
         'es_nuevo': false,
       }).toList();
 
-      // Marca es_nuevo:true en lo que se suma ahora, para que cocina distinga
-      // en pantalla/ticket lo recién añadido de lo que ya estaba en el pedido.
+      // Se agrega siempre como línea nueva y separada, aunque el producto ya
+      // estuviera en el pedido: así cocina ve, por ejemplo, "1 x Vino" ya
+      // entregado y "1 x Vino" nuevo en vez de fusionarlos en "2 x Vino" nuevo
+      // (que ocultaría que solo se agregó uno).
       for (final nuevo in detallesNuevos) {
-        final indiceExistente = detallesFinales.indexWhere((it) => it['producto_id'] == nuevo['producto_id']);
-        if (indiceExistente != -1) {
-          final cantidadSumada = (detallesFinales[indiceExistente]['cantidad'] as num) + (nuevo['cantidad'] as num);
-          final precio = double.tryParse(detallesFinales[indiceExistente]['precio_unitario'].toString()) ?? 0.0;
-          detallesFinales[indiceExistente]['cantidad'] = cantidadSumada;
-          detallesFinales[indiceExistente]['subtotal'] = precio * cantidadSumada;
-          detallesFinales[indiceExistente]['es_nuevo'] = true;
-          if (nuevo['notas'] != null) {
-            detallesFinales[indiceExistente]['notas'] = nuevo['notas'];
-          }
-        } else {
-          detallesFinales.add({...nuevo, 'es_nuevo': true});
-        }
+        detallesFinales.add({...nuevo, 'es_nuevo': true});
       }
 
       final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));

@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 21,
-    "versionName": "1.0.20",
+    "versionCode": 22,
+    "versionName": "1.0.21",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Nuevo botón 'Agregar producto' en el detalle de Venta por Mesa para sumar más productos a un pedido ya abierto sin salir de esa pantalla.",
+    "notas": "Corrección: al sumar productos a un pedido activo, si ya existía el mismo producto, ahora se agrega como línea separada en vez de fusionar la cantidad total como si todo fuera nuevo (ej. 1 ya entregado + 1 nuevo, no 2 nuevos).",
     "obligatoria": true
   },
   "comandas": {

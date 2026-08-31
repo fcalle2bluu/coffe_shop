@@ -296,25 +296,19 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
         'es_nuevo': false,
       }).toList();
 
-      // Marca es_nuevo:true en lo que se suma ahora, para que cocina distinga
-      // en pantalla/ticket lo recién añadido de lo que ya estaba en el pedido.
+      // Se agrega siempre como línea nueva y separada, aunque el producto ya
+      // estuviera en el pedido: así cocina ve, por ejemplo, "1 x Vino" ya
+      // entregado y "1 x Vino" nuevo en vez de fusionarlos en "2 x Vino" nuevo
+      // (que ocultaría que solo se agregó uno).
       _cart.forEach((id, qty) {
         final p = _allProducts.firstWhere((prod) => prod.id == id);
-        final indice = detallesFinales.indexWhere((it) => it['producto_id'] == id);
-        if (indice != -1) {
-          final cantidadSumada = (detallesFinales[indice]['cantidad'] as num) + qty;
-          detallesFinales[indice]['cantidad'] = cantidadSumada;
-          detallesFinales[indice]['subtotal'] = p.precioVenta * cantidadSumada;
-          detallesFinales[indice]['es_nuevo'] = true;
-        } else {
-          detallesFinales.add({
-            'producto_id': id,
-            'cantidad': qty,
-            'precio_unitario': p.precioVenta,
-            'subtotal': p.precioVenta * qty,
-            'es_nuevo': true,
-          });
-        }
+        detallesFinales.add({
+          'producto_id': id,
+          'cantidad': qty,
+          'precio_unitario': p.precioVenta,
+          'subtotal': p.precioVenta * qty,
+          'es_nuevo': true,
+        });
       });
 
       final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));
