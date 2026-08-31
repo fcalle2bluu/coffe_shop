@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 19,
-    "versionName": "1.0.18",
+    "versionCode": 20,
+    "versionName": "1.0.19",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Al sumar productos a una mesa con pedido activo, ahora se marcan como recién añadidos para que cocina los distinga.",
+    "notas": "Los usuarios que no son Admin ya no ven su historial de marcaciones en Asistencia (solo pueden escanear el QR de entrada/salida).",
     "obligatoria": true
   },
   "comandas": {
