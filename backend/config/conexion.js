@@ -1427,6 +1427,17 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración es_nuevo:', esNuevoErr.message);
     }
 
+    // Migración: vínculo opcional de una venta hacia la comanda que la originó.
+    // Necesario para el cobro dividido (varias filas en 'ventas', una por cada
+    // método de pago usado) para poder reconstruir el total y el desglose real
+    // al imprimir el comprobante. NULL para ventas del POS directo (sin mesa).
+    try {
+        await pool.query('ALTER TABLE ventas ADD COLUMN IF NOT EXISTS comanda_id INT REFERENCES comandas(id);');
+        console.log('✅ Columna comanda_id en ventas verificada/creada.');
+    } catch (comandaIdVentaErr) {
+        console.log('Info Migración comanda_id en ventas:', comandaIdVentaErr.message);
+    }
+
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');
   }
 });

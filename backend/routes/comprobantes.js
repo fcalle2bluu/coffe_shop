@@ -25,11 +25,28 @@ router.get('/:id', async (req, res) => {
     try {
         // Cabecera de la venta
         const cabecera = await pool.query(`
-            SELECT id, total, metodo_pago, estado, TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
+            SELECT id, total, metodo_pago, estado, comanda_id, TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
             FROM ventas WHERE id = $1
         `, [id]);
 
         if (cabecera.rows.length === 0) return res.status(404).json({ error: 'Ticket no encontrado' });
+
+        let ticket = cabecera.rows[0];
+
+        // Si esta venta vino de un cobro dividido (varias filas en 'ventas' con el
+        // mismo comanda_id, una por cada método de pago), se reconstruye el total
+        // real y el desglose de métodos, en vez de mostrar solo la primera porción.
+        if (ticket.comanda_id) {
+            const hermanas = await pool.query(`
+                SELECT metodo_pago, total FROM ventas WHERE comanda_id = $1 ORDER BY id ASC
+            `, [ticket.comanda_id]);
+
+            if (hermanas.rows.length > 1) {
+                const totalReal = hermanas.rows.reduce((acc, v) => acc + parseFloat(v.total), 0);
+                const desglose = hermanas.rows.map(v => `${v.metodo_pago} Bs. ${parseFloat(v.total).toFixed(2)}`).join(' + ');
+                ticket = { ...ticket, total: totalReal, metodo_pago: `MIXTO: ${desglose}` };
+            }
+        }
 
         // Detalles de los productos vendidos en ese ticket
         const detalles = await pool.query(`
@@ -40,7 +57,7 @@ router.get('/:id', async (req, res) => {
         `, [id]);
 
         res.json({
-            ticket: cabecera.rows[0],
+            ticket,
             items: detalles.rows
         });
     } catch (error) {

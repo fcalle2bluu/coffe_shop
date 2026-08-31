@@ -491,9 +491,10 @@ router.put('/:id/estado', async (req, res) => {
 // 6. Procesar Pago y Finalizar Venta (Comanda -> Venta)
 router.post('/:id/pagar', async (req, res) => {
     const { id } = req.params;
-    const { metodo_pago, usuario_id } = req.body;
+    const { metodo_pago, usuario_id, pagos } = req.body;
+    const pagosBody = Array.isArray(pagos) ? pagos : null;
 
-    if (!metodo_pago) {
+    if (!pagosBody && !metodo_pago) {
         return res.status(400).json({ error: 'El método de pago es requerido.' });
     }
 
@@ -514,6 +515,31 @@ router.post('/:id/pagar', async (req, res) => {
             return res.status(400).json({ error: 'Esta comanda ya está cerrada o cancelada.' });
         }
 
+        const totalComanda = parseFloat(comanda.total);
+
+        // Cobro dividido: una lista de {metodo_pago, monto} que debe sumar el total.
+        // Cobro normal (compatibilidad hacia atrás): un solo pago por el total completo.
+        let listaPagos;
+        if (pagosBody && pagosBody.length > 0) {
+            listaPagos = pagosBody.map(p => ({
+                metodo_pago: (p.metodo_pago || '').toString(),
+                monto: parseFloat(p.monto)
+            }));
+            if (listaPagos.some(p => !p.metodo_pago || !(p.monto > 0))) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'Cada pago debe tener un método y un monto mayor a cero.' });
+            }
+            const sumaPagos = listaPagos.reduce((acc, p) => acc + p.monto, 0);
+            if (Math.abs(sumaPagos - totalComanda) > 0.05) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    error: `La suma de los pagos (Bs. ${sumaPagos.toFixed(2)}) no coincide con el total de la comanda (Bs. ${totalComanda.toFixed(2)}).`
+                });
+            }
+        } else {
+            listaPagos = [{ metodo_pago, monto: totalComanda }];
+        }
+
         // Obtener caja abierta para el cobro
         const cajaRes = await client.query(`
             SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1
@@ -526,62 +552,74 @@ router.post('/:id/pagar', async (req, res) => {
 
         // Obtener los detalles de la comanda
         const detallesRes = await client.query(
-            'SELECT * FROM detalle_comandas WHERE comanda_id = $1', 
+            'SELECT * FROM detalle_comandas WHERE comanda_id = $1',
             [id]
         );
         const detalles = detallesRes.rows;
 
-        // 2. Registrar la cabecera en la tabla 'ventas' (Reutiliza el esquema del POS original)
-        const insertVenta = `
-            INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago, fecha_venta) 
-            VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
-            RETURNING id
-        `;
-        const resultVenta = await client.query(insertVenta, [
-            usuario_id || comanda.usuario_id, 
-            cajaId, 
-            comanda.total, 
-            metodo_pago
-        ]);
-        const ventaId = resultVenta.rows[0].id;
+        // 2. Registrar una fila en 'ventas' por cada método de pago usado (una sola
+        // en el cobro normal). Todas quedan vinculadas a la comanda (comanda_id) para
+        // poder reconstruir el total y el desglose real al imprimir el comprobante.
+        // Los productos y el descuento de inventario solo se registran una vez,
+        // contra la primera venta, para no duplicarlos entre los distintos pagos.
+        let ventaPrincipalId = null;
+        for (let i = 0; i < listaPagos.length; i++) {
+            const pago = listaPagos[i];
+            const insertVenta = `
+                INSERT INTO ventas (usuario_id, caja_id, total, metodo_pago, fecha_venta, comanda_id)
+                VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)
+                RETURNING id
+            `;
+            const resultVenta = await client.query(insertVenta, [
+                usuario_id || comanda.usuario_id,
+                cajaId,
+                pago.monto,
+                pago.metodo_pago,
+                id
+            ]);
+            const ventaId = resultVenta.rows[0].id;
 
-        // 3. Registrar los productos en 'detalle_ventas'
-        for (let item of detalles) {
-            await client.query(`
-                INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal)
-                VALUES ($1, $2, $3, $4, $5)
-            `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
+            if (i !== 0) continue;
+            ventaPrincipalId = ventaId;
 
-            // Backflush: Descontar de Almacén Pastelería según la receta
-            const recetaRes = await client.query('SELECT id FROM recetas WHERE producto_id = $1 LIMIT 1', [item.producto_id]);
-            if (recetaRes.rows.length > 0) {
-                const recetaId = recetaRes.rows[0].id;
-                const ingredientesRes = await client.query(
-                    'SELECT insumo_id, cantidad FROM ingrediente_recetas WHERE receta_id = $1 AND insumo_id IS NOT NULL',
-                    [recetaId]
-                );
+            // 3. Registrar los productos en 'detalle_ventas' (solo en la venta principal)
+            for (let item of detalles) {
+                await client.query(`
+                    INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
 
-                const almacenPasteleriaRes = await client.query(
-                    "SELECT id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1"
-                );
-                const almacenPasteleriaId = almacenPasteleriaRes.rows[0]?.id;
+                // Backflush: Descontar de Almacén Pastelería según la receta
+                const recetaRes = await client.query('SELECT id FROM recetas WHERE producto_id = $1 LIMIT 1', [item.producto_id]);
+                if (recetaRes.rows.length > 0) {
+                    const recetaId = recetaRes.rows[0].id;
+                    const ingredientesRes = await client.query(
+                        'SELECT insumo_id, cantidad FROM ingrediente_recetas WHERE receta_id = $1 AND insumo_id IS NOT NULL',
+                        [recetaId]
+                    );
 
-                if (almacenPasteleriaId) {
-                    for (let ing of ingredientesRes.rows) {
-                        const cantADescontar = parseFloat(item.cantidad) * parseFloat(ing.cantidad);
+                    const almacenPasteleriaRes = await client.query(
+                        "SELECT id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1"
+                    );
+                    const almacenPasteleriaId = almacenPasteleriaRes.rows[0]?.id;
 
-                        // Restar del stock de Pastelería (hasta llegar a cero o al remanente, usando GREATEST(0, stock_actual - cant))
-                        await client.query(`
-                            UPDATE inventario_almacen 
-                            SET stock_actual = GREATEST(0, stock_actual - $1)
-                            WHERE almacen_id = $2 AND insumo_id = $3
-                        `, [cantADescontar, almacenPasteleriaId, ing.insumo_id]);
+                    if (almacenPasteleriaId) {
+                        for (let ing of ingredientesRes.rows) {
+                            const cantADescontar = parseFloat(item.cantidad) * parseFloat(ing.cantidad);
 
-                        // Registrar el movimiento en el historial
-                        await client.query(`
-                            INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
-                            VALUES ($1, 'VENTA', $2, $3, NOW())
-                        `, [ing.insumo_id, cantADescontar, ventaId]);
+                            // Restar del stock de Pastelería (hasta llegar a cero o al remanente, usando GREATEST(0, stock_actual - cant))
+                            await client.query(`
+                                UPDATE inventario_almacen
+                                SET stock_actual = GREATEST(0, stock_actual - $1)
+                                WHERE almacen_id = $2 AND insumo_id = $3
+                            `, [cantADescontar, almacenPasteleriaId, ing.insumo_id]);
+
+                            // Registrar el movimiento en el historial
+                            await client.query(`
+                                INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+                                VALUES ($1, 'VENTA', $2, $3, NOW())
+                            `, [ing.insumo_id, cantADescontar, ventaId]);
+                        }
                     }
                 }
             }
@@ -589,13 +627,13 @@ router.post('/:id/pagar', async (req, res) => {
 
         // 4. Actualizar estado de comanda a PAGADA
         await client.query(`
-            UPDATE comandas 
-            SET estado = 'PAGADA', caja_id = $1, fecha_actualizacion = CURRENT_TIMESTAMP 
+            UPDATE comandas
+            SET estado = 'PAGADA', caja_id = $1, fecha_actualizacion = CURRENT_TIMESTAMP
             WHERE id = $2
         `, [cajaId, id]);
 
         await client.query('COMMIT');
-        res.status(201).json({ success: true, venta_id: ventaId });
+        res.status(201).json({ success: true, venta_id: ventaPrincipalId });
 
     } catch (error) {
         await client.query('ROLLBACK');

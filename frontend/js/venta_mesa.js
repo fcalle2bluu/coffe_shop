@@ -257,12 +257,18 @@ function renderizarDetalleComandaActiva() {
         `;
     }
 
-    // D. Botón "Cobrar Comanda" (Para cajero o admin)
+    // D. Botones de cobro (Para cajero o admin): total en un solo método, o dividido
+    // entre varios métodos de pago (ej. una parte en efectivo y otra con QR).
     if (usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN') {
         accionesCont.innerHTML += `
-            <button onclick="abrirModalCobroComanda()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-sm md:text-base mt-1">
-                <i class="fa-solid fa-cash-register"></i> COBRAR COMANDA
-            </button>
+            <div class="flex gap-2 mt-1">
+                <button onclick="abrirModalCobroComanda()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
+                    <i class="fa-solid fa-cash-register"></i> Cobrar Total
+                </button>
+                <button onclick="abrirModalCobroDividido()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
+                    <i class="fa-solid fa-layer-group"></i> Cobrar Dividido
+                </button>
+            </div>
         `;
     }
 
@@ -690,6 +696,110 @@ function abrirModalCobroComanda() {
 
 function cerrarModalCobro() {
     document.getElementById('modalCobroComanda').classList.add('hidden');
+}
+
+// 15.b Cobro dividido: el mismo total, repartido entre 2 o más métodos de pago
+// (ej. una parte en efectivo y otra con QR), cada uno queda como una venta
+// separada en el backend para que el cuadre de caja por método sea exacto.
+let montoTotalCobroDividido = 0;
+
+const OPCIONES_METODO_PAGO_HTML = `
+    <option value="EFECTIVO">💵 Efectivo</option>
+    <option value="QR">📱 QR Transferencia</option>
+    <option value="TARJETA">💳 Tarjeta POS</option>
+    <option value="BILLETERA MOVIL">🇧🇴 Billetera Móvil</option>
+`;
+
+function abrirModalCobroDividido() {
+    if (!comandaActivaMesa) return;
+    montoTotalCobroDividido = parseFloat(comandaActivaMesa.total);
+    document.getElementById('lbl-monto-cobro-dividido').innerText = `Bs. ${montoTotalCobroDividido.toFixed(2)}`;
+    document.getElementById('lista-pagos-divididos').innerHTML = '';
+    // Arranca con 2 filas: "dividido" implica al menos dos métodos de pago.
+    agregarFilaPagoDividido();
+    agregarFilaPagoDividido();
+    actualizarResumenCobroDividido();
+    document.getElementById('modalCobroDividido').classList.remove('hidden');
+}
+
+function cerrarModalCobroDividido() {
+    document.getElementById('modalCobroDividido').classList.add('hidden');
+}
+
+function agregarFilaPagoDividido() {
+    const cont = document.getElementById('lista-pagos-divididos');
+    const fila = document.createElement('div');
+    fila.className = 'flex gap-2 items-center pago-dividido-fila';
+    fila.innerHTML = `
+        <select class="pago-dividido-metodo flex-1 border border-slate-200 rounded-xl p-2.5 bg-slate-50 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+            ${OPCIONES_METODO_PAGO_HTML}
+        </select>
+        <input type="number" step="0.01" min="0" class="pago-dividido-monto w-28 border border-slate-200 rounded-xl p-2.5 text-sm font-bold text-right focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="0.00">
+        <button type="button" class="pago-dividido-quitar text-gray-300 hover:text-rose-500 w-8 h-8 flex items-center justify-center transition-colors shrink-0">
+            <i class="fa-solid fa-trash-can"></i>
+        </button>
+    `;
+    fila.querySelector('.pago-dividido-monto').addEventListener('input', actualizarResumenCobroDividido);
+    fila.querySelector('.pago-dividido-quitar').addEventListener('click', () => {
+        // Siempre debe quedar al menos una fila para poder seguir cobrando.
+        if (cont.querySelectorAll('.pago-dividido-fila').length > 1) {
+            fila.remove();
+            actualizarResumenCobroDividido();
+        }
+    });
+    cont.appendChild(fila);
+}
+
+function actualizarResumenCobroDividido() {
+    const filas = document.querySelectorAll('#lista-pagos-divididos .pago-dividido-fila');
+    let suma = 0;
+    filas.forEach(f => {
+        const val = parseFloat(f.querySelector('.pago-dividido-monto').value);
+        if (!isNaN(val)) suma += val;
+    });
+
+    document.getElementById('lbl-suma-dividido').innerText = `Bs. ${suma.toFixed(2)}`;
+
+    const resumen = document.getElementById('resumen-suma-dividido');
+    const coincide = Math.abs(suma - montoTotalCobroDividido) < 0.01 && suma > 0;
+    resumen.classList.toggle('bg-emerald-50', coincide);
+    resumen.classList.toggle('text-emerald-700', coincide);
+    resumen.classList.toggle('bg-rose-50', !coincide);
+    resumen.classList.toggle('text-rose-600', !coincide);
+
+    document.getElementById('btn-confirmar-cobro-dividido').disabled = !coincide;
+}
+
+async function confirmarCobroDividido() {
+    if (!comandaActivaMesa) return;
+    const filas = document.querySelectorAll('#lista-pagos-divididos .pago-dividido-fila');
+    const pagos = Array.from(filas)
+        .map(f => ({
+            metodo_pago: f.querySelector('.pago-dividido-metodo').value,
+            monto: parseFloat(f.querySelector('.pago-dividido-monto').value) || 0
+        }))
+        .filter(p => p.monto > 0);
+
+    try {
+        const res = await fetch(`/api/comandas/${comandaActivaMesa.id}/pagar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pagos, usuario_id: usuarioId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        ultimaVentaRegistradaId = data.venta_id;
+
+        cerrarModalCobroDividido();
+        document.getElementById('lbl-ticket-exito').innerText = `Ticket # ${ultimaVentaRegistradaId.toString().padStart(4, '0')}`;
+        document.getElementById('modalExitoCobro').classList.remove('hidden');
+
+        cargarMesas();
+        seleccionarMesa(mesaSeleccionada);
+    } catch (e) {
+        alert('❌ Error al procesar cobro dividido: ' + e.message);
+    }
 }
 
 let ultimaVentaRegistradaId = null;
