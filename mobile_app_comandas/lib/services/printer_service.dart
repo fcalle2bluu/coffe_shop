@@ -53,6 +53,22 @@ class PrinterService {
     );
   }
 
+  static Future<void> _imprimirItem(Map<String, dynamic> item) async {
+    final cant = item['cantidad']?.toString() ?? '1';
+    final nombre = (item['nombre'] ?? 'Producto').toString();
+    final notaItem = (item['notas'] as String?) ?? '';
+    await _printer.printText(
+      text: '$cant x $nombre',
+      style: SunmiTextStyle(bold: true, fontSize: 36, align: SunmiPrintAlign.LEFT),
+    );
+    if (notaItem.isNotEmpty) {
+      await _printer.printText(
+        text: '  >> $notaItem',
+        style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.LEFT),
+      );
+    }
+  }
+
   static String _formatearFechaHora(DateTime fecha) {
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year} ${dos(fecha.hour)}:${dos(fecha.minute)}';
@@ -114,33 +130,45 @@ class PrinterService {
     await _printer.line();
     await _printer.lineWrap(times: 1);
 
-    for (final item in items) {
-      final cant = item['cantidad']?.toString() ?? '1';
-      final nombre = (item['nombre'] ?? 'Producto').toString();
-      final notaItem = (item['notas'] as String?) ?? '';
-      final esNuevo = item['es_nuevo'] == true;
-      await _printer.printText(
-        text: '$cant x $nombre',
-        style: SunmiTextStyle(bold: true, fontSize: 36, align: SunmiPrintAlign.LEFT),
-      );
-      // Solo tiene sentido distinguir nuevo/ya-entregado cuando esta impresión
-      // es de una edición: en un pedido recién creado todo es igual de nuevo.
-      if (esEdicion && esNuevo) {
+    // Solo tiene sentido dividir nuevo/ya-enviado cuando esta impresión es de
+    // una edición: en un pedido recién creado todo es igual de nuevo.
+    if (esEdicion) {
+      final nuevos = items.where((it) => it['es_nuevo'] == true).toList();
+      final viejos = items.where((it) => it['es_nuevo'] != true).toList();
+
+      if (nuevos.isNotEmpty) {
         await _printer.printText(
-          text: '  >> NUEVO - RECIEN AGREGADO',
-          style: SunmiTextStyle(bold: true, fontSize: 26, align: SunmiPrintAlign.LEFT, reverse: true),
+          text: ' >>> NUEVO EN ESTE PEDIDO <<< ',
+          style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.CENTER, reverse: true),
         );
-      } else if (esEdicion && !esNuevo && comandaYaEntregada) {
-        await _printer.printText(
-          text: '  >> ya entregado antes',
-          style: SunmiTextStyle(bold: false, fontSize: 24, align: SunmiPrintAlign.LEFT),
-        );
+        await _printer.lineWrap(times: 1);
+        for (final item in nuevos) {
+          await _imprimirItem(item);
+        }
       }
-      if (notaItem.isNotEmpty) {
+
+      if (nuevos.isNotEmpty && viejos.isNotEmpty) {
+        await _printer.lineWrap(times: 1);
         await _printer.printText(
-          text: '  >> $notaItem',
-          style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.LEFT),
+          text: '- - - - - - - - - - - - - - - -',
+          style: SunmiTextStyle(bold: true, fontSize: 22, align: SunmiPrintAlign.CENTER),
         );
+        await _printer.lineWrap(times: 1);
+      }
+
+      if (viejos.isNotEmpty) {
+        await _printer.printText(
+          text: comandaYaEntregada ? 'YA ENTREGADO ANTES' : 'YA ENVIADO A COCINA',
+          style: SunmiTextStyle(bold: true, fontSize: 24, align: SunmiPrintAlign.CENTER),
+        );
+        await _printer.lineWrap(times: 1);
+        for (final item in viejos) {
+          await _imprimirItem(item);
+        }
+      }
+    } else {
+      for (final item in items) {
+        await _imprimirItem(item);
       }
     }
 

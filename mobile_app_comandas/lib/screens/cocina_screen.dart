@@ -454,6 +454,86 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
     return '${dos(fecha.day)}/${dos(fecha.month)} ${dos(fecha.hour)}:${dos(fecha.minute)}';
   }
 
+  /// Divide los productos de la comanda en dos bloques bien separados: lo
+  /// agregado en la última edición arriba, y lo que ya estaba antes abajo,
+  /// con una línea divisoria entre ambos. Fuera de una edición (comanda
+  /// recién creada) no hay nada que dividir: todo es igual de nuevo.
+  Widget _buildBloquesItems(List<dynamic> itemsRaw, {required bool esEdicion, required bool comandaYaEntregada}) {
+    final items = itemsRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final itemsNuevos = esEdicion ? items.where((m) => m['es_nuevo'] == true).toList() : <Map<String, dynamic>>[];
+    final itemsViejos = esEdicion ? items.where((m) => m['es_nuevo'] != true).toList() : items;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (itemsNuevos.isNotEmpty) ...[
+          _buildEncabezadoBloque('🆕 NUEVO EN ESTE PEDIDO', Colors.greenAccent, Colors.greenAccent.withValues(alpha: 0.16)),
+          ...itemsNuevos.map(_buildItemTile),
+        ],
+        if (itemsNuevos.isNotEmpty && itemsViejos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(child: Container(height: 2, color: Colors.white24)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('· · ·', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(child: Container(height: 2, color: Colors.white24)),
+              ],
+            ),
+          ),
+        if (itemsViejos.isNotEmpty) ...[
+          if (esEdicion)
+            _buildEncabezadoBloque(
+              comandaYaEntregada ? '✔ YA ENTREGADO ANTES' : 'YA ENVIADO A COCINA',
+              Colors.white70,
+              Colors.white.withValues(alpha: 0.06),
+            ),
+          ...itemsViejos.map(_buildItemTile),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEncabezadoBloque(String texto, Color colorTexto, Color colorFondo) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: double.infinity,
+      decoration: BoxDecoration(color: colorFondo, borderRadius: BorderRadius.circular(8)),
+      child: Text(
+        texto,
+        style: TextStyle(color: colorTexto, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+      ),
+    );
+  }
+
+  Widget _buildItemTile(Map<String, dynamic> m) {
+    final notaItem = (m['notas'] as String?) ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${m['cantidad']} x ${m['nombre']}',
+            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+          ),
+          if (notaItem.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 2),
+              child: Text(
+                '📝 $notaItem',
+                style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildComandaCard(Map<String, dynamic> comanda) {
     final id = comanda['id'] as int;
     final numeroComanda = (comanda['numero_comanda'] as int?) ?? id;
@@ -570,59 +650,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
               ),
             ),
           const Divider(color: Colors.white12, height: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: itemsRaw.map((item) {
-              final m = item as Map;
-              final notaItem = (m['notas'] as String?) ?? '';
-              final esNuevo = m['es_nuevo'] == true;
-              // Solo tiene sentido distinguir nuevo/ya-entregado en una edición:
-              // en un pedido recién creado todo es igual de nuevo.
-              final mostrarNuevo = esEdicion && esNuevo;
-              final mostrarYaEntregado = esEdicion && !esNuevo && comandaYaEntregada;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${m['cantidad']} x ${m['nombre']}',
-                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
-                    ),
-                    if (mostrarNuevo)
-                      Container(
-                        margin: const EdgeInsets.only(left: 8, top: 3),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.greenAccent.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          '🆕 NUEVO - RECIÉN AÑADIDO',
-                          style: TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    if (mostrarYaEntregado)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, top: 3),
-                        child: Text(
-                          '✔ Ya entregado antes',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
-                        ),
-                      ),
-                    if (notaItem.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, top: 2),
-                        child: Text(
-                          '📝 $notaItem',
-                          style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+          _buildBloquesItems(itemsRaw, esEdicion: esEdicion, comandaYaEntregada: comandaYaEntregada),
           if ((comanda['notas'] as String?)?.isNotEmpty == true)
             Container(
               margin: const EdgeInsets.only(top: 4, bottom: 4),
