@@ -446,16 +446,16 @@ async function cargarHistorialVentasAdmin() {
                             <table class="w-full text-left text-xs">
                                 <thead>
                                     <tr class="bg-gray-50 text-gray-500 uppercase tracking-wider">
-                                        <th class="px-4 py-2 border-r border-gray-200 w-[100px]">ID Venta</th>
-                                        <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
-                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]">Tipo</th>
-                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]" title="Tiempo que la comanda estuvo pendiente en cocina"><i class="fa-solid fa-circle text-rose-500 mr-1 text-[8px]"></i>Espera Cocina</th>
-                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]" title="Tiempo desde que cocina entregó hasta que se cobró"><i class="fa-solid fa-circle text-amber-500 mr-1 text-[8px]"></i>Espera Cobro</th>
-                                        <th class="px-4 py-2 border-r border-gray-200">Mesero</th>
-                                        <th class="px-4 py-2 border-r border-gray-200">Cajero</th>
-                                        <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
-                                        <th class="px-4 py-2 text-right">Monto</th>
-                                        <th class="px-4 py-2 text-center w-[220px] no-print">Acciones</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[75px]">ID Venta</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[125px]">Fecha</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[75px]">Tipo</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[68px]" title="Tiempo que la comanda estuvo pendiente en cocina"><i class="fa-solid fa-circle text-rose-500 mr-1 text-[8px]"></i>Cocina</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[68px]" title="Tiempo desde que cocina entregó hasta que se cobró"><i class="fa-solid fa-circle text-amber-500 mr-1 text-[8px]"></i>Cobro</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[95px]">Mesero</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[95px]">Cajero</th>
+                                        <th class="px-2 py-2 border-r border-gray-200 w-[95px]">Método Pago</th>
+                                        <th class="px-2 py-2 text-right w-[75px]">Monto</th>
+                                        <th class="px-2 py-2 text-center w-[190px] no-print">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -473,54 +473,54 @@ async function cargarHistorialVentasAdmin() {
                     let tdMetodoPago = '';
                     if (esAdmin) {
                         tdMetodoPago = `
-                            <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">
-                                <div class="flex items-center gap-1.5">
+                            <td class="px-2 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px] w-[105px]">
+                                <div class="flex items-center gap-1 w-full">
                                     ${iconMetodo}
-                                    <select onchange="actualizarMetodoPago(${venta.venta_id}, this.value)" class="bg-transparent text-stone-700 font-black border-none outline-none cursor-pointer focus:ring-0 text-[10px] uppercase py-0.5">
+                                    <select onchange="actualizarMetodoPago(${venta.venta_id}, this.value)" class="bg-transparent text-stone-700 font-black border-none outline-none cursor-pointer focus:ring-0 text-[9px] uppercase py-0.5 w-full min-w-0">
                                         <option value="EFECTIVO" ${venta.metodo_pago === 'EFECTIVO' ? 'selected' : ''}>EFECTIVO</option>
                                         <option value="QR" ${['QR', 'QR DIGITAL'].includes(venta.metodo_pago) ? 'selected' : ''}>QR</option>
                                         <option value="TARJETA" ${['TARJETA', 'TARJETA DE DÉBITO/CRÉDITO'].includes(venta.metodo_pago) ? 'selected' : ''}>TARJETA</option>
-                                        <option value="BILLETERA MOVIL" ${['BILLETERA MOVIL', 'BILLETERA_MOVIL', 'CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(venta.metodo_pago) ? 'selected' : ''}>BILLETERA MÓVIL</option>
+                                        <option value="BILLETERA MOVIL" ${['BILLETERA MOVIL', 'BILLETERA_MOVIL', 'CONSUME LO NUESTRO', 'CONSUME_LO_NUESTRO'].includes(venta.metodo_pago) ? 'selected' : ''}>BILLETERA</option>
                                     </select>
                                 </div>
                             </td>
                         `;
                     } else {
                         tdMetodoPago = `
-                            <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${iconMetodo} ${venta.metodo_pago}</td>
+                            <td class="px-2 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px] w-[105px]">${iconMetodo} ${venta.metodo_pago}</td>
                         `;
                     }
 
                     const tdTipo = venta.comanda_id
-                        ? `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>${venta.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${venta.mesa || ''}`}</span></td>`
-                        : `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600"><i class="fa-solid fa-cash-register mr-1"></i>POS</span></td>`;
-                    const tdMesero = `<td class="px-4 py-1.5 text-stone-600 border-r border-gray-100 font-bold text-[10px]">${venta.mesero || '-'}</td>`;
-                    const tdCajero = `<td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${venta.cajero || '-'}</td>`;
+                        ? `<td class="px-2 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>${venta.mesa === 'Para Llevar' ? 'Llevar' : `Mesa ${venta.mesa || ''}`}</span></td>`
+                        : `<td class="px-2 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-600"><i class="fa-solid fa-cash-register mr-1"></i>POS</span></td>`;
+                    const tdMesero = `<td class="px-2 py-1.5 text-stone-600 border-r border-gray-100 font-bold text-[10px]">${venta.mesero || '-'}</td>`;
+                    const tdCajero = `<td class="px-2 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${venta.cajero || '-'}</td>`;
 
                     const tdEsperaCocina = (venta.fecha_pendiente_desde && venta.fecha_completada_desde)
-                        ? `<td class="px-4 py-1.5 border-r border-gray-100 font-mono font-black text-rose-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_completada_desde) - new Date(venta.fecha_pendiente_desde))}</td>`
-                        : `<td class="px-4 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
+                        ? `<td class="px-2 py-1.5 border-r border-gray-100 font-mono font-black text-rose-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_completada_desde) - new Date(venta.fecha_pendiente_desde))}</td>`
+                        : `<td class="px-2 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
                     const tdEsperaCobro = (venta.fecha_completada_desde && venta.fecha_venta_raw)
-                        ? `<td class="px-4 py-1.5 border-r border-gray-100 font-mono font-black text-amber-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_venta_raw) - new Date(venta.fecha_completada_desde))}</td>`
-                        : `<td class="px-4 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
+                        ? `<td class="px-2 py-1.5 border-r border-gray-100 font-mono font-black text-amber-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_venta_raw) - new Date(venta.fecha_completada_desde))}</td>`
+                        : `<td class="px-2 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
 
                     htmlMes += `
                                     <tr class="border-b border-gray-100 hover:bg-orange-50 transition-colors">
-                                        <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
-                                        <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
+                                        <td class="px-2 py-1.5 font-mono text-gray-500 border-r border-gray-100 text-[10px]">#${venta.venta_id.toString().padStart(5,'0')}</td>
+                                        <td class="px-2 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap text-[10px]">${venta.fecha_venta}</td>
                                         ${tdTipo}
                                         ${tdEsperaCocina}
                                         ${tdEsperaCobro}
                                         ${tdMesero}
                                         ${tdCajero}
                                         ${tdMetodoPago}
-                                        <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">${formatMontoCensurado(venta.total)}</td>
-                                        <td class="px-4 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1.5">
-                                            <button onclick="window.abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded font-bold transition-all text-[10px]" title="Ver / Imprimir">
-                                                <i class="fa-solid fa-print"></i> Re-Imprimir
+                                        <td class="px-2 py-1.5 text-right font-black text-stone-900 font-mono text-[10px]">${formatMontoCensurado(venta.total)}</td>
+                                        <td class="px-1 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1">
+                                            <button onclick="window.abrirTicket(${venta.venta_id})" class="text-orange-600 hover:text-orange-850 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 py-0.5 rounded font-bold transition-all text-[9px]" title="Ver / Imprimir">
+                                                <i class="fa-solid fa-print"></i>
                                             </button>
-                                            <button onclick="window.toggleVentaHistorica(${venta.venta_id}, ${venta.es_historica})" 
-                                                    class="px-2 py-0.5 rounded font-bold transition-all text-[10px] ${venta.es_historica ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm shadow-orange-500/20' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}" 
+                                            <button onclick="window.toggleVentaHistorica(${venta.venta_id}, ${venta.es_historica})"
+                                                    class="px-1.5 py-0.5 rounded font-bold transition-all text-[9px] whitespace-nowrap ${venta.es_historica ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm shadow-orange-500/20' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}"
                                                     title="${venta.es_historica ? 'Marcar como Normal' : 'Marcar como Histórica'}">
                                                 <i class="fa-solid ${venta.es_historica ? 'fa-calendar-check' : 'fa-calendar-days'} mr-1"></i>
                                                 ${venta.es_historica ? 'Histórica' : 'Normal'}
