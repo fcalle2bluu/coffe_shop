@@ -1,4 +1,5 @@
 import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
+import '../utils/mesa_utils.dart';
 
 enum EstadoPapel { ok, sinPapel, desconocido }
 
@@ -109,7 +110,7 @@ class PrinterService {
     // Marco negro (video invertido: texto blanco sobre fondo negro) para que la
     // mesa resalte al instante, incluso con la vista cansada o el cabezal gastado.
     await _printer.printText(
-      text: '  MESA $mesa  ',
+      text: '  ${nombreMesa(mesa).toUpperCase()}  ',
       style: SunmiTextStyle(bold: true, fontSize: 48, align: SunmiPrintAlign.CENTER, reverse: true),
     );
 

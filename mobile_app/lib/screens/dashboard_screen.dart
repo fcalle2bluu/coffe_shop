@@ -15,6 +15,7 @@ import '../widgets/dashboard/bcg_matrix_card.dart';
 import '../widgets/dashboard/ventas_categoria_card.dart';
 import '../widgets/dashboard/metodos_pago_card.dart';
 import '../widgets/dashboard/gastos_categoria_card.dart';
+import '../utils/mesa_utils.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -633,7 +634,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Mesa $numMesa',
+                      nombreMesa(numMesa),
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

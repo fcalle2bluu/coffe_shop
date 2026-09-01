@@ -1,16 +1,16 @@
 {
   "mesero": {
-    "versionCode": 22,
-    "versionName": "1.0.21",
+    "versionCode": 23,
+    "versionName": "1.0.22",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corrección: al sumar productos a un pedido activo, si ya existía el mismo producto, ahora se agrega como línea separada en vez de fusionar la cantidad total como si todo fuera nuevo (ej. 1 ya entregado + 1 nuevo, no 2 nuevos).",
+    "notas": "La mesa 'Para Llevar' ahora se muestra como 'Para Llevar' en toda la app, sin el prefijo 'Mesa' delante.",
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 8,
-    "versionName": "1.0.7",
+    "versionCode": 9,
+    "versionName": "1.0.8",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "Cuando se edita un pedido, ahora se muestran los productos divididos en dos bloques bien separados: lo nuevo arriba y lo ya enviado antes abajo, con una línea divisoria — tanto en pantalla como en el ticket impreso.",
+    "notas": "La mesa 'Para Llevar' ahora se muestra como 'PARA LLEVAR' en pantalla y en el ticket impreso, sin el prefijo 'MESA' delante.",
     "obligatoria": true
   }
 }

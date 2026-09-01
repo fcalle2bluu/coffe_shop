@@ -9,6 +9,7 @@ import '../config/theme.dart';
 import '../models/product.dart';
 import '../widgets/pulsing_coffee_loader.dart';
 import '../services/sunmi_printer_service.dart';
+import '../utils/mesa_utils.dart';
 
 enum VentaMesaViewState {
   tableSelection,
@@ -453,7 +454,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cobrar Mesa $_selectedMesa'),
+        title: Text('Cobrar ${nombreMesa(_selectedMesa)}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,7 +529,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
 
         // Mostrar el recibo de venta con opción de imprimir
         _mostrarTicketDialog(
-          'Recibo de Venta (Mesa $_selectedMesa)', 
+          'Recibo de Venta (${nombreMesa(_selectedMesa)})',
           ticketRecibo,
           printData: {
             'ventaId': ventaId,
@@ -721,8 +722,8 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
               _viewState == VentaMesaViewState.tableSelection
                   ? 'Venta por Mesa'
                   : _viewState == VentaMesaViewState.comandaDetail
-                      ? 'Mesa $_selectedMesa - Detalle'
-                      : 'Mesa $_selectedMesa - Crear Comanda',
+                      ? '${nombreMesa(_selectedMesa)} - Detalle'
+                      : '${nombreMesa(_selectedMesa)} - Crear Comanda',
               style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
             ),
           ],
@@ -944,7 +945,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                'Mesa $numMesa',
+                                                nombreMesa(numMesa),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w900,
                                                   fontSize: 11,
@@ -1155,7 +1156,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         final txt = _generarTicketComanda();
-                        _mostrarTicketDialog('Comanda para Cocina (Mesa $_selectedMesa)', txt);
+                        _mostrarTicketDialog('Comanda para Cocina (${nombreMesa(_selectedMesa)})', txt);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white.withOpacity(0.04),
@@ -1236,7 +1237,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
               children: [
                 SegmentedButton<bool>(
                   segments: [
-                    ButtonSegment(value: false, label: Text('Nueva comanda (Mesa $_selectedMesa)')),
+                    ButtonSegment(value: false, label: Text('Nueva comanda (${nombreMesa(_selectedMesa)})')),
                     const ButtonSegment(value: true, label: Text('Añadir a existente')),
                   ],
                   selected: {_agregarAExistente},
@@ -1255,7 +1256,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                     items: mesasOcupadas
                         .map((m) => DropdownMenuItem<String>(
                               value: m['mesa'].toString(),
-                              child: Text('Mesa ${m['mesa']}'),
+                              child: Text(nombreMesa(m['mesa'])),
                             ))
                         .toList(),
                     onChanged: (v) => setState(() => _mesaDestinoExistente = v),

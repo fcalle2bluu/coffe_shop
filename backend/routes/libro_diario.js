@@ -131,7 +131,7 @@ router.get('/', async (req, res) => {
             const grupo = v.comanda_id ? gruposPorComanda.get(v.comanda_id) : null;
             const diaSemana = diasSemana[parseInt(v.dia_semana_num)] || 'S/D';
             const fechaDiario = formatearFechaDiario(v.fecha_diario);
-            const origenTexto = v.mesa_origen ? `Mesa ${v.mesa_origen}` : 'POS';
+            const origenTexto = v.mesa_origen ? (v.mesa_origen === 'Para Llevar' ? 'Para Llevar' : `Mesa ${v.mesa_origen}`) : 'POS';
 
             if (grupo && grupo.length > 1) {
                 // Cobro dividido: un solo asiento para todo el grupo.

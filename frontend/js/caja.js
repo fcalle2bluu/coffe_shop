@@ -480,7 +480,7 @@ async function cargarHistorialVentasAdmin() {
                     }
 
                     const tdTipo = venta.comanda_id
-                        ? `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>Mesa ${venta.mesa || ''}</span></td>`
+                        ? `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>${venta.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${venta.mesa || ''}`}</span></td>`
                         : `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600"><i class="fa-solid fa-cash-register mr-1"></i>POS</span></td>`;
                     const tdMesero = `<td class="px-4 py-1.5 text-stone-600 border-r border-gray-100 font-bold text-[10px]">${venta.mesero || '-'}</td>`;
                     const tdCajero = `<td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${venta.cajero || '-'}</td>`;

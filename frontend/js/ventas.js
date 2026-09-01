@@ -619,7 +619,8 @@ async function cargarMesasParaCobrar() {
         if (primeraCargaMesasCobroHecha) {
             const idsAnteriores = new Set(mesasListasCobro.map(m => m.comanda.id));
             listas.filter(m => !idsAnteriores.has(m.comanda.id)).forEach(m => {
-                mostrarToast(`🔔 Mesa ${m.mesa} está lista para cobrar`);
+                const nombreMesaToast = m.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${m.mesa}`;
+                mostrarToast(`🔔 ${nombreMesaToast} está lista para cobrar`);
             });
         }
         primeraCargaMesasCobroHecha = true;
@@ -705,7 +706,7 @@ function renderizarListaMesasCobro() {
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-black shrink-0 md:text-lg">${m.mesa}</div>
                         <div>
-                            <p class="font-bold text-stone-800 text-sm md:text-base">Mesa ${m.mesa}</p>
+                            <p class="font-bold text-stone-800 text-sm md:text-base">${m.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${m.mesa}`}</p>
                             <p class="text-xs md:text-sm text-slate-500">Mesero: ${c.mesero_nombre || '-'}</p>
                         </div>
                     </div>
@@ -806,7 +807,8 @@ async function confirmarPagoMesa() {
         cargarMesasParaCobrar();
 
         // Reutiliza el modal de éxito / impresión que ya usa el Punto de Venta directo
-        document.getElementById('info-ticket').innerText = `Mesa ${numMesa} cobrada | Ticket #${ultimaVentaId}`;
+        const nombreMesaCobrada = numMesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${numMesa}`;
+        document.getElementById('info-ticket').innerText = `${nombreMesaCobrada} cobrada | Ticket #${ultimaVentaId}`;
         document.getElementById('modalExito').classList.remove('hidden');
     } catch (e) {
         alert('❌ Error al cobrar: ' + e.message);

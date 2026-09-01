@@ -7,6 +7,7 @@ import '../config/api.dart';
 import '../config/theme.dart';
 import '../models/product.dart';
 import '../widgets/pulsing_coffee_loader.dart';
+import '../utils/mesa_utils.dart';
 
 /// Pantalla liviana para que el mesero arme un pedido y lo mande a cocina.
 /// Pensada para uso vertical y rápido en el celular: elegir productos primero,
@@ -860,7 +861,7 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Mesa ${c['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.textLight)),
+                        Text(nombreMesa(c['mesa']), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppTheme.textLight)),
                         if ((c['mesero_nombre'] as String?)?.isNotEmpty == true)
                           Text(c['mesero_nombre'], style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
                         if (_formatearHoraComanda(c).isNotEmpty)
@@ -1211,14 +1212,14 @@ class _CarritoSheetState extends State<_CarritoSheet> {
               dropdownColor: AppTheme.secondaryDark,
               selectedItemBuilder: (context) => widget.mesas
                   .where((m) => (m['estado'] == 'ocupada') == _agregarAExistente)
-                  .map<Widget>((m) => Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight)))
+                  .map<Widget>((m) => Text(nombreMesa(m['mesa']), style: const TextStyle(color: AppTheme.textLight)))
                   .toList(),
               items: widget.mesas
                   .where((m) => (m['estado'] == 'ocupada') == _agregarAExistente)
                   .map<DropdownMenuItem<String>>((m) {
                 return DropdownMenuItem(
                   value: m['mesa'].toString(),
-                  child: Text('Mesa ${m['mesa']}', style: const TextStyle(color: AppTheme.textLight)),
+                  child: Text(nombreMesa(m['mesa']), style: const TextStyle(color: AppTheme.textLight)),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _mesaSeleccionada = v),
@@ -1433,7 +1434,7 @@ class _EditarComandaSheetState extends State<_EditarComandaSheet> {
           Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Editar comanda · Mesa ${widget.comanda['mesa']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppTheme.textLight)),
+            child: Text('Editar comanda · ${nombreMesa(widget.comanda['mesa'])}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppTheme.textLight)),
           ),
           Expanded(
             child: ListView(

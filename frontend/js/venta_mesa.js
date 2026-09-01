@@ -176,7 +176,7 @@ function renderizarMesas() {
                     ${m.mesa}
                 </span>
                 <span class="text-[10px] md:text-xs font-bold uppercase tracking-wider ${colorText} leading-none text-center px-1">
-                    Mesa ${m.mesa}
+                    ${m.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${m.mesa}`}
                 </span>
                 <span class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-tight leading-none">
                     ${estadoLabel}
@@ -197,7 +197,7 @@ async function seleccionarMesa(numero) {
     comandaActivaItems = [];
 
     // Marcar mesa activa en UI
-    document.getElementById('ticket-titulo').innerText = `Mesa #${numero}`;
+    document.getElementById('ticket-titulo').innerText = numero === 'Para Llevar' ? 'Para Llevar' : `Mesa #${numero}`;
     
     // Consultar estado de la mesa en el backend
     try {
@@ -342,7 +342,7 @@ function renderizarDetalleComandaActiva() {
 function iniciarPedidoMesa() {
     carritoComanda = [];
     modoEdicionActivo = false;
-    document.getElementById('lbl-mesa-activa').innerText = `Mesa #${mesaSeleccionada}`;
+    document.getElementById('lbl-mesa-activa').innerText = mesaSeleccionada === 'Para Llevar' ? 'Para Llevar' : `Mesa #${mesaSeleccionada}`;
     mostrarVistaCatalogo();
     actualizarTicketEdicion();
 }
@@ -628,7 +628,8 @@ async function marcarComandaEntregada() {
 // 13. Cancelar comanda (Solo Admin)
 async function cancelarComandaActiva() {
     if (!comandaActivaMesa) return;
-    const confirmacion = confirm(`⚠️ CUIDADO: ¿Estás seguro de cancelar el pedido de la Mesa ${mesaSeleccionada}?\nEsta acción no se puede deshacer.`);
+    const nombreMesaActiva = mesaSeleccionada === 'Para Llevar' ? 'Para Llevar' : `la Mesa ${mesaSeleccionada}`;
+    const confirmacion = confirm(`⚠️ CUIDADO: ¿Estás seguro de cancelar el pedido de ${nombreMesaActiva}?\nEsta acción no se puede deshacer.`);
     if (!confirmacion) return;
 
     try {

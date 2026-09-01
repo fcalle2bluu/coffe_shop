@@ -12,6 +12,7 @@ import '../widgets/bouncing_widget.dart';
 import '../widgets/pulsing_coffee_loader.dart';
 import '../widgets/fade_in_slide.dart';
 import '../services/sunmi_printer_service.dart';
+import '../utils/mesa_utils.dart';
 
 class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
@@ -149,7 +150,7 @@ class _PosScreenState extends State<PosScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('🔔 Mesa $numMesa está lista para cobrar'),
+        content: Text('🔔 ${nombreMesa(numMesa)} está lista para cobrar'),
         backgroundColor: AppTheme.accentColor,
         duration: const Duration(seconds: 4),
       ),
@@ -845,7 +846,7 @@ class _PosScreenState extends State<PosScreen> {
                                   style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.accentColor),
                                 ),
                               ),
-                              title: Text('Mesa ${m['mesa']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              title: Text(nombreMesa(m['mesa']), style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text('Mesero: ${comanda['mesero_nombre'] ?? '-'}'),
                               trailing: Text(
                                 'Bs. ${total.toStringAsFixed(2)}',
@@ -875,7 +876,7 @@ class _PosScreenState extends State<PosScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cobrar Mesa $numMesa'),
+        title: Text('Cobrar ${nombreMesa(numMesa)}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -952,7 +953,7 @@ class _PosScreenState extends State<PosScreen> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Mesa $numMesa cobrada y liberada')),
+          SnackBar(content: Text('✅ ${nombreMesa(numMesa)} cobrada y liberada')),
         );
 
         showDialog(
@@ -965,7 +966,7 @@ class _PosScreenState extends State<PosScreen> {
                 const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 48),
                 const SizedBox(height: 8),
                 Text(
-                  '¡Mesa $numMesa Cobrada!',
+                  '¡${nombreMesa(numMesa)} Cobrada!',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 18),
                 ),

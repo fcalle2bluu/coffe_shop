@@ -7,6 +7,7 @@ import '../config/api_config.dart';
 import '../services/alert_service.dart';
 import '../services/printer_service.dart';
 import 'login_screen.dart';
+import '../utils/mesa_utils.dart';
 
 const _kVersionesPrefsKey = 'comandas_version_impresa';
 
@@ -568,7 +569,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'MESA ${comanda['mesa']}',
+                    nombreMesa(comanda['mesa']).toUpperCase(),
                     style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900),
                   ),
                   Text(

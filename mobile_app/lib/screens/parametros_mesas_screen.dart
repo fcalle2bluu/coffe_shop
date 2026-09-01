@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../config/api.dart';
 import '../config/theme.dart';
+import '../utils/mesa_utils.dart';
 
 class ParametrosMesasScreen extends StatefulWidget {
   const ParametrosMesasScreen({super.key});
@@ -142,7 +143,7 @@ class _ParametrosMesasScreenState extends State<ParametrosMesasScreen> {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: Text(
-                isEdit ? 'Editar Mesa ${mesa['numero']}' : 'Añadir Nueva Mesa',
+                isEdit ? 'Editar ${nombreMesa(mesa['numero'])}' : 'Añadir Nueva Mesa',
                 style: const TextStyle(fontWeight: FontWeight.w900, fontFamily: 'Outfit'),
               ),
               content: SingleChildScrollView(
@@ -237,7 +238,7 @@ class _ParametrosMesasScreenState extends State<ParametrosMesasScreen> {
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
-                  'Mesa ${mesa['numero']}',
+                  nombreMesa(mesa['numero']),
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'Outfit'),
                 ),
               ),
@@ -258,7 +259,7 @@ class _ParametrosMesasScreenState extends State<ParametrosMesasScreen> {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: Text('¿Eliminar Mesa ${mesa['numero']}?'),
+                      title: Text('¿Eliminar ${nombreMesa(mesa['numero'])}?'),
                       content: const Text('Esta acción quitará la mesa del salón. Solo puedes eliminar mesas que no tengan pedidos activos.'),
                       actions: [
                         TextButton(

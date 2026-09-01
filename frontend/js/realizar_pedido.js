@@ -281,7 +281,8 @@ async function cargarMesas() {
         select.innerHTML = '<option value="">-- Elegir mesa --</option>';
         mesasEstado.forEach(m => {
             const ocupada = m.estado === 'ocupada';
-            select.innerHTML += `<option value="${m.mesa}">Mesa ${m.mesa}${ocupada ? ' (ocupada, se sumará)' : ''}</option>`;
+            const nombreMesaOpt = m.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${m.mesa}`;
+            select.innerHTML += `<option value="${m.mesa}">${nombreMesaOpt}${ocupada ? ' (ocupada, se sumará)' : ''}</option>`;
         });
         if (valorPrevio) select.value = valorPrevio;
         onCambiarMesaSeleccionada();
@@ -588,7 +589,7 @@ async function cargarComandasActivas() {
             <div class="bg-white rounded-2xl border ${editado ? 'border-amber-300' : 'border-slate-200/80'} shadow-sm p-4 flex flex-col gap-2">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h3 class="font-black text-slate-800 text-sm md:text-base">Mesa ${c.mesa}</h3>
+                        <h3 class="font-black text-slate-800 text-sm md:text-base">${c.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${c.mesa}`}</h3>
                         ${c.mesero_nombre ? `<p class="text-[11px] md:text-xs text-slate-400 font-medium">${c.mesero_nombre}</p>` : ''}
                         ${hora ? `<p class="text-[11px] md:text-xs text-slate-400 font-medium">${hora}</p>` : ''}
                     </div>
@@ -677,7 +678,8 @@ async function abrirModalEditar(id) {
             notas: it.notas || null
         }));
 
-        document.getElementById('modal-editar-titulo').innerText = `Editar comanda · Mesa ${comanda.mesa}`;
+        const nombreMesaEditar = comanda.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${comanda.mesa}`;
+        document.getElementById('modal-editar-titulo').innerText = `Editar comanda · ${nombreMesaEditar}`;
         document.getElementById('modal-editar-nota-general').value = comanda.notas || '';
         document.getElementById('modal-editar-error').classList.add('hidden');
         renderizarEdicionItems();
