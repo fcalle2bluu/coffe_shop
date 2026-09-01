@@ -109,39 +109,47 @@
             <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
                 <i class="fa-solid fa-users-gear w-5 text-center text-accent/70"></i> <span>Gestión de Empleados</span>
             </a>
-            <a href="analisis_combos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-circle-nodes w-5 text-center text-accent/70"></i> <span>Análisis de Combos</span>
-            </a>
-            <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-boxes-stacked w-5 text-center text-accent/70"></i> <span>Stock Actual</span>
-            </a>
-            <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
-                <i class="fa-solid fa-kitchen-set w-5 text-center text-accent/70"></i> <span>Producción y Masas</span>
-            </a>
-            <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-book-open w-5 text-center text-accent/70"></i> <span>Recetas</span>
-            </a>
-            <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-cart-flatbed w-5 text-center text-accent/70"></i> <span>Compras Insumos</span>
-            </a>
-            <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-truck w-5 text-center text-accent/70"></i> <span>Proveedores</span>
-            </a>
-            <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-clipboard-check w-5 text-center text-accent/70"></i> <span>Auditoría</span>
-            </a>
-            <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
-                <i class="fa-brands fa-whatsapp w-5 text-center text-accent/70"></i> <span>Webhook WhatsApp</span>
-            </a>
-            <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
-                <i class="fa-solid fa-clipboard-list w-5 text-center text-accent/70"></i> <span>Pedidos Internos</span>
-            </a>
-            <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-mug-hot w-5 text-center text-accent/70"></i> <span>Informe General</span>
-            </a>
-            <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-accent/20 text-accent font-bold ">
-                <i class="fa-solid fa-brain w-5 text-center text-accent/70"></i> <span>Asistente IA</span>
-            </a>
+            <button type="button" onclick="toggleMasMenu(this)" class="mas-menu-toggle flex items-center justify-between w-full gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <span class="flex items-center gap-3">
+                    <i class="fa-solid fa-ellipsis w-5 text-center text-accent/70"></i> <span>Más</span>
+                </span>
+                <i class="fa-solid fa-chevron-down text-[10px] mas-menu-chevron transition-transform duration-200"></i>
+            </button>
+            <div class="mas-menu-group flex flex-col space-y-1">
+                <a href="analisis_combos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-circle-nodes w-5 text-center text-accent/70"></i> <span>Análisis de Combos</span>
+                </a>
+                <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center text-accent/70"></i> <span>Stock Actual</span>
+                </a>
+                <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-solid fa-kitchen-set w-5 text-center text-accent/70"></i> <span>Producción y Masas</span>
+                </a>
+                <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-book-open w-5 text-center text-accent/70"></i> <span>Recetas</span>
+                </a>
+                <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-cart-flatbed w-5 text-center text-accent/70"></i> <span>Compras Insumos</span>
+                </a>
+                <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-truck w-5 text-center text-accent/70"></i> <span>Proveedores</span>
+                </a>
+                <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-clipboard-check w-5 text-center text-accent/70"></i> <span>Auditoría</span>
+                </a>
+                <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-brands fa-whatsapp w-5 text-center text-accent/70"></i> <span>Webhook WhatsApp</span>
+                </a>
+                <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center text-accent/70"></i> <span>Pedidos Internos</span>
+                </a>
+                <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-mug-hot w-5 text-center text-accent/70"></i> <span>Informe General</span>
+                </a>
+                <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-accent/20 text-accent font-bold ">
+                    <i class="fa-solid fa-brain w-5 text-center text-accent/70"></i> <span>Asistente IA</span>
+                </a>
+            </div>
         </nav>
     </aside>
 

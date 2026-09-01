@@ -405,28 +405,62 @@
         }
     }
 
+    // Abre/cierra el grupo colapsable "Más" del sidebar y recuerda la preferencia
+    // del usuario (localStorage) para que no se cierre solo al cambiar de página.
+    window.toggleMasMenu = function(btn) {
+        const group = btn.nextElementSibling;
+        if (!group) return;
+        const abrir = group.classList.contains('hidden');
+        group.classList.toggle('hidden', !abrir);
+        const chevron = btn.querySelector('.mas-menu-chevron');
+        if (chevron) chevron.classList.toggle('rotate-180', abrir);
+        try { localStorage.setItem('sidebarMasAbierto', abrir ? 'true' : 'false'); } catch (e) {}
+    };
+
     window.addEventListener('DOMContentLoaded', () => {
-        // Inyectar dinámicamente el enlace de "Control Diario" en el sidebar
+        // Inyectar dinámicamente el enlace de "Control Diario" en el sidebar,
+        // como primer ítem del grupo colapsable "Más".
         const nav = document.querySelector('aside nav');
+        const masGroup = nav ? nav.querySelector('.mas-menu-group') : null;
+        const pageName = window.location.pathname.split("/").pop();
+        const isControlDiarioActive = pageName.includes('control_diario.html');
         if (nav) {
-            const pageName = window.location.pathname.split("/").pop();
-            const isActive = pageName.includes('control_diario.html');
             const controlDiarioHTML = `
-                <a href="control_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive ? 'bg-orange-500/10 text-orange-500 font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
+                <a href="control_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isControlDiarioActive ? 'bg-orange-500/10 text-orange-500 font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
                     <i class="fa-solid fa-calendar-day w-5 text-center text-orange-500/60"></i> <span>Control Diario</span>
                 </a>
             `;
             if (!nav.querySelector('a[href="control_diario.html"]')) {
-                const empleadosLink = nav.querySelector('a[href="empleados.html"]');
-                const dashLink = nav.querySelector('a[href="dashboard.html"]');
-                if (empleadosLink) {
-                    empleadosLink.insertAdjacentHTML('afterend', controlDiarioHTML);
-                } else if (dashLink) {
-                    dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                if (masGroup) {
+                    masGroup.insertAdjacentHTML('afterbegin', controlDiarioHTML);
                 } else {
-                    nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
+                    const empleadosLink = nav.querySelector('a[href="empleados.html"]');
+                    const dashLink = nav.querySelector('a[href="dashboard.html"]');
+                    if (empleadosLink) {
+                        empleadosLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                    } else if (dashLink) {
+                        dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                    } else {
+                        nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
+                    }
                 }
             }
+        }
+
+        // Grupo colapsable "Más" del sidebar: se abre solo si la página activa
+        // vive adentro, o si el usuario lo había dejado abierto la última vez.
+        if (masGroup) {
+            const toggleBtn = nav.querySelector('.mas-menu-toggle');
+            const chevron = toggleBtn ? toggleBtn.querySelector('.mas-menu-chevron') : null;
+            const tieneActivaAdentro = isControlDiarioActive || !!masGroup.querySelector('a.bg-accent\\/20, a.text-accent');
+            let abierto = tieneActivaAdentro;
+            if (!abierto) {
+                try { abierto = localStorage.getItem('sidebarMasAbierto') === 'true'; } catch (e) { abierto = false; }
+            } else {
+                try { localStorage.setItem('sidebarMasAbierto', 'true'); } catch (e) {}
+            }
+            masGroup.classList.toggle('hidden', !abierto);
+            if (chevron) chevron.classList.toggle('rotate-180', abierto);
         }
 
         // Ocultar o mostrar links del sidebar según permisos individuales
