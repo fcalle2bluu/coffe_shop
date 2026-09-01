@@ -417,8 +417,11 @@
                 </a>
             `;
             if (!nav.querySelector('a[href="control_diario.html"]')) {
+                const empleadosLink = nav.querySelector('a[href="empleados.html"]');
                 const dashLink = nav.querySelector('a[href="dashboard.html"]');
-                if (dashLink) {
+                if (empleadosLink) {
+                    empleadosLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                } else if (dashLink) {
                     dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
                 } else {
                     nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
