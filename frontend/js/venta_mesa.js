@@ -129,7 +129,7 @@ function renderizarMesas() {
                 const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-violet-500 text-white';
                 const dotPulse = esOcupada ? '<span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse shrink-0"></span>' : '';
                 const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black text-rose-300 shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
-                const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
+                const estadoLabel = esOcupada ? m.comanda.estado : '';
 
                 return `
                 <div onclick="seleccionarMesa('${m.mesa}')" class="flex items-center gap-3 rounded-xl border-2 border-dashed px-4 py-2.5 cursor-pointer transition-all duration-300 ${colorBg}">
@@ -138,7 +138,7 @@ function renderizarMesas() {
                     </span>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs md:text-sm font-black uppercase tracking-wide ${colorText} truncate">${m.mesa}</p>
-                        <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-tight">${estadoLabel}</p>
+                        ${estadoLabel ? `<p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-tight">${estadoLabel}</p>` : ''}
                     </div>
                     ${dotPulse}
                     ${totalComanda}
