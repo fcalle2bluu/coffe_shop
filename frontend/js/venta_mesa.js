@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarMesas();
     // Refresco en tiempo real del estado de mesas (ocupada/libre) cada 10s
     setInterval(cargarMesas, 10000);
+    // Contador de tiempo de espera (mesas en rojo): se actualiza cada segundo
+    // sin re-pedir nada al servidor, solo recalcula contra la hora local.
+    setInterval(actualizarContadoresEspera, 1000);
 
     // Listener buscador
     document.getElementById('buscarProducto').addEventListener('input', (e) => {
@@ -99,6 +102,27 @@ function estadoColorMesa(m) {
     const ec = ((m.comanda && m.comanda.estado_cocina) || '').toUpperCase();
     if (ec === 'COMPLETADA') return 'amber';
     return 'rose';
+}
+
+// Texto "Xm Ys" / "Xh Ym" a partir de milisegundos transcurridos.
+function formatearTiempoEspera(ms) {
+    const segundosTotales = Math.max(0, Math.floor(ms / 1000));
+    const horas = Math.floor(segundosTotales / 3600);
+    const minutos = Math.floor((segundosTotales % 3600) / 60);
+    const segundos = segundosTotales % 60;
+    if (horas > 0) return `${horas}h ${String(minutos).padStart(2, '0')}m`;
+    return `${minutos}:${String(segundos).padStart(2, '0')}`;
+}
+
+// Recalcula, cada segundo, cuánto lleva esperando cada mesa con comanda
+// pendiente en cocina (tarjetas en rojo), sin volver a pedir nada al backend.
+function actualizarContadoresEspera() {
+    document.querySelectorAll('.contador-espera').forEach(el => {
+        const desde = el.dataset.desde;
+        if (!desde) return;
+        const ms = Date.now() - new Date(desde).getTime();
+        el.innerText = formatearTiempoEspera(ms);
+    });
 }
 
 const PALETA_FRANJA_LLEVAR = {
@@ -192,6 +216,9 @@ function renderizarMesas() {
                 const dotPulse = (esOcupada && paleta.dot) ? `<span class="w-2 h-2 rounded-full ${paleta.dot} animate-pulse shrink-0"></span>` : '';
                 const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black ${colorText} shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
                 const estadoLabel = esOcupada ? m.comanda.estado : '';
+                const contadorEspera = (esOcupada && estadoColorMesa(m) === 'rose')
+                    ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono shrink-0" data-desde="${m.comanda.fecha_actualizacion}">${formatearTiempoEspera(Date.now() - new Date(m.comanda.fecha_actualizacion).getTime())}</span>`
+                    : '';
 
                 return `
                 <div onclick="seleccionarMesa('${m.mesa}')" class="flex items-center gap-3 rounded-xl border-2 border-dashed px-4 py-2.5 cursor-pointer transition-all duration-300 ${colorBg}">
@@ -203,6 +230,7 @@ function renderizarMesas() {
                         ${estadoLabel ? `<p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-tight">${estadoLabel}</p>` : ''}
                     </div>
                     ${dotPulse}
+                    ${contadorEspera}
                     ${totalComanda}
                 </div>
             `;
@@ -231,6 +259,9 @@ function renderizarMesas() {
 
             const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs ${colorText} font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
             const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
+            const contadorEspera = (esOcupada && estadoColorMesa(m) === 'rose')
+                ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono leading-none" data-desde="${m.comanda.fecha_actualizacion}">${formatearTiempoEspera(Date.now() - new Date(m.comanda.fecha_actualizacion).getTime())}</span>`
+                : '';
 
             return `
             <div onclick="seleccionarMesa('${m.mesa}')" class="relative aspect-square w-full rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 shadow-md cursor-pointer transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}">
@@ -244,6 +275,7 @@ function renderizarMesas() {
                 <span class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-tight leading-none">
                     ${estadoLabel}
                 </span>
+                ${contadorEspera}
                 ${totalComanda}
             </div>
         `;
