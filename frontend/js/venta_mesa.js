@@ -2,7 +2,6 @@
 
 let listaProductosGlobal = [];
 let mesasGlobal = [];
-let pisoActualVentas = 'PLANTA_BAJA';
 let comandaActivaMesa = null; // Si la mesa elegida tiene comanda activa
 let comandaActivaItems = [];  // Items de la comanda activa guardada
 let carritoComanda = [];      // Carrito temporal para comandas nuevas o agregados
@@ -22,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar Catálogo e Inicializar Mesas
     cargarCatalogo();
     cargarMesas();
+    // Refresco en tiempo real del estado de mesas (ocupada/libre) cada 10s
+    setInterval(cargarMesas, 10000);
 
     // Listener buscador
     document.getElementById('buscarProducto').addEventListener('input', (e) => {
@@ -57,78 +58,133 @@ async function cargarMesas() {
         renderizarMesas();
     } catch (e) {
         console.error("Error mesas:", e);
-        document.getElementById('lienzo-venta-mesas').innerHTML = `
-            <div class="absolute inset-0 flex flex-col items-center justify-center text-red-500 font-bold text-xs md:text-sm gap-1">
+        const mensajeError = `
+            <div class="col-span-full flex flex-col items-center justify-center text-red-400 font-bold text-xs md:text-sm gap-1 py-10">
                 <span>Error al cargar el estado de las mesas:</span>
-                <span class="text-[10px] md:text-xs opacity-80 font-normal bg-red-50 px-2 py-1 rounded border border-red-200 mt-1">${e.message}</span>
+                <span class="text-[10px] md:text-xs opacity-80 font-normal bg-red-500/10 px-2 py-1 rounded border border-red-500/30 mt-1">${e.message}</span>
             </div>
         `;
+        const cPb = document.getElementById('lienzo-planta-baja');
+        const cPa = document.getElementById('lienzo-primer-piso');
+        if (cPb) cPb.innerHTML = mensajeError;
+        if (cPa) cPa.innerHTML = mensajeError;
     }
 }
 
-// Cambiar de piso en la visualización
-function cambiarPisoVentas(piso) {
-    pisoActualVentas = piso;
-    
-    const btnPb = document.getElementById('btn-piso-pb');
-    const btnPa = document.getElementById('btn-piso-pa');
-    
-    if (piso === 'PLANTA_BAJA') {
-        btnPb.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
-        btnPa.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
-    } else {
-        btnPb.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm text-slate-500 hover:text-slate-700 transition-all focus:outline-none";
-        btnPa.className = "px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm bg-white text-orange-600 shadow-sm transition-all focus:outline-none";
-    }
-    
-    renderizarMesas();
+// Orden natural: mesas numéricas primero (1, 2, 3...), identificadores especiales
+// (ej. "PARA LLEVAR") al final, en orden alfabético.
+function compararMesas(a, b) {
+    const na = parseInt(a.mesa, 10);
+    const nb = parseInt(b.mesa, 10);
+    const aEsNum = !isNaN(na);
+    const bEsNum = !isNaN(nb);
+    if (aEsNum && bEsNum) return na - nb;
+    if (aEsNum) return -1;
+    if (bEsNum) return 1;
+    return String(a.mesa).localeCompare(String(b.mesa));
+}
+
+// Identifica mesas "para llevar" (por nombre, no por si son numéricas: códigos
+// como "PB1" tampoco son números y son mesas físicas reales) para darles una
+// franja propia, separada visualmente de las mesas físicas.
+function esParaLlevar(m) {
+    return String(m.mesa).toUpperCase().includes('LLEVAR');
 }
 
 function renderizarMesas() {
-    const contenedor = document.getElementById('lienzo-venta-mesas');
-    if (!contenedor) return;
-    contenedor.innerHTML = '';
+    const contenedores = {
+        'PLANTA_BAJA': document.getElementById('lienzo-planta-baja'),
+        'PLANTA_ALTA': document.getElementById('lienzo-primer-piso')
+    };
+    const contenedoresLlevar = {
+        'PLANTA_BAJA': document.getElementById('lienzo-planta-baja-llevar'),
+        'PLANTA_ALTA': document.getElementById('lienzo-primer-piso-llevar')
+    };
+    const resumenes = {
+        'PLANTA_BAJA': document.getElementById('resumen-planta-baja'),
+        'PLANTA_ALTA': document.getElementById('resumen-primer-piso')
+    };
 
-    // Filtrar mesas por piso activo
-    const mesasFiltradas = mesasGlobal.filter(m => m.piso === pisoActualVentas);
+    Object.keys(contenedores).forEach(piso => {
+        const contenedor = contenedores[piso];
+        const contenedorLlevar = contenedoresLlevar[piso];
+        const resumen = resumenes[piso];
+        if (!contenedor) return;
 
-    if (mesasFiltradas.length === 0) {
-        contenedor.innerHTML = `
-            <div class="absolute inset-0 flex items-center justify-center text-slate-500 font-medium text-xs md:text-sm">
-                No hay mesas registradas en este piso.
-            </div>
-        `;
-        return;
-    }
+        const todasPiso = mesasGlobal.filter(m => m.piso === piso).sort(compararMesas);
+        const mesasLlevar = todasPiso.filter(esParaLlevar);
+        const mesasPiso = todasPiso.filter(m => !esParaLlevar(m));
 
-    mesasFiltradas.forEach(m => {
-        const esOcupada = m.estado === 'ocupada';
-        
-        // Colores premium
-        const colorBg = esOcupada ? 'bg-rose-50 border-rose-300 hover:bg-rose-100/90' : 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100/90';
-        const colorText = esOcupada ? 'text-rose-800' : 'text-emerald-800';
-        const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
-        const ringPulse = esOcupada ? 'ring-4 ring-rose-400/20' : 'hover:ring-4 hover:ring-emerald-400/20';
+        if (resumen) {
+            const ocupadas = todasPiso.filter(m => m.estado === 'ocupada').length;
+            resumen.innerText = todasPiso.length === 0 ? 'Sin mesas' : `${ocupadas} ocupadas · ${todasPiso.length - ocupadas} libres`;
+        }
 
-        const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs text-rose-600 font-black leading-none mt-1">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
-        const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
+        // Franja "Para Llevar": separada, con su propio color e ícono de bolsa
+        if (contenedorLlevar) {
+            contenedorLlevar.innerHTML = mesasLlevar.map(m => {
+                const esOcupada = m.estado === 'ocupada';
+                const colorBg = esOcupada ? 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20' : 'bg-violet-500/10 border-violet-400/50 hover:bg-violet-500/20';
+                const colorText = esOcupada ? 'text-rose-300' : 'text-violet-300';
+                const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-violet-500 text-white';
+                const dotPulse = esOcupada ? '<span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse shrink-0"></span>' : '';
+                const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black text-rose-300 shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
+                const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
 
-        const cardHtml = `
-            <div onclick="seleccionarMesa('${m.mesa}')" class="absolute w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 flex flex-col items-center justify-center shadow-md cursor-pointer select-none transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}"
-                 style="left: ${m.pos_x}%; top: ${m.pos_y}%; transform: translate(-50%, -50%);">
-                <span class="w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center text-[10px] md:text-xs font-black leading-none ${badgeColor}">
+                return `
+                <div onclick="seleccionarMesa('${m.mesa}')" class="flex items-center gap-3 rounded-xl border-2 border-dashed px-4 py-2.5 cursor-pointer transition-all duration-300 ${colorBg}">
+                    <span class="w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0 ${badgeColor}">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs md:text-sm font-black uppercase tracking-wide ${colorText} truncate">${m.mesa}</p>
+                        <p class="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-tight">${estadoLabel}</p>
+                    </div>
+                    ${dotPulse}
+                    ${totalComanda}
+                </div>
+            `;
+            }).join('');
+        }
+
+        if (mesasPiso.length === 0) {
+            contenedor.innerHTML = `
+                <div class="col-span-full flex items-center justify-center text-slate-500 font-medium text-xs md:text-sm py-10">
+                    No hay mesas registradas en este piso.
+                </div>
+            `;
+            return;
+        }
+
+        contenedor.innerHTML = mesasPiso.map(m => {
+            const esOcupada = m.estado === 'ocupada';
+
+            // Colores premium
+            const colorBg = esOcupada ? 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20' : 'bg-emerald-500/10 border-emerald-400/60 hover:bg-emerald-500/20';
+            const colorText = esOcupada ? 'text-rose-300' : 'text-emerald-300';
+            const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
+            const ringPulse = esOcupada ? 'ring-4 ring-rose-400/25' : 'hover:ring-4 hover:ring-emerald-400/25';
+            const dotPulse = esOcupada ? '<span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse"></span>' : '';
+
+            const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs text-rose-300 font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
+            const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
+
+            return `
+            <div onclick="seleccionarMesa('${m.mesa}')" class="relative aspect-square w-full rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 shadow-md cursor-pointer transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}">
+                ${dotPulse}
+                <span class="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[10px] md:text-xs font-black leading-none ${badgeColor}">
                     ${m.mesa}
                 </span>
-                <span class="text-[9px] md:text-xs font-bold uppercase tracking-wider ${colorText} mt-1 leading-none">
+                <span class="text-[10px] md:text-xs font-bold uppercase tracking-wider ${colorText} leading-none text-center px-1">
                     Mesa ${m.mesa}
                 </span>
-                <span class="text-[7px] md:text-[9px] text-slate-500 font-black uppercase mt-0.5 tracking-tight leading-none">
+                <span class="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-tight leading-none">
                     ${estadoLabel}
                 </span>
                 ${totalComanda}
             </div>
         `;
-        contenedor.innerHTML += cardHtml;
+        }).join('');
     });
 }
 

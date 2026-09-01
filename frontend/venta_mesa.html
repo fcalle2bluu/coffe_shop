@@ -2,9 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
+    <style>html,body{background:#0b1830 !important}</style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Café La Paz - Venta por Mesa</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/security_guard.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/animations.css">
 
@@ -91,11 +94,11 @@
             theme: { 
                 extend: { 
                     colors: { 
-                        sidebar: '#020617',
-                        sidebarHover: '#0f172a',
+                        sidebar: '#0d1c34',
+                        sidebarHover: '#16294a',
                         topbar: '#ffffff',
-                        mainBg: '#f8fafc',
-                        accent: '#f97316',
+                        mainBg: '#0b1830',
+                        accent: '#3b82f6',
                         glass: 'rgba(255, 255, 255, 0.8)'
                     },
                     fontFamily: {
@@ -112,13 +115,13 @@
     </script>
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
-<body class="bg-mainBg font-sans flex min-h-screen text-slate-800">
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-200">
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-slate-800">
-        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/50">
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-blue-500/30">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-blue-500/30">
             <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
                 <i class="fa-solid fa-mug-hot text-white"></i>
             </div>
@@ -143,68 +146,68 @@
         
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-solid fa-gauge-high w-5 text-center text-orange-500/60"></i> <span>Dashboard</span>
+                <i class="fa-solid fa-gauge-high w-5 text-center text-accent/70"></i> <span>Dashboard</span>
             </a>
             <a href="analisis_combos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-circle-nodes w-5 text-center text-orange-500/60"></i> <span>Análisis de Combos</span>
+                <i class="fa-solid fa-circle-nodes w-5 text-center text-accent/70"></i> <span>Análisis de Combos</span>
             </a>
             <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-boxes-stacked w-5 text-center text-orange-500/60"></i> <span>Stock Actual</span>
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-accent/70"></i> <span>Stock Actual</span>
             </a>
             <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-solid fa-kitchen-set w-5 text-center text-orange-500/60"></i> <span>Producción y Masas</span>
+                <i class="fa-solid fa-kitchen-set w-5 text-center text-accent/70"></i> <span>Producción y Masas</span>
             </a>
             <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-book-open w-5 text-center text-orange-500/60"></i> <span>Recetas</span>
+                <i class="fa-solid fa-book-open w-5 text-center text-accent/70"></i> <span>Recetas</span>
             </a>
             <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-cart-flatbed w-5 text-center text-orange-500/60"></i> <span>Compras Insumos</span>
+                <i class="fa-solid fa-cart-flatbed w-5 text-center text-accent/70"></i> <span>Compras Insumos</span>
             </a>
             <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-truck w-5 text-center text-orange-500/60"></i> <span>Proveedores</span>
+                <i class="fa-solid fa-truck w-5 text-center text-accent/70"></i> <span>Proveedores</span>
             </a>
             <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-clipboard-check w-5 text-center text-orange-500/60"></i> <span>Auditoría</span>
+                <i class="fa-solid fa-clipboard-check w-5 text-center text-accent/70"></i> <span>Auditoría</span>
             </a>
             <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-solid fa-shop w-5 text-center text-orange-500/60"></i> <span>Punto de Venta</span>
+                <i class="fa-solid fa-shop w-5 text-center text-accent/70"></i> <span>Punto de Venta</span>
             </a>
-            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-orange-500/10 text-orange-500 font-bold">
-                <i class="fa-solid fa-utensils w-5 text-center text-orange-500/60"></i> <span>Venta por Mesa</span>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-accent/20 text-accent font-bold">
+                <i class="fa-solid fa-utensils w-5 text-center text-accent/70"></i> <span>Venta por Mesa</span>
             </a>
             <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-solid fa-cash-register w-5 text-center text-orange-500/60"></i> <span>Control Caja</span>
+                <i class="fa-solid fa-cash-register w-5 text-center text-accent/70"></i> <span>Control Caja</span>
             </a>
             <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-brands fa-whatsapp w-5 text-center text-orange-500/60"></i> <span>Webhook WhatsApp</span>
+                <i class="fa-brands fa-whatsapp w-5 text-center text-accent/70"></i> <span>Webhook WhatsApp</span>
             </a>
             <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-gears w-5 text-center text-orange-500/60"></i> <span>Parámetros</span>
+                <i class="fa-solid fa-gears w-5 text-center text-accent/70"></i> <span>Parámetros</span>
             </a>
             <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-users-gear w-5 text-center text-orange-500/60"></i> <span>Gestión de Empleados</span>
+                <i class="fa-solid fa-users-gear w-5 text-center text-accent/70"></i> <span>Gestión de Empleados</span>
             </a>
             <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-book w-5 text-center text-orange-500/60"></i> <span>Libro Diario</span>
+                <i class="fa-solid fa-book w-5 text-center text-accent/70"></i> <span>Libro Diario</span>
             </a>
             <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
-                <i class="fa-solid fa-clipboard-list w-5 text-center text-orange-500/60"></i> <span>Pedidos Internos</span>
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-accent/70"></i> <span>Pedidos Internos</span>
             </a>
             <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-mug-hot w-5 text-center text-orange-500/60"></i> <span>Informe General</span>
+                <i class="fa-solid fa-mug-hot w-5 text-center text-accent/70"></i> <span>Informe General</span>
             </a>
             <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-brain w-5 text-center text-orange-500/60"></i> <span>Asistente IA</span>
+                <i class="fa-solid fa-brain w-5 text-center text-accent/70"></i> <span>Asistente IA</span>
             </a>
             <a href="asistencia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
-                <i class="fa-solid fa-user-clock w-5 text-center text-orange-500/60"></i> <span>Asistencia QR</span>
+                <i class="fa-solid fa-user-clock w-5 text-center text-accent/70"></i> <span>Asistencia QR</span>
             </a>
         </nav>
     </aside>
 
     <!-- MAIN PANEL -->
     <main class="flex-1 flex flex-col min-w-0 min-h-screen">
-        <header class="h-16 bg-white/70 backdrop-blur-md text-slate-900 border-b border-slate-200/60 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
+        <header class="h-16 bg-[#122544]/90 backdrop-blur-md text-slate-100 border-b border-blue-500/30 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg md:text-xl font-bold tracking-wide truncate ml-2 md:ml-0 flex-1 flex items-center gap-2">
                 <i class="fa-solid fa-utensils text-orange-500"></i>
@@ -213,42 +216,55 @@
             <div class="text-xs sm:text-sm md:text-base font-semibold text-orange-500 shrink-0" id="reloj">--:--:--</div>
         </header>
 
-        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-            
+        <div class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+
             <!-- CONTENIDO IZQUIERDO: SELECCIÓN DE MESAS O SELECCIÓN DE PRODUCTOS -->
-            <div class="w-full md:w-2/3 p-4 flex flex-col bg-mainBg overflow-hidden flex-1 h-1/2 md:h-auto" id="seccion-principal-izquierda">
+            <div class="w-full md:w-2/3 p-4 flex flex-col bg-mainBg overflow-hidden flex-1 min-h-0 h-1/2 md:h-auto" id="seccion-principal-izquierda">
                 
-                <!-- VISTA 1: PLANO DE MESAS POR PISOS -->
-                <div id="vista-mesas" class="flex-1 flex flex-col overflow-hidden">
-                    <div class="mb-4 bg-white p-4 rounded-2xl border border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                <!-- VISTA 1: MESAS EN PANTALLA PARTIDA (AMBOS PISOS A LA VEZ) -->
+                <div id="vista-mesas" class="flex-1 flex flex-col overflow-hidden min-h-0">
+                    <div class="mb-3 bg-white p-3 rounded-2xl border border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                         <div>
-                            <h2 class="font-bold text-gray-800 md:text-lg">Mapa de Mesas</h2>
-                            <p class="text-xs md:text-sm text-gray-500 font-medium font-semibold text-orange-600">Selecciona el piso y toca la mesa para crear o ver comandas.</p>
+                            <h2 class="font-bold text-gray-800 text-sm md:text-base">Mapa de Mesas</h2>
+                            <p class="text-[11px] md:text-xs text-gray-500 font-medium font-semibold text-orange-600">Toca una mesa para crear o ver su comanda · Se actualiza en tiempo real.</p>
                         </div>
-                        
-                        <!-- Pestañas de pisos para ventas -->
-                        <div class="flex bg-slate-100 p-1 rounded-xl gap-1 shrink-0 self-start sm:self-auto">
-                            <button onclick="cambiarPisoVentas('PLANTA_BAJA')" id="btn-piso-pb" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm bg-white text-orange-600 shadow-sm transition-all focus:outline-none">
-                                Planta Baja
-                            </button>
-                            <button onclick="cambiarPisoVentas('PLANTA_ALTA')" id="btn-piso-pa" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm text-slate-500 hover:text-slate-700 transition-all focus:outline-none">
-                                Primer Piso
-                            </button>
-                        </div>
-                        
-                        <button onclick="cargarMesas()" class="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-xl text-gray-700 transition-colors btn-bounce self-end sm:self-auto">
+
+                        <button onclick="cargarMesas()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-xl text-gray-700 transition-colors btn-bounce self-end sm:self-auto">
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
                     </div>
 
-                    <!-- Lienzo de distribución física de las mesas -->
-                    <div class="flex-grow relative bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft mb-6 min-h-[350px]">
-                        <!-- Grid pattern -->
-                        <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:30px_30px] opacity-20"></div>
-                        
-                        <!-- Contenedor absoluto de mesas -->
-                        <div class="absolute inset-0 select-none" id="lienzo-venta-mesas">
-                            <!-- Rellenado con js -->
+                    <!-- Pantalla partida: Planta Baja | Primer Piso -->
+                    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        <!-- PLANTA BAJA -->
+                        <div class="flex flex-col min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
+                            <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 shrink-0">
+                                <h3 class="font-black text-xs md:text-sm text-white uppercase tracking-wide flex items-center gap-2">
+                                    <i class="fa-solid fa-building text-accent"></i> Planta Baja
+                                </h3>
+                                <span id="resumen-planta-baja" class="text-[10px] md:text-xs font-bold text-slate-400">Cargando...</span>
+                            </div>
+                            <div class="flex-1 min-h-0 overflow-y-auto p-3">
+                                <div id="lienzo-planta-baja-llevar" class="space-y-2 mb-3"></div>
+                                <div id="lienzo-planta-baja" class="grid grid-cols-3 xl:grid-cols-4 gap-2.5 select-none">
+                                    <!-- Rellenado con js -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- PRIMER PISO -->
+                        <div class="flex flex-col min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
+                            <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 shrink-0">
+                                <h3 class="font-black text-xs md:text-sm text-white uppercase tracking-wide flex items-center gap-2">
+                                    <i class="fa-solid fa-building text-accent"></i> Primer Piso
+                                </h3>
+                                <span id="resumen-primer-piso" class="text-[10px] md:text-xs font-bold text-slate-400">Cargando...</span>
+                            </div>
+                            <div class="flex-1 min-h-0 overflow-y-auto p-3">
+                                <div id="lienzo-primer-piso-llevar" class="space-y-2 mb-3"></div>
+                                <div id="lienzo-primer-piso" class="grid grid-cols-3 xl:grid-cols-4 gap-2.5 select-none">
+                                    <!-- Rellenado con js -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -304,14 +320,14 @@
                 </div>
 
                 <!-- TOTAL Y ACCIONES -->
-                <div class="bg-[#F8FAFC] border-t p-3 sm:p-4 flex flex-col gap-2.5 shrink-0" id="ticket-acciones-container">
-                    <div class="flex justify-between items-center text-gray-600 text-sm md:text-base">
+                <div class="bg-[#142a4d] border-t border-blue-500/30 p-3 sm:p-4 flex flex-col gap-2.5 shrink-0" id="ticket-acciones-container">
+                    <div class="flex justify-between items-center text-slate-300 text-sm md:text-base">
                         <span class="font-bold">Subtotal</span>
-                        <span id="subtotal-ticket" class="font-black text-slate-800">Bs. 0.00</span>
+                        <span id="subtotal-ticket" class="font-black text-slate-100">Bs. 0.00</span>
                     </div>
                     <div class="flex justify-between items-end">
-                        <span class="text-lg md:text-xl font-black text-slate-900 uppercase tracking-wide">Total</span>
-                        <span class="text-2xl sm:text-3xl md:text-4xl font-black text-orange-600" id="total-ticket">Bs. 0.00</span>
+                        <span class="text-lg md:text-xl font-black text-white uppercase tracking-wide">Total</span>
+                        <span class="text-2xl sm:text-3xl md:text-4xl font-black text-accent" id="total-ticket">Bs. 0.00</span>
                     </div>
                     
                     <!-- Vistas condicionadas de acciones -->
@@ -462,6 +478,5 @@
         setInterval(actualizarReloj, 1000);
         actualizarReloj();
     </script>
-    <script src="js/security_guard.js"></script>
 </body>
 </html>

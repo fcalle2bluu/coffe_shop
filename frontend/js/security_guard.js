@@ -29,79 +29,93 @@
         });
     };
 
-    // === LÓGICA GLOBAL DE MODO OSCURO ===
-    function applyTheme(isDark) {
+    // === TEMA AZUL OSCURO PREMIUM (único modo, siempre activo) ===
+    function applyTheme() {
         let styleEl = document.getElementById('dark-mode-style');
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = 'dark-mode-style';
-                styleEl.innerHTML = `
-                    /* Modo Oscuro Profesional - Café La Paz */
+        document.documentElement.classList.add('dark');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'dark-mode-style';
+            styleEl.innerHTML = `
+                    /* Azul Oscuro Premium - Café La Paz */
                     html, body, main, .bg-mainBg {
-                        background-color: #0b0f19 !important;
-                        color: #f1f5f9 !important;
+                        background-color: #0b1830 !important;
+                        color: #eef3fc !important;
                     }
+                    /* Ocultar el interruptor de modo oscuro: ya no hay modo claro */
+                    #btn-theme-toggle { display: none !important; }
                     /* Tarjetas y Contenedores */
                     .bg-white, [class*="bg-white"] {
-                        background-color: #111827 !important;
-                        color: #f1f5f9 !important;
+                        background-color: #142a4d !important;
+                        color: #eef3fc !important;
                     }
                     /* Fondos Gris Claro a Oscuro */
-                    .bg-slate-50, .bg-slate-50\\/60, .bg-slate-50\\/70, .bg-indigo-50\\/60, .bg-gray-50, .bg-slate-100, .bg-gray-100 {
-                        background-color: #0f172a !important;
+                    .bg-slate-50, .bg-slate-50\\/60, .bg-slate-50\\/70, .bg-indigo-50\\/60, .bg-gray-50, .bg-slate-100, .bg-gray-100, .bg-stone-50, .bg-zinc-50, .bg-neutral-50 {
+                        background-color: #1b3358 !important;
                     }
                     /* Cabecera / Topbar */
                     header, .bg-white\\/70 {
-                        background-color: rgba(17, 24, 39, 0.8) !important;
-                        border-color: #1f2937 !important;
+                        background-color: rgba(18, 37, 68, 0.92) !important;
+                        border-color: rgba(96, 165, 250, 0.3) !important;
                     }
                     /* Bordes */
-                    .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-slate-200\\/60, .border, .border-b, .border-t, .border-r, .border-l, .excel-table, .excel-table td, .excel-table th {
-                        border-color: #1f2937 !important;
+                    .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-slate-200\\/60, .border-stone-200, .border-zinc-200, .border-neutral-200, .border, .border-b, .border-t, .border-r, .border-l, .excel-table, .excel-table td, .excel-table th {
+                        border-color: rgba(96, 165, 250, 0.3) !important;
                     }
                     /* Texto */
                     .text-slate-800, .text-gray-800, .text-slate-900, .text-slate-700, .text-gray-700, .text-slate-600, .text-slate-950,
                     .text-gray-900, .text-stone-800, .text-stone-700, .text-stone-900, .text-zinc-800, .text-zinc-700, .text-zinc-900,
                     .text-neutral-800, .text-neutral-700, .text-neutral-900 {
-                        color: #f3f4f6 !important;
+                        color: #f3f6fc !important;
                     }
                     .text-slate-500, .text-gray-500, .text-slate-400, .text-stone-500, .text-stone-600, .text-zinc-500, .text-zinc-600, .text-neutral-500, .text-neutral-600 {
-                        color: #9ca3af !important;
+                        color: #a9b8d4 !important;
                     }
                     .text-slate-200, .text-gray-200, .text-stone-200, .text-zinc-200, .text-neutral-200 {
-                        color: #d1d5db !important;
+                        color: #d7e1f4 !important;
                     }
                     /* Inputs, Selects, Textareas */
                     input[type="text"], input[type="number"], input[type="password"], input[type="date"], input[type="time"], select, textarea {
-                        background-color: #1f2937 !important;
-                        border-color: #374151 !important;
+                        background-color: #1b3358 !important;
+                        border-color: rgba(96, 165, 250, 0.45) !important;
                         color: #f9fafb !important;
                     }
                     input::placeholder {
-                        color: #6b7280 !important;
+                        color: #7f93bc !important;
                     }
                     /* Tablas */
                     th {
-                        background-color: #1f2937 !important;
-                        color: #e5e7eb !important;
-                        border-bottom: 2px solid #374151 !important;
+                        background-color: #1b3358 !important;
+                        color: #eaf0fb !important;
+                        border-bottom: 2px solid rgba(96, 165, 250, 0.5) !important;
                     }
                     td {
-                        color: #e5e7eb !important;
-                        border-bottom: 1px solid #1f2937 !important;
+                        color: #eaf0fb !important;
+                        border-bottom: 1px solid rgba(148, 180, 230, 0.12) !important;
                     }
                     tr:hover td {
-                        background-color: #1f2937 !important;
+                        background-color: #1b3358 !important;
                     }
                     /* Sombras */
                     .shadow-premium, .shadow-md, .shadow-lg {
-                        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+                        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.55) !important;
                     }
-                    /* Hover states */
-                    .hover\\:bg-slate-50:hover, .hover\\:bg-gray-50:hover, .hover\\:bg-slate-100:hover, .hover\\:bg-gray-100:hover {
-                        background-color: #1f2937 !important;
+                    /* Hover states: cualquier hover:bg-COLOR-50/100 (con o sin opacidad /NN) de toda la app */
+                    [class*="hover:bg-slate-50"]:hover, [class*="hover:bg-gray-50"]:hover, [class*="hover:bg-zinc-50"]:hover, [class*="hover:bg-stone-50"]:hover, [class*="hover:bg-neutral-50"]:hover,
+                    [class*="hover:bg-slate-100"]:hover, [class*="hover:bg-gray-100"]:hover, [class*="hover:bg-zinc-100"]:hover, [class*="hover:bg-stone-100"]:hover, [class*="hover:bg-neutral-100"]:hover {
+                        background-color: #1b3358 !important;
+                    }
+                    [class*="hover:bg-orange-50"]:hover, [class*="hover:bg-amber-50"]:hover, [class*="hover:bg-yellow-50"]:hover,
+                    [class*="hover:bg-red-50"]:hover, [class*="hover:bg-rose-50"]:hover, [class*="hover:bg-pink-50"]:hover,
+                    [class*="hover:bg-emerald-50"]:hover, [class*="hover:bg-green-50"]:hover, [class*="hover:bg-lime-50"]:hover, [class*="hover:bg-teal-50"]:hover,
+                    [class*="hover:bg-blue-50"]:hover, [class*="hover:bg-sky-50"]:hover, [class*="hover:bg-cyan-50"]:hover, [class*="hover:bg-indigo-50"]:hover,
+                    [class*="hover:bg-purple-50"]:hover, [class*="hover:bg-violet-50"]:hover, [class*="hover:bg-fuchsia-50"]:hover,
+                    [class*="hover:bg-orange-100"]:hover, [class*="hover:bg-amber-100"]:hover, [class*="hover:bg-yellow-100"]:hover,
+                    [class*="hover:bg-red-100"]:hover, [class*="hover:bg-rose-100"]:hover, [class*="hover:bg-pink-100"]:hover,
+                    [class*="hover:bg-emerald-100"]:hover, [class*="hover:bg-green-100"]:hover, [class*="hover:bg-lime-100"]:hover, [class*="hover:bg-teal-100"]:hover,
+                    [class*="hover:bg-blue-100"]:hover, [class*="hover:bg-sky-100"]:hover, [class*="hover:bg-cyan-100"]:hover, [class*="hover:bg-indigo-100"]:hover,
+                    [class*="hover:bg-purple-100"]:hover, [class*="hover:bg-violet-100"]:hover, [class*="hover:bg-fuchsia-100"]:hover {
+                        background-color: rgba(96, 165, 250, 0.14) !important;
                     }
                     .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12) !important; }
                     .bg-green-50 { background-color: rgba(34, 197, 94, 0.12) !important; }
@@ -132,16 +146,16 @@
 
                     /* Additional improvements for buttons & tables */
                     button.bg-slate-100, button.bg-gray-100, a.bg-slate-100, a.bg-gray-100 {
-                        background-color: #1f2937 !important;
-                        color: #f3f4f6 !important;
-                        border: 1px solid #374151 !important;
+                        background-color: #1b3358 !important;
+                        color: #f3f6fc !important;
+                        border: 1px solid rgba(96, 165, 250, 0.45) !important;
                     }
                     button.bg-slate-100:hover, button.bg-gray-100:hover, a.bg-slate-100:hover, a.bg-gray-100:hover {
-                        background-color: #374151 !important;
+                        background-color: #22406e !important;
                         color: #ffffff !important;
                     }
                     .hover\\:bg-slate-200:hover, .hover\\:bg-gray-200:hover {
-                        background-color: #374151 !important;
+                        background-color: #22406e !important;
                     }
                     .hover\\:bg-emerald-50\\/30:hover {
                         background-color: rgba(16, 185, 129, 0.12) !important;
@@ -163,60 +177,26 @@
 
                     /* === POS (Punto de Venta) === */
                     /* Encabezados de categoría pegajosos */
-                    .bg-mainBg\\/95 { background-color: rgba(11, 15, 25, 0.92) !important; }
+                    .bg-mainBg\\/95 { background-color: rgba(11, 24, 48, 0.95) !important; }
                     /* Placeholder de imagen de producto (degradado crema -> tinte naranja oscuro) */
                     .bg-gradient-to-br.from-orange-50 {
                         background-image: none !important;
                         background-color: rgba(249, 115, 22, 0.08) !important;
                     }
                     /* Zona de items del ticket */
-                    .bg-slate-50\\/50 { background-color: #0f172a !important; }
+                    .bg-slate-50\\/50 { background-color: #1b3358 !important; }
                     /* Bordes tenues introducidos por el rediseño */
-                    .border-slate-200\\/70, .border-slate-200\\/80, .border-slate-300 { border-color: #1f2937 !important; }
+                    .border-slate-200\\/70, .border-slate-200\\/80, .border-slate-300 { border-color: rgba(96, 165, 250, 0.3) !important; }
                 `;
-                document.documentElement.appendChild(styleEl);
-            }
-        } else {
-            document.documentElement.classList.remove('dark');
-            if (styleEl) {
-                styleEl.remove();
-            }
+            document.documentElement.appendChild(styleEl);
         }
     }
 
-    function updateToggleButtons(isDark) {
-        const btn = document.getElementById('btn-theme-toggle');
-        const icon = document.getElementById('theme-toggle-icon');
-        if (btn && icon) {
-            if (isDark) {
-                icon.className = 'fa-solid fa-sun text-lg text-amber-400';
-                btn.className = 'w-10 h-10 rounded-xl flex items-center justify-center border border-slate-700 bg-slate-800 text-amber-400 hover:bg-slate-700 transition-all shadow-sm';
-            } else {
-                icon.className = 'fa-solid fa-moon text-lg text-slate-600';
-                btn.className = 'w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all shadow-sm';
-            }
-        }
-    }
-
-    window.toggleDarkMode = function() {
-        const isDark = localStorage.getItem('darkMode') === 'true';
-        const newDark = !isDark;
-        localStorage.setItem('darkMode', newDark);
-        applyTheme(newDark);
-        updateToggleButtons(newDark);
-        
-        const event = new CustomEvent('themeChanged', { detail: { isDark: newDark } });
-        window.dispatchEvent(event);
-    };
-
-    // Aplicar inmediatamente
-    const darkModeActivo = localStorage.getItem('darkMode') === 'true';
-    applyTheme(darkModeActivo);
-
-    window.addEventListener('DOMContentLoaded', () => {
-        const isDark = localStorage.getItem('darkMode') === 'true';
-        updateToggleButtons(isDark);
-    });
+    // El tema azul oscuro es el único modo de la aplicación: sin selector, sin modo claro.
+    localStorage.setItem('darkMode', 'true');
+    applyTheme();
+    // Stub inofensivo: el botón de cambio de tema quedó oculto (ya no hay modo claro que alternar).
+    window.toggleDarkMode = function() {};
 
     // === MEJORAS GLOBALES DE UI (móvil, transiciones fluidas, tablas y gráficos) ===
 

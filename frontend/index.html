@@ -32,10 +32,10 @@
         .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 
         /* Orbes de luz animados */
-        .orb { position: absolute; border-radius: 9999px; filter: blur(90px); opacity: .55; }
-        .orb-1 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(249,115,22,.45), transparent 65%); top: -140px; left: -120px; animation: drift1 16s ease-in-out infinite alternate; }
-        .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(59,89,246,.28), transparent 65%); bottom: -120px; right: -100px; animation: drift2 20s ease-in-out infinite alternate; }
-        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(245,158,11,.22), transparent 60%); bottom: 15%; left: 8%; animation: drift3 18s ease-in-out infinite alternate; }
+        .orb { position: absolute; border-radius: 9999px; filter: blur(90px); opacity: .35; }
+        .orb-1 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(59,130,246,.35), transparent 65%); top: -140px; left: -120px; animation: drift1 16s ease-in-out infinite alternate; }
+        .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(37,99,235,.30), transparent 65%); bottom: -120px; right: -100px; animation: drift2 20s ease-in-out infinite alternate; }
+        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(96,165,250,.16), transparent 60%); bottom: 15%; left: 8%; animation: drift3 18s ease-in-out infinite alternate; }
         @keyframes drift1 { to { transform: translate(60px, 40px) scale(1.1); } }
         @keyframes drift2 { to { transform: translate(-50px, -30px) scale(1.15); } }
         @keyframes drift3 { to { transform: translate(40px, -50px); } }
@@ -54,7 +54,7 @@
             background: rgba(15, 23, 42, 0.55);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(148, 163, 184, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.16);
         }
 
         /* Vapor del café */
@@ -89,7 +89,7 @@
     </style>
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
-<body class="bg-[#060a13] min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans">
+<body class="bg-[#0b1830] min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans">
 
     <!-- Fondo: orbes de luz + cuadrícula -->
     <div class="fx">
@@ -102,14 +102,14 @@
     <div class="w-full max-w-md relative z-10">
         <!-- Logo Area -->
         <div class="flex flex-col items-center mb-8 enter d-1">
-            <div class="relative w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-orange-500/40 mb-4 animate-float">
+            <div class="relative w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-600/30 mb-4 animate-float">
                 <i class="fa-solid fa-mug-hot text-3xl"></i>
                 <span class="steam" style="left: 24px; animation-delay: 0s;"></span>
                 <span class="steam" style="left: 31px; animation-delay: .9s;"></span>
                 <span class="steam" style="left: 38px; animation-delay: 1.7s;"></span>
             </div>
             <h1 class="text-4xl font-black text-white italic tracking-tighter uppercase">
-                Café <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">La Paz</span>
+                Café <span class="text-blue-400">La Paz</span>
             </h1>
             <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.25em] mt-2">Gestión de Cafetería</p>
         </div>
@@ -117,7 +117,7 @@
         <!-- Login Card -->
         <div class="glass-login rounded-[2rem] p-6 sm:p-10 shadow-premium relative overflow-hidden enter d-2">
             <!-- Filo de luz superior -->
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-orange-500/60 to-transparent"></div>
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
 
             <div class="relative z-10">
                 <div class="mb-8">
@@ -129,18 +129,18 @@
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identificador de Usuario</label>
                         <div class="relative group">
-                            <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-orange-400 transition-colors"></i>
+                            <i class="fa-solid fa-user absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors"></i>
                             <input type="text" id="username" required placeholder="Ej. admin" autofocus
-                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-orange-500/60 focus:ring-4 focus:ring-orange-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold" autocomplete="off">
+                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold" autocomplete="off">
                         </div>
                     </div>
 
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">PIN de Seguridad</label>
                         <div class="relative group">
-                            <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-orange-400 transition-colors"></i>
+                            <i class="fa-solid fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors"></i>
                             <input type="password" id="pin" required placeholder="••••" inputmode="numeric" maxlength="6"
-                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-orange-500/60 focus:ring-4 focus:ring-orange-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold tracking-[0.5em]">
+                                class="w-full bg-slate-800/50 border border-slate-700/40 rounded-2xl pl-12 pr-5 py-4 text-base sm:text-sm focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 focus:bg-slate-800/80 placeholder-slate-500 transition-all outline-none text-white font-semibold tracking-[0.5em]">
                         </div>
                     </div>
 
@@ -148,7 +148,7 @@
                         Credenciales incorrectas
                     </div>
 
-                    <button type="submit" id="btnSubmit" class="btn-shine w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-500/25 transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+                    <button type="submit" id="btnSubmit" class="btn-shine w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/25 transition-all active:scale-[0.98] uppercase tracking-widest text-xs flex items-center justify-center gap-3">
                         Entrar al Sistema <i class="fa-solid fa-chevron-right text-[10px]"></i>
                     </button>
                 </form>
