@@ -393,7 +393,8 @@ async function cargarHistorialVentasAdmin() {
             return;
         }
 
-        // Agrupar por Mes -> Cajero
+        // Agrupar solo por Mes: la lista dentro de cada mes es global (todos los
+        // cajeros mezclados) y ordenada por horario, no separada por persona.
         const agrupado = {};
         ventas.forEach(v => {
             // fecha_venta: "YYYY-MM-DD HH24:MI"
@@ -405,15 +406,11 @@ async function cargarHistorialVentasAdmin() {
                 }
             }
 
-            const cajero = v.cajero || 'Sin Cajero Asignado';
-
-            if(!agrupado[mesAno]) agrupado[mesAno] = { totalMes: 0, cajeros: {} };
-            if(!agrupado[mesAno].cajeros[cajero]) agrupado[mesAno].cajeros[cajero] = { total: 0, lista: [] };
+            if(!agrupado[mesAno]) agrupado[mesAno] = { totalMes: 0, lista: [] };
 
             const importe = parseFloat(v.total || 0);
             agrupado[mesAno].totalMes += importe;
-            agrupado[mesAno].cajeros[cajero].total += importe;
-            agrupado[mesAno].cajeros[cajero].lista.push(v);
+            agrupado[mesAno].lista.push(v);
         });
 
         // Generar HTML
@@ -433,16 +430,8 @@ async function cargarHistorialVentasAdmin() {
                         <h3 class="font-black text-lg uppercase tracking-wide"><i class="fa-regular fa-calendar-days mr-2 text-orange-400"></i> ${tituloMes}</h3>
                         <span class="font-black tabular-nums bg-gray-900 px-3 py-1 text-orange-400 rounded-lg shadow-inner">Total Mes: ${formatMontoCensurado(dataMes.totalMes)}</span>
                     </div>
-                    <div class="p-4 bg-gray-50 flex flex-col gap-4">
-            `;
-
-            for(const [nombreCajero, dataCajero] of Object.entries(dataMes.cajeros)) {
-                htmlMes += `
-                    <div class="bg-white rounded border border-gray-200 border-l-4 border-l-stone-600 shadow-sm overflow-hidden">
-                        <div class="bg-gray-100 p-2 px-4 flex justify-between items-center border-b border-gray-200">
-                            <h4 class="font-bold text-stone-800 text-sm uppercase"><i class="fa-solid fa-user-check text-stone-500 mr-2"></i> ${nombreCajero}</h4>
-                            <span class="font-black text-stone-700 text-sm">Ventas: ${formatMontoCensurado(dataCajero.total)}</span>
-                        </div>
+                    <div class="p-4 bg-gray-50">
+                        <div class="bg-white rounded border border-gray-200 border-l-4 border-l-stone-600 shadow-sm overflow-hidden">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
                                 <thead>
@@ -450,6 +439,8 @@ async function cargarHistorialVentasAdmin() {
                                         <th class="px-4 py-2 border-r border-gray-200 w-[100px]">ID Venta</th>
                                         <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
                                         <th class="px-4 py-2 border-r border-gray-200 w-[90px]">Tipo</th>
+                                        <th class="px-4 py-2 border-r border-gray-200">Mesero</th>
+                                        <th class="px-4 py-2 border-r border-gray-200">Cajero</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
                                         <th class="px-4 py-2 text-right">Monto</th>
                                         <th class="px-4 py-2 text-center w-[220px] no-print">Acciones</th>
@@ -457,11 +448,11 @@ async function cargarHistorialVentasAdmin() {
                                 </thead>
                                 <tbody>
                 `;
-                
+
                 const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
                 const esAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
 
-                dataCajero.lista.forEach(venta => {
+                dataMes.lista.forEach(venta => {
                     const iconMetodo = venta.metodo_pago === 'EFECTIVO' ? '<i class="fa-solid fa-money-bill-wave text-green-600 mr-1"></i>' : 
                                        (venta.metodo_pago === 'QR' || venta.metodo_pago === 'QR DIGITAL') ? '<i class="fa-solid fa-qrcode text-blue-600 mr-1"></i>' : 
                                        (venta.metodo_pago === 'CONSUME_LO_NUESTRO' || venta.metodo_pago === 'CONSUME LO NUESTRO' || venta.metodo_pago === 'BILLETERA MOVIL' || venta.metodo_pago === 'BILLETERA_MOVIL') ? '<i class="fa-solid fa-wallet text-orange-600 mr-1"></i>' :
@@ -491,12 +482,16 @@ async function cargarHistorialVentasAdmin() {
                     const tdTipo = venta.comanda_id
                         ? `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>Mesa ${venta.mesa || ''}</span></td>`
                         : `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600"><i class="fa-solid fa-cash-register mr-1"></i>POS</span></td>`;
+                    const tdMesero = `<td class="px-4 py-1.5 text-stone-600 border-r border-gray-100 font-bold text-[10px]">${venta.mesero || '-'}</td>`;
+                    const tdCajero = `<td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${venta.cajero || '-'}</td>`;
 
                     htmlMes += `
                                     <tr class="border-b border-gray-100 hover:bg-orange-50 transition-colors">
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
                                         ${tdTipo}
+                                        ${tdMesero}
+                                        ${tdCajero}
                                         ${tdMetodoPago}
                                         <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">${formatMontoCensurado(venta.total)}</td>
                                         <td class="px-4 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1.5">
@@ -520,7 +515,6 @@ async function cargarHistorialVentasAdmin() {
                         </div>
                     </div>
                 `;
-            }
 
             htmlMes += `</div></div>`;
             contenedor.innerHTML += htmlMes;

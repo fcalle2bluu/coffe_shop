@@ -283,10 +283,12 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
                 v.es_historica,
                 v.comanda_id,
                 c.mesa,
-                u.nombre as cajero
+                u.nombre as cajero,
+                um.nombre as mesero
             FROM ventas v
             LEFT JOIN usuarios u ON v.usuario_id = u.id
             LEFT JOIN comandas c ON v.comanda_id = c.id
+            LEFT JOIN usuarios um ON c.usuario_id = um.id
         `;
 
         const queryParams = [];
