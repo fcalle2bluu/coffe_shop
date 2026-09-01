@@ -91,7 +91,46 @@ function esParaLlevar(m) {
     return String(m.mesa).toUpperCase().includes('LLEVAR');
 }
 
+// Barra horizontal con el estado de cocina (pendiente/completado) de las
+// comandas actualmente activas (mesas ocupadas), sin importar el piso.
+function renderizarEstadoCocina() {
+    const barra = document.getElementById('estado-cocina-barra');
+    const resumenTexto = document.getElementById('estado-cocina-resumen-texto');
+    if (!barra || !resumenTexto) return;
+
+    const activas = mesasGlobal.filter(m => m.estado === 'ocupada' && m.comanda);
+    if (activas.length === 0) {
+        barra.innerHTML = '';
+        resumenTexto.innerText = 'Sin mesas activas';
+        return;
+    }
+
+    let pendientes = 0, completados = 0, rechazados = 0;
+    activas.forEach(m => {
+        const ec = (m.comanda.estado_cocina || '').toUpperCase();
+        if (ec === 'COMPLETADA') completados++;
+        else if (ec === 'RECHAZADA') rechazados++;
+        else pendientes++;
+    });
+
+    const total = activas.length;
+    const segmentos = [
+        { cantidad: pendientes, color: 'bg-amber-400' },
+        { cantidad: completados, color: 'bg-emerald-500' },
+        { cantidad: rechazados, color: 'bg-rose-500' },
+    ].filter(s => s.cantidad > 0);
+
+    barra.innerHTML = segmentos.map(s => `<div class="${s.color} h-full" style="width:${(s.cantidad / total * 100).toFixed(1)}%"></div>`).join('');
+
+    const partes = [];
+    if (pendientes > 0) partes.push(`🟠 ${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`);
+    if (completados > 0) partes.push(`🟢 ${completados} completado${completados !== 1 ? 's' : ''}`);
+    if (rechazados > 0) partes.push(`🔴 ${rechazados} rechazado${rechazados !== 1 ? 's' : ''}`);
+    resumenTexto.innerText = partes.join('  ·  ');
+}
+
 function renderizarMesas() {
+    renderizarEstadoCocina();
     const contenedores = {
         'PLANTA_BAJA': document.getElementById('lienzo-planta-baja'),
         'PLANTA_ALTA': document.getElementById('lienzo-primer-piso')

@@ -242,6 +242,19 @@
                         </button>
                     </div>
 
+                    <!-- Estado de cocina de las mesas activas: barra horizontal Pendiente / Completado -->
+                    <div class="mb-3 bg-white p-3 rounded-2xl border border-gray-150 shrink-0" id="tarjeta-estado-cocina">
+                        <div class="flex items-center justify-between mb-2 gap-2">
+                            <h3 class="font-bold text-gray-800 text-[11px] md:text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-kitchen-set text-orange-500"></i> Estado en Cocina · Mesas Activas
+                            </h3>
+                            <span id="estado-cocina-resumen-texto" class="text-[10px] md:text-xs font-bold text-gray-400 shrink-0">Cargando...</span>
+                        </div>
+                        <div id="estado-cocina-barra" class="w-full h-3.5 rounded-full bg-gray-100 overflow-hidden flex">
+                            <!-- Segmentos rellenados por JS -->
+                        </div>
+                    </div>
+
                     <!-- Pantalla partida: Planta Baja | Primer Piso -->
                     <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
                         <!-- PLANTA BAJA -->
