@@ -116,8 +116,8 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
 
         // 1. Insertar Cabecera de Comanda
         const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas, numero_comanda)
-            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6, $7)
+            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas, numero_comanda, fecha_pendiente_desde)
+            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6, $7, CURRENT_TIMESTAMP)
             RETURNING id, numero_comanda
         `;
         const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente, notas || null, numeroComanda]);
@@ -218,7 +218,7 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
 
         await client.query(`
             UPDATE comandas
-            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, version = version + 1
+            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, fecha_pendiente_desde = CURRENT_TIMESTAMP, version = version + 1
             WHERE id = $3
         `, [total, notas || null, id]);
 
@@ -242,7 +242,7 @@ router.post('/mesero/:id/imprimir', checkMeseroOAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             UPDATE comandas
-            SET estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, version = version + 1
+            SET estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, fecha_pendiente_desde = CURRENT_TIMESTAMP, version = version + 1
             WHERE id = $1
             RETURNING id, version
         `, [id]);
@@ -327,7 +327,7 @@ router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
 
     try {
         const result = await pool.query(
-            'UPDATE comandas SET estado_cocina = $1, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
+            'UPDATE comandas SET estado_cocina = $1, fecha_actualizacion = CURRENT_TIMESTAMP, fecha_completada_desde = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
             [estado_cocina, id]
         );
         if (result.rows.length === 0) {

@@ -340,6 +340,17 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración estado_cocina:', estadoCocinaErr.message);
     }
 
+    // 5.97b-2 Migración: marcas de tiempo de cada transición de estado_cocina, para
+    // el contador de espera en Venta por Mesa y para poder reportar más adelante
+    // cuánto tarda cocina y cuánto espera una mesa ya lista antes de cobrarse.
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS fecha_pendiente_desde TIMESTAMP;');
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS fecha_completada_desde TIMESTAMP;');
+        console.log('✅ Columnas fecha_pendiente_desde/fecha_completada_desde en comandas verificadas/creadas.');
+    } catch (fechasCocinaErr) {
+        console.log('Info Migración fechas de cocina:', fechasCocinaErr.message);
+    }
+
     // 5.97c Migración: fecha/hora del pedido tal como la envía el navegador del mesero
     try {
         await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS fecha_hora_cliente TIMESTAMP;');

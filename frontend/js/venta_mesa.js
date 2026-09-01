@@ -97,6 +97,16 @@ function esParaLlevar(m) {
 // Color de la mesa según su estado real: verde si está libre, rojo si tiene
 // comanda pendiente en cocina, amarillo si cocina ya la completó (aunque la
 // mesa siga ocupada esperando el cobro).
+// Desde cuándo contar el cronómetro de una mesa: en rojo cuenta desde que se
+// marcó pendiente en cocina; en amarillo se REINICIA y cuenta desde que cocina
+// la completó (no arrastra el tiempo que ya estuvo en rojo).
+function desdeParaContador(m, color) {
+    if (!m.comanda) return null;
+    if (color === 'rose') return m.comanda.fecha_pendiente_desde || m.comanda.fecha_actualizacion;
+    if (color === 'amber') return m.comanda.fecha_completada_desde || m.comanda.fecha_actualizacion;
+    return null;
+}
+
 function estadoColorMesa(m) {
     if (m.estado !== 'ocupada') return 'emerald';
     const ec = ((m.comanda && m.comanda.estado_cocina) || '').toUpperCase();
@@ -209,15 +219,17 @@ function renderizarMesas() {
         if (contenedorLlevar) {
             contenedorLlevar.innerHTML = mesasLlevar.map(m => {
                 const esOcupada = m.estado === 'ocupada';
-                const paleta = PALETA_FRANJA_LLEVAR[estadoColorMesa(m)];
+                const colorMesa = estadoColorMesa(m);
+                const paleta = PALETA_FRANJA_LLEVAR[colorMesa];
                 const colorBg = paleta.bg;
                 const colorText = paleta.text;
                 const badgeColor = paleta.badge;
                 const dotPulse = (esOcupada && paleta.dot) ? `<span class="w-2 h-2 rounded-full ${paleta.dot} animate-pulse shrink-0"></span>` : '';
                 const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black ${colorText} shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
                 const estadoLabel = esOcupada ? m.comanda.estado : '';
-                const contadorEspera = (esOcupada && estadoColorMesa(m) === 'rose')
-                    ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono shrink-0" data-desde="${m.comanda.fecha_actualizacion}">${formatearTiempoEspera(Date.now() - new Date(m.comanda.fecha_actualizacion).getTime())}</span>`
+                const desdeContador = esOcupada ? desdeParaContador(m, colorMesa) : null;
+                const contadorEspera = desdeContador
+                    ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono shrink-0" data-desde="${desdeContador}">${formatearTiempoEspera(Date.now() - new Date(desdeContador).getTime())}</span>`
                     : '';
 
                 return `
@@ -250,7 +262,8 @@ function renderizarMesas() {
             const esOcupada = m.estado === 'ocupada';
 
             // Colores según estado: verde libre, rojo pendiente en cocina, amarillo ya completada por cocina
-            const paleta = PALETA_GRID_MESAS[estadoColorMesa(m)];
+            const colorMesa = estadoColorMesa(m);
+            const paleta = PALETA_GRID_MESAS[colorMesa];
             const colorBg = paleta.bg;
             const colorText = paleta.text;
             const badgeColor = paleta.badge;
@@ -259,8 +272,9 @@ function renderizarMesas() {
 
             const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs ${colorText} font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
             const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
-            const contadorEspera = (esOcupada && estadoColorMesa(m) === 'rose')
-                ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono leading-none" data-desde="${m.comanda.fecha_actualizacion}">${formatearTiempoEspera(Date.now() - new Date(m.comanda.fecha_actualizacion).getTime())}</span>`
+            const desdeContador = esOcupada ? desdeParaContador(m, colorMesa) : null;
+            const contadorEspera = desdeContador
+                ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono leading-none" data-desde="${desdeContador}">${formatearTiempoEspera(Date.now() - new Date(desdeContador).getTime())}</span>`
                 : '';
 
             return `
