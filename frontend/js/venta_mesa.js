@@ -91,6 +91,28 @@ function esParaLlevar(m) {
     return String(m.mesa).toUpperCase().includes('LLEVAR');
 }
 
+// Color de la mesa según su estado real: verde si está libre, rojo si tiene
+// comanda pendiente en cocina, amarillo si cocina ya la completó (aunque la
+// mesa siga ocupada esperando el cobro).
+function estadoColorMesa(m) {
+    if (m.estado !== 'ocupada') return 'emerald';
+    const ec = ((m.comanda && m.comanda.estado_cocina) || '').toUpperCase();
+    if (ec === 'COMPLETADA') return 'amber';
+    return 'rose';
+}
+
+const PALETA_FRANJA_LLEVAR = {
+    rose: { bg: 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20', text: 'text-rose-300', badge: 'bg-rose-500 text-white', dot: 'bg-rose-400' },
+    amber: { bg: 'bg-amber-500/10 border-amber-400/60 hover:bg-amber-500/20', text: 'text-amber-300', badge: 'bg-amber-500 text-white', dot: 'bg-amber-400' },
+    emerald: { bg: 'bg-violet-500/10 border-violet-400/50 hover:bg-violet-500/20', text: 'text-violet-300', badge: 'bg-violet-500 text-white', dot: '' },
+};
+
+const PALETA_GRID_MESAS = {
+    rose: { bg: 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20', text: 'text-rose-300', badge: 'bg-rose-500 text-white', ring: 'ring-4 ring-rose-400/25', dot: 'bg-rose-400' },
+    amber: { bg: 'bg-amber-500/10 border-amber-400/60 hover:bg-amber-500/20', text: 'text-amber-300', badge: 'bg-amber-500 text-white', ring: 'ring-4 ring-amber-400/25', dot: 'bg-amber-400' },
+    emerald: { bg: 'bg-emerald-500/10 border-emerald-400/60 hover:bg-emerald-500/20', text: 'text-emerald-300', badge: 'bg-emerald-500 text-white', ring: 'hover:ring-4 hover:ring-emerald-400/25', dot: '' },
+};
+
 // Barra horizontal con el estado de cocina (pendiente/completado) de las
 // comandas actualmente activas (mesas ocupadas), sin importar el piso.
 function renderizarEstadoCocina() {
@@ -163,11 +185,12 @@ function renderizarMesas() {
         if (contenedorLlevar) {
             contenedorLlevar.innerHTML = mesasLlevar.map(m => {
                 const esOcupada = m.estado === 'ocupada';
-                const colorBg = esOcupada ? 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20' : 'bg-violet-500/10 border-violet-400/50 hover:bg-violet-500/20';
-                const colorText = esOcupada ? 'text-rose-300' : 'text-violet-300';
-                const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-violet-500 text-white';
-                const dotPulse = esOcupada ? '<span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse shrink-0"></span>' : '';
-                const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black text-rose-300 shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
+                const paleta = PALETA_FRANJA_LLEVAR[estadoColorMesa(m)];
+                const colorBg = paleta.bg;
+                const colorText = paleta.text;
+                const badgeColor = paleta.badge;
+                const dotPulse = (esOcupada && paleta.dot) ? `<span class="w-2 h-2 rounded-full ${paleta.dot} animate-pulse shrink-0"></span>` : '';
+                const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black ${colorText} shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
                 const estadoLabel = esOcupada ? m.comanda.estado : '';
 
                 return `
@@ -198,14 +221,15 @@ function renderizarMesas() {
         contenedor.innerHTML = mesasPiso.map(m => {
             const esOcupada = m.estado === 'ocupada';
 
-            // Colores premium
-            const colorBg = esOcupada ? 'bg-rose-500/10 border-rose-400/60 hover:bg-rose-500/20' : 'bg-emerald-500/10 border-emerald-400/60 hover:bg-emerald-500/20';
-            const colorText = esOcupada ? 'text-rose-300' : 'text-emerald-300';
-            const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
-            const ringPulse = esOcupada ? 'ring-4 ring-rose-400/25' : 'hover:ring-4 hover:ring-emerald-400/25';
-            const dotPulse = esOcupada ? '<span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse"></span>' : '';
+            // Colores según estado: verde libre, rojo pendiente en cocina, amarillo ya completada por cocina
+            const paleta = PALETA_GRID_MESAS[estadoColorMesa(m)];
+            const colorBg = paleta.bg;
+            const colorText = paleta.text;
+            const badgeColor = paleta.badge;
+            const ringPulse = paleta.ring;
+            const dotPulse = (esOcupada && paleta.dot) ? `<span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${paleta.dot} animate-pulse"></span>` : '';
 
-            const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs text-rose-300 font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
+            const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs ${colorText} font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
             const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
 
             return `
