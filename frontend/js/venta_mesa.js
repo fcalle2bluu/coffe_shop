@@ -307,7 +307,8 @@ async function seleccionarMesa(numero) {
 
     // Marcar mesa activa en UI
     document.getElementById('ticket-titulo').innerText = numero === 'Para Llevar' ? 'Para Llevar' : `Mesa #${numero}`;
-    
+    document.getElementById('btn-cerrar-panel-mesa').classList.remove('hidden');
+
     // Consultar estado de la mesa en el backend
     try {
         const res = await fetch(`/api/comandas/mesa/${numero}`);
@@ -604,6 +605,33 @@ function eliminarItemCarrito(idx) {
 function limpiarPedidoActual() {
     carritoComanda = [];
     actualizarTicketEdicion();
+}
+
+// Cierra el panel de detalle de la mesa y vuelve al estado inicial (ninguna mesa seleccionada)
+function cerrarPanelMesa() {
+    mesaSeleccionada = null;
+    modoEdicionActivo = false;
+    carritoComanda = [];
+    comandaActivaMesa = null;
+    comandaActivaItems = [];
+
+    mostrarVistaMesas();
+
+    document.getElementById('ticket-titulo').innerText = 'Mesa No Seleccionada';
+    document.getElementById('ticket-estado').classList.add('hidden');
+    document.getElementById('btn-limpiar-pedido').classList.add('hidden');
+    document.getElementById('btn-cerrar-panel-mesa').classList.add('hidden');
+
+    document.getElementById('ticket-items').innerHTML = `
+        <div class="text-center text-gray-400 mt-10 text-sm md:text-base">
+            <i class="fa-solid fa-utensils text-4xl mb-3 opacity-20 text-orange-900"></i>
+            <p class="font-bold">Selecciona una mesa para ver o crear su comanda.</p>
+        </div>
+    `;
+
+    document.getElementById('subtotal-ticket').innerText = 'Bs. 0.00';
+    document.getElementById('total-ticket').innerText = 'Bs. 0.00';
+    document.getElementById('seccion-acciones-mesa').innerHTML = '';
 }
 
 // 10. Renderizar UI del carrito activo de comanda
