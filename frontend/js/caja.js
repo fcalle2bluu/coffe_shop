@@ -449,6 +449,7 @@ async function cargarHistorialVentasAdmin() {
                                     <tr class="bg-gray-50 text-gray-500 uppercase tracking-wider">
                                         <th class="px-4 py-2 border-r border-gray-200 w-[100px]">ID Venta</th>
                                         <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
+                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]">Tipo</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
                                         <th class="px-4 py-2 text-right">Monto</th>
                                         <th class="px-4 py-2 text-center w-[220px] no-print">Acciones</th>
@@ -487,10 +488,15 @@ async function cargarHistorialVentasAdmin() {
                         `;
                     }
 
+                    const tdTipo = venta.comanda_id
+                        ? `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700"><i class="fa-solid fa-chair mr-1"></i>Mesa ${venta.mesa || ''}</span></td>`
+                        : `<td class="px-4 py-1.5 border-r border-gray-100"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600"><i class="fa-solid fa-cash-register mr-1"></i>POS</span></td>`;
+
                     htmlMes += `
                                     <tr class="border-b border-gray-100 hover:bg-orange-50 transition-colors">
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
+                                        ${tdTipo}
                                         ${tdMetodoPago}
                                         <td class="px-4 py-1.5 text-right font-black text-stone-900 font-mono">${formatMontoCensurado(venta.total)}</td>
                                         <td class="px-4 py-1.5 text-center whitespace-nowrap no-print flex items-center justify-center gap-1.5">
