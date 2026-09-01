@@ -378,6 +378,16 @@ const mesesNombres = {
     "07": "Julio", "08": "Agosto", "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
 };
 
+// Formatea una duración en ms como "Xh YYm" o "M:SS" (mismo formato que el contador de Venta por Mesa)
+function formatearDuracionAuditoria(ms) {
+    const segundosTotales = Math.max(0, Math.floor(ms / 1000));
+    const horas = Math.floor(segundosTotales / 3600);
+    const minutos = Math.floor((segundosTotales % 3600) / 60);
+    const segundos = segundosTotales % 60;
+    if (horas > 0) return `${horas}h ${String(minutos).padStart(2, '0')}m`;
+    return `${minutos}:${String(segundos).padStart(2, '0')}`;
+}
+
 async function cargarHistorialVentasAdmin() {
     try {
         const usuarioId = localStorage.getItem('usuario_id') || '';
@@ -439,6 +449,8 @@ async function cargarHistorialVentasAdmin() {
                                         <th class="px-4 py-2 border-r border-gray-200 w-[100px]">ID Venta</th>
                                         <th class="px-4 py-2 border-r border-gray-200 w-[160px]">Fecha</th>
                                         <th class="px-4 py-2 border-r border-gray-200 w-[90px]">Tipo</th>
+                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]" title="Tiempo que la comanda estuvo pendiente en cocina"><i class="fa-solid fa-circle text-rose-500 mr-1 text-[8px]"></i>Espera Cocina</th>
+                                        <th class="px-4 py-2 border-r border-gray-200 w-[90px]" title="Tiempo desde que cocina entregó hasta que se cobró"><i class="fa-solid fa-circle text-amber-500 mr-1 text-[8px]"></i>Espera Cobro</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Mesero</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Cajero</th>
                                         <th class="px-4 py-2 border-r border-gray-200">Método Pago</th>
@@ -485,11 +497,20 @@ async function cargarHistorialVentasAdmin() {
                     const tdMesero = `<td class="px-4 py-1.5 text-stone-600 border-r border-gray-100 font-bold text-[10px]">${venta.mesero || '-'}</td>`;
                     const tdCajero = `<td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 font-bold text-[10px]">${venta.cajero || '-'}</td>`;
 
+                    const tdEsperaCocina = (venta.fecha_pendiente_desde && venta.fecha_completada_desde)
+                        ? `<td class="px-4 py-1.5 border-r border-gray-100 font-mono font-black text-rose-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_completada_desde) - new Date(venta.fecha_pendiente_desde))}</td>`
+                        : `<td class="px-4 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
+                    const tdEsperaCobro = (venta.fecha_completada_desde && venta.fecha_venta_raw)
+                        ? `<td class="px-4 py-1.5 border-r border-gray-100 font-mono font-black text-amber-600 text-[10px]">${formatearDuracionAuditoria(new Date(venta.fecha_venta_raw) - new Date(venta.fecha_completada_desde))}</td>`
+                        : `<td class="px-4 py-1.5 border-r border-gray-100 text-gray-300 text-[10px]">-</td>`;
+
                     htmlMes += `
                                     <tr class="border-b border-gray-100 hover:bg-orange-50 transition-colors">
                                         <td class="px-4 py-1.5 font-mono text-gray-500 border-r border-gray-100">#${venta.venta_id.toString().padStart(5,'0')}</td>
                                         <td class="px-4 py-1.5 text-stone-700 border-r border-gray-100 whitespace-nowrap">${venta.fecha_venta}</td>
                                         ${tdTipo}
+                                        ${tdEsperaCocina}
+                                        ${tdEsperaCobro}
                                         ${tdMesero}
                                         ${tdCajero}
                                         ${tdMetodoPago}
