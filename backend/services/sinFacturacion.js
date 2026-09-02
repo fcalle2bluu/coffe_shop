@@ -233,9 +233,10 @@ async function registrarEventoSignificativo({ codigoMotivoEvento, descripcion, c
 
 async function anularFactura({ cuf, codigoMotivo, cufd, codigoPuntoVenta, codigoDocumentoSector = 1, cuis = process.env.SIN_CUIS }) {
     const d = datosBase();
-    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
-        ? ''
-        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    // El WSDL marca codigoPuntoVenta como minOccurs=0, pero el RCV de PILOTO
+    // a veces revienta (999) si el elemento no va. Casa matriz = 0.
+    const pv = (codigoPuntoVenta === null || codigoPuntoVenta === undefined) ? 0 : codigoPuntoVenta;
+    const pvTag = `<codigoPuntoVenta>${pv}</codigoPuntoVenta>`;
     const xml = `
       <SolicitudServicioAnulacionFactura>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
@@ -261,9 +262,8 @@ async function anularFactura({ cuf, codigoMotivo, cufd, codigoPuntoVenta, codigo
 // (mismos campos base que anulacionFactura, sin codigoMotivo) + cuf.
 async function reversionAnulacion({ cuf, cufd, codigoPuntoVenta, codigoDocumentoSector = 1, tipoFacturaDocumento = 1, cuis = process.env.SIN_CUIS }) {
     const d = datosBase();
-    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
-        ? ''
-        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const pv = (codigoPuntoVenta === null || codigoPuntoVenta === undefined) ? 0 : codigoPuntoVenta;
+    const pvTag = `<codigoPuntoVenta>${pv}</codigoPuntoVenta>`;
     const xml = `
       <SolicitudServicioReversionAnulacionFactura>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
@@ -288,28 +288,30 @@ async function reversionAnulacion({ cuf, cufd, codigoPuntoVenta, codigoDocumento
 // y luego se agrupan en un paquete las facturas emitidas durante ese evento, referenciando su
 // codigoRecepcion. Esquema confirmado: solicitudRecepcionPaquete extiende solicitudRecepcionFactura
 // (que a su vez extiende solicitudRecepcion) + cafc(opcional) + cantidadFacturas + codigoEvento.
-// NOTA: el formato exacto del contenido de "archivo" (cómo se combinan varias facturas en un
-// solo blob antes de Gzip) no está documentado explícitamente en el manual público del SIN;
-// esta función arma su mejor hipótesis (concatenar los XML individuales bajo una etiqueta
-// contenedora) para poder iterar contra el ambiente PILOTO y leer el error real si falla.
+// El PILOTO acepta tar.gz (901) y rechaza zip (920). Tras 901 hay que validar el paquete.
 async function enviarPaqueteFacturas({ xmlsFactura, cufd, codigoEvento, cuis = process.env.SIN_CUIS, tipoFacturaDocumento = 1, codigoDocumentoSector = 1, codigoPuntoVenta = null, cafc = null }) {
+    const zlib = require('zlib');
     const crypto = require('crypto');
-    const { crearZip } = require('./zipSimple');
+    const { crearTar } = require('./tarSimple');
     const { formatoFechaEmision } = require('./sinFacturaXml');
 
-    // Probado empíricamente: XML concatenado o envuelto en una etiqueta propia (con o sin
-    // Gzip) da "EL PARAMETRO ARCHIVO ES INVALIDO No se desempaqueto XMLs". El SIN espera un
-    // ZIP real con cada factura como entrada individual (facturaN.xml).
-    const zipEntries = xmlsFactura.map((xml, i) => ({ name: `factura${i + 1}.xml`, data: Buffer.from(xml, 'utf-8') }));
-    const zipBuffer = crearZip(zipEntries);
-    const hashArchivo = crypto.createHash('sha256').update(zipBuffer).digest('hex');
-    const archivoBase64 = zipBuffer.toString('base64');
+    // Formato verificado 2026-09-02 contra PILOTO: tar.gz de los XML (1.xml, 2.xml, …).
+    // ZIP, gzip(ZIP) y XML concatenado+gzip devuelven 920 "No se desempaqueto XMLs".
+    // tar.gz devuelve 901 PENDIENTE → hay que llamar validacionRecepcionPaqueteFactura.
+    // CAFC solo en eventos 5/6/7. En 1-4 OMITIR el tag (minOccurs=0).
+    const tarEntries = xmlsFactura.map((xml, i) => ({ name: `${i + 1}.xml`, data: Buffer.from(xml, 'utf-8') }));
+    const tarBuffer = crearTar(tarEntries);
+    const gzipBuffer = zlib.gzipSync(tarBuffer);
+    const hashArchivo = crypto.createHash('sha256').update(gzipBuffer).digest('hex');
+    const archivoBase64 = gzipBuffer.toString('base64');
 
     const d = datosBase();
     const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
         ? ''
         : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
-    const cafcTag = cafc ? `<cafc>${cafc}</cafc>` : '';
+    const cafcTag = (cafc === null || cafc === undefined || cafc === '')
+        ? ''
+        : `<cafc>${cafc}</cafc>`;
     const xml = `
       <SolicitudServicioRecepcionPaquete>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
@@ -334,6 +336,30 @@ async function enviarPaqueteFacturas({ xmlsFactura, cufd, codigoEvento, cuis = p
     return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
 }
 
+async function validarPaqueteFacturas({ codigoRecepcion, cufd, cuis = process.env.SIN_CUIS, tipoFacturaDocumento = 1, codigoDocumentoSector = 1, codigoPuntoVenta = null }) {
+    const d = datosBase();
+    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
+        ? ''
+        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const xml = `
+      <SolicitudServicioValidacionRecepcionPaquete>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
+        <codigoEmision>2</codigoEmision>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cuis>${cuis}</cuis>
+        <nit>${d.nit}</nit>
+        <tipoFacturaDocumento>${tipoFacturaDocumento}</tipoFacturaDocumento>
+        <codigoRecepcion>${codigoRecepcion}</codigoRecepcion>
+      </SolicitudServicioValidacionRecepcionPaquete>`;
+    const r = await llamarSoap(RUTAS.compraVenta, 'validacionRecepcionPaqueteFactura', xml);
+    return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
+}
+
 module.exports = {
     RUTAS,
     llamarSoap,
@@ -347,4 +373,5 @@ module.exports = {
     anularFactura,
     reversionAnulacion,
     enviarPaqueteFacturas,
+    validarPaqueteFacturas,
 };

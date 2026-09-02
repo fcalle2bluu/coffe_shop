@@ -34,7 +34,9 @@ function dosDateTime(date = new Date()) {
 }
 
 // entries: [{ name: 'factura1.xml', data: Buffer }]
-function crearZip(entries) {
+// storeOnly: el SIN desempaqueta con ZipInputStream de Java. STORE (método 0)
+// evita un DEFLATE hecho a mano, que a veces Java no abre.
+function crearZip(entries, { storeOnly = true } = {}) {
     const { dosTime, dosDate } = dosDateTime();
     const localParts = [];
     const centralParts = [];
@@ -43,8 +45,8 @@ function crearZip(entries) {
     for (const { name, data } of entries) {
         const nameBuf = Buffer.from(name, 'utf-8');
         const crc = crc32(data);
-        const compressed = zlib.deflateRawSync(data);
-        const useDeflate = compressed.length < data.length;
+        const compressed = storeOnly ? data : zlib.deflateRawSync(data);
+        const useDeflate = !storeOnly && compressed.length < data.length;
         const method = useDeflate ? 8 : 0;
         const content = useDeflate ? compressed : data;
 

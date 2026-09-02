@@ -8,10 +8,8 @@
 //                                    18 catálogos, no 14 - faltaban sincronizarParametricaPaisOrigen,
 //                                    TipoEmision, TipoHabitacion y TipoPuntoVenta).
 //   Etapa V   Eventos Significativos  70 casos = 14 casos base (7 tipos x pv 1/0) x 5.
-//   Etapa VI  Envío por Paquetes     280 casos (formato exacto del "archivo" del paquete
-//                                    NO documentado públicamente - ver enviarPaqueteFacturas()
-//                                    en sinFacturacion.js; esta etapa queda como intento
-//                                    exploratorio, no garantizado).
+//   Etapa VI  Envío por Paquetes     tar.gz + validación (verificado 901/908 en PILOTO).
+//                                    Eventos 1-4 sin CAFC. 5/6/7 requieren CAFC de PILOTO.
 //   Etapa VII Anulación              250 casos (bloqueada la vez anterior; se reintenta acá
 //                                    pidiendo un CUFD recién emitido en vez de reusar el de
 //                                    emisión, y reusando las 500 facturas ya validadas).
@@ -134,58 +132,97 @@ async function etapaV_Eventos(cuisPv1, cuisPv0, cufdPv1, cufdPv0) {
     return eventosRegistrados;
 }
 
-async function etapaVI_Paquetes(eventosRegistrados, cuisPv1, cuisPv0, cufdPv1, cufdPv0) {
-    if (eventosRegistrados.length === 0) {
-        log('VI-PAQUETES', 'SIN-EVENTOS', false, 'No hay eventos significativos registrados para asociar al paquete - se omite esta etapa');
-        return;
-    }
+async function etapaVI_Paquetes(cuisPv1, cuisPv0) {
+    // Ciclo correcto (verificado 2026-09-02 en PILOTO: recepción 901 + validación 908):
+    //   CUFD A → esperar 3s → emitir XML offline DENTRO de la ventana → registrar evento
+    //   con el mismo CUFD A → pedir CUFD B → enviar tar.gz → validar paquete.
+    // Eventos 1-4 NO llevan CAFC. 5/6/7 sí, y hay que pedir el CAFC de PILOTO en el portal.
     const nit = process.env.SIN_NIT;
-    let numeroFactura = 10000;
-    let intentos = 0;
-    for (const evento of eventosRegistrados.slice(0, 10)) {
-        intentos++;
-        const usarPv1 = evento.pv === 1;
-        const cufd = usarPv1 ? cufdPv1 : cufdPv0;
-        const cuis = usarPv1 ? cuisPv1 : cuisPv0;
-        try {
-            const xmlsFactura = [];
-            for (let i = 0; i < 3; i++) {
-                const fechaEmision = new Date();
-                const cuf = generarCuf({
-                    nit, fecha: fechaEmision, sucursal: 0, modalidad: 2, tipoEmision: 2,
-                    tipoFacturaDocumento: 1, tipoDocumentoSector: 1, numeroFactura,
-                    puntoVenta: evento.pv || 0, codigoControl: cufd.codigoControl,
-                });
-                xmlsFactura.push(construirFacturaComputarizadaXml({
-                    nitEmisor: nit, razonSocialEmisor: 'JUAN CANCIO ESPEJO CAMACOPA', municipio: 'La Paz',
-                    telefono: null, numeroFactura, cuf, cufd: cufd.codigo, codigoSucursal: 0,
-                    direccion: cufd.direccion, codigoPuntoVenta: evento.pv,
-                    fechaEmision, nombreRazonSocial: 'CLIENTE DE PRUEBA', codigoTipoDocumentoIdentidad: 1,
-                    numeroDocumento: '1234567', complemento: null, codigoCliente: '1234567',
-                    codigoMetodoPago: 1, numeroTarjeta: null,
-                    montoTotal: '15.00', montoTotalSujetoIva: '15.00', codigoMoneda: 1,
-                    tipoCambio: '1.00', montoTotalMoneda: '15.00',
-                    montoGiftCard: null, descuentoAdicional: null, codigoExcepcion: null, cafc: null,
-                    leyenda: 'Ley N 453: Tienes derecho a recibir informacion sobre las caracteristicas y contenidos de los servicios que utilices.',
-                    usuario: 'PRUEBA',
-                    detalles: [{
-                        actividadEconomica: '5610200', codigoProductoSin: 1003802, codigoProducto: 'CAFE-001',
-                        descripcion: 'Cafe con leche', cantidad: '1.00', unidadMedida: 57, precioUnitario: '15.00',
-                        montoDescuento: 0, subTotal: '15.00', numeroSerie: null, numeroImei: null,
-                    }],
-                }));
-                numeroFactura++;
+    let numeroFactura = 50000;
+    const { formatoFechaEmision } = require('../services/sinFacturaXml');
+    const tiposOffline = TIPOS_EVENTO.filter((t) => t.codigo <= 4);
+    let n = 0;
+    const objetivo = 20;
+    while (n < objetivo) {
+        for (const tipo of tiposOffline) {
+            if (n >= objetivo) break;
+            for (const usarPv1 of [true, false]) {
+                if (n >= objetivo) break;
+                n++;
+                const cuis = usarPv1 ? cuisPv1 : cuisPv0;
+                const pv = usarPv1 ? 1 : null;
+                try {
+                    const cufdA = await sin.solicitarCufd(cuis, pv);
+                    await sleep(3000);
+                    const fechaInicio = new Date();
+                    await sleep(800);
+                    const xmlsFactura = [];
+                    for (let i = 0; i < 2; i++) {
+                        const fechaEmision = new Date();
+                        const cuf = generarCuf({
+                            nit, fecha: fechaEmision, sucursal: 0, modalidad: 2, tipoEmision: 2,
+                            tipoFacturaDocumento: 1, tipoDocumentoSector: 1, numeroFactura,
+                            puntoVenta: pv || 0, codigoControl: cufdA.codigoControl,
+                        });
+                        xmlsFactura.push(construirFacturaComputarizadaXml({
+                            nitEmisor: nit, razonSocialEmisor: 'JUAN CANCIO ESPEJO CAMACOPA', municipio: 'La Paz',
+                            telefono: null, numeroFactura, cuf, cufd: cufdA.codigo, codigoSucursal: 0,
+                            direccion: cufdA.direccion, codigoPuntoVenta: pv,
+                            fechaEmision, nombreRazonSocial: 'CLIENTE DE PRUEBA', codigoTipoDocumentoIdentidad: 1,
+                            numeroDocumento: '1234567', complemento: null, codigoCliente: '1234567',
+                            codigoMetodoPago: 1, numeroTarjeta: null,
+                            montoTotal: '15.00', montoTotalSujetoIva: '15.00', codigoMoneda: 1,
+                            tipoCambio: '1.00', montoTotalMoneda: '15.00',
+                            montoGiftCard: null, descuentoAdicional: null, codigoExcepcion: null, cafc: null,
+                            leyenda: 'Ley N 453: Tienes derecho a recibir informacion sobre las caracteristicas y contenidos de los servicios que utilices.',
+                            usuario: 'PRUEBA',
+                            detalles: [{
+                                actividadEconomica: '5610200', codigoProductoSin: 1003802, codigoProducto: 'CAFE-001',
+                                descripcion: 'Cafe con leche', cantidad: '1.00', unidadMedida: 57, precioUnitario: '15.00',
+                                montoDescuento: 0, subTotal: '15.00', numeroSerie: null, numeroImei: null,
+                            }],
+                        }));
+                        numeroFactura++;
+                        await sleep(150);
+                    }
+                    await sleep(800);
+                    const fechaFin = new Date();
+                    const evento = await sin.registrarEventoSignificativo({
+                        codigoMotivoEvento: tipo.codigo,
+                        descripcion: tipo.descripcion,
+                        cufd: cufdA.codigo,
+                        cufdEvento: cufdA.codigo,
+                        fechaInicio: formatoFechaEmision(fechaInicio),
+                        fechaFin: formatoFechaEmision(fechaFin),
+                        codigoPuntoVenta: pv,
+                        cuis,
+                    });
+                    if (!evento.transaccion) {
+                        log('VI-PAQUETES', n, false, evento.xml.slice(0, 400));
+                        continue;
+                    }
+                    const cufdB = await sin.solicitarCufd(cuis, pv);
+                    const r = await sin.enviarPaqueteFacturas({
+                        xmlsFactura, cufd: cufdB.codigo, codigoEvento: evento.codigoRecepcionEvento,
+                        cuis, codigoPuntoVenta: pv, cafc: null,
+                    });
+                    if (r.codigoEstado !== '901' && r.codigoEstado !== '908') {
+                        log('VI-PAQUETES', n, false, r.xml.slice(0, 500));
+                        continue;
+                    }
+                    await sleep(1200);
+                    const val = await sin.validarPaqueteFacturas({
+                        codigoRecepcion: r.codigoRecepcion, cufd: cufdB.codigo, cuis, codigoPuntoVenta: pv,
+                    });
+                    const ok = val.codigoEstado === '908';
+                    log('VI-PAQUETES', n, ok, ok
+                        ? `tipo${tipo.codigo} pv=${pv} recepcion=${r.codigoRecepcion} validado=908`
+                        : val.xml.slice(0, 500));
+                } catch (e) {
+                    log('VI-PAQUETES', n, false, e.message);
+                }
             }
-            const r = await sin.enviarPaqueteFacturas({
-                xmlsFactura, cufd: cufd.codigo, codigoEvento: evento.codigoRecepcion,
-                cuis, codigoPuntoVenta: evento.pv,
-            });
-            const ok = !!r.transaccion;
-            log('VI-PAQUETES', intentos, ok, ok ? `estado=${r.codigoEstado} recepcion=${r.codigoRecepcion}` : r.xml.slice(0, 500));
-        } catch (e) {
-            log('VI-PAQUETES', intentos, false, e.message);
         }
-        await sleep(200);
     }
 }
 
@@ -253,8 +290,8 @@ async function etapaReversion(anuladas) {
     console.log('=== ETAPA V: EVENTOS SIGNIFICATIVOS (14 casos base x 5 = 70) ===');
     const eventos = await etapaV_Eventos(cuisPv1, cuisPv0, cufdPv1, cufdPv0);
 
-    console.log('=== ETAPA VI: ENVIO POR PAQUETES (exploratorio) ===');
-    await etapaVI_Paquetes(eventos, cuisPv1, cuisPv0, cufdPv1, cufdPv0);
+    console.log('=== ETAPA VI: ENVIO POR PAQUETES (tar.gz + validación) ===');
+    await etapaVI_Paquetes(cuisPv1, cuisPv0);
 
     console.log('=== ETAPA VII: ANULACION (reintento con CUFD fresco, hasta 250) ===');
     const facturasPrevias = JSON.parse(fs.readFileSync(path.join(__dirname, 'sinFase1FacturasEmitidas.json'), 'utf-8'));
