@@ -228,7 +228,7 @@ async function registrarEventoSignificativo({ codigoMotivoEvento, descripcion, c
         <nit>${d.nit}</nit>
       </SolicitudEventoSignificativo>`;
     const r = await llamarSoap(RUTAS.operaciones, 'registroEventoSignificativo', xml);
-    return { ...r, codigoRecepcionEvento: extraerTag(r.xml, 'codigoRecepcionEvento') || extraerTag(r.xml, 'codigo') };
+    return { ...r, codigoRecepcionEvento: extraerTag(r.xml, 'codigoRecepcionEventoSignificativo') };
 }
 
 async function anularFactura({ cuf, codigoMotivo, cufd, codigoPuntoVenta, codigoDocumentoSector = 1, cuis = process.env.SIN_CUIS }) {
@@ -256,6 +256,84 @@ async function anularFactura({ cuf, codigoMotivo, cufd, codigoPuntoVenta, codigo
     return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
 }
 
+// Revierte una anulación ya confirmada (operación "reversionAnulacionFactura"). Esquema
+// confirmado contra el WSDL real: solicitudReversionAnulacion extiende solicitudRecepcion
+// (mismos campos base que anulacionFactura, sin codigoMotivo) + cuf.
+async function reversionAnulacion({ cuf, cufd, codigoPuntoVenta, codigoDocumentoSector = 1, tipoFacturaDocumento = 1, cuis = process.env.SIN_CUIS }) {
+    const d = datosBase();
+    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
+        ? ''
+        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const xml = `
+      <SolicitudServicioReversionAnulacionFactura>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
+        <codigoEmision>1</codigoEmision>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cuis>${cuis}</cuis>
+        <nit>${d.nit}</nit>
+        <tipoFacturaDocumento>${tipoFacturaDocumento}</tipoFacturaDocumento>
+        <cuf>${cuf}</cuf>
+      </SolicitudServicioReversionAnulacionFactura>`;
+    const r = await llamarSoap(RUTAS.compraVenta, 'reversionAnulacionFactura', xml);
+    return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
+}
+
+// Envía un paquete de facturas ya emitidas (operación "recepcionPaqueteFactura"), usado en
+// escenarios de contingencia: primero se registra un Evento Significativo (registrarEventoSignificativo)
+// y luego se agrupan en un paquete las facturas emitidas durante ese evento, referenciando su
+// codigoRecepcion. Esquema confirmado: solicitudRecepcionPaquete extiende solicitudRecepcionFactura
+// (que a su vez extiende solicitudRecepcion) + cafc(opcional) + cantidadFacturas + codigoEvento.
+// NOTA: el formato exacto del contenido de "archivo" (cómo se combinan varias facturas en un
+// solo blob antes de Gzip) no está documentado explícitamente en el manual público del SIN;
+// esta función arma su mejor hipótesis (concatenar los XML individuales bajo una etiqueta
+// contenedora) para poder iterar contra el ambiente PILOTO y leer el error real si falla.
+async function enviarPaqueteFacturas({ xmlsFactura, cufd, codigoEvento, cuis = process.env.SIN_CUIS, tipoFacturaDocumento = 1, codigoDocumentoSector = 1, codigoPuntoVenta = null, cafc = null }) {
+    const crypto = require('crypto');
+    const { crearZip } = require('./zipSimple');
+    const { formatoFechaEmision } = require('./sinFacturaXml');
+
+    // Probado empíricamente: XML concatenado o envuelto en una etiqueta propia (con o sin
+    // Gzip) da "EL PARAMETRO ARCHIVO ES INVALIDO No se desempaqueto XMLs". El SIN espera un
+    // ZIP real con cada factura como entrada individual (facturaN.xml).
+    const zipEntries = xmlsFactura.map((xml, i) => ({ name: `factura${i + 1}.xml`, data: Buffer.from(xml, 'utf-8') }));
+    const zipBuffer = crearZip(zipEntries);
+    const hashArchivo = crypto.createHash('sha256').update(zipBuffer).digest('hex');
+    const archivoBase64 = zipBuffer.toString('base64');
+
+    const d = datosBase();
+    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
+        ? ''
+        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const cafcTag = cafc ? `<cafc>${cafc}</cafc>` : '';
+    const xml = `
+      <SolicitudServicioRecepcionPaquete>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
+        <codigoEmision>2</codigoEmision>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cuis>${cuis}</cuis>
+        <nit>${d.nit}</nit>
+        <tipoFacturaDocumento>${tipoFacturaDocumento}</tipoFacturaDocumento>
+        <archivo>${archivoBase64}</archivo>
+        <fechaEnvio>${formatoFechaEmision(new Date())}</fechaEnvio>
+        <hashArchivo>${hashArchivo}</hashArchivo>
+        ${cafcTag}
+        <cantidadFacturas>${xmlsFactura.length}</cantidadFacturas>
+        <codigoEvento>${codigoEvento}</codigoEvento>
+      </SolicitudServicioRecepcionPaquete>`;
+    const r = await llamarSoap(RUTAS.compraVenta, 'recepcionPaqueteFactura', xml);
+    return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
+}
+
 module.exports = {
     RUTAS,
     llamarSoap,
@@ -267,4 +345,6 @@ module.exports = {
     registrarPuntoVenta,
     registrarEventoSignificativo,
     anularFactura,
+    reversionAnulacion,
+    enviarPaqueteFacturas,
 };
