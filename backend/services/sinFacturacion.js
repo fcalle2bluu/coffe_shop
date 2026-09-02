@@ -101,12 +101,14 @@ async function verificarComunicacion(ruta = RUTAS.sincronizacion) {
 // Solicita el CUIS (Código Único de Inicio de Sistema). Se pide UNA sola vez por
 // sucursal/punto de venta: es de larga duración (alrededor de 1 año) y debe guardarse
 // (hoy vive en SIN_CUIS del .env) para reutilizarse en cada solicitud de CUFD.
-async function solicitarCuis() {
+async function solicitarCuis(codigoPuntoVenta = null) {
     const d = datosBase();
+    const pvTag = codigoPuntoVenta === null ? '' : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
     const xml = `
       <SolicitudCuis>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
         <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
         <codigoSistema>${d.codigoSistema}</codigoSistema>
         <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
         <nit>${d.nit}</nit>
@@ -122,13 +124,15 @@ async function solicitarCuis() {
 // Solicita el CUFD (Código Único de Facturación Diaria), válido ~24 horas. Hay que pedir
 // uno nuevo cuando el anterior venza (fechaVigencia). No hay que llamarlo por cada factura,
 // solo cuando el CUFD en uso ya caducó.
-async function solicitarCufd(cuis = process.env.SIN_CUIS) {
+async function solicitarCufd(cuis = process.env.SIN_CUIS, codigoPuntoVenta = null) {
     if (!cuis) throw new Error('Falta el CUIS (pedirlo una vez con solicitarCuis() y guardarlo)');
     const d = datosBase();
+    const pvTag = codigoPuntoVenta === null ? '' : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
     const xml = `
       <SolicitudCufd>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
         <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
         <codigoSistema>${d.codigoSistema}</codigoSistema>
         <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
         <cuis>${cuis}</cuis>
@@ -148,7 +152,7 @@ async function solicitarCufd(cuis = process.env.SIN_CUIS) {
 // `xmlFactura` es el string XML sin comprimir; esta función se encarga de comprimirlo
 // en Gzip, calcular su hash SHA-256 y armar la solicitud completa, tal como exige el
 // manual del SIN ("Emisión y Envío" > comprimir con Gzip, hashear el archivo comprimido).
-async function enviarFactura({ xmlFactura, cufd, tipoFacturaDocumento = 1, tipoEmision = 1, codigoDocumentoSector = 1 }) {
+async function enviarFactura({ xmlFactura, cufd, cuis = process.env.SIN_CUIS, tipoFacturaDocumento = 1, tipoEmision = 1, codigoDocumentoSector = 1, codigoPuntoVenta = null }) {
     const zlib = require('zlib');
     const crypto = require('crypto');
 
@@ -157,16 +161,18 @@ async function enviarFactura({ xmlFactura, cufd, tipoFacturaDocumento = 1, tipoE
     const archivoBase64 = xmlComprimido.toString('base64');
 
     const d = datosBase();
+    const pvTag = codigoPuntoVenta === null ? '' : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
     const xml = `
       <SolicitudServicioRecepcionFactura>
         <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
         <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
         <codigoEmision>${tipoEmision}</codigoEmision>
         <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
         <codigoSistema>${d.codigoSistema}</codigoSistema>
         <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
         <cufd>${cufd}</cufd>
-        <cuis>${process.env.SIN_CUIS}</cuis>
+        <cuis>${cuis}</cuis>
         <nit>${d.nit}</nit>
         <tipoFacturaDocumento>${tipoFacturaDocumento}</tipoFacturaDocumento>
         <archivo>${archivoBase64}</archivo>
@@ -183,6 +189,73 @@ async function enviarFactura({ xmlFactura, cufd, tipoFacturaDocumento = 1, tipoE
     };
 }
 
+async function registrarPuntoVenta({ codigoTipoPuntoVenta, nombrePuntoVenta, descripcion, cuis = process.env.SIN_CUIS }) {
+    const d = datosBase();
+    const xml = `
+      <SolicitudRegistroPuntoVenta>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <codigoTipoPuntoVenta>${codigoTipoPuntoVenta}</codigoTipoPuntoVenta>
+        <cuis>${cuis}</cuis>
+        <descripcion>${descripcion}</descripcion>
+        <nit>${d.nit}</nit>
+        <nombrePuntoVenta>${nombrePuntoVenta}</nombrePuntoVenta>
+      </SolicitudRegistroPuntoVenta>`;
+    const r = await llamarSoap(RUTAS.operaciones, 'registroPuntoVenta', xml);
+    return { ...r, codigoPuntoVenta: extraerTag(r.xml, 'codigoPuntoVenta') };
+}
+
+async function registrarEventoSignificativo({ codigoMotivoEvento, descripcion, cufd, cufdEvento, fechaInicio, fechaFin, codigoPuntoVenta, cuis = process.env.SIN_CUIS }) {
+    const d = datosBase();
+    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
+        ? '<codigoPuntoVenta xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>'
+        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const xml = `
+      <SolicitudEventoSignificativo>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoMotivoEvento>${codigoMotivoEvento}</codigoMotivoEvento>
+        ${pvTag}
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cufdEvento>${cufdEvento}</cufdEvento>
+        <cuis>${cuis}</cuis>
+        <descripcion>${descripcion}</descripcion>
+        <fechaHoraFinEvento>${fechaFin}</fechaHoraFinEvento>
+        <fechaHoraInicioEvento>${fechaInicio}</fechaHoraInicioEvento>
+        <nit>${d.nit}</nit>
+      </SolicitudEventoSignificativo>`;
+    const r = await llamarSoap(RUTAS.operaciones, 'registroEventoSignificativo', xml);
+    return { ...r, codigoRecepcionEvento: extraerTag(r.xml, 'codigoRecepcionEvento') || extraerTag(r.xml, 'codigo') };
+}
+
+async function anularFactura({ cuf, codigoMotivo, cufd, codigoPuntoVenta, codigoDocumentoSector = 1, cuis = process.env.SIN_CUIS }) {
+    const d = datosBase();
+    const pvTag = (codigoPuntoVenta === null || codigoPuntoVenta === undefined)
+        ? ''
+        : `<codigoPuntoVenta>${codigoPuntoVenta}</codigoPuntoVenta>`;
+    const xml = `
+      <SolicitudServicioAnulacionFactura>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
+        <codigoEmision>1</codigoEmision>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        ${pvTag}
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cuis>${cuis}</cuis>
+        <nit>${d.nit}</nit>
+        <tipoFacturaDocumento>1</tipoFacturaDocumento>
+        <codigoMotivo>${codigoMotivo}</codigoMotivo>
+        <cuf>${cuf}</cuf>
+      </SolicitudServicioAnulacionFactura>`;
+    const r = await llamarSoap(RUTAS.compraVenta, 'anulacionFactura', xml);
+    return { ...r, codigoEstado: extraerTag(r.xml, 'codigoEstado'), codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion') };
+}
+
 module.exports = {
     RUTAS,
     llamarSoap,
@@ -191,4 +264,7 @@ module.exports = {
     solicitarCuis,
     solicitarCufd,
     enviarFactura,
+    registrarPuntoVenta,
+    registrarEventoSignificativo,
+    anularFactura,
 };
