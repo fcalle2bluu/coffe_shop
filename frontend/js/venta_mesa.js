@@ -1102,3 +1102,44 @@ async function imprimirVentaFinal() {
         alert("Error al cargar ticket: " + e.message);
     }
 }
+
+// === GASTO DE CAJA CHICA (solo registrar: no hay forma de ver el total ni el historial desde acá) ===
+function abrirModalCajaChica() {
+    document.getElementById('input-monto-caja-chica').value = '';
+    document.getElementById('input-descripcion-caja-chica').value = '';
+    document.getElementById('modalCajaChica').classList.remove('hidden');
+}
+
+function cerrarModalCajaChica() {
+    document.getElementById('modalCajaChica').classList.add('hidden');
+}
+
+async function confirmarGastoCajaChica() {
+    const monto = parseFloat(document.getElementById('input-monto-caja-chica').value);
+    const descripcion = document.getElementById('input-descripcion-caja-chica').value.trim();
+
+    if (!monto || monto <= 0) {
+        alert('❌ Ingresa un monto válido.');
+        return;
+    }
+    if (!descripcion) {
+        alert('❌ Ingresa una descripción del gasto.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/caja-chica/gastos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monto, descripcion })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'No se pudo registrar el gasto');
+        }
+        cerrarModalCajaChica();
+        alert('✅ Gasto de caja chica registrado.');
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}

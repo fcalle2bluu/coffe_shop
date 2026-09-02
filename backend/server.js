@@ -53,6 +53,7 @@ const rutasProduccion = require('./routes/produccion');
 const rutasWhatsapp = require('./routes/whatsapp');
 const rutasControlDiario = require('./routes/control_diario');
 const rutasVersion = require('./routes/version');
+const rutasCajaChica = require('./routes/caja_chica');
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
@@ -82,6 +83,7 @@ app.use('/api/produccion', rutasProduccion);
 app.use('/api/whatsapp', rutasWhatsapp);
 app.use('/api/control-diario', rutasControlDiario);
 app.use('/api/version', rutasVersion);
+app.use('/api/caja-chica', rutasCajaChica);
 
 // ==========================================
 // 4.1 HEALTH CHECK (para monitores externos tipo UptimeRobot)
