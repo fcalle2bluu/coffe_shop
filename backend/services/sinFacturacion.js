@@ -144,6 +144,45 @@ async function solicitarCufd(cuis = process.env.SIN_CUIS) {
     };
 }
 
+// Envía una factura (XML ya armado con sinFacturaXml.js) al servicio de recepción.
+// `xmlFactura` es el string XML sin comprimir; esta función se encarga de comprimirlo
+// en Gzip, calcular su hash SHA-256 y armar la solicitud completa, tal como exige el
+// manual del SIN ("Emisión y Envío" > comprimir con Gzip, hashear el archivo comprimido).
+async function enviarFactura({ xmlFactura, cufd, tipoFacturaDocumento = 1, tipoEmision = 1, codigoDocumentoSector = 1 }) {
+    const zlib = require('zlib');
+    const crypto = require('crypto');
+
+    const xmlComprimido = zlib.gzipSync(Buffer.from(xmlFactura, 'utf-8'));
+    const hashArchivo = crypto.createHash('sha256').update(xmlComprimido).digest('hex');
+    const archivoBase64 = xmlComprimido.toString('base64');
+
+    const d = datosBase();
+    const xml = `
+      <SolicitudServicioRecepcionFactura>
+        <codigoAmbiente>${d.codigoAmbiente}</codigoAmbiente>
+        <codigoDocumentoSector>${codigoDocumentoSector}</codigoDocumentoSector>
+        <codigoEmision>${tipoEmision}</codigoEmision>
+        <codigoModalidad>${d.codigoModalidad}</codigoModalidad>
+        <codigoSistema>${d.codigoSistema}</codigoSistema>
+        <codigoSucursal>${d.codigoSucursal}</codigoSucursal>
+        <cufd>${cufd}</cufd>
+        <cuis>${process.env.SIN_CUIS}</cuis>
+        <nit>${d.nit}</nit>
+        <tipoFacturaDocumento>${tipoFacturaDocumento}</tipoFacturaDocumento>
+        <archivo>${archivoBase64}</archivo>
+        <fechaEnvio>${require('./sinFacturaXml').formatoFechaEmision(new Date())}</fechaEnvio>
+        <hashArchivo>${hashArchivo}</hashArchivo>
+      </SolicitudServicioRecepcionFactura>`;
+
+    const r = await llamarSoap(RUTAS.compraVenta, 'recepcionFactura', xml);
+    return {
+        ...r,
+        codigoRecepcion: extraerTag(r.xml, 'codigoRecepcion'),
+        codigoEstado: extraerTag(r.xml, 'codigoEstado'),
+        hashArchivo,
+    };
+}
+
 module.exports = {
     RUTAS,
     llamarSoap,
@@ -151,4 +190,5 @@ module.exports = {
     verificarComunicacion,
     solicitarCuis,
     solicitarCufd,
+    enviarFactura,
 };
