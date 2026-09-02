@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 
-// Registro rápido de un gasto de caja chica desde Venta por Mesa.
-// A propósito NO existe ningún GET/listado en este router: el mesero/cajero
-// solo puede insertar, nunca consultar el total ni el historial.
+// Registro rápido de un gasto de caja chica desde Venta por Mesa. Se guarda en la
+// MISMA tabla que usa Control Caja (gastos_caja), ligado a la caja abierta del turno,
+// para que el efectivo esperado al cerrar caja ya lo tenga descontado. A propósito NO
+// hay ningún GET/listado en ESTE router: desde Venta por Mesa solo se puede insertar,
+// nunca consultar el total ni el historial (eso sigue viéndose solo en Control Caja).
 router.post('/gastos', async (req, res) => {
     const { monto, descripcion } = req.body;
     const usuario_id = req.usuario?.id;
@@ -17,9 +19,18 @@ router.post('/gastos', async (req, res) => {
     }
 
     try {
+        // Igual que en caja.js: la caja del gasto se determina en el servidor (no con
+        // un caja_id que mande el navegador), para que nunca quede pegado a una caja
+        // vieja/cerrada.
+        const cajaAbiertaRes = await pool.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
+        if (cajaAbiertaRes.rows.length === 0) {
+            return res.status(400).json({ error: 'No hay una caja abierta para registrar el gasto.' });
+        }
+        const caja_id = cajaAbiertaRes.rows[0].id;
+
         await pool.query(
-            'INSERT INTO gastos_caja_chica (usuario_id, monto, descripcion) VALUES ($1, $2, $3)',
-            [usuario_id, monto, descripcion]
+            'INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion) VALUES ($1, $2, $3, $4)',
+            [caja_id, usuario_id, monto, descripcion]
         );
         res.status(201).json({ success: true, message: 'Gasto de caja chica registrado' });
     } catch (error) {

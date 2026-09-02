@@ -263,23 +263,6 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Tabla Gastos Generales:', gastoGenErr.message);
     }
 
-    // 5.86 Creación de tabla de Gastos de Caja Chica (registro rápido desde Venta por Mesa,
-    // de solo escritura para meseros/cajeros: no hay endpoint que exponga el total ni el historial)
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS gastos_caja_chica (
-                id SERIAL PRIMARY KEY,
-                usuario_id INT NOT NULL,
-                monto NUMERIC(10, 2) NOT NULL,
-                descripcion TEXT NOT NULL,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log('✅ Tabla gastos_caja_chica verificada/creada.');
-    } catch (gastoCajaChicaErr) {
-        console.log('Info Tabla Gastos Caja Chica:', gastoCajaChicaErr.message);
-    }
-
     // 5.9 Creación de tabla de Dispositivos Tokens (FCM)
     try {
         await pool.query(`
