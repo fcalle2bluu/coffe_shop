@@ -52,8 +52,11 @@ pool.on('error', (err, client) => {
 // conexión nueva (bajo más carga, o tras un reinicio/cold-start en Render) podría tocarle
 // una física ya contaminada. Se fuerza el search_path correcto en cada conexión nueva del
 // pool para blindarnos de esto sin depender de la configuración del pooler de Supabase.
+// IMPORTANTE: incluye "extensions" además de "public" — Supabase instala ahí pgcrypto
+// (la función crypt() que usa el login para verificar el PIN) y uuid-ossp, no en public.
+// Un primer intento que dejó el search_path solo en "public" rompió el login en producción.
 pool.on('connect', (client) => {
-  client.query('SET search_path TO public').catch((err) => {
+  client.query('SET search_path TO public, extensions').catch((err) => {
     console.error('⚠️ No se pudo fijar search_path en una conexión nueva:', err.message);
   });
 });
