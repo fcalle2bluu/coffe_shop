@@ -42,6 +42,22 @@ pool.on('error', (err, client) => {
   console.error('⚠️ Error inesperado en el pool de conexiones:', err.message);
 });
 
+// Se conecta a Supabase a través de su pooler PgBouncer (modo transacción, puerto 6543),
+// que reutiliza conexiones físicas entre distintos clientes lógicos. Se detectó que una
+// conexión nueva puede heredar un search_path vacío/roto dejado por otra sesión anterior
+// en ese mismo pool compartido — con search_path vacío, CUALQUIER query sin calificar el
+// esquema (ej. "SELECT * FROM usuarios", que es como está escrito TODO este proyecto)
+// falla con "relation ... does not exist", aunque la tabla exista perfectamente. Esto no
+// rompe nada mientras el proceso siga vivo con sus conexiones ya buenas, pero cualquier
+// conexión nueva (bajo más carga, o tras un reinicio/cold-start en Render) podría tocarle
+// una física ya contaminada. Se fuerza el search_path correcto en cada conexión nueva del
+// pool para blindarnos de esto sin depender de la configuración del pooler de Supabase.
+pool.on('connect', (client) => {
+  client.query('SET search_path TO public').catch((err) => {
+    console.error('⚠️ No se pudo fijar search_path en una conexión nueva:', err.message);
+  });
+});
+
 // Prueba de conexión inicial y Auto-Migración
 pool.query('SELECT NOW()', async (err, res) => {
   if (err) {
