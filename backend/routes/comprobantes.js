@@ -2,14 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // 1. Obtener el historial de todas las ventas (Comprobantes)
 router.get('/', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, total, metodo_pago, estado, 
-                   TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
-            FROM ventas 
+            SELECT id, total, metodo_pago, estado,
+                   TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha
+            FROM ventas
             ORDER BY id DESC
         `);
         res.json(result.rows);
@@ -25,7 +26,8 @@ router.get('/:id', async (req, res) => {
     try {
         // Cabecera de la venta
         const cabecera = await pool.query(`
-            SELECT id, total, metodo_pago, estado, comanda_id, TO_CHAR(fecha_venta, 'DD/MM/YYYY HH24:MI') as fecha
+            SELECT id, total, metodo_pago, estado, comanda_id,
+                   TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha
             FROM ventas WHERE id = $1
         `, [id]);
 
@@ -81,8 +83,13 @@ router.put('/:id/anular', async (req, res) => {
             return res.status(400).json({ error: 'La venta ya está anulada o no existe' });
         }
 
-        // 💡 NOTA PARA EL FUTURO: Aquí agregaríamos la lógica para devolver 
+        // 💡 NOTA PARA EL FUTURO: Aquí agregaríamos la lógica para devolver
         // los insumos al inventario usando las "recetas" si la venta se anula.
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'ANULAR_VENTA', entidad_tipo: 'venta', entidad_id: Number(id)
+        });
 
         res.json({ message: 'Venta anulada correctamente' });
     } catch (error) {

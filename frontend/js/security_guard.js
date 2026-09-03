@@ -396,6 +396,8 @@
             hasAccess = localStorage.getItem('perm_informe') === 'true';
         } else if (pageName.includes('webhook.html')) {
             hasAccess = isAdmin || rol === 'CAJERO';
+        } else if (pageName.includes('bitacora.html')) {
+            hasAccess = isAdmin;
         }
 
         if (!hasAccess) {
@@ -443,6 +445,26 @@
                     } else {
                         nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
                     }
+                }
+            }
+        }
+
+        // Inyectar dinámicamente el enlace de "Bitácora" como último ítem del
+        // sidebar, justo arriba del botón "Más" (solo visible para administradores).
+        if (nav) {
+            const pageNameBitacora = window.location.pathname.split("/").pop();
+            const isBitacoraActive = pageNameBitacora.includes('bitacora.html');
+            const bitacoraHTML = `
+                <a href="bitacora.html" class="solo-admin flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isBitacoraActive ? 'bg-accent/20 text-accent font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
+                    <i class="fa-solid fa-timeline w-5 text-center text-accent/70"></i> <span>Bitácora</span>
+                </a>
+            `;
+            if (!nav.querySelector('a[href="bitacora.html"]')) {
+                const toggleBtn = nav.querySelector('.mas-menu-toggle');
+                if (toggleBtn) {
+                    toggleBtn.insertAdjacentHTML('beforebegin', bitacoraHTML);
+                } else {
+                    nav.insertAdjacentHTML('beforeend', bitacoraHTML);
                 }
             }
         }

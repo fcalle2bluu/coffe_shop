@@ -4,7 +4,7 @@ const pool = require('../config/conexion');
 
 // Middleware para verificar rol administrador (Solo admins acceden al Asistente IA)
 const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -121,41 +121,44 @@ router.post('/consultar', async (req, res) => {
             comprasPorInsumo30Dias
         ] = await Promise.all([
             ejecutarQuerySegura('SELECT id, nombre, username, rol, activo FROM usuarios'),
-            ejecutarQuerySegura("SELECT id, usuario_id, saldo_inicial, saldo_final, TO_CHAR(fecha_apertura, 'YYYY-MM-DD HH24:MI') as fecha_apertura, TO_CHAR(fecha_cierre, 'YYYY-MM-DD HH24:MI') as fecha_cierre FROM cajas WHERE fecha_apertura >= NOW() - INTERVAL '7 days' ORDER BY fecha_apertura DESC"),
-            ejecutarQuerySegura("SELECT id, caja_id, usuario_id, monto, descripcion, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM gastos_caja WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, usuario_id, saldo_inicial, saldo_final, TO_CHAR(fecha_apertura AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_apertura, TO_CHAR(fecha_cierre AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_cierre FROM cajas WHERE fecha_apertura >= NOW() - INTERVAL '7 days' ORDER BY fecha_apertura DESC"),
+            ejecutarQuerySegura("SELECT id, caja_id, usuario_id, monto, descripcion, TO_CHAR(fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM gastos_caja WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
             // Ventas detalladas de los últimos 3 días (captura hoy, ayer y antier de forma ultra liviana)
-            ejecutarQuerySegura("SELECT id, caja_id, total, metodo_pago, TO_CHAR(fecha_venta, 'YYYY-MM-DD HH24:MI') as fecha_venta, usuario_id, es_historica FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '3 days' ORDER BY fecha_venta DESC"),
+            ejecutarQuerySegura("SELECT id, caja_id, total, metodo_pago, TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_venta, usuario_id, es_historica FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '3 days' ORDER BY fecha_venta DESC"),
             ejecutarQuerySegura("SELECT dv.id, dv.venta_id, dv.producto_id, dv.cantidad, dv.precio_unitario, dv.subtotal FROM detalle_ventas dv JOIN ventas v ON dv.venta_id = v.id WHERE v.fecha_venta >= NOW() - INTERVAL '3 days'"),
             ejecutarQuerySegura('SELECT id, nombre, precio_venta, categoria_id, activo FROM productos'),
             // Compras detalladas de los últimos 3 días
-            ejecutarQuerySegura("SELECT id, proveedor_id, total, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM compras WHERE fecha >= NOW() - INTERVAL '3 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, proveedor_id, total, TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM compras WHERE fecha >= NOW() - INTERVAL '3 days' ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT dc.compra_id, dc.insumo_id, dc.cantidad, dc.costo_unitario, dc.subtotal FROM detalle_compras dc JOIN compras c ON dc.compra_id = c.id WHERE c.fecha >= NOW() - INTERVAL '3 days'"),
             ejecutarQuerySegura('SELECT id, nombre, unidad_medida, stock_actual, stock_minimo, activo FROM insumos'),
             ejecutarQuerySegura('SELECT id, nombre, telefono, lugar, otros FROM proveedores'),
-            ejecutarQuerySegura("SELECT id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha FROM pedidos_compra WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, usuario_id, insumo_id, insumo_nombre, cantidad, notas, estado, TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM pedidos_compra WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT id, compra_id, insumo_id, TO_CHAR(fecha_vencimiento, 'YYYY-MM-DD') as fecha_vencimiento, stock_lote FROM lotes_insumos"),
-            ejecutarQuerySegura("SELECT a.id, a.usuario_id, u.nombre as empleado, TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha, TO_CHAR(a.hora_entrada, 'HH24:MI') as entrada, TO_CHAR(a.hora_salida, 'HH24:MI') as salida, a.horas_trabajadas FROM asistencia a JOIN usuarios u ON a.usuario_id = u.id WHERE a.fecha >= NOW() - INTERVAL '7 days' ORDER BY a.fecha DESC, a.hora_entrada DESC"),
+            ejecutarQuerySegura("SELECT a.id, a.usuario_id, u.nombre as empleado, TO_CHAR(a.fecha, 'YYYY-MM-DD') as fecha, TO_CHAR(a.hora_entrada AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as entrada, TO_CHAR(a.hora_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'HH24:MI') as salida, a.horas_trabajadas FROM asistencia a JOIN usuarios u ON a.usuario_id = u.id WHERE a.fecha >= NOW() - INTERVAL '7 days' ORDER BY a.fecha DESC, a.hora_entrada DESC"),
             ejecutarQuerySegura("SELECT h.id, u.nombre as usuario, h.dispositivo, h.ip, h.ubicacion, TO_CHAR(h.fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha FROM historial_accesos h JOIN usuarios u ON h.usuario_id = u.id ORDER BY h.fecha DESC LIMIT 15"),
             ejecutarQuerySegura('SELECT id, nombre, descripcion, activo FROM categorias'),
-            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, descripcion, monto, categoria, metodo_pago FROM gastos_generales WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
-            ejecutarQuerySegura("SELECT id, usuario_id, mes, anio, salario_base, descuento_retrasos, descuento_faltas, salario_neto, TO_CHAR(fecha_pago, 'YYYY-MM-DD HH24:MI') as fecha_pago, glosa FROM pagos_salarios WHERE fecha_pago >= NOW() - INTERVAL '30 days' ORDER BY fecha_pago DESC"),
+            // gastos_generales.fecha se trata en el resto del sistema (libro_diario.js) como
+            // fecha de calendario, no como instante real (puede venir de un selector de
+            // fecha del usuario) — misma conversión simple que se usa ahí, por consistencia.
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha, descripcion, monto, categoria, metodo_pago FROM gastos_generales WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, usuario_id, mes, anio, salario_base, descuento_retrasos, descuento_faltas, salario_neto, TO_CHAR(fecha_pago AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_pago, glosa FROM pagos_salarios WHERE fecha_pago >= NOW() - INTERVAL '30 days' ORDER BY fecha_pago DESC"),
             // Comandas detalladas de los últimos 3 días
-            ejecutarQuerySegura("SELECT id, mesa, usuario_id, caja_id, estado, total, TO_CHAR(fecha_creacion, 'YYYY-MM-DD HH24:MI') as fecha_creacion FROM comandas WHERE fecha_creacion >= NOW() - INTERVAL '3 days' ORDER BY fecha_creacion DESC"),
+            ejecutarQuerySegura("SELECT id, mesa, usuario_id, caja_id, estado, total, TO_CHAR(fecha_creacion AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha_creacion FROM comandas WHERE fecha_creacion >= NOW() - INTERVAL '3 days' ORDER BY fecha_creacion DESC"),
             ejecutarQuerySegura("SELECT dc.id, dc.comanda_id, dc.producto_id, dc.cantidad, dc.precio_unitario, dc.subtotal FROM detalle_comandas dc JOIN comandas c ON dc.comanda_id = c.id WHERE c.fecha_creacion >= NOW() - INTERVAL '3 days'"),
             ejecutarQuerySegura('SELECT id, numero, piso, pos_x, pos_y, activo FROM mesas'),
             ejecutarQuerySegura('SELECT id, nombre, descripcion FROM almacenes'),
             ejecutarQuerySegura('SELECT id, almacen_id, insumo_id, stock_actual FROM inventario_almacen'),
-            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, estado, observaciones FROM ordenes_produccion WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, estado, observaciones FROM ordenes_produccion WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT do.id, do.orden_id, do.receta_id, do.cantidad FROM detalle_orden do JOIN ordenes_produccion o ON do.orden_id = o.id WHERE o.fecha >= NOW() - INTERVAL '7 days'"),
-            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha, 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, observaciones FROM auditorias_pasteleria WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT id, TO_CHAR(fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD HH24:MI') as fecha, usuario_id, observaciones FROM auditorias_pasteleria WHERE fecha >= NOW() - INTERVAL '7 days' ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT dap.id, dap.auditoria_id, dap.insumo_id, dap.cantidad_teorica, dap.cantidad_real, dap.diferencia FROM detalle_auditoria_pasteleria dap JOIN auditorias_pasteleria ap ON dap.auditoria_id = ap.id WHERE ap.fecha >= NOW() - INTERVAL '7 days'"),
             ejecutarQuerySegura('SELECT id, producto_id, nombre, preparacion, porciones FROM recetas'),
             ejecutarQuerySegura('SELECT id, receta_id, insumo_id, nombre_ingrediente, cantidad, unidad_medida FROM ingrediente_recetas'),
             ejecutarQuerySegura('SELECT * FROM parametros LIMIT 1'),
             // Nuevas consultas históricas agregadas (extremadamente livianas y con resúmenes de 30 días)
-            ejecutarQuerySegura("SELECT TO_CHAR(fecha_venta, 'YYYY-MM-DD') as fecha, COUNT(id)::integer as total_tickets, SUM(total)::numeric as total_dinero FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '30 days' GROUP BY TO_CHAR(fecha_venta, 'YYYY-MM-DD') ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha, COUNT(id)::integer as total_tickets, SUM(total)::numeric as total_dinero FROM ventas WHERE fecha_venta >= NOW() - INTERVAL '30 days' GROUP BY TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT dv.producto_id, p.nombre as producto, SUM(dv.cantidad)::integer as cantidad_total, SUM(dv.subtotal)::numeric as ingresos_totales FROM detalle_ventas dv JOIN productos p ON dv.producto_id = p.id JOIN ventas v ON dv.venta_id = v.id WHERE v.fecha_venta >= NOW() - INTERVAL '30 days' GROUP BY dv.producto_id, p.nombre ORDER BY ingresos_totales DESC"),
-            ejecutarQuerySegura("SELECT TO_CHAR(fecha, 'YYYY-MM-DD') as fecha, COUNT(id)::integer as total_compras, SUM(total)::numeric as total_dinero FROM compras WHERE fecha >= NOW() - INTERVAL '30 days' GROUP BY TO_CHAR(fecha, 'YYYY-MM-DD') ORDER BY fecha DESC"),
+            ejecutarQuerySegura("SELECT TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha, COUNT(id)::integer as total_compras, SUM(total)::numeric as total_dinero FROM compras WHERE fecha >= NOW() - INTERVAL '30 days' GROUP BY TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') ORDER BY fecha DESC"),
             ejecutarQuerySegura("SELECT dc.insumo_id, i.nombre as insumo, SUM(dc.cantidad)::numeric as cantidad_total, SUM(dc.subtotal)::numeric as costo_total FROM detalle_compras dc JOIN insumos i ON dc.insumo_id = i.id JOIN compras c ON dc.compra_id = c.id WHERE c.fecha >= NOW() - INTERVAL '30 days' GROUP BY dc.insumo_id, i.nombre ORDER BY costo_total DESC")
         ]);
 

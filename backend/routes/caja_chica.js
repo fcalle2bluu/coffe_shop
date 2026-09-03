@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Registro rápido de un gasto de caja chica desde Venta por Mesa. Se guarda en la
 // MISMA tabla que usa Control Caja (gastos_caja), ligado a la caja abierta del turno,
@@ -28,10 +29,16 @@ router.post('/gastos', async (req, res) => {
         }
         const caja_id = cajaAbiertaRes.rows[0].id;
 
-        await pool.query(
-            'INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion) VALUES ($1, $2, $3, $4)',
+        const gastoRes = await pool.query(
+            'INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion) VALUES ($1, $2, $3, $4) RETURNING id',
             [caja_id, usuario_id, monto, descripcion]
         );
+
+        registrarBitacora({
+            usuario_id, accion: 'REGISTRAR_GASTO_CAJA_CHICA', entidad_tipo: 'gasto_caja', entidad_id: gastoRes.rows[0].id,
+            detalle: { caja_id, monto, descripcion }
+        });
+
         res.status(201).json({ success: true, message: 'Gasto de caja chica registrado' });
     } catch (error) {
         console.error('Error al registrar gasto de caja chica:', error);

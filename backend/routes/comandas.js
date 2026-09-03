@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -27,7 +28,7 @@ const checkAdminPermission = async (req, res, next) => {
 
 // Middleware MESERO o Admin/Cajero: para que el mesero cree/liste/elimine sus propios pedidos
 const checkMeseroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -50,7 +51,7 @@ const checkMeseroOAdmin = async (req, res, next) => {
 
 // Middleware COCINERO o Admin/Cajero: para la pantalla de cocina (leer/actualizar pendientes)
 const checkCocineroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -132,10 +133,24 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        registrarBitacora({
+            usuario_id, accion: 'CREAR_COMANDA', entidad_tipo: 'comanda', entidad_id: comandaId,
+            detalle: { mesa, numero_comanda: numeroComanda, total, cantidad_items: detalles.length }
+        });
+
         res.status(201).json({ success: true, comanda_id: comandaId, numero_comanda: numeroComanda });
 
     } catch (error) {
         await client.query('ROLLBACK');
+        // 23505 = unique_violation en idx_comandas_mesa_activa_unica: dos meseros
+        // mandaron un pedido a la misma mesa casi al mismo tiempo y ambos pasaron el
+        // SELECT de arriba antes de que el primero terminara de insertar. La base de
+        // datos frena al segundo; acá se lo transforma en el mismo mensaje claro que
+        // ya se usa cuando el SELECT sí lo detecta a tiempo.
+        if (error.code === '23505') {
+            return res.status(400).json({ error: `La mesa ${mesa} ya tiene una comanda activa.` });
+        }
         console.error('Error al crear comanda:', error);
         res.status(500).json({ error: 'Error interno al guardar comanda: ' + error.message });
     } finally {
@@ -223,6 +238,13 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
         `, [total, notas || null, id]);
 
         await client.query('COMMIT');
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'EDITAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { total, cantidad_items: detalles.length }
+        });
+
         res.json({ success: true, message: 'Comanda actualizada correctamente' });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -264,7 +286,7 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        const comandaRes = await client.query('SELECT estado FROM comandas WHERE id = $1', [id]);
+        const comandaRes = await client.query('SELECT estado, mesa, total FROM comandas WHERE id = $1', [id]);
         if (comandaRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Comanda no encontrada.' });
@@ -280,6 +302,13 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
         await client.query('DELETE FROM comandas WHERE id = $1', [id]);
 
         await client.query('COMMIT');
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'ELIMINAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { mesa: comanda.mesa, total: comanda.total, estado_previo: comanda.estado }
+        });
+
         res.json({ success: true, message: 'Comanda eliminada correctamente' });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -333,6 +362,13 @@ router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Comanda no encontrada.' });
         }
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'CAMBIAR_ESTADO_COCINA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { estado_cocina }
+        });
+
         res.json({ success: true, message: `Comanda actualizada a estado de cocina ${estado_cocina}` });
     } catch (error) {
         console.error('Error al actualizar estado de cocina:', error);
@@ -400,6 +436,49 @@ router.get('/mesas-estado', checkMeseroOAdmin, async (req, res) => {
     }
 });
 
+// Estado fresco de UNA mesa puntual, para mesero: se usa justo antes de generar/sumar
+// un pedido, para no decidir con el snapshot de /mesas-estado que el cliente cargó
+// al abrir la pantalla y que puede haber quedado desactualizado (otro mesero pudo
+// haber ocupado o liberado esa mesa mientras tanto). Mismo shape que el endpoint
+// equivalente de administrador (GET /mesa/:numero, más abajo), pero accesible para
+// MESERO también.
+router.get('/mesa/mesero/:numero', checkMeseroOAdmin, async (req, res) => {
+    const { numero } = req.params;
+    try {
+        const queryComanda = `
+            SELECT c.*, u.nombre as mesero_nombre
+            FROM comandas c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.mesa = $1 AND c.estado IN ('CREADA', 'ENTREGADA')
+            LIMIT 1
+        `;
+        const resultComanda = await pool.query(queryComanda, [numero]);
+
+        if (resultComanda.rows.length === 0) {
+            return res.json({ activa: false });
+        }
+
+        const comanda = resultComanda.rows[0];
+
+        const queryDetalle = `
+            SELECT dc.*, p.nombre as producto_nombre
+            FROM detalle_comandas dc
+            JOIN productos p ON dc.producto_id = p.id
+            WHERE dc.comanda_id = $1
+        `;
+        const resultDetalle = await pool.query(queryDetalle, [comanda.id]);
+
+        res.json({
+            activa: true,
+            comanda: comanda,
+            items: resultDetalle.rows
+        });
+    } catch (error) {
+        console.error(`Error al obtener estado fresco de mesa ${numero}:`, error);
+        res.status(500).json({ error: 'Error al obtener el estado de la mesa' });
+    }
+});
+
 router.use(checkAdminPermission);
 
 // 1. Obtener todas las comandas activas (CREADA, ENTREGADA)
@@ -461,6 +540,11 @@ router.get('/mesa/:numero', async (req, res) => {
 });
 
 // 5. Cambiar el estado de la comanda (ej: CREADA -> ENTREGADA, o CANCELADA)
+// OJO: 'PAGADA' está deliberadamente excluida de este endpoint — ese estado solo lo
+// debe poner /:id/pagar (el único lugar que además registra la venta real). Antes se
+// podía marcar una comanda como PAGADA acá sin ninguna venta detrás, dejando una
+// mesa "cobrada" fantasma sin plata registrada.
+const ESTADOS_PERMITIDOS_VIA_ESTADO = ['CREADA', 'ENTREGADA', 'CANCELADA'];
 router.put('/:id/estado', async (req, res) => {
     const { id } = req.params;
     const { estado } = req.body;
@@ -468,19 +552,29 @@ router.put('/:id/estado', async (req, res) => {
     if (!estado) {
         return res.status(400).json({ error: 'El estado es requerido.' });
     }
+    if (!ESTADOS_PERMITIDOS_VIA_ESTADO.includes(estado)) {
+        return res.status(400).json({ error: `Estado no permitido por esta vía: ${estado}` });
+    }
 
     try {
         const query = `
-            UPDATE comandas 
-            SET estado = $1, fecha_actualizacion = CURRENT_TIMESTAMP 
-            WHERE id = $2 
+            UPDATE comandas
+            SET estado = $1, fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = $2
             RETURNING id
         `;
         const result = await pool.query(query, [estado, id]);
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Comanda no encontrada.' });
         }
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'CAMBIAR_ESTADO_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { estado }
+        });
+
         res.json({ success: true, message: `Comanda actualizada a estado ${estado}` });
     } catch (error) {
         console.error('Error al actualizar comanda:', error);
@@ -631,6 +725,12 @@ router.post('/:id/pagar', async (req, res) => {
             SET estado = 'PAGADA', caja_id = $1, fecha_actualizacion = CURRENT_TIMESTAMP
             WHERE id = $2
         `, [cajaId, id]);
+
+        await registrarBitacora({
+            usuario_id: usuario_id || comanda.usuario_id, accion: 'COBRAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { mesa: comanda.mesa, total: totalComanda, pagos: listaPagos, venta_id_principal: ventaPrincipalId },
+            client
+        });
 
         await client.query('COMMIT');
         res.status(201).json({ success: true, venta_id: ventaPrincipalId });

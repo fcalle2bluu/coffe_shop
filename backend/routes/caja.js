@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -27,7 +28,7 @@ const checkAdminPermission = async (req, res, next) => {
 
 // Middleware CAJERO o Admin: para endpoints de consulta (estado de caja)
 const checkCajeroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -134,9 +135,14 @@ router.post('/abrir', async (req, res) => {
         }
 
         const result = await pool.query(`
-            INSERT INTO cajas (saldo_inicial, usuario_id, fecha_apertura) 
+            INSERT INTO cajas (saldo_inicial, usuario_id, fecha_apertura)
             VALUES ($1, $2, NOW()) RETURNING id
         `, [saldo_inicial, usuario_id || null]);
+
+        registrarBitacora({
+            usuario_id, accion: 'ABRIR_CAJA', entidad_tipo: 'caja', entidad_id: result.rows[0].id,
+            detalle: { saldo_inicial }
+        });
 
         res.status(201).json({ message: 'Caja abierta con éxito', id: result.rows[0].id });
     } catch (error) {
@@ -187,6 +193,11 @@ router.post('/cerrar', async (req, res) => {
             SET saldo_final = $1, fecha_cierre = NOW()
             WHERE id = $2
         `, [saldo_final, caja_id]);
+
+        registrarBitacora({
+            usuario_id, accion: 'CERRAR_CAJA', entidad_tipo: 'caja', entidad_id: caja_id,
+            detalle: { saldo_final, creador_id: creadorId }
+        });
 
         res.json({ message: 'Caja cerrada correctamente' });
     } catch (error) {
@@ -329,10 +340,16 @@ router.post('/gastos', async (req, res) => {
         }
         const caja_id = cajaAbiertaRes.rows[0].id;
 
-        await pool.query(`
+        const gastoRes = await pool.query(`
             INSERT INTO gastos_caja (caja_id, usuario_id, monto, descripcion)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, $3, $4) RETURNING id
         `, [caja_id, usuario_id, monto, descripcion]);
+
+        registrarBitacora({
+            usuario_id, accion: 'REGISTRAR_GASTO_CAJA', entidad_tipo: 'gasto_caja', entidad_id: gastoRes.rows[0].id,
+            detalle: { caja_id, monto, descripcion }
+        });
+
         res.status(201).json({ message: 'Gasto registrado con éxito' });
     } catch (error) {
         console.error('Error al registrar gasto de caja:', error);
@@ -395,6 +412,12 @@ router.put('/ventas/:id/metodo-pago', async (req, res) => {
             'UPDATE ventas SET metodo_pago = $1 WHERE id = $2',
             [metodoNormalizado, id]
         );
+
+        registrarBitacora({
+            usuario_nombre: `Admin (rol ${editor_rol})`, accion: 'EDITAR_METODO_PAGO_VENTA', entidad_tipo: 'venta', entidad_id: Number(id),
+            detalle: { metodo_pago_nuevo: metodoNormalizado }
+        });
+
         res.json({ success: true, mensaje: 'Método de pago de venta actualizado con éxito.' });
     } catch (error) {
         console.error('Error al actualizar método de pago de venta:', error);
@@ -417,6 +440,12 @@ router.post('/venta-historica', async (req, res) => {
             RETURNING id
         `;
         const result = await pool.query(query, [usuario_id, total, metodo_pago, fecha_venta]);
+
+        registrarBitacora({
+            usuario_id, accion: 'REGISTRAR_VENTA_HISTORICA', entidad_tipo: 'venta', entidad_id: result.rows[0].id,
+            detalle: { total, metodo_pago, fecha_venta }
+        });
+
         res.status(201).json({ success: true, venta_id: result.rows[0].id });
     } catch (error) {
         console.error('Error al registrar venta histórica:', error);
@@ -434,6 +463,12 @@ router.put('/ventas/:id/historica', async (req, res) => {
             'UPDATE ventas SET es_historica = $1 WHERE id = $2',
             [es_historica, id]
         );
+
+        registrarBitacora({
+            accion: 'EDITAR_ES_HISTORICA_VENTA', entidad_tipo: 'venta', entidad_id: Number(id),
+            detalle: { es_historica }
+        });
+
         res.json({ success: true, mensaje: 'Estado de venta histórica actualizado con éxito.' });
     } catch (error) {
         console.error('Error al actualizar es_historica de venta:', error);
@@ -512,6 +547,12 @@ router.delete('/eliminar/:id', async (req, res) => {
             return res.status(404).json({ error: 'Turno de caja no encontrado.' });
         }
 
+        await registrarBitacora({
+            usuario_id, accion: 'ELIMINAR_TURNO_CAJA', entidad_tipo: 'caja', entidad_id: Number(id),
+            detalle: 'Se eliminó el turno completo: ventas, gastos y comandas asociadas.',
+            client
+        });
+
         await client.query('COMMIT');
         res.json({ success: true, mensaje: 'Turno de caja y toda su información relacionada eliminados con éxito.' });
     } catch (error) {
@@ -544,10 +585,15 @@ router.delete('/gastos/:id', async (req, res) => {
         }
 
         // Eliminar el gasto
-        const deleteRes = await pool.query('DELETE FROM gastos_caja WHERE id = $1 RETURNING id', [id]);
+        const deleteRes = await pool.query('DELETE FROM gastos_caja WHERE id = $1 RETURNING id, caja_id, monto, descripcion', [id]);
         if (deleteRes.rows.length === 0) {
             return res.status(404).json({ error: 'Gasto no encontrado.' });
         }
+
+        registrarBitacora({
+            usuario_id, accion: 'ELIMINAR_GASTO_CAJA', entidad_tipo: 'gasto_caja', entidad_id: Number(id),
+            detalle: deleteRes.rows[0]
+        });
 
         res.json({ success: true, mensaje: 'Gasto de caja eliminado con éxito.' });
     } catch (error) {

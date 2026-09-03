@@ -250,6 +250,23 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Consulta al servidor si la mesa dada tiene AHORA MISMO una comanda activa,
+  /// sin depender del snapshot de _mesas que puede estar desactualizado. Devuelve
+  /// el mapa de la comanda (con sus items) o null si la mesa está libre.
+  Future<dynamic> _comandaActivaDeMesa(String mesa) async {
+    try {
+      final res = await ApiConfig.get('/comandas/mesa/mesero/${Uri.encodeComponent(mesa)}?usuario_id=$_userId');
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body);
+      return (data['activa'] == true) ? {...data['comanda'], 'items': data['items']} : null;
+    } catch (_) {
+      // Si falla la verificación (sin conexión, etc.), seguimos con lo último
+      // que se cargó en _mesas en vez de bloquear al mesero por completo.
+      final mesaInfo = _mesas.firstWhere((m) => m['mesa'].toString() == mesa, orElse: () => null);
+      return (mesaInfo != null && mesaInfo['estado'] == 'ocupada') ? mesaInfo['comanda'] : null;
+    }
+  }
+
   Future<String?> _generarComanda(String mesa, String? notasGenerales, Map<int, String> notasPorProducto) async {
     try {
       final detallesNuevos = _carrito.entries.map((e) {
@@ -265,8 +282,12 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
       // Si la mesa ya tiene un pedido activo (de cualquier mesero), se suman estos
       // productos a esa misma comanda en vez de bloquear o crear una duplicada.
-      final mesaInfo = _mesas.firstWhere((m) => m['mesa'].toString() == mesa, orElse: () => null);
-      final comandaExistente = (mesaInfo != null && mesaInfo['estado'] == 'ocupada') ? mesaInfo['comanda'] : null;
+      // OJO: se pregunta el estado FRESCO al servidor acá mismo, en vez de confiar en
+      // _mesas (que solo se carga al abrir la pantalla o al hacer pull-to-refresh):
+      // si otro mesero ocupó esta mesa mientras tanto, decidir con el dato viejo
+      // hacía que este pedido se mandara como comanda nueva y paralela en vez de
+      // sumarse a la que ya existía.
+      final comandaExistente = await _comandaActivaDeMesa(mesa);
 
       if (comandaExistente != null) {
         return await _sumarAComandaExistente(comandaExistente, detallesNuevos, notasGenerales);

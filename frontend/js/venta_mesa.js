@@ -7,6 +7,7 @@ let comandaActivaItems = [];  // Items de la comanda activa guardada
 let carritoComanda = [];      // Carrito temporal para comandas nuevas o agregados
 let mesaSeleccionada = null;  // Mesa actualmente elegida
 let modoEdicionActivo = false; // true si estamos editando/añadiendo items a comanda existente
+let seleccionMesaToken = 0;   // Evita que la respuesta de una mesa vieja pise los datos de la mesa que se seleccionó después
 
 const usuarioId = parseInt(localStorage.getItem('usuario_id')) || 1;
 const usuarioRol = localStorage.getItem('usuario_rol') || 'CAJERO';
@@ -299,6 +300,13 @@ function renderizarMesas() {
 
 // 3. Seleccionar una mesa y cargar sus datos
 async function seleccionarMesa(numero) {
+    // Si el usuario toca varias mesas rápido, cada llamada anterior queda "vieja": su
+    // respuesta puede llegar después de la de la mesa que se seleccionó más tarde y
+    // pisar el total/comanda equivocados (esto llegó a mostrar el total de OTRA mesa
+    // al momento de cobrar). Con este token, solo se aplica la respuesta de la
+    // selección más reciente; cualquier respuesta vieja que llegue tarde se descarta.
+    const miToken = ++seleccionMesaToken;
+
     mesaSeleccionada = numero;
     modoEdicionActivo = false;
     carritoComanda = [];
@@ -313,6 +321,8 @@ async function seleccionarMesa(numero) {
     try {
         const res = await fetch(`/api/comandas/mesa/${numero}`);
         const data = await res.json();
+
+        if (miToken !== seleccionMesaToken) return; // Se seleccionó otra mesa mientras esto cargaba: descartar.
 
         if (data.activa) {
             comandaActivaMesa = data.comanda;
@@ -882,10 +892,37 @@ function triggerPrint() {
 }
 
 // 15. Cobrar comanda (Flujo Cajero)
-function abrirModalCobroComanda() {
+async function abrirModalCobroComanda() {
+    if (!comandaActivaMesa) return;
+    // Antes de mostrar cuánto cobrar, se refresca la comanda desde el servidor (no se
+    // confía en el total que quedó en memoria) para blindar contra el caso de haber
+    // mirado otra mesa hace un momento y que ese total quedara pegado.
+    await refrescarComandaActiva();
     if (!comandaActivaMesa) return;
     document.getElementById('lbl-monto-cobro').innerText = `Bs. ${parseFloat(comandaActivaMesa.total).toFixed(2)}`;
     document.getElementById('modalCobroComanda').classList.remove('hidden');
+}
+
+// Vuelve a pedir al backend la comanda activa de la mesa seleccionada y actualiza
+// comandaActivaMesa/comandaActivaItems con el dato fresco. Se usa justo antes de
+// mostrar un monto a cobrar, para no cobrar nunca con un total viejo en memoria.
+async function refrescarComandaActiva() {
+    if (!mesaSeleccionada) return;
+    const miToken = ++seleccionMesaToken;
+    try {
+        const res = await fetch(`/api/comandas/mesa/${mesaSeleccionada}`);
+        const data = await res.json();
+        if (miToken !== seleccionMesaToken) return;
+        if (data.activa) {
+            comandaActivaMesa = data.comanda;
+            comandaActivaItems = data.items;
+        } else {
+            comandaActivaMesa = null;
+            comandaActivaItems = [];
+        }
+    } catch (e) {
+        console.error('Error al refrescar comanda activa:', e);
+    }
 }
 
 function cerrarModalCobro() {
@@ -904,7 +941,11 @@ const OPCIONES_METODO_PAGO_HTML = `
     <option value="BILLETERA MOVIL">🇧🇴 Billetera Móvil</option>
 `;
 
-function abrirModalCobroDividido() {
+async function abrirModalCobroDividido() {
+    if (!comandaActivaMesa) return;
+    // Mismo blindaje que el cobro simple: se refresca desde el servidor antes de
+    // fijar el monto a repartir, para no dividir nunca un total viejo/de otra mesa.
+    await refrescarComandaActiva();
     if (!comandaActivaMesa) return;
     montoTotalCobroDividido = parseFloat(comandaActivaMesa.total);
     document.getElementById('lbl-monto-cobro-dividido').innerText = `Bs. ${montoTotalCobroDividido.toFixed(2)}`;

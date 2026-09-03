@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT id, nombre_cliente, telefono_cliente, total, estado, 
-                   TO_CHAR(fecha_emision, 'DD/MM/YYYY HH24:MI') as fecha_emision
+                   TO_CHAR(fecha_emision AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha_emision
             FROM cotizaciones 
             ORDER BY id DESC
         `);

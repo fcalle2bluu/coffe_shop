@@ -298,6 +298,19 @@ function mesaSeleccionadaInfo() {
     return mesasEstado.find(m => m.mesa.toString() === mesa) || null;
 }
 
+// Estado fresco de una mesa puntual, consultado justo antes de enviar el pedido.
+// mesasEstado se carga una sola vez al abrir la pantalla (y no se refresca sola),
+// así que si otro mesero ocupó/liberó la mesa mientras tanto, decidir con ese dato
+// viejo llevaba a crear una comanda paralela en vez de sumar a la que ya existía.
+async function estadoFrescoDeMesa(mesa) {
+    const res = await fetch(`/api/comandas/mesa/mesero/${encodeURIComponent(mesa)}?usuario_id=${usuarioIdActual()}`);
+    if (!res.ok) throw new Error('No se pudo verificar el estado actual de la mesa');
+    const data = await res.json();
+    return data.activa
+        ? { mesa, estado: 'ocupada', comanda: { ...data.comanda, items: data.items } }
+        : { mesa, estado: 'libre', comanda: null };
+}
+
 function onCambiarMesaSeleccionada() {
     const info = mesaSeleccionadaInfo();
     const aviso = document.getElementById('aviso-mesa-ocupada');
@@ -457,10 +470,15 @@ async function generarComanda() {
         };
     });
 
-    const mesaInfo = mesaSeleccionadaInfo();
-    const mesaOcupada = mesaInfo && mesaInfo.estado === 'ocupada';
-
     try {
+        let mesaInfo;
+        try {
+            mesaInfo = await estadoFrescoDeMesa(mesa);
+        } catch (e) {
+            mesaInfo = mesaSeleccionadaInfo(); // si falla la verificación, seguimos con lo último que se cargó
+        }
+        const mesaOcupada = mesaInfo && mesaInfo.estado === 'ocupada';
+
         let error;
         if (mesaOcupada) {
             error = await sumarAComandaExistente(mesaInfo.comanda, detallesNuevos, notaGeneral);

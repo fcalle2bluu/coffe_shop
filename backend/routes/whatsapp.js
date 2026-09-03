@@ -35,7 +35,7 @@ const checkAdminPermission = async (req, res, next) => {
     if (req.path === '/webhook') {
         return next();
     }
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario en cabecera o query/body.' });
     }

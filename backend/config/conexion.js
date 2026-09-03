@@ -1,8 +1,19 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const path = require('path');
 
 // Cargar .env por si acaso (para local y pruebas)
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
+// Varias columnas de fecha en el sistema (comandas.fecha_creacion, gastos_caja.fecha,
+// asistencia.hora_entrada, etc.) son TIMESTAMP sin zona horaria, y siempre se llenan
+// con CURRENT_TIMESTAMP en una sesión de Postgres que corre en UTC — o sea, el valor
+// crudo guardado ES una hora UTC real, aunque la columna no lo diga. El driver 'pg'
+// por defecto reconstruye esos valores usando la zona horaria del sistema operativo
+// del proceso Node que los lee, no UTC — así que el mismo dato podía interpretarse
+// distinto según en qué máquina/servidor corriera el código, corriendo el riesgo de
+// mostrar horas desfasadas. Esto fuerza a interpretarlos siempre como UTC real, sin
+// importar el entorno, para que las horas sean siempre las mismas en todos lados.
+types.setTypeParser(1114, (val) => (val ? new Date(val + 'Z') : null));
 
 const connectionString = process.env.DATABASE_URL && process.env.DATABASE_URL.trim();
 
@@ -1447,6 +1458,49 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('✅ Columna comanda_id en ventas verificada/creada.');
     } catch (comandaIdVentaErr) {
         console.log('Info Migración comanda_id en ventas:', comandaIdVentaErr.message);
+    }
+
+    // Bitácora: registro cronológico de acciones (quién, cuándo, qué) para poder
+    // reconstruir después qué pasó con una comanda/venta/asistencia/etc. cuando algo
+    // sale raro (ej. un cobro que no cuadra) sin depender de adivinar por los datos
+    // finales. Visible en la pestaña "Bitácora" del panel (solo administradores).
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS bitacora (
+                id SERIAL PRIMARY KEY,
+                fecha TIMESTAMPTZ DEFAULT NOW(),
+                usuario_id INT,
+                usuario_nombre TEXT,
+                accion TEXT NOT NULL,
+                entidad_tipo TEXT,
+                entidad_id INT,
+                detalle TEXT
+            );
+        `);
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_bitacora_fecha ON bitacora(fecha DESC);');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_bitacora_entidad ON bitacora(entidad_tipo, entidad_id);');
+        console.log('✅ Tabla bitacora verificada/creada.');
+    } catch (bitacoraErr) {
+        console.log('Info Migración bitacora:', bitacoraErr.message);
+    }
+
+    // Garantía a nivel de base de datos: nunca puede haber dos comandas activas
+    // (CREADA/ENTREGADA) para la misma mesa al mismo tiempo. Antes esto solo se
+    // validaba con un SELECT-antes-de-INSERT desde el backend, que no es atómico:
+    // si dos meseros mandaban un pedido a la misma mesa casi al mismo tiempo (o uno
+    // intentaba agregar a una comanda que su app todavía no sabía que existía),
+    // ambos pasaban la validación y quedaban dos comandas "paralelas" para la misma
+    // mesa en vez de fusionarse en una sola. Este índice único parcial hace que la
+    // propia base de datos rechace la segunda inserción, sin importar qué app o
+    // qué carrera de tiempos la origine.
+    try {
+        await pool.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_comandas_mesa_activa_unica
+            ON comandas (mesa) WHERE estado IN ('CREADA', 'ENTREGADA');
+        `);
+        console.log('✅ Restricción de comanda única por mesa activa verificada/creada.');
+    } catch (comandaUnicaErr) {
+        console.log('Info Migración comanda única por mesa:', comandaUnicaErr.message);
     }
 
     console.log('✅ Base de Datos Optimizada y marca Café La Paz aplicada.');

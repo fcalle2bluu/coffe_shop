@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Helper para generar el token esperado de hoy en Bolivia (GMT-4)
 const obtenerTokenHoy = () => {
@@ -77,6 +78,11 @@ router.post('/marcar', async (req, res) => {
             const userRes = await pool.query('SELECT nombre FROM usuarios WHERE id = $1', [usuario_id]);
             const nombre = userRes.rows[0]?.nombre || 'Empleado';
 
+            registrarBitacora({
+                usuario_id, usuario_nombre: nombre, accion: 'MARCAR_ASISTENCIA_SALIDA', entidad_tipo: 'asistencia', entidad_id: registroId,
+                detalle: { horas_trabajadas: horasTrabajadas }
+            });
+
             return res.json({
                 success: true,
                 tipo: 'SALIDA',
@@ -106,6 +112,10 @@ router.post('/marcar', async (req, res) => {
 
             const userRes = await pool.query('SELECT nombre FROM usuarios WHERE id = $1', [usuario_id]);
             const nombre = userRes.rows[0]?.nombre || 'Empleado';
+
+            registrarBitacora({
+                usuario_id, usuario_nombre: nombre, accion: 'MARCAR_ASISTENCIA_ENTRADA', entidad_tipo: 'asistencia'
+            });
 
             const obtenerHoraBoliviaString = () => {
                 const ahora = new Date();
@@ -331,6 +341,12 @@ router.post('/manual', async (req, res) => {
         }
 
         await pool.query(sql, queryParams);
+
+        registrarBitacora({
+            usuario_id: req.usuario.id, usuario_nombre: req.usuario.nombre, accion: 'REGISTRAR_ASISTENCIA_MANUAL',
+            entidad_tipo: 'asistencia', detalle: { empleado_id: usuario_id, fecha, hora_entrada: horaEntradaFinal, hora_salida: hora_salida || null }
+        });
+
         res.json({ success: true, mensaje: 'Marcación manual registrada con éxito.' });
     } catch (error) {
         console.error('Error al registrar asistencia manual:', error);
@@ -349,10 +365,15 @@ router.delete('/:id', async (req, res) => {
     }
 
     try {
-        const deleteResult = await pool.query('DELETE FROM asistencia WHERE id = $1 RETURNING id', [id]);
+        const deleteResult = await pool.query('DELETE FROM asistencia WHERE id = $1 RETURNING id, usuario_id, fecha', [id]);
         if (deleteResult.rows.length === 0) {
             return res.status(404).json({ error: 'Registro de asistencia no encontrado.' });
         }
+
+        registrarBitacora({
+            usuario_id: req.usuario.id, usuario_nombre: req.usuario.nombre, accion: 'ELIMINAR_ASISTENCIA',
+            entidad_tipo: 'asistencia', entidad_id: Number(id), detalle: deleteResult.rows[0]
+        });
 
         res.json({ success: true, mensaje: 'Registro de asistencia eliminado correctamente.' });
     } catch (error) {

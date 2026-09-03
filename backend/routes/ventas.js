@@ -3,10 +3,11 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const whatsappRoutes = require('./whatsapp');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -28,7 +29,7 @@ const checkAdminPermission = async (req, res, next) => {
 
 // Middleware MESERO o Admin/Cajero: acceso de solo lectura al catálogo para armar pedidos
 const checkMeseroLecturaOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -112,6 +113,12 @@ router.post('/productos', async (req, res) => {
             whatsappRoutes.syncProductToMeta(newId).catch(err => console.error("Error de sync automático:", err.message));
         }
 
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'CREAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: newId,
+            detalle: { nombre, precio_venta, categoria_id }
+        });
+
         res.status(201).json({ id: newId });
     } catch (error) {
         console.error('Error al crear producto:', error);
@@ -134,6 +141,12 @@ router.put('/productos/:id', async (req, res) => {
             whatsappRoutes.syncProductToMeta(id).catch(err => console.error("Error de sync automático:", err.message));
         }
 
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'EDITAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: Number(id),
+            detalle: { nombre, precio_venta, categoria_id }
+        });
+
         res.json({ success: true });
     } catch (error) {
         console.error('Error al modificar producto:', error);
@@ -152,6 +165,11 @@ router.delete('/productos/:id', async (req, res) => {
         if (whatsappRoutes && typeof whatsappRoutes.deleteProductFromMeta === 'function') {
             whatsappRoutes.deleteProductFromMeta(id).catch(err => console.error("Error de sync automático al eliminar:", err.message));
         }
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'ELIMINAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: Number(id)
+        });
 
         res.json({ success: true, message: 'Producto eliminado exitosamente.' });
     } catch (error) {
@@ -254,8 +272,14 @@ router.post('/', async (req, res) => {
             }
         }
 
+        await registrarBitacora({
+            usuario_id, accion: 'VENTA_DIRECTA', entidad_tipo: 'venta', entidad_id: ventaId,
+            detalle: { total, metodo_pago, cantidad_items: detalles.length },
+            client
+        });
+
         await client.query('COMMIT'); // ✅ Confirma y guarda todo en la BD
-        
+
         // Devolver un JSON con el ID de la venta
         res.status(201).json({ venta_id: ventaId });
 

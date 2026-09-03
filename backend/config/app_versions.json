@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 23,
-    "versionName": "1.0.22",
+    "versionCode": 24,
+    "versionName": "1.0.23",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "La mesa 'Para Llevar' ahora se muestra como 'Para Llevar' en toda la app, sin el prefijo 'Mesa' delante.",
+    "notas": "Corregido: al sumar un pedido a una mesa que ya tenía comanda de otro mesero, a veces no se fusionaba y quedaba como pedido aparte. Ahora siempre se verifica el estado real de la mesa antes de enviar.",
     "obligatoria": true
   },
   "comandas": {

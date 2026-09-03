@@ -54,6 +54,7 @@ const rutasWhatsapp = require('./routes/whatsapp');
 const rutasControlDiario = require('./routes/control_diario');
 const rutasVersion = require('./routes/version');
 const rutasCajaChica = require('./routes/caja_chica');
+const rutasBitacora = require('./routes/bitacora');
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
@@ -83,6 +84,7 @@ app.use('/api/produccion', rutasProduccion);
 app.use('/api/whatsapp', rutasWhatsapp);
 app.use('/api/control-diario', rutasControlDiario);
 app.use('/api/version', rutasVersion);
+app.use('/api/bitacora', rutasBitacora);
 app.use('/api/caja-chica', rutasCajaChica);
 
 // ==========================================

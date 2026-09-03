@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
+    <style>html,body{background:#0b1830 !important}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Bitácora</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/security_guard.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#0d1c34',
+                        sidebarHover: '#16294a',
+                        topbar: '#ffffff',
+                        mainBg: '#0b1830',
+                        accent: '#3b82f6',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Línea vertical de la línea de tiempo, atravesando los puntos de cada evento */
+        #lista-bitacora { position: relative; }
+        #lista-bitacora::before {
+            content: '';
+            position: absolute;
+            left: 23px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, #e2e8f0 4%, #e2e8f0 96%, transparent);
+        }
+        .evento-fila { position: relative; }
+    </style>
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-200">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-blue-500/30">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-blue-500/30">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
+            </button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-accent/70"></i> <span>Dashboard</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-accent/70"></i> <span>Control Caja</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-accent/70"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-utensils w-5 text-center text-accent/70"></i> <span>Venta por Mesa</span>
+            </a>
+            <a href="libro_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-book w-5 text-center text-accent/70"></i> <span>Libro Diario</span>
+            </a>
+            <a href="asistencia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-user-clock w-5 text-center text-accent/70"></i> <span>Asistencia QR</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-accent/70"></i> <span>Parámetros</span>
+            </a>
+            <a href="empleados.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-users-gear w-5 text-center text-accent/70"></i> <span>Gestión de Empleados</span>
+            </a>
+            <button type="button" onclick="toggleMasMenu(this)" class="mas-menu-toggle flex items-center justify-between w-full gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <span class="flex items-center gap-3">
+                    <i class="fa-solid fa-ellipsis w-5 text-center text-accent/70"></i> <span>Más</span>
+                </span>
+                <i class="fa-solid fa-chevron-down text-[10px] mas-menu-chevron transition-transform duration-200"></i>
+            </button>
+            <div class="mas-menu-group flex flex-col space-y-1 hidden">
+                <a href="analisis_combos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-circle-nodes w-5 text-center text-accent/70"></i> <span>Análisis de Combos</span>
+                </a>
+                <a href="almacen_stock.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center text-accent/70"></i> <span>Stock Actual</span>
+                </a>
+                <a href="produccion.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-solid fa-kitchen-set w-5 text-center text-accent/70"></i> <span>Producción y Masas</span>
+                </a>
+                <a href="recetas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-book-open w-5 text-center text-accent/70"></i> <span>Recetas</span>
+                </a>
+                <a href="compras.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-cart-flatbed w-5 text-center text-accent/70"></i> <span>Compras Insumos</span>
+                </a>
+                <a href="proveedores.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-truck w-5 text-center text-accent/70"></i> <span>Proveedores</span>
+                </a>
+                <a href="inventario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-clipboard-check w-5 text-center text-accent/70"></i> <span>Auditoría</span>
+                </a>
+                <a href="webhook.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-brands fa-whatsapp w-5 text-center text-accent/70"></i> <span>Webhook WhatsApp</span>
+                </a>
+                <a href="pedidos_internos.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center text-accent/70"></i> <span>Pedidos Internos</span>
+                </a>
+                <a href="informe_general.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-mug-hot w-5 text-center text-accent/70"></i> <span>Informe General</span>
+                </a>
+                <a href="chat_ia.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                    <i class="fa-solid fa-brain w-5 text-center text-accent/70"></i> <span>Asistente IA</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-[#122544]/90 backdrop-blur-md text-slate-100 border-b border-blue-500/30 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-800 focus:outline-none mr-2">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-timeline text-accent"></i> Bitácora del Sistema</h1>
+            </div>
+            <button onclick="cargarBitacora()" class="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-700 text-slate-300 hover:bg-slate-800 transition-all" title="Actualizar">
+                <i id="icono-refrescar" class="fa-solid fa-arrows-rotate"></i>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+
+            <!-- KPIs de actividad -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-2xl shadow-premium p-5 border border-slate-100 flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Eventos hoy</p>
+                        <p class="text-2xl font-extrabold text-slate-800" id="kpi-total-hoy">—</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-premium p-5 border border-slate-100 flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-cash-register"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Cobros hoy</p>
+                        <p class="text-2xl font-extrabold text-slate-800" id="kpi-cobros-hoy">—</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-premium p-5 border border-slate-100 flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Eliminaciones hoy</p>
+                        <p class="text-2xl font-extrabold text-slate-800" id="kpi-eliminaciones-hoy">—</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-premium p-5 border border-slate-100">
+                    <p class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Más activos (7 días)</p>
+                    <div id="kpi-usuarios-activos" class="flex flex-wrap gap-1.5">
+                        <span class="text-xs text-slate-400 italic">Cargando…</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bg-white rounded-2xl shadow-premium p-5 border border-slate-100">
+                <div class="flex flex-col lg:flex-row lg:items-end gap-3 flex-wrap">
+                    <div class="flex-1 min-w-[180px]">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Buscar</label>
+                        <div class="relative">
+                            <input type="text" id="f-busqueda" placeholder="Usuario, acción, detalle…" class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="min-w-[160px]">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Usuario</label>
+                        <select id="f-usuario" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="min-w-[180px]">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Tipo de acción</label>
+                        <select id="f-accion" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="min-w-[140px]">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Desde</label>
+                        <input type="date" id="f-fecha-inicio" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent">
+                    </div>
+                    <div class="min-w-[140px]">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Hasta</label>
+                        <input type="date" id="f-fecha-fin" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="aplicarFiltros()" class="px-4 py-2 bg-accent text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all shadow-sm">
+                            <i class="fa-solid fa-filter mr-1.5"></i>Filtrar
+                        </button>
+                        <button onclick="limpiarFiltros()" class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-200 transition-all">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Línea de tiempo de eventos -->
+            <div class="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Registro cronológico</h2>
+                    <span class="text-xs font-semibold text-slate-400" id="contador-resultados">—</span>
+                </div>
+                <div id="lista-bitacora" class="p-5 space-y-1 min-h-[200px]">
+                    <div class="text-center py-16 text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p class="text-sm font-medium">Cargando bitácora…</p>
+                    </div>
+                </div>
+                <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-400" id="lbl-pagina">Página 1</span>
+                    <div class="flex gap-2">
+                        <button onclick="cambiarPagina(-1)" id="btn-pag-prev" class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <button onclick="cambiarPagina(1)" id="btn-pag-next" class="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/bitacora.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            if (overlay) overlay.classList.toggle('hidden');
+        }
+
+        window.onload = function() {
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+                const avatar = document.getElementById('avatar-letra');
+                if (avatar) avatar.innerText = nombreActual.charAt(0).toUpperCase();
+            }
+            if (rolActual) {
+                document.getElementById('rol-usuario').innerText = rolActual;
+            }
+            inicializarBitacora();
+        };
+    </script>
+</body>
+</html>

@@ -5,7 +5,7 @@ const pool = require('../config/conexion');
 
 // Middleware para verificar rol administrador
 const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
@@ -27,7 +27,7 @@ const checkAdminPermission = async (req, res, next) => {
 
 // Middleware MESERO o Admin/Cajero: acceso de solo lectura para elegir mesa al armar un pedido
 const checkMeseroLecturaOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || req.body.usuario_id;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
     if (!usuario_id) {
         return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
     }
