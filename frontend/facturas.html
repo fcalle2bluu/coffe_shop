@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
+    <style>html,body{background:#0b1830 !important}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Café La Paz - Facturas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/security_guard.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#0d1c34',
+                        sidebarHover: '#16294a',
+                        topbar: '#ffffff',
+                        mainBg: '#0b1830',
+                        accent: '#3b82f6',
+                        glass: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.02)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="icon" href="favicon.png" type="image/png">
+    <style>
+        #dropzone.arrastrando { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+    </style>
+</head>
+<body class="bg-mainBg font-sans flex min-h-screen text-slate-200">
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-64 bg-sidebar text-slate-400 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full md:sticky md:top-0 md:h-screen shrink-0 md:translate-x-0 transition-all duration-300 ease-in-out border-r border-blue-500/30">
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-blue-500/30">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-mug-hot text-white"></i>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight italic">Café <span class="text-accent">La Paz</span></span>
+            <button onclick="toggleSidebar()" class="md:hidden ml-auto text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="p-4 border-b border-slate-800/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white ring-2 ring-slate-700/50">
+                    <span id="avatar-letra" class="font-black text-sm text-orange-500">U</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="nombre-usuario" class="text-slate-200 text-sm font-bold truncate tracking-tight">Cargando...</p>
+                    <p id="rol-usuario" class="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em] opacity-80">ROL</p>
+                </div>
+            </div>
+            <button onclick="cerrarSesión()" class="w-full flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest border border-slate-800 rounded-xl hover:bg-slate-900 hover:text-white transition-all text-slate-500">
+                <i class="fa-solid fa-power-off text-[10px]"></i> Salir
+            </button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-gauge-high w-5 text-center text-accent/70"></i> <span>Dashboard</span>
+            </a>
+            <a href="ventas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-shop w-5 text-center text-accent/70"></i> <span>Punto de Venta</span>
+            </a>
+            <a href="venta_mesa.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-utensils w-5 text-center text-accent/70"></i> <span>Venta por Mesa</span>
+            </a>
+            <a href="caja.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium ">
+                <i class="fa-solid fa-cash-register w-5 text-center text-accent/70"></i> <span>Control Caja</span>
+            </a>
+            <a href="facturas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 bg-slate-900 text-white font-medium ">
+                <i class="fa-solid fa-file-invoice w-5 text-center text-accent"></i> <span>Facturas</span>
+            </a>
+            <a href="comprobantes.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium">
+                <i class="fa-solid fa-receipt w-5 text-center text-accent/70"></i> <span>Comprobantes</span>
+            </a>
+            <a href="parametros.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-900 hover:text-slate-200 font-medium solo-admin">
+                <i class="fa-solid fa-gears w-5 text-center text-accent/70"></i> <span>Parámetros</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-[#122544]/90 backdrop-blur-md text-slate-100 border-b border-blue-500/30 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
+            <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
+            <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Facturas — Reformatear a Ticket 58mm</h1>
+            <div class="flex items-center shrink-0 ml-2"><span class="mr-2 text-sm hidden sm:block">admin</span></div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-3 sm:p-6">
+            <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <div class="bg-[#142a4d] border border-blue-500/20 rounded-2xl p-5 shadow-premium">
+                    <h2 class="font-bold text-white text-base mb-1"><i class="fa-solid fa-file-pdf mr-2 text-accent"></i>1. Sube la factura del SIN</h2>
+                    <p class="text-xs text-slate-400 mb-4">Sube el PDF (tamaño carta) que te generó el portal del SIN. El sistema va a leer los datos reales (NIT, N° factura, CUF, ítems, totales) y recortar el QR real de ese mismo PDF — no se inventa ni regenera nada.</p>
+
+                    <div id="dropzone" class="border-2 border-dashed border-blue-500/30 rounded-xl p-8 text-center cursor-pointer transition-colors hover:border-accent/60">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-accent/70 mb-2"></i>
+                        <p class="text-sm text-slate-300">Arrastra el PDF aquí o haz clic para elegir el archivo</p>
+                        <p id="nombre-archivo" class="text-xs text-slate-500 mt-2"></p>
+                        <input type="file" id="input-pdf" accept="application/pdf" class="hidden">
+                    </div>
+
+                    <button id="btn-procesar" disabled class="w-full mt-4 bg-accent disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Reformatear a PDF 58mm
+                    </button>
+
+                    <div id="estado" class="text-xs mt-3 text-slate-400"></div>
+
+                    <div id="panel-campos" class="hidden mt-5 border-t border-blue-500/20 pt-4">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Datos detectados</h3>
+                        <dl id="lista-campos" class="text-xs text-slate-400 space-y-1 font-mono"></dl>
+                    </div>
+                </div>
+
+                <div class="bg-[#142a4d] border border-blue-500/20 rounded-2xl p-5 shadow-premium flex flex-col">
+                    <h2 class="font-bold text-white text-base mb-1"><i class="fa-solid fa-receipt mr-2 text-accent"></i>2. Ticket 58mm generado</h2>
+                    <p class="text-xs text-slate-400 mb-4">Vista previa del PDF nuevo, listo para imprimir en tu impresora térmica o descargar.</p>
+
+                    <div id="contenedor-preview" class="flex-1 min-h-[400px] bg-slate-950/40 rounded-xl border border-blue-500/10 flex items-center justify-center overflow-hidden">
+                        <p id="preview-vacio" class="text-slate-600 text-sm px-6 text-center">Aún no se generó ningún ticket.</p>
+                        <iframe id="frame-preview" class="hidden w-full h-full" style="min-height:500px;"></iframe>
+                    </div>
+
+                    <a id="btn-descargar" href="#" download="ticket_factura.pdf" class="hidden mt-4 w-full text-center bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-colors">
+                        <i class="fa-solid fa-download mr-2"></i> Descargar PDF
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="js/facturas.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

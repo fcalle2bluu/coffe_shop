@@ -55,6 +55,7 @@ const rutasControlDiario = require('./routes/control_diario');
 const rutasVersion = require('./routes/version');
 const rutasCajaChica = require('./routes/caja_chica');
 const rutasBitacora = require('./routes/bitacora');
+const rutasFacturas = require('./routes/facturas');
 
 // ==========================================
 // 4. USAR RUTAS (ENDPOINTS DE LA API)
@@ -86,6 +87,7 @@ app.use('/api/control-diario', rutasControlDiario);
 app.use('/api/version', rutasVersion);
 app.use('/api/bitacora', rutasBitacora);
 app.use('/api/caja-chica', rutasCajaChica);
+app.use('/api/facturas', rutasFacturas);
 
 // ==========================================
 // 4.1 HEALTH CHECK (para monitores externos tipo UptimeRobot)
