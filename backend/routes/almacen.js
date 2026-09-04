@@ -140,12 +140,14 @@ router.post('/', upload.single('imagen'), async (req, res) => {
 router.get('/movimientos', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT 
-                m.id, 
-                i.nombre AS insumo, 
-                m.tipo, 
-                m.cantidad, 
-                TO_CHAR(m.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora            
+            SELECT
+                m.id,
+                m.insumo_id,
+                i.nombre AS insumo,
+                m.tipo,
+                m.cantidad,
+                m.referencia_id AS venta_id,
+                TO_CHAR(m.fecha AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI:SS') AS fecha_hora
             FROM movimientos_inventario m
             JOIN insumos i ON m.insumo_id = i.id
             ORDER BY m.fecha DESC
@@ -155,6 +157,28 @@ router.get('/movimientos', async (req, res) => {
     } catch (error) {
         console.error('Error obteniendo historial:', error);
         res.status(500).json({ error: 'Error al cargar el historial' });
+    }
+});
+
+// 4b. Ventas recientes que descontaron cada insumo (para el gráfico de Stock)
+router.get('/ventas-por-insumo', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                m.insumo_id,
+                m.cantidad,
+                v.id AS venta_id,
+                TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM HH24:MI') AS fecha_venta
+            FROM movimientos_inventario m
+            JOIN ventas v ON v.id = m.referencia_id
+            WHERE m.tipo = 'VENTA'
+            ORDER BY v.fecha_venta DESC
+            LIMIT 300
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error obteniendo ventas por insumo:', error);
+        res.status(500).json({ error: 'Error al cargar las ventas por insumo' });
     }
 });
 

@@ -1,9 +1,11 @@
 // frontend/js/almacen_stock.js
 let insumosGlobal = [];
 let chartStockInst = null;
+let ventasPorInsumo = {}; // insumo_id -> [{ venta_id, cantidad, fecha_venta }, ...]
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarInsumos();
+    cargarVentasPorInsumo();
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const busqueda = e.target.value.toLowerCase();
         const filtrados = insumosGlobal.filter(i => i.nombre.toLowerCase().includes(busqueda));
@@ -25,6 +27,23 @@ async function cargarInsumos() {
     }
 }
 
+// Ventas que descontaron cada insumo, para mostrarlas al pasar el mouse sobre el gráfico
+async function cargarVentasPorInsumo() {
+    try {
+        const respuesta = await fetch('/api/almacen/ventas-por-insumo');
+        if (!respuesta.ok) throw new Error('Error en el servidor');
+        const filas = await respuesta.json();
+        ventasPorInsumo = {};
+        filas.forEach(f => {
+            if (!ventasPorInsumo[f.insumo_id]) ventasPorInsumo[f.insumo_id] = [];
+            ventasPorInsumo[f.insumo_id].push(f);
+        });
+        if (chartStockInst) renderizarGrafico(insumosGlobal);
+    } catch (error) {
+        console.error("Error cargando ventas por insumo:", error);
+    }
+}
+
 // --- GRÁFICO DE BARRAS: stock actual por insumo ---
 function renderizarGrafico(insumos) {
     const canvas = document.getElementById('chartStockInsumos');
@@ -33,12 +52,14 @@ function renderizarGrafico(insumos) {
     const ordenados = [...insumos].sort((a, b) => parseFloat(b.stock_actual) - parseFloat(a.stock_actual));
     const labels = ordenados.map(i => i.nombre);
     const datos = ordenados.map(i => parseFloat(i.stock_actual));
+    const ids = ordenados.map(i => i.id);
     const colores = ordenados.map(i => parseFloat(i.stock_actual) <= parseFloat(i.stock_minimo) ? '#ef4444' : '#f97316');
 
     if (chartStockInst) {
         chartStockInst.data.labels = labels;
         chartStockInst.data.datasets[0].data = datos;
         chartStockInst.data.datasets[0].backgroundColor = colores;
+        chartStockInst.data.datasets[0].insumoIds = ids;
         chartStockInst.update();
         return;
     }
@@ -53,12 +74,29 @@ function renderizarGrafico(insumos) {
                 backgroundColor: colores,
                 borderRadius: 6,
                 maxBarThickness: 44,
+                insumoIds: ids,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: (context) => {
+                            const insumoId = context.dataset.insumoIds[context.dataIndex];
+                            const ventas = ventasPorInsumo[insumoId];
+                            if (!ventas || ventas.length === 0) {
+                                return 'Sin ventas registradas todavía';
+                            }
+                            const lineas = ventas.slice(0, 6).map(v => `Venta #${v.venta_id} · ${v.fecha_venta} · -${v.cantidad}`);
+                            if (ventas.length > 6) lineas.push(`+ ${ventas.length - 6} venta(s) más`);
+                            return ['Descontado por:', ...lineas];
+                        }
+                    }
+                }
+            },
             scales: {
                 y: { beginAtZero: true, ticks: { precision: 0 } }
             }

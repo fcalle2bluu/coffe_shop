@@ -642,7 +642,6 @@ pool.query('SELECT NOW()', async (err, res) => {
 
     // 8. Crear tablas de Recetas e Ingredientes de Recetas
     try {
-        await pool.query(`DROP TABLE IF EXISTS ingrediente_recetas, recetas CASCADE;`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS recetas (
                 id SERIAL PRIMARY KEY,
@@ -692,73 +691,10 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Error al sembrar cocteles:', coctelErr.message);
     }
 
-    // 10. Sembrar insumos necesarios faltantes
-    try {
-        const insumosToSeed = [
-            { nombre: 'Cocoa', unidad: 'Kg' },
-            { nombre: 'Polvo de hornear', unidad: 'Kg' },
-            { nombre: 'Sal', unidad: 'Kg' },
-            { nombre: 'Leche entera', unidad: 'Litro' },
-            { nombre: 'Esencia de frutilla', unidad: 'Litro' },
-            { nombre: 'Colorante red velvet', unidad: 'Litro' },
-            { nombre: 'Crema de leche', unidad: 'Litro' },
-            { nombre: 'Queso crema', unidad: 'Kg' },
-            { nombre: 'Mantequilla', unidad: 'Kg' },
-            { nombre: 'Caramelina', unidad: 'Kg' },
-            { nombre: 'Manjar', unidad: 'Kg' },
-            { nombre: 'Chocolate cobertura', unidad: 'Kg' },
-            { nombre: 'Cereza en almíbar', unidad: 'Kg' },
-            { nombre: 'Esencia de vainilla', unidad: 'Litro' },
-            { nombre: 'Café en grano', unidad: 'Kg' },
-            { nombre: 'Mermelada', unidad: 'Kg' },
-            { nombre: 'Canela', unidad: 'Kg' },
-            { nombre: 'Nuez moscada molida', unidad: 'Kg' },
-            { nombre: 'Almendra triturada', unidad: 'Kg' },
-            { nombre: 'Azúcar morena', unidad: 'Kg' },
-            { nombre: 'Aceite', unidad: 'Litro' },
-            { nombre: 'Zanahoria rallada', unidad: 'Kg' },
-            { nombre: 'Bicarbonato', unidad: 'Kg' },
-            { nombre: 'Vinagre blanco', unidad: 'Litro' },
-            { nombre: 'Limon', unidad: 'Kg' },
-            { nombre: 'Arándanos', unidad: 'Kg' },
-            { nombre: 'Azucar Impalpable', unidad: 'Kg' },
-            { nombre: 'Galletas de oreo', unidad: 'unidades' },
-            { nombre: 'Leche condensada', unidad: 'unidades' },
-            { nombre: 'Leche evaporada', unidad: 'unidades' },
-            { nombre: 'Fécula de yuca', unidad: 'Kg' },
-            { nombre: 'Queso chaqueño', unidad: 'Kg' },
-            { nombre: 'Queso criollo', unidad: 'Kg' },
-            { nombre: 'Galletas maría', unidad: 'Kg' },
-            { nombre: 'Gelatina sin sabor', unidad: 'Kg' },
-            { nombre: 'Maracuyá (extracto)', unidad: 'Litro' },
-            { nombre: 'Maracuyá con semilla', unidad: 'unidades' },
-            { nombre: 'Levadura', unidad: 'Kg' },
-            { nombre: 'Agua', unidad: 'Litro' },
-            { nombre: 'Hielo', unidad: 'unidades' },
-            { nombre: 'Vodka', unidad: 'Botella' },
-            { nombre: 'Hierba buena', unidad: 'unidades' },
-            { nombre: 'Almibar', unidad: 'Litro' },
-            { nombre: 'Jarry limonero', unidad: 'Litro' },
-            { nombre: 'Granadina', unidad: 'Botella' },
-            { nombre: 'Jugo de naranja', unidad: 'Litro' },
-            { nombre: 'Ginger ale', unidad: 'Botella' },
-            { nombre: 'Sultana', unidad: 'Kg' },
-            { nombre: 'Blue curacao', unidad: 'Botella' },
-            { nombre: 'Menta Tres Plumas', unidad: 'Botella' },
-            { nombre: 'Ron blanco', unidad: 'Botella' },
-            { nombre: 'Baileys', unidad: 'Botella' }
-        ];
-
-        for (const ins of insumosToSeed) {
-            const check = await pool.query('SELECT id FROM insumos WHERE LOWER(nombre) = LOWER($1)', [ins.nombre]);
-            if (check.rows.length === 0) {
-                await pool.query('INSERT INTO insumos (nombre, unidad_medida, stock_actual, stock_minimo, activo) VALUES ($1, $2, 0.00, 5.00, true)', [ins.nombre, ins.unidad]);
-                console.log(`📦 Insumo creado: ${ins.nombre} (${ins.unidad})`);
-            }
-        }
-    } catch (insumoErr) {
-        console.log('Error al sembrar insumos:', insumoErr.message);
-    }
+    // 10. (Eliminado) Antes acá se sembraban ~50 insumos de repostería/coctelería
+    // en cada arranque del servidor si no existían por nombre. Se sacó porque
+    // resucitaba insumos que se habían borrado a propósito (control de stock
+    // simplificado a solo carnes) cada vez que se reiniciaba/desplegaba el server.
 
     // 11. Sembrar recetas y sus ingredientes
     try {
