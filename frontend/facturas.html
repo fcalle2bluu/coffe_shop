@@ -145,7 +145,7 @@
         <header class="h-16 bg-[#122544]/90 backdrop-blur-md text-slate-100 border-b border-blue-500/30 flex items-center justify-between px-6 sticky top-0 z-30 shadow-premium">
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg font-bold tracking-wide truncate ml-2 md:ml-0">Facturas — Reformatear a Ticket 58mm</h1>
-            <div class="flex items-center shrink-0 ml-2"><span class="mr-2 text-sm hidden sm:block">admin</span></div>
+            <div class="flex items-center shrink-0 ml-2"><span id="header-nombre-usuario" class="mr-2 text-sm hidden sm:block">Cargando...</span></div>
         </header>
 
         <div class="flex-1 overflow-auto p-3 sm:p-6">
@@ -200,6 +200,31 @@
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
         }
+
+        function cerrarSesión() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const nombreActual = localStorage.getItem('usuario_nombre');
+            const rolActual = localStorage.getItem('usuario_rol');
+
+            if (nombreActual) {
+                document.getElementById('nombre-usuario').innerText = nombreActual;
+                document.getElementById('header-nombre-usuario').innerText = nombreActual;
+                document.getElementById('avatar-letra').innerText = nombreActual.charAt(0).toUpperCase();
+            }
+            if (rolActual) {
+                document.getElementById('rol-usuario').innerHTML = `<i class="fa-solid fa-circle text-[10px] mr-1"></i> ${rolActual}`;
+            }
+
+            if (rolActual === 'CAJERO') {
+                document.querySelectorAll('.solo-admin').forEach(elemento => {
+                    elemento.style.display = 'none';
+                });
+            }
+        });
     </script>
 </body>
 </html>
