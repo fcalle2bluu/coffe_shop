@@ -449,6 +449,31 @@
             }
         }
 
+        // Inyectar dinámicamente el enlace de "Facturas" dentro del grupo colapsable
+        // "Más" (no como ítem de primer nivel — se agregó por error así en un commit
+        // hecho desde otra PC, duplicado a mano en cada página; este es el mismo
+        // mecanismo que ya usan "Control Diario" y "Bitácora" para no tener que
+        // mantener 25+ copias sueltas del link).
+        if (nav) {
+            const pageNameFacturas = window.location.pathname.split("/").pop();
+            const isFacturasActive = pageNameFacturas.includes('facturas.html');
+            const facturasHTML = `
+                <a href="facturas.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isFacturasActive ? 'bg-accent/20 text-accent font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
+                    <i class="fa-solid fa-file-invoice w-5 text-center text-accent/70"></i> <span>Facturas</span>
+                </a>
+            `;
+            if (!nav.querySelector('a[href="facturas.html"]')) {
+                const controlDiarioLink = nav.querySelector('a[href="control_diario.html"]');
+                if (controlDiarioLink) {
+                    controlDiarioLink.insertAdjacentHTML('afterend', facturasHTML);
+                } else if (masGroup) {
+                    masGroup.insertAdjacentHTML('afterbegin', facturasHTML);
+                } else {
+                    nav.insertAdjacentHTML('beforeend', facturasHTML);
+                }
+            }
+        }
+
         // Inyectar dinámicamente el enlace de "Bitácora" como último ítem del
         // sidebar, justo arriba del botón "Más" (solo visible para administradores).
         if (nav) {
