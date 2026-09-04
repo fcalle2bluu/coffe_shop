@@ -1,5 +1,6 @@
 // frontend/js/almacen_stock.js
 let insumosGlobal = [];
+let chartStockInst = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarInsumos();
@@ -7,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const busqueda = e.target.value.toLowerCase();
         const filtrados = insumosGlobal.filter(i => i.nombre.toLowerCase().includes(busqueda));
         renderizarTabla(filtrados);
+        renderizarGrafico(filtrados);
     });
 });
 
@@ -17,9 +19,51 @@ async function cargarInsumos() {
         if (!respuesta.ok) throw new Error('Error en el servidor');
         insumosGlobal = await respuesta.json();
         renderizarTabla(insumosGlobal);
+        renderizarGrafico(insumosGlobal);
     } catch (error) {
         console.error("Error cargando insumos:", error);
     }
+}
+
+// --- GRÁFICO DE BARRAS: stock actual por insumo ---
+function renderizarGrafico(insumos) {
+    const canvas = document.getElementById('chartStockInsumos');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const ordenados = [...insumos].sort((a, b) => parseFloat(b.stock_actual) - parseFloat(a.stock_actual));
+    const labels = ordenados.map(i => i.nombre);
+    const datos = ordenados.map(i => parseFloat(i.stock_actual));
+    const colores = ordenados.map(i => parseFloat(i.stock_actual) <= parseFloat(i.stock_minimo) ? '#ef4444' : '#f97316');
+
+    if (chartStockInst) {
+        chartStockInst.data.labels = labels;
+        chartStockInst.data.datasets[0].data = datos;
+        chartStockInst.data.datasets[0].backgroundColor = colores;
+        chartStockInst.update();
+        return;
+    }
+
+    chartStockInst = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Stock actual',
+                data: datos,
+                backgroundColor: colores,
+                borderRadius: 6,
+                maxBarThickness: 44,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
 }
 
 function renderizarTabla(insumos) {

@@ -8,6 +8,7 @@
     <title>Café La Paz - Stock de Insumos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="js/security_guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     
@@ -150,6 +151,12 @@
         </header>
 
         <div class="flex-1 flex flex-col p-2 sm:p-4 md:p-6 min-h-screen">
+            <div class="bg-white rounded shadow-md border-t-4 border-orange-500 p-3 sm:p-4 mb-4 shrink-0">
+                <h2 class="font-bold text-stone-800 text-base sm:text-lg mb-3"><i class="fa-solid fa-chart-simple mr-2 text-orange-500"></i>Stock por Insumo</h2>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="chartStockInsumos"></canvas>
+                </div>
+            </div>
             <div class="flex-1 flex flex-col bg-white rounded shadow-md border-t-4 border-stone-800 relative">
                 <div class="p-3 sm:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white shrink-0 gap-3">
                     <h2 class="font-bold text-stone-800 text-base sm:text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Insumos y Materia Prima</h2>
@@ -221,7 +228,6 @@
         </div>
     </main>
 
-    <script src="js/almacen_stock.js"></script>
     <script>
         const rolGuardia = localStorage.getItem('usuario_rol');
         if (!localStorage.getItem('usuario_id')) {
@@ -249,6 +255,6 @@
             if (r === 'CAJERO') document.querySelectorAll('.solo-admin').forEach(e => e.style.display = 'none');
         });
     </script>
-    <script src="js/almacen_stock.js?v=2"></script>
+    <script src="js/almacen_stock.js?v=3"></script>
 </body>
 </html>

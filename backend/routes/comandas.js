@@ -683,7 +683,7 @@ router.post('/:id/pagar', async (req, res) => {
                     VALUES ($1, $2, $3, $4, $5)
                 `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
 
-                // Backflush: Descontar de Almacén Pastelería según la receta
+                // Backflush: Descontar insumos de la receta directo del stock (insumos.stock_actual)
                 const recetaRes = await client.query('SELECT id FROM recetas WHERE producto_id = $1 LIMIT 1', [item.producto_id]);
                 if (recetaRes.rows.length > 0) {
                     const recetaId = recetaRes.rows[0].id;
@@ -692,28 +692,21 @@ router.post('/:id/pagar', async (req, res) => {
                         [recetaId]
                     );
 
-                    const almacenPasteleriaRes = await client.query(
-                        "SELECT id FROM almacenes WHERE nombre = 'Almacén Pastelería' LIMIT 1"
-                    );
-                    const almacenPasteleriaId = almacenPasteleriaRes.rows[0]?.id;
+                    for (let ing of ingredientesRes.rows) {
+                        const cantADescontar = parseFloat(item.cantidad) * parseFloat(ing.cantidad);
 
-                    if (almacenPasteleriaId) {
-                        for (let ing of ingredientesRes.rows) {
-                            const cantADescontar = parseFloat(item.cantidad) * parseFloat(ing.cantidad);
+                        // Restar del stock del insumo (hasta llegar a cero, usando GREATEST(0, stock_actual - cant))
+                        await client.query(`
+                            UPDATE insumos
+                            SET stock_actual = GREATEST(0, stock_actual - $1)
+                            WHERE id = $2
+                        `, [cantADescontar, ing.insumo_id]);
 
-                            // Restar del stock de Pastelería (hasta llegar a cero o al remanente, usando GREATEST(0, stock_actual - cant))
-                            await client.query(`
-                                UPDATE inventario_almacen
-                                SET stock_actual = GREATEST(0, stock_actual - $1)
-                                WHERE almacen_id = $2 AND insumo_id = $3
-                            `, [cantADescontar, almacenPasteleriaId, ing.insumo_id]);
-
-                            // Registrar el movimiento en el historial
-                            await client.query(`
-                                INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
-                                VALUES ($1, 'VENTA', $2, $3, NOW())
-                            `, [ing.insumo_id, cantADescontar, ventaId]);
-                        }
+                        // Registrar el movimiento en el historial
+                        await client.query(`
+                            INSERT INTO movimientos_inventario (insumo_id, tipo, cantidad, referencia_id, fecha)
+                            VALUES ($1, 'VENTA', $2, $3, NOW())
+                        `, [ing.insumo_id, cantADescontar, ventaId]);
                     }
                 }
             }
