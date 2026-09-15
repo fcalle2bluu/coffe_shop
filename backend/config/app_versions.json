@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 24,
-    "versionName": "1.0.23",
+    "versionCode": 25,
+    "versionName": "1.0.24",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corregido: al sumar un pedido a una mesa que ya tenía comanda de otro mesero, a veces no se fusionaba y quedaba como pedido aparte. Ahora siempre se verifica el estado real de la mesa antes de enviar.",
+    "notas": "Nuevo botón \"Mover a Otra Mesa\" en Venta por Mesa, para cuando el cliente se cambia de lugar. Corregido además: ver el detalle de una mesa ocupada daba error de permisos para meseros/baristas.",
     "obligatoria": true
   },
   "comandas": {

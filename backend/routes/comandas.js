@@ -255,6 +255,75 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     }
 });
 
+// Mover una comanda activa a otra mesa (el cliente se cambió de lugar). Cualquier
+// mesero puede mover cualquier comanda activa (el salón es compartido, mismo
+// criterio que editar). No se toca el detalle ni el total, solo el número de mesa.
+router.put('/mesero/:id/mover-mesa', checkMeseroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nueva_mesa } = req.body;
+    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
+
+    if (!nueva_mesa) {
+        return res.status(400).json({ error: 'Falta indicar la mesa de destino.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const comandaRes = await client.query('SELECT mesa, estado FROM comandas WHERE id = $1', [id]);
+        if (comandaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+
+        const comanda = comandaRes.rows[0];
+        if (comanda.estado === 'PAGADA') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No se puede mover una comanda ya cobrada.' });
+        }
+
+        if (String(comanda.mesa) === String(nueva_mesa)) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'La comanda ya está en esa mesa.' });
+        }
+
+        const ocupadaRes = await client.query(
+            `SELECT id FROM comandas WHERE mesa = $1 AND estado IN ('CREADA', 'ENTREGADA') LIMIT 1`,
+            [nueva_mesa]
+        );
+        if (ocupadaRes.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `La mesa ${nueva_mesa} ya tiene una comanda activa.` });
+        }
+
+        await client.query(
+            `UPDATE comandas SET mesa = $1, fecha_actualizacion = CURRENT_TIMESTAMP, version = version + 1 WHERE id = $2`,
+            [nueva_mesa, id]
+        );
+
+        await client.query('COMMIT');
+
+        registrarBitacora({
+            usuario_id, accion: 'MOVER_MESA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { mesa_anterior: comanda.mesa, mesa_nueva: nueva_mesa }
+        });
+
+        res.json({ success: true, message: `Comanda movida de la mesa ${comanda.mesa} a la mesa ${nueva_mesa}.` });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        // 23505 = unique_violation en idx_comandas_mesa_activa_unica: dos meseros
+        // movieron/crearon una comanda a la misma mesa destino casi al mismo tiempo.
+        if (error.code === '23505') {
+            return res.status(400).json({ error: `La mesa ${nueva_mesa} ya tiene una comanda activa.` });
+        }
+        console.error('Error al mover comanda de mesa:', error);
+        res.status(500).json({ error: 'Error interno al mover la comanda: ' + error.message });
+    } finally {
+        client.release();
+    }
+});
+
 // Solicitar reimpresión manual desde "Control" (el mesero pide que la comanda se
 // vuelva a imprimir/mostrar en cocina, sin necesidad de cambiar productos). Se
 // incrementa version para que la app de cocina la detecte y reimprima, y vuelve

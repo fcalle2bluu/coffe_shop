@@ -150,7 +150,7 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
   Future<void> _cargarComandaActiva(String numMesa) async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiConfig.get('/comandas/mesa/$numMesa');
+      final res = await ApiConfig.get('/comandas/mesa/mesero/${Uri.encodeComponent(numMesa)}');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['activa'] == true) {
@@ -414,6 +414,88 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       print('Error al cancelar comanda: $e');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  // Mover la comanda activa a otra mesa (el cliente se cambió de lugar). Solo
+  // ofrece mesas libres como destino; el backend igual valida por las dudas de
+  // que otro mesero haya ocupado esa mesa justo en el medio.
+  Future<void> _moverMesa() async {
+    if (_activeComanda == null || _selectedMesa == null) return;
+
+    final mesasLibres = _mesas
+        .where((m) => m['estado'] == 'libre' && m['mesa'] != 'Para Llevar')
+        .toList();
+
+    if (mesasLibres.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay otra mesa libre para mover este pedido.')),
+      );
+      return;
+    }
+
+    final destino = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mover a otra mesa'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: mesasLibres.length,
+            itemBuilder: (context, index) {
+              final m = mesasLibres[index];
+              return ListTile(
+                leading: const Icon(Icons.table_restaurant, color: AppTheme.accentColor),
+                title: Text(nombreMesa(m['mesa'])),
+                onTap: () => Navigator.pop(context, m['mesa'].toString()),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+        ],
+      ),
+    );
+
+    if (destino == null) return;
+
+    final mesaAnterior = _selectedMesa!;
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiConfig.put(
+        '/comandas/mesero/${_activeComanda!['id']}/mover-mesa',
+        {'nueva_mesa': destino},
+      );
+
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('✅ Pedido movido de ${nombreMesa(mesaAnterior)} a ${nombreMesa(destino)}')),
+          );
+        }
+        await _cargarMesas();
+        await _cargarComandaActiva(destino);
+      } else {
+        final data = jsonDecode(res.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ ${data['error'] ?? 'No se pudo mover la mesa'}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error al mover la mesa: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -1183,6 +1265,17 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
                       ),
                     ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _moverMesa,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.amber.shade300,
+                  side: BorderSide(color: Colors.amber.shade300),
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                icon: const Icon(Icons.sync_alt, size: 16),
+                label: const Text('Mover a Otra Mesa', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ),
               if (cajeroOAdmin) ...[
                 const SizedBox(height: 8),
