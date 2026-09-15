@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 25,
-    "versionName": "1.0.24",
+    "versionCode": 26,
+    "versionName": "1.0.25",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Nuevo botón \"Mover a Otra Mesa\" en Venta por Mesa, para cuando el cliente se cambia de lugar. Corregido además: ver el detalle de una mesa ocupada daba error de permisos para meseros/baristas.",
+    "notas": "Ordenado el plano de Venta por Mesa: ahora es una grilla prolija con todas las mesas (Planta Baja y Primer Piso) en una sola pantalla, sin botón para cambiar de piso ni mesas superpuestas.",
     "obligatoria": true
   },
   "comandas": {

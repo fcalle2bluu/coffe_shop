@@ -838,76 +838,32 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
     }
   }
 
-  String _pisoSeleccionado = 'PLANTA_BAJA';
+  // Nombre legible de cada piso, en el orden en que se muestran (todas las
+  // mesas juntas en una sola grilla, agrupadas con un rótulo simple, sin
+  // botón para cambiar de piso).
+  static const Map<String, String> _nombresPiso = {
+    'PLANTA_BAJA': 'Planta Baja',
+    'PLANTA_ALTA': 'Primer Piso',
+  };
 
   // 1. Selector de Mesas
   Widget _buildTableSelectionView() {
-    final mesasFiltradas = _mesas.where((m) => m['piso'] == _pisoSeleccionado).toList();
+    // Agrupa las mesas por piso preservando el orden que ya manda el backend,
+    // para mostrar todas juntas en una sola grilla prolija (sin superponerse
+    // ni depender de las coordenadas libres pos_x/pos_y).
+    final Map<String, List<dynamic>> mesasPorPiso = {};
+    for (final m in _mesas) {
+      final piso = (m['piso'] ?? 'PLANTA_BAJA').toString();
+      mesasPorPiso.putIfAbsent(piso, () => []).add(m);
+    }
+    final pisosConMesas = _nombresPiso.keys.where((p) => mesasPorPiso.containsKey(p)).toList();
 
     return RefreshIndicator(
       onRefresh: _cargarMesas,
       color: AppTheme.accentColor,
       child: Column(
         children: [
-          // Selector de Piso
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _pisoSeleccionado = 'PLANTA_BAJA';
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _pisoSeleccionado == 'PLANTA_BAJA'
-                            ? AppTheme.accentColor
-                            : AppTheme.secondaryDark,
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-                        border: Border.all(color: AppTheme.borderDark),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'PLANTA BAJA',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _pisoSeleccionado = 'PLANTA_ALTA';
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _pisoSeleccionado == 'PLANTA_ALTA'
-                            ? AppTheme.accentColor
-                            : AppTheme.secondaryDark,
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
-                        border: Border.all(color: AppTheme.borderDark),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'PRIMER PISO',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
+          const SizedBox(height: 12),
           // Leyenda de Estados
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
@@ -935,133 +891,112 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
           
           const SizedBox(height: 8),
 
-          // Canvas / Plano
+          // Grilla de mesas: todas juntas, prolijas y alineadas (sin plano
+          // libre ni coordenadas manuales pos_x/pos_y).
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryDark.withOpacity(0.5),
-                    border: Border.all(color: AppTheme.borderDark, width: 2),
-                  ),
-                  child: _mesas.isEmpty
-                      ? const Center(child: Text('No hay mesas disponibles.'))
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            final canvasWidth = constraints.maxWidth;
-                            final canvasHeight = constraints.maxHeight;
-
-                            return Stack(
-                              children: [
-                                // Cuadrícula de diseño de fondo
-                                CustomPaint(
-                                  size: Size(canvasWidth, canvasHeight),
-                                  painter: GridPainter(),
-                                ),
-                                
-                                ...mesasFiltradas.map((m) {
-                                  final numMesa = m['mesa']?.toString() ?? '';
-                                  final estado = m['estado'] ?? 'libre';
-                                  final comanda = m['comanda'];
-                                  final isLibre = estado == 'libre';
-
-                                  // Sanitizar coordenadas
-                                  double px = 10.0;
-                                  double py = 10.0;
-                                  if (m['pos_x'] != null) {
-                                    px = (m['pos_x'] as num).toDouble();
-                                  }
-                                  if (m['pos_y'] != null) {
-                                    py = (m['pos_y'] as num).toDouble();
-                                  }
-
-                                  // Convertir porcentaje a pixeles
-                                  double left = (px / 100.0) * canvasWidth;
-                                  double top = (py / 100.0) * canvasHeight;
-
-                                  // Clampear para que quepa bien (tamaño del widget de mesa es 80x95)
-                                  left = left.clamp(0.0, canvasWidth - 80.0);
-                                  top = top.clamp(0.0, canvasHeight - 95.0);
-
-                                  return Positioned(
-                                    left: left,
-                                    top: top,
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () => _seleccionarMesa(numMesa, estado),
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: SizedBox(
-                                          width: 80,
-                                          height: 95,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Container(
-                                                width: 55,
-                                                height: 55,
-                                                decoration: BoxDecoration(
-                                                  color: AppTheme.primaryDark,
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                    color: isLibre ? Colors.greenAccent : Colors.redAccent,
-                                                    width: 3,
-                                                  ),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: (isLibre ? Colors.greenAccent : Colors.redAccent).withOpacity(0.2),
-                                                      blurRadius: 8,
-                                                      spreadRadius: 1,
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Center(
-                                                  child: Icon(
-                                                    isLibre ? Icons.chair_alt : Icons.restaurant,
-                                                    size: 20,
-                                                    color: isLibre ? Colors.greenAccent : Colors.redAccent,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                nombreMesa(numMesa),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w900,
-                                                  fontSize: 11,
-                                                  color: Colors.white,
-                                                  fontFamily: 'Outfit',
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              if (!isLibre && comanda != null)
-                                                Text(
-                                                  'Bs. ${double.parse(comanda['total'].toString()).toStringAsFixed(1)}',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w900,
-                                                    fontSize: 10,
-                                                    color: AppTheme.accentColor,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                            );
-                          },
+            child: _mesas.isEmpty
+                ? const Center(child: Text('No hay mesas disponibles.'))
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: [
+                      for (final piso in pisosConMesas) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 10),
+                          child: Text(
+                            (_nombresPiso[piso] ?? piso).toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              letterSpacing: 0.6,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
                         ),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 100,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 80 / 95,
+                          ),
+                          itemCount: mesasPorPiso[piso]!.length,
+                          itemBuilder: (context, index) => _buildMesaCard(mesasPorPiso[piso]![index]),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMesaCard(dynamic m) {
+    final numMesa = m['mesa']?.toString() ?? '';
+    final estado = m['estado'] ?? 'libre';
+    final comanda = m['comanda'];
+    final isLibre = estado == 'libre';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _seleccionarMesa(numMesa, estado),
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 55,
+              height: 55,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryDark,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isLibre ? Colors.greenAccent : Colors.redAccent,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isLibre ? Colors.greenAccent : Colors.redAccent).withOpacity(0.2),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  isLibre ? Icons.chair_alt : Icons.restaurant,
+                  size: 20,
+                  color: isLibre ? Colors.greenAccent : Colors.redAccent,
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              nombreMesa(numMesa),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                color: Colors.white,
+                fontFamily: 'Outfit',
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (!isLibre && comanda != null)
+              Text(
+                'Bs. ${double.parse(comanda['total'].toString()).toStringAsFixed(1)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  color: AppTheme.accentColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1575,25 +1510,4 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       ],
     );
   }
-}
-
-class GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppTheme.borderDark.withOpacity(0.2)
-      ..strokeWidth = 1.0;
-
-    const double step = 25.0;
-
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
