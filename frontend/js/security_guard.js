@@ -392,7 +392,7 @@
             hasAccess = localStorage.getItem('perm_auditoria') === 'true';
         } else if (pageName.includes('parametros.html') || pageName.includes('usuarios.html') || pageName.includes('empleados.html')) {
             hasAccess = localStorage.getItem('perm_parametros') === 'true';
-        } else if (pageName.includes('informe_general.html') || pageName.includes('libro_diario.html')) {
+        } else if (pageName.includes('informe_general.html') || pageName.includes('libro_diario.html') || pageName.includes('informes.html')) {
             hasAccess = localStorage.getItem('perm_informe') === 'true';
         } else if (pageName.includes('webhook.html')) {
             hasAccess = isAdmin || rol === 'CAJERO';
@@ -577,6 +577,11 @@
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
+            if (href.includes('informes.html')) {
+                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                if (!isAdmin && !hasPerm) el.style.display = 'none';
+                else if (hasPerm || isAdmin) el.style.display = 'flex';
+            }
             if (href.includes('asistencia.html')) {
                 const tieneAccesoAsistencia = isAdmin || rol === 'CAJERO' || ['PASTELERA', 'PASTELERO', 'MESERO', 'COCINERO', 'BARISTA'].some(r => rol.includes(r));
                 if (!tieneAccesoAsistencia) el.style.display = 'none';
@@ -603,7 +608,7 @@
             if (pageName.includes('produccion') && isAdmin) keepSoloAdmin = true;
             if (pageName.includes('auditoria_pasteleria') && (isAdmin || localStorage.getItem('perm_auditoria') === 'true')) keepSoloAdmin = true;
             if ((pageName.includes('parametros') || pageName.includes('usuarios') || pageName.includes('empleados')) && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
-            if ((pageName.includes('informe_general') || pageName.includes('libro_diario')) && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
+            if ((pageName.includes('informe_general') || pageName.includes('libro_diario') || pageName.includes('informes')) && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
             // Filtrar para no tocar la barra lateral (aside)
             const elementosNoSidebar = Array.from(document.querySelectorAll('.solo-admin')).filter(el => !el.closest('aside'));
