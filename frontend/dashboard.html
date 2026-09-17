@@ -531,12 +531,15 @@
                     </div>
                     <div class="flex flex-wrap gap-2 items-center">
                         <span class="text-xs font-semibold text-slate-500">Filtro:</span>
-                        <select id="filtro-metodos-pago" onchange="cargarGraficoMetodosPago()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
+                        <select id="filtro-metodos-pago" onchange="cambiarFiltroMetodosPago()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
                             <option value="todos" selected>📚 Histórico (Todo)</option>
                             <option value="hoy">📅 Hoy</option>
                             <option value="mes">🗓️ Este Mes</option>
                             <option value="anio">📆 Este Año</option>
+                            <option value="mesEspecifico">🔎 Mes específico</option>
                         </select>
+                        <select id="mes-especifico-metodos-pago" onchange="cargarGraficoMetodosPago()" class="hidden text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700"></select>
+                        <select id="anio-especifico-metodos-pago" onchange="cargarGraficoMetodosPago()" class="hidden text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700"></select>
                         <select id="metrica-metodos-pago" onchange="cargarGraficoMetodosPago()" class="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-accent text-slate-700">
                             <option value="cantidad" selected>Por Cantidad</option>
                             <option value="monto">Por Total Bs.</option>
@@ -2201,11 +2204,62 @@
         };
         const defaultPaleta = { bg: 'rgba(148, 163, 184, 0.85)', border: '#64748b', emoji: '💰' };
 
+        const NOMBRES_MES_METODOS_PAGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+        function cambiarFiltroMetodosPago() {
+            const filtro = document.getElementById('filtro-metodos-pago').value;
+            const selectMes = document.getElementById('mes-especifico-metodos-pago');
+            const selectAnio = document.getElementById('anio-especifico-metodos-pago');
+
+            if (filtro === 'mesEspecifico') {
+                selectMes.classList.remove('hidden');
+                selectAnio.classList.remove('hidden');
+                if (!selectMes.options.length) {
+                    poblarSelectoresMesEspecificoMetodosPago();
+                    return; // poblarSelectoresMesEspecificoMetodosPago ya llama a cargarGraficoMetodosPago al terminar
+                }
+            } else {
+                selectMes.classList.add('hidden');
+                selectAnio.classList.add('hidden');
+            }
+            cargarGraficoMetodosPago();
+        }
+
+        async function poblarSelectoresMesEspecificoMetodosPago() {
+            const selectMes = document.getElementById('mes-especifico-metodos-pago');
+            const selectAnio = document.getElementById('anio-especifico-metodos-pago');
+            const hoy = new Date();
+
+            selectMes.innerHTML = NOMBRES_MES_METODOS_PAGO.map((nombre, i) => `<option value="${i + 1}">${nombre}</option>`).join('');
+            selectMes.value = hoy.getMonth() + 1;
+
+            let anios = new Set([hoy.getFullYear()]);
+            try {
+                const res = await fetch('/api/kpis/meses-disponibles');
+                if (res.ok) {
+                    const disponibles = await res.json();
+                    disponibles.forEach(d => anios.add(parseInt(d.anio)));
+                }
+            } catch (e) {
+                console.error('No se pudieron cargar los años disponibles:', e);
+            }
+            selectAnio.innerHTML = Array.from(anios).sort((a, b) => b - a).map(a => `<option value="${a}">${a}</option>`).join('');
+            selectAnio.value = hoy.getFullYear();
+
+            cargarGraficoMetodosPago();
+        }
+
         async function cargarGraficoMetodosPago() {
             const filtro  = document.getElementById('filtro-metodos-pago').value;
             const metrica = document.getElementById('metrica-metodos-pago').value;
             try {
-                const res  = await fetch(`/api/libro-diario/stats/metodos-pago?filtro=${filtro}`);
+                let url = `/api/libro-diario/stats/metodos-pago?filtro=${filtro}`;
+                if (filtro === 'mesEspecifico') {
+                    const mes = document.getElementById('mes-especifico-metodos-pago').value;
+                    const anio = document.getElementById('anio-especifico-metodos-pago').value;
+                    url += `&mes=${mes}&anio=${anio}`;
+                }
+                const res  = await fetch(url);
                 const data = await res.json();
                 metodosPagoRawData = data;
 

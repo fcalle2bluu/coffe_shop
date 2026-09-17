@@ -555,7 +555,7 @@ router.delete('/compra/:id', async (req, res) => {
 
 // ─── STATS: Métodos de Pago más usados ────────────────────────────────────────
 router.get('/stats/metodos-pago', async (req, res) => {
-    const { filtro, fecha } = req.query; // filtro: hoy | mes | anio | todos
+    const { filtro, fecha, mes, anio } = req.query; // filtro: hoy | mes | anio | dia | mesEspecifico | todos
     let whereClause = '';
     const params = [];
 
@@ -569,6 +569,10 @@ router.get('/stats/metodos-pago', async (req, res) => {
     } else if (filtro === 'dia' && fecha) {
         whereClause = `WHERE DATE(fecha_venta AT TIME ZONE 'America/La_Paz') = $1`;
         params.push(fecha);
+    } else if (filtro === 'mesEspecifico' && mes && anio) {
+        whereClause = `WHERE EXTRACT(MONTH FROM fecha_venta AT TIME ZONE 'America/La_Paz') = $1
+                         AND EXTRACT(YEAR FROM fecha_venta AT TIME ZONE 'America/La_Paz') = $2`;
+        params.push(mes, anio);
     }
     // 'todos' o sin filtro → sin WHERE (histórico)
 
