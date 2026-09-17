@@ -5,6 +5,7 @@ const NOMBRES_MES = [
 ];
 
 let chartVentasDia = null;
+let chartIngresosEgresos = null;
 let chartTopProductos = null;
 let chartMetodoPago = null;
 let ultimoReporte = null;
@@ -44,14 +45,32 @@ function renderizarKPIs(data) {
 
     document.getElementById('kpi-variacion-label').textContent = `Vs. ${data.mesAnterior.nombre}`;
     const elVariacion = document.getElementById('kpi-variacion');
+    const elVariacionBar = document.getElementById('kpi-variacion-bar');
+    const elVariacionIcono = document.getElementById('kpi-variacion-icono');
     if (data.variacionPct === null) {
         elVariacion.textContent = 'Sin datos';
         elVariacion.className = 'text-2xl font-black mt-1 text-slate-400';
+        elVariacionBar.className = 'absolute top-0 left-0 right-0 h-1 bg-slate-400';
+        elVariacionIcono.className = 'fa-solid fa-arrow-right-arrow-left text-slate-400';
     } else {
         const positivo = data.variacionPct >= 0;
         elVariacion.textContent = `${positivo ? '+' : ''}${data.variacionPct.toFixed(1)}%`;
         elVariacion.className = `text-2xl font-black mt-1 ${positivo ? 'text-emerald-600' : 'text-red-600'}`;
+        elVariacionBar.className = `absolute top-0 left-0 right-0 h-1 ${positivo ? 'bg-emerald-500' : 'bg-red-500'}`;
+        elVariacionIcono.className = `fa-solid ${positivo ? 'fa-arrow-trend-up text-emerald-500' : 'fa-arrow-trend-down text-red-500'}`;
     }
+
+    document.getElementById('kpi-gastos-insumos').textContent = formatoBs(data.gastosInsumos);
+    document.getElementById('kpi-salarios').textContent = formatoBs(data.salarios);
+
+    const elMargen = document.getElementById('kpi-margen');
+    const elMargenBar = document.getElementById('kpi-margen-bar');
+    const elMargenIcono = document.getElementById('kpi-margen-icono');
+    const margenPositivo = data.margen >= 0;
+    elMargen.textContent = formatoBs(data.margen);
+    elMargen.className = `text-2xl font-black mt-1 ${margenPositivo ? 'text-emerald-600' : 'text-red-600'}`;
+    elMargenBar.className = `absolute top-0 left-0 right-0 h-1 ${margenPositivo ? 'bg-emerald-500' : 'bg-red-500'}`;
+    elMargenIcono.className = `fa-solid fa-scale-balanced ${margenPositivo ? 'text-emerald-500' : 'text-red-500'}`;
 }
 
 function renderizarAnalisis(analisis) {
@@ -89,6 +108,25 @@ function renderizarGraficos(data) {
                 label: 'Ventas (Bs)',
                 data: data.ventasPorDia.map(d => d.total),
                 backgroundColor: '#3b82f6',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    const ctxIngEgr = document.getElementById('chart-ingresos-egresos').getContext('2d');
+    if (chartIngresosEgresos) chartIngresosEgresos.destroy();
+    chartIngresosEgresos = new Chart(ctxIngEgr, {
+        type: 'bar',
+        data: {
+            labels: ['Ventas', 'Insumos', 'Salarios', 'Margen'],
+            datasets: [{
+                data: [data.totalVentas, data.gastosInsumos, data.salarios, data.margen],
+                backgroundColor: ['#B8923D', '#e11d48', '#f97316', data.margen >= 0 ? '#10b981' : '#ef4444'],
                 borderRadius: 4,
             }]
         },
@@ -171,6 +209,7 @@ async function descargarPDF() {
     try {
         const graficos = {
             ventasPorDia: chartVentasDia ? chartVentasDia.toBase64Image() : null,
+            ingresosVsEgresos: chartIngresosEgresos ? chartIngresosEgresos.toBase64Image() : null,
             topProductos: chartTopProductos ? chartTopProductos.toBase64Image() : null,
             metodoPago: chartMetodoPago ? chartMetodoPago.toBase64Image() : null,
         };

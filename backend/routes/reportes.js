@@ -24,6 +24,25 @@ async function totalesMes(mes, anio) {
     return { total: parseFloat(r.rows[0].total) || 0, cantidad: parseInt(r.rows[0].cantidad) || 0 };
 }
 
+async function gastosInsumosMes(mes, anio) {
+    const r = await pool.query(`
+        SELECT COALESCE(SUM(total), 0) AS total
+        FROM compras
+        WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
+          AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+    `, [mes, anio]);
+    return parseFloat(r.rows[0].total) || 0;
+}
+
+async function salariosMes(mes, anio) {
+    const r = await pool.query(`
+        SELECT COALESCE(SUM(salario_neto), 0) AS total
+        FROM pagos_salarios
+        WHERE mes = $1 AND anio = $2
+    `, [mes, anio]);
+    return parseFloat(r.rows[0].total) || 0;
+}
+
 async function ventasPorDia(mes, anio) {
     const inicio = `${anio}-${String(mes).padStart(2, '0')}-01`;
     const r = await pool.query(`
@@ -88,7 +107,7 @@ async function ventasPorCategoria(mes, anio) {
     return r.rows.map(row => ({ categoria: row.categoria, total: parseFloat(row.total) || 0 }));
 }
 
-function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos }) {
+function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, gastosInsumos, salarios, margen }) {
     const analisis = [];
     const ticketProm = actual.cantidad > 0 ? actual.total / actual.cantidad : 0;
 
@@ -129,27 +148,37 @@ function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior,
         analisis.push(`El método de pago más usado fue ${principal.metodo} (${pct.toFixed(0)}% del total facturado).`);
     }
 
+    if (gastosInsumos > 0 || salarios > 0) {
+        analisis.push(
+            `Los gastos del mes fueron Bs ${gastosInsumos.toFixed(2)} en compras de insumos y Bs ${salarios.toFixed(2)} en salarios, ` +
+            `dejando un margen (ventas menos insumos y salarios) de Bs ${margen.toFixed(2)}.`
+        );
+    }
+
     return analisis;
 }
 
 async function construirReporteMensual(mes, anio) {
     const ant = mesAnterior(mes, anio);
-    const [actual, anterior, dias, topProds, metodos, categorias] = await Promise.all([
+    const [actual, anterior, dias, topProds, metodos, categorias, gastosInsumos, salarios] = await Promise.all([
         totalesMes(mes, anio),
         totalesMes(ant.mes, ant.anio),
         ventasPorDia(mes, anio),
         topProductos(mes, anio),
         ventasPorMetodoPago(mes, anio),
         ventasPorCategoria(mes, anio),
+        gastosInsumosMes(mes, anio),
+        salariosMes(mes, anio),
     ]);
 
     const nombreMes = NOMBRES_MES[mes - 1];
     const nombreMesAnterior = NOMBRES_MES[ant.mes - 1];
     const ticketPromedio = actual.cantidad > 0 ? actual.total / actual.cantidad : 0;
     const variacionPct = anterior.total > 0 ? ((actual.total - anterior.total) / anterior.total) * 100 : null;
+    const margen = actual.total - gastosInsumos - salarios;
 
     const analisis = generarAnalisis({
-        nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos,
+        nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, gastosInsumos, salarios, margen,
     });
 
     return {
@@ -157,6 +186,7 @@ async function construirReporteMensual(mes, anio) {
         totalVentas: actual.total,
         cantidadVentas: actual.cantidad,
         ticketPromedio,
+        gastosInsumos, salarios, margen,
         mesAnterior: { mes: ant.mes, anio: ant.anio, nombre: nombreMesAnterior, total: anterior.total, cantidad: anterior.cantidad },
         variacionPct,
         ventasPorDia: dias,
@@ -207,37 +237,58 @@ router.post('/mensual/pdf', async (req, res) => {
 
         const DORADO = '#B8923D';
         const CAFE_OSCURO = '#2A1B18';
+        const CREMA = '#F7F2E9';
         const TEXTO = '#2A1B18';
         const GRIS = '#6B5C56';
+        const VERDE = '#2F7D5A';
+        const ROJO = '#B23A2E';
+
+        // Función para dibujar una fila de tarjetas KPI con una franja de color superior
+        function dibujarFilaKpis(items, yPos) {
+            const gap = 10;
+            const ancho = (doc.page.width - 80 - (items.length - 1) * gap) / items.length;
+            items.forEach((k, i) => {
+                const x = 40 + i * (ancho + gap);
+                doc.roundedRect(x, yPos, ancho, 58, 6).fill(CREMA);
+                doc.roundedRect(x, yPos, ancho, 4, 2).fill(k.color || DORADO);
+                doc.fillColor(GRIS).font('Helvetica').fontSize(8.5).text(k.label.toUpperCase(), x + 10, yPos + 14, { width: ancho - 20, characterSpacing: 0.3 });
+                doc.fillColor(k.colorValor || TEXTO).font('Helvetica-Bold').fontSize(14).text(k.valor, x + 10, yPos + 30, { width: ancho - 20 });
+            });
+            return yPos + 58 + 12;
+        }
 
         // Cabecera
-        doc.rect(40, 40, doc.page.width - 80, 70).fill(CAFE_OSCURO);
-        doc.fillColor('#FDFBF7').font('Helvetica-Bold').fontSize(20)
+        doc.rect(40, 40, doc.page.width - 80, 74).fill(CAFE_OSCURO);
+        doc.rect(40, 108, doc.page.width - 80, 3).fill(DORADO);
+        doc.fillColor('#FDFBF7').font('Helvetica-Bold').fontSize(21)
            .text(nombreEmpresa.toUpperCase(), 55, 58);
         doc.fillColor(DORADO).font('Helvetica').fontSize(12)
-           .text(`Informe Mensual de Ventas — ${data.nombreMes} ${anio}`, 55, 84);
+           .text(`Informe Mensual de Ventas  —  ${data.nombreMes} ${anio}`, 55, 85);
 
         let y = 130;
 
-        // KPIs
-        const kpis = [
+        // Fila 1: ventas
+        const variacionColor = data.variacionPct === null ? GRIS : (data.variacionPct >= 0 ? VERDE : ROJO);
+        y = dibujarFilaKpis([
             { label: 'Ventas totales', valor: `Bs ${data.totalVentas.toFixed(2)}` },
             { label: 'N° de ventas', valor: `${data.cantidadVentas}` },
             { label: 'Ticket promedio', valor: `Bs ${data.ticketPromedio.toFixed(2)}` },
-            { label: `Vs. ${data.mesAnterior.nombre}`, valor: data.variacionPct === null ? 'Sin datos' : `${data.variacionPct >= 0 ? '+' : ''}${data.variacionPct.toFixed(1)}%` },
-        ];
-        const kpiWidth = (doc.page.width - 80 - 3 * 10) / 4;
-        kpis.forEach((k, i) => {
-            const x = 40 + i * (kpiWidth + 10);
-            doc.roundedRect(x, y, kpiWidth, 60, 6).fill('#F5F0E8');
-            doc.fillColor(GRIS).font('Helvetica').fontSize(9).text(k.label, x + 10, y + 10, { width: kpiWidth - 20 });
-            doc.fillColor(TEXTO).font('Helvetica-Bold').fontSize(14).text(k.valor, x + 10, y + 28, { width: kpiWidth - 20 });
-        });
-        y += 80;
+            { label: `Vs. ${data.mesAnterior.nombre}`, valor: data.variacionPct === null ? 'Sin datos' : `${data.variacionPct >= 0 ? '+' : ''}${data.variacionPct.toFixed(1)}%`, color: variacionColor, colorValor: variacionColor },
+        ], y);
+
+        // Fila 2: financiero (gastos en insumos, salarios, margen)
+        const margenColor = data.margen >= 0 ? VERDE : ROJO;
+        y = dibujarFilaKpis([
+            { label: 'Gastos en insumos', valor: `Bs ${data.gastosInsumos.toFixed(2)}`, color: ROJO },
+            { label: 'Salarios pagados', valor: `Bs ${data.salarios.toFixed(2)}`, color: ROJO },
+            { label: 'Margen del mes', valor: `Bs ${data.margen.toFixed(2)}`, color: margenColor, colorValor: margenColor },
+        ], y);
+        y += 6;
 
         // Análisis
         doc.fillColor(TEXTO).font('Helvetica-Bold').fontSize(13).text('Análisis del mes', 40, y);
-        y += 20;
+        doc.moveTo(40, y + 16).lineTo(140, y + 16).lineWidth(1.5).stroke(DORADO);
+        y += 26;
         doc.font('Helvetica').fontSize(10).fillColor(TEXTO);
         data.analisis.forEach(linea => {
             doc.circle(45, y + 4, 1.5).fill(DORADO);
@@ -246,51 +297,64 @@ router.post('/mensual/pdf', async (req, res) => {
         });
         y += 10;
 
+        // Encabezado de sección con línea dorada, consistente con "Análisis del mes"
+        function tituloSeccion(texto) {
+            doc.fillColor(TEXTO).font('Helvetica-Bold').fontSize(12).text(texto, 40, y);
+            doc.moveTo(40, y + 15).lineTo(40 + doc.font('Helvetica-Bold').fontSize(12).widthOfString(texto) + 10, y + 15)
+               .lineWidth(1).stroke(DORADO);
+            y += 24;
+        }
+
         // Helper para insertar una imagen de gráfico (base64 data URL) si existe
         function insertarGrafico(key, titulo, alto = 200) {
             const dataUrl = graficos[key];
             if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) return;
-            if (y + 25 + alto > doc.page.height - 50) {
+            if (y + 40 + alto > doc.page.height - 50) {
                 doc.addPage();
                 y = 40;
             }
-            doc.fillColor(TEXTO).font('Helvetica-Bold').fontSize(12).text(titulo, 40, y);
-            y += 18;
+            tituloSeccion(titulo);
             try {
                 const base64 = dataUrl.split(',')[1];
                 const buffer = Buffer.from(base64, 'base64');
-                doc.image(buffer, 40, y, { fit: [doc.page.width - 80, alto], align: 'center' });
-                y += alto + 15;
+                doc.roundedRect(40, y - 4, doc.page.width - 80, alto + 8, 6).fill(CREMA);
+                doc.image(buffer, 44, y, { fit: [doc.page.width - 88, alto], align: 'center' });
+                y += alto + 20;
             } catch (e) {
                 console.error('Error insertando gráfico en PDF:', key, e.message);
             }
         }
 
         insertarGrafico('ventasPorDia', 'Ventas por día');
+        insertarGrafico('ingresosVsEgresos', 'Ingresos vs. egresos', 180);
         insertarGrafico('topProductos', 'Productos más vendidos');
         insertarGrafico('metodoPago', 'Ventas por método de pago', 180);
 
         // Tabla de top productos
         if (data.topProductos.length > 0) {
-            if (y + 30 + data.topProductos.length * 18 > doc.page.height - 50) {
+            const altoFila = 18;
+            const altoTabla = 24 + data.topProductos.length * altoFila;
+            if (y + altoTabla > doc.page.height - 50) {
                 doc.addPage();
                 y = 40;
             }
-            doc.fillColor(TEXTO).font('Helvetica-Bold').fontSize(12).text('Detalle: productos más vendidos', 40, y);
-            y += 20;
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS);
-            doc.text('Producto', 45, y, { width: 300 });
-            doc.text('Cantidad', 345, y, { width: 80, align: 'right' });
-            doc.text('Ingreso (Bs)', 425, y, { width: 100, align: 'right' });
-            y += 14;
-            doc.moveTo(40, y).lineTo(doc.page.width - 40, y).lineWidth(0.5).stroke(GRIS);
-            y += 6;
-            doc.font('Helvetica').fontSize(9).fillColor(TEXTO);
-            data.topProductos.forEach(p => {
-                doc.text(p.nombre, 45, y, { width: 300 });
-                doc.text(String(p.cantidad), 345, y, { width: 80, align: 'right' });
-                doc.text(p.ingreso.toFixed(2), 425, y, { width: 100, align: 'right' });
-                y += 16;
+            tituloSeccion('Detalle: productos más vendidos');
+
+            doc.roundedRect(40, y, doc.page.width - 80, 22, 4).fill(CAFE_OSCURO);
+            doc.fillColor('#FDFBF7').font('Helvetica-Bold').fontSize(9);
+            doc.text('PRODUCTO', 50, y + 7, { width: 290 });
+            doc.text('CANTIDAD', 345, y + 7, { width: 80, align: 'right' });
+            doc.text('INGRESO (BS)', 420, y + 7, { width: 105, align: 'right' });
+            y += 22;
+
+            doc.font('Helvetica').fontSize(9.5);
+            data.topProductos.forEach((p, i) => {
+                if (i % 2 === 0) doc.rect(40, y, doc.page.width - 80, altoFila).fill(CREMA);
+                doc.fillColor(TEXTO);
+                doc.text(p.nombre, 50, y + 4, { width: 290 });
+                doc.text(String(p.cantidad), 345, y + 4, { width: 80, align: 'right' });
+                doc.text(p.ingreso.toFixed(2), 420, y + 4, { width: 105, align: 'right' });
+                y += altoFila;
             });
         }
 
