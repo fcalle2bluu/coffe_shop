@@ -16,6 +16,7 @@ const COLORES_GASTO = {
     'Insumos': '#e11d48',
     'Salarios': '#f97316',
     'Gastos Fijos': '#0ea5e9',
+    'Caja Chica': '#eab308',
     'Otros gastos operativos': '#a855f7',
 };
 
@@ -129,6 +130,21 @@ function renderizarTablaGastosDetalle(items) {
         </tr>
     `;
     }).join('');
+}
+
+function renderizarTablaSalariosEmpleado(lista) {
+    const tbody = document.getElementById('tabla-salarios-empleado');
+    if (!lista || lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-400">Sin pagos de salario registrados este mes.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = lista.map(s => `
+        <tr>
+            <td class="py-2 pr-2 pl-2 font-medium text-slate-700">${s.nombre}</td>
+            <td class="py-2 px-2 text-right">${s.pagos}</td>
+            <td class="py-2 pl-2 pr-2 text-right font-medium">${s.total.toFixed(2)}</td>
+        </tr>
+    `).join('');
 }
 
 function renderizarGraficos(data) {
@@ -266,6 +282,7 @@ async function cargarInforme() {
         renderizarAnalisis(data.analisis);
         renderizarTablaTopProductos(data.topProductos);
         renderizarTablaGastosDetalle(data.gastosDetalle);
+        renderizarTablaSalariosEmpleado(data.salariosPorEmpleado);
         renderizarGraficos(data);
     } catch (e) {
         console.error('Error al cargar informe mensual:', e);

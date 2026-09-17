@@ -28,12 +28,14 @@ async function totalesMes(mes, anio) {
 // "pagos_salarios") casi no se usan en la práctica: los gastos reales se
 // registran como movimientos de Libro Diario en "gastos_generales" —
 // insumos con categoria = 'Costos de Producción/Insumos', salarios
-// detectados porque la descripción (glosa) menciona "salario". Esta función
-// junta las tres fuentes en 4 categorías (Insumos, Salarios, Gastos Fijos,
-// Otros Gastos Operativos) y además arma la lista de movimientos individuales
-// para poder mostrar el detalle completo, no solo el total.
+// detectados porque la descripción (glosa) menciona "salario". A eso se le
+// suma "gastos_caja" (Caja Chica), que es una categoría de egreso aparte y
+// ya se usa en el semáforo gerencial (kpis.js) y en Libro Diario. Esta
+// función junta las cuatro fuentes en 5 categorías (Insumos, Salarios,
+// Gastos Fijos, Caja Chica, Otros Gastos Operativos) y además arma la lista
+// de movimientos individuales para poder mostrar el detalle completo.
 async function gastosMes(mes, anio) {
-    const [gastosGenerales, compras, pagosSalarios] = await Promise.all([
+    const [gastosGenerales, compras, pagosSalarios, gastosCaja] = await Promise.all([
         pool.query(`
             SELECT id, fecha, categoria, descripcion, monto
             FROM gastos_generales
@@ -55,6 +57,13 @@ async function gastosMes(mes, anio) {
             JOIN usuarios u ON u.id = ps.usuario_id
             WHERE ps.mes = $1 AND ps.anio = $2
             ORDER BY ps.fecha_pago DESC
+        `, [mes, anio]),
+        pool.query(`
+            SELECT id, fecha, descripcion, monto
+            FROM gastos_caja
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'UTC' AT TIME ZONE 'America/La_Paz') = $2
+            ORDER BY fecha DESC
         `, [mes, anio]),
     ]);
 
@@ -86,16 +95,24 @@ async function gastosMes(mes, anio) {
             monto: parseFloat(p.salario_neto) || 0,
         });
     }
+    for (const gc of gastosCaja.rows) {
+        items.push({
+            fecha: gc.fecha, categoria: 'Caja Chica',
+            descripcion: gc.descripcion, monto: parseFloat(gc.monto) || 0,
+        });
+    }
     items.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
     const totalesPorCategoria = {};
     for (const it of items) {
         totalesPorCategoria[it.categoria] = (totalesPorCategoria[it.categoria] || 0) + it.monto;
     }
-    const ORDEN_CATEGORIAS = ['Insumos', 'Salarios', 'Gastos Fijos', 'Otros gastos operativos'];
+    const ORDEN_CATEGORIAS = ['Insumos', 'Salarios', 'Gastos Fijos', 'Caja Chica', 'Otros gastos operativos'];
     const categorias = ORDEN_CATEGORIAS
         .map(categoria => ({ categoria, total: totalesPorCategoria[categoria] || 0 }))
         .filter(c => c.total > 0);
+
+    const salariosPorEmpleado = await agruparSalariosPorEmpleado(items.filter(it => it.categoria === 'Salarios'));
 
     return {
         totalInsumos: totalesPorCategoria['Insumos'] || 0,
@@ -103,7 +120,42 @@ async function gastosMes(mes, anio) {
         totalGeneral: items.reduce((acc, it) => acc + it.monto, 0),
         categorias,
         items,
+        salariosPorEmpleado,
     };
+}
+
+// Los pagos de salario no tienen usuario_id (son texto libre en gastos_generales),
+// así que se identifica al empleado buscando su nombre (o un nombre intermedio,
+// ej. "Antonio" dentro de "Jorge Antonio Ticona Calderon") como palabra completa
+// dentro de la descripción. Lo que no se logra identificar cae en "Sin identificar".
+async function agruparSalariosPorEmpleado(itemsSalario) {
+    if (itemsSalario.length === 0) return [];
+    const usuariosRes = await pool.query('SELECT nombre FROM usuarios');
+    const candidatos = usuariosRes.rows
+        .map(u => u.nombre)
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length); // nombres completos más largos primero
+
+    const identificar = (descripcion) => {
+        if (!descripcion) return null;
+        for (const nombreCompleto of candidatos) {
+            const tokens = nombreCompleto.split(/\s+/).filter(t => t.length >= 3);
+            for (const token of tokens) {
+                const regex = new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                if (regex.test(descripcion)) return nombreCompleto;
+            }
+        }
+        return null;
+    };
+
+    const totales = {};
+    for (const it of itemsSalario) {
+        const empleado = identificar(it.descripcion) || 'Sin identificar';
+        if (!totales[empleado]) totales[empleado] = { nombre: empleado, total: 0, pagos: 0 };
+        totales[empleado].total += it.monto;
+        totales[empleado].pagos += 1;
+    }
+    return Object.values(totales).sort((a, b) => b.total - a.total);
 }
 
 async function ventasPorDia(mes, anio) {
@@ -222,6 +274,11 @@ function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior,
         analisis.push(`Los gastos del mes sumaron Bs ${gastos.totalGeneral.toFixed(2)} (${desglose}), dejando un margen de Bs ${margen.toFixed(2)}.`);
     }
 
+    if (gastos.salariosPorEmpleado.length > 0) {
+        const top = gastos.salariosPorEmpleado[0];
+        analisis.push(`El empleado con mayor pago de salario fue ${top.nombre}, con Bs ${top.total.toFixed(2)} en ${top.pagos} pago(s).`);
+    }
+
     return analisis;
 }
 
@@ -257,6 +314,7 @@ async function construirReporteMensual(mes, anio) {
         gastosTotal: gastos.totalGeneral,
         gastosPorCategoria: gastos.categorias,
         gastosDetalle: gastos.items,
+        salariosPorEmpleado: gastos.salariosPorEmpleado,
         margen,
         mesAnterior: { mes: ant.mes, anio: ant.anio, nombre: nombreMesAnterior, total: anterior.total, cantidad: anterior.cantidad },
         variacionPct,
@@ -477,6 +535,14 @@ router.post('/mensual/pdf', async (req, res) => {
                 fechaTexto: new Date(g.fecha).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' }),
                 montoTexto: g.monto.toFixed(2),
             })));
+
+        dibujarTabla('Salarios pagados por empleado',
+            [
+                { titulo: 'EMPLEADO', campo: 'nombre', x: 50, width: 300 },
+                { titulo: 'N° DE PAGOS', campo: 'pagos', x: 355, width: 90, align: 'right' },
+                { titulo: 'TOTAL (BS)', campo: 'totalTexto', x: 450, width: 75, align: 'right' },
+            ],
+            data.salariosPorEmpleado.map(s => ({ ...s, totalTexto: s.total.toFixed(2) })));
 
         // Footer con paginación
         const range = doc.bufferedPageRange();
