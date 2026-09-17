@@ -24,48 +24,86 @@ async function totalesMes(mes, anio) {
     return { total: parseFloat(r.rows[0].total) || 0, cantidad: parseInt(r.rows[0].cantidad) || 0 };
 }
 
-// El módulo de Compras (tabla "compras") casi no se usa en la práctica: las
-// compras de insumos se registran mayormente como movimientos de Libro Diario
-// en "gastos_generales" con categoria = 'Costos de Producción/Insumos'. Se
-// suman ambas fuentes para no perder ninguna de las dos formas de registrar.
-async function gastosInsumosMes(mes, anio) {
-    const [compras, generales] = await Promise.all([
+// El módulo de Compras (tabla "compras") y el de Pagos de Salarios (tabla
+// "pagos_salarios") casi no se usan en la práctica: los gastos reales se
+// registran como movimientos de Libro Diario en "gastos_generales" —
+// insumos con categoria = 'Costos de Producción/Insumos', salarios
+// detectados porque la descripción (glosa) menciona "salario". Esta función
+// junta las tres fuentes en 4 categorías (Insumos, Salarios, Gastos Fijos,
+// Otros Gastos Operativos) y además arma la lista de movimientos individuales
+// para poder mostrar el detalle completo, no solo el total.
+async function gastosMes(mes, anio) {
+    const [gastosGenerales, compras, pagosSalarios] = await Promise.all([
         pool.query(`
-            SELECT COALESCE(SUM(total), 0) AS total
-            FROM compras
+            SELECT id, fecha, categoria, descripcion, monto
+            FROM gastos_generales
             WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
               AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+            ORDER BY fecha DESC
         `, [mes, anio]),
         pool.query(`
-            SELECT COALESCE(SUM(monto), 0) AS total
-            FROM gastos_generales
-            WHERE categoria = 'Costos de Producción/Insumos'
-              AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
-              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+            SELECT c.id, c.fecha, c.total, p.nombre AS proveedor
+            FROM compras c
+            LEFT JOIN proveedores p ON p.id = c.proveedor_id
+            WHERE EXTRACT(MONTH FROM c.fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM c.fecha AT TIME ZONE 'America/La_Paz') = $2
+            ORDER BY c.fecha DESC
+        `, [mes, anio]),
+        pool.query(`
+            SELECT ps.id, ps.fecha_pago AS fecha, ps.salario_neto, ps.glosa, u.nombre AS usuario
+            FROM pagos_salarios ps
+            JOIN usuarios u ON u.id = ps.usuario_id
+            WHERE ps.mes = $1 AND ps.anio = $2
+            ORDER BY ps.fecha_pago DESC
         `, [mes, anio]),
     ]);
-    return (parseFloat(compras.rows[0].total) || 0) + (parseFloat(generales.rows[0].total) || 0);
-}
 
-// Igual que con insumos: la tabla "pagos_salarios" casi no se usa; los pagos
-// de salario reales se anotan como gastos generales cuya descripción (glosa)
-// menciona "salario". Se suman ambas fuentes.
-async function salariosMes(mes, anio) {
-    const [pagos, generales] = await Promise.all([
-        pool.query(`
-            SELECT COALESCE(SUM(salario_neto), 0) AS total
-            FROM pagos_salarios
-            WHERE mes = $1 AND anio = $2
-        `, [mes, anio]),
-        pool.query(`
-            SELECT COALESCE(SUM(monto), 0) AS total
-            FROM gastos_generales
-            WHERE descripcion ILIKE '%salario%'
-              AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
-              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
-        `, [mes, anio]),
-    ]);
-    return (parseFloat(pagos.rows[0].total) || 0) + (parseFloat(generales.rows[0].total) || 0);
+    const grupoDe = (categoria, descripcion) => {
+        if (categoria === 'Costos de Producción/Insumos') return 'Insumos';
+        if (categoria === 'Gastos Fijos') return 'Gastos Fijos';
+        if (descripcion && descripcion.toLowerCase().includes('salario')) return 'Salarios';
+        return 'Otros gastos operativos';
+    };
+
+    const items = [];
+    for (const g of gastosGenerales.rows) {
+        items.push({
+            fecha: g.fecha, categoria: grupoDe(g.categoria, g.descripcion),
+            descripcion: g.descripcion, monto: parseFloat(g.monto) || 0,
+        });
+    }
+    for (const c of compras.rows) {
+        items.push({
+            fecha: c.fecha, categoria: 'Insumos',
+            descripcion: `Compra de insumos${c.proveedor ? ' a ' + c.proveedor : ''} (registro directo)`,
+            monto: parseFloat(c.total) || 0,
+        });
+    }
+    for (const p of pagosSalarios.rows) {
+        items.push({
+            fecha: p.fecha, categoria: 'Salarios',
+            descripcion: p.glosa || `Pago de salario a ${p.usuario} (registro directo)`,
+            monto: parseFloat(p.salario_neto) || 0,
+        });
+    }
+    items.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    const totalesPorCategoria = {};
+    for (const it of items) {
+        totalesPorCategoria[it.categoria] = (totalesPorCategoria[it.categoria] || 0) + it.monto;
+    }
+    const ORDEN_CATEGORIAS = ['Insumos', 'Salarios', 'Gastos Fijos', 'Otros gastos operativos'];
+    const categorias = ORDEN_CATEGORIAS
+        .map(categoria => ({ categoria, total: totalesPorCategoria[categoria] || 0 }))
+        .filter(c => c.total > 0);
+
+    return {
+        totalInsumos: totalesPorCategoria['Insumos'] || 0,
+        totalSalarios: totalesPorCategoria['Salarios'] || 0,
+        totalGeneral: items.reduce((acc, it) => acc + it.monto, 0),
+        categorias,
+        items,
+    };
 }
 
 async function ventasPorDia(mes, anio) {
@@ -132,7 +170,7 @@ async function ventasPorCategoria(mes, anio) {
     return r.rows.map(row => ({ categoria: row.categoria, total: parseFloat(row.total) || 0 }));
 }
 
-function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, gastosInsumos, salarios, margen }) {
+function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, categoriasVenta, gastos, margen }) {
     const analisis = [];
     const ticketProm = actual.cantidad > 0 ? actual.total / actual.cantidad : 0;
 
@@ -173,11 +211,15 @@ function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior,
         analisis.push(`El método de pago más usado fue ${principal.metodo} (${pct.toFixed(0)}% del total facturado).`);
     }
 
-    if (gastosInsumos > 0 || salarios > 0) {
-        analisis.push(
-            `Los gastos del mes fueron Bs ${gastosInsumos.toFixed(2)} en compras de insumos y Bs ${salarios.toFixed(2)} en salarios, ` +
-            `dejando un margen (ventas menos insumos y salarios) de Bs ${margen.toFixed(2)}.`
-        );
+    if (categoriasVenta.length > 0 && actual.total > 0) {
+        const principal = categoriasVenta[0];
+        const pct = (principal.total / actual.total) * 100;
+        analisis.push(`La categoría de productos con más ventas fue "${principal.categoria}", con Bs ${principal.total.toFixed(2)} (${pct.toFixed(0)}% del total).`);
+    }
+
+    if (gastos.totalGeneral > 0) {
+        const desglose = gastos.categorias.map(c => `Bs ${c.total.toFixed(2)} en ${c.categoria.toLowerCase()}`).join(', ');
+        analisis.push(`Los gastos del mes sumaron Bs ${gastos.totalGeneral.toFixed(2)} (${desglose}), dejando un margen de Bs ${margen.toFixed(2)}.`);
     }
 
     return analisis;
@@ -185,25 +227,24 @@ function generarAnalisis({ nombreMes, anio, actual, anterior, nombreMesAnterior,
 
 async function construirReporteMensual(mes, anio) {
     const ant = mesAnterior(mes, anio);
-    const [actual, anterior, dias, topProds, metodos, categorias, gastosInsumos, salarios] = await Promise.all([
+    const [actual, anterior, dias, topProds, metodos, categoriasVenta, gastos] = await Promise.all([
         totalesMes(mes, anio),
         totalesMes(ant.mes, ant.anio),
         ventasPorDia(mes, anio),
-        topProductos(mes, anio),
+        topProductos(mes, anio, 10),
         ventasPorMetodoPago(mes, anio),
         ventasPorCategoria(mes, anio),
-        gastosInsumosMes(mes, anio),
-        salariosMes(mes, anio),
+        gastosMes(mes, anio),
     ]);
 
     const nombreMes = NOMBRES_MES[mes - 1];
     const nombreMesAnterior = NOMBRES_MES[ant.mes - 1];
     const ticketPromedio = actual.cantidad > 0 ? actual.total / actual.cantidad : 0;
     const variacionPct = anterior.total > 0 ? ((actual.total - anterior.total) / anterior.total) * 100 : null;
-    const margen = actual.total - gastosInsumos - salarios;
+    const margen = actual.total - gastos.totalGeneral;
 
     const analisis = generarAnalisis({
-        nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, gastosInsumos, salarios, margen,
+        nombreMes, anio, actual, anterior, nombreMesAnterior, dias, topProds, metodos, categoriasVenta, gastos, margen,
     });
 
     return {
@@ -211,13 +252,18 @@ async function construirReporteMensual(mes, anio) {
         totalVentas: actual.total,
         cantidadVentas: actual.cantidad,
         ticketPromedio,
-        gastosInsumos, salarios, margen,
+        gastosInsumos: gastos.totalInsumos,
+        salarios: gastos.totalSalarios,
+        gastosTotal: gastos.totalGeneral,
+        gastosPorCategoria: gastos.categorias,
+        gastosDetalle: gastos.items,
+        margen,
         mesAnterior: { mes: ant.mes, anio: ant.anio, nombre: nombreMesAnterior, total: anterior.total, cantidad: anterior.cantidad },
         variacionPct,
         ventasPorDia: dias,
         topProductos: topProds,
         ventasPorMetodoPago: metodos,
-        ventasPorCategoria: categorias,
+        ventasPorCategoria: categoriasVenta,
         analisis,
     };
 }
@@ -350,38 +396,87 @@ router.post('/mensual/pdf', async (req, res) => {
             }
         }
 
+// Helper genérico para dibujar una tabla con encabezado oscuro y filas alternadas.
+        // La altura de cada fila se calcula según el texto más alto de esa fila (con
+        // wrap), para que una descripción o categoría larga no se superponga con la
+        // fila siguiente.
+        function dibujarTabla(titulo, columnas, filas) {
+            if (filas.length === 0) return;
+            const PADDING_FILA = 8;
+            const alturaDeFila = (fila) => {
+                doc.font('Helvetica').fontSize(9.5);
+                const alturas = columnas.map(col => doc.heightOfString(
+                    fila[col.campo] != null ? String(fila[col.campo]) : '',
+                    { width: col.width }
+                ));
+                return Math.max(...alturas, 12) + PADDING_FILA;
+            };
+            const dibujarEncabezado = () => {
+                doc.roundedRect(40, y, doc.page.width - 80, 22, 4).fill(CAFE_OSCURO);
+                doc.fillColor('#FDFBF7').font('Helvetica-Bold').fontSize(9);
+                columnas.forEach(col => doc.text(col.titulo, col.x, y + 7, { width: col.width, align: col.align || 'left' }));
+                y += 22;
+            };
+
+            const alturaPrimeraFila = alturaDeFila(filas[0]);
+            if (y + 24 + 22 + alturaPrimeraFila > doc.page.height - 50) {
+                doc.addPage();
+                y = 40;
+            }
+            tituloSeccion(titulo);
+            dibujarEncabezado();
+
+            filas.forEach((fila, i) => {
+                const altoFila = alturaDeFila(fila);
+                if (y + altoFila > doc.page.height - 50) {
+                    doc.addPage();
+                    y = 40;
+                    dibujarEncabezado();
+                }
+                if (i % 2 === 0) doc.rect(40, y, doc.page.width - 80, altoFila).fill(CREMA);
+                doc.fillColor(TEXTO).font('Helvetica').fontSize(9.5);
+                columnas.forEach(col => doc.text(fila[col.campo] != null ? String(fila[col.campo]) : '', col.x, y + 4, { width: col.width, align: col.align || 'left' }));
+                y += altoFila;
+            });
+        }
+
         insertarGrafico('ventasPorDia', 'Ventas por día');
         insertarGrafico('ingresosVsEgresos', 'Ingresos vs. egresos', 180);
         insertarGrafico('topProductos', 'Productos más vendidos');
         insertarGrafico('metodoPago', 'Ventas por método de pago', 180);
+        insertarGrafico('ventasCategoria', 'Ventas por categoría de producto');
 
-        // Tabla de top productos
-        if (data.topProductos.length > 0) {
-            const altoFila = 18;
-            const altoTabla = 24 + data.topProductos.length * altoFila;
-            if (y + altoTabla > doc.page.height - 50) {
-                doc.addPage();
-                y = 40;
-            }
-            tituloSeccion('Detalle: productos más vendidos');
+        dibujarTabla('Detalle: productos más vendidos',
+            [
+                { titulo: 'PRODUCTO', campo: 'nombre', x: 50, width: 290 },
+                { titulo: 'CANTIDAD', campo: 'cantidad', x: 345, width: 80, align: 'right' },
+                { titulo: 'INGRESO (BS)', campo: 'ingresoTexto', x: 420, width: 105, align: 'right' },
+            ],
+            data.topProductos.map(p => ({ ...p, ingresoTexto: p.ingreso.toFixed(2) })));
 
-            doc.roundedRect(40, y, doc.page.width - 80, 22, 4).fill(CAFE_OSCURO);
-            doc.fillColor('#FDFBF7').font('Helvetica-Bold').fontSize(9);
-            doc.text('PRODUCTO', 50, y + 7, { width: 290 });
-            doc.text('CANTIDAD', 345, y + 7, { width: 80, align: 'right' });
-            doc.text('INGRESO (BS)', 420, y + 7, { width: 105, align: 'right' });
-            y += 22;
+        insertarGrafico('gastosCategoria', 'Gastos por categoría', 180);
 
-            doc.font('Helvetica').fontSize(9.5);
-            data.topProductos.forEach((p, i) => {
-                if (i % 2 === 0) doc.rect(40, y, doc.page.width - 80, altoFila).fill(CREMA);
-                doc.fillColor(TEXTO);
-                doc.text(p.nombre, 50, y + 4, { width: 290 });
-                doc.text(String(p.cantidad), 345, y + 4, { width: 80, align: 'right' });
-                doc.text(p.ingreso.toFixed(2), 420, y + 4, { width: 105, align: 'right' });
-                y += altoFila;
-            });
-        }
+        dibujarTabla('Desglose de gastos por categoría',
+            [
+                { titulo: 'CATEGORÍA', campo: 'categoria', x: 50, width: 340 },
+                { titulo: 'MONTO (BS)', campo: 'totalTexto', x: 400, width: 125, align: 'right' },
+            ],
+            data.gastosPorCategoria.map(c => ({ ...c, totalTexto: c.total.toFixed(2) })));
+
+        // Movimientos individuales más grandes (hasta 15) para no alargar demasiado el PDF
+        const principalesGastos = [...data.gastosDetalle].sort((a, b) => b.monto - a.monto).slice(0, 15);
+        dibujarTabla('Principales movimientos de gasto',
+            [
+                { titulo: 'FECHA', campo: 'fechaTexto', x: 50, width: 55 },
+                { titulo: 'CATEGORÍA', campo: 'categoria', x: 110, width: 90 },
+                { titulo: 'DESCRIPCIÓN', campo: 'descripcion', x: 205, width: 245 },
+                { titulo: 'MONTO (BS)', campo: 'montoTexto', x: 455, width: 70, align: 'right' },
+            ],
+            principalesGastos.map(g => ({
+                ...g,
+                fechaTexto: new Date(g.fecha).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' }),
+                montoTexto: g.monto.toFixed(2),
+            })));
 
         // Footer con paginación
         const range = doc.bufferedPageRange();

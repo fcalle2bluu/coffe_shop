@@ -8,7 +8,16 @@ let chartVentasDia = null;
 let chartIngresosEgresos = null;
 let chartTopProductos = null;
 let chartMetodoPago = null;
+let chartVentasCategoria = null;
+let chartGastosCategoria = null;
 let ultimoReporte = null;
+
+const COLORES_GASTO = {
+    'Insumos': '#e11d48',
+    'Salarios': '#f97316',
+    'Gastos Fijos': '#0ea5e9',
+    'Otros gastos operativos': '#a855f7',
+};
 
 function formatoBs(valor) {
     return `Bs ${Number(valor || 0).toFixed(2)}`;
@@ -83,6 +92,8 @@ function renderizarAnalisis(analisis) {
 }
 
 function renderizarTablaTopProductos(productos) {
+    document.getElementById('titulo-top-productos').innerHTML =
+        `<i class="fa-solid fa-ranking-star text-amber-500"></i> Detalle: top ${productos.length || ''} productos`;
     const tbody = document.getElementById('tabla-top-productos');
     if (!productos || productos.length === 0) {
         tbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-400">Sin ventas registradas este mes.</td></tr>';
@@ -95,6 +106,29 @@ function renderizarTablaTopProductos(productos) {
             <td class="py-2 pl-2 text-right">${p.ingreso.toFixed(2)}</td>
         </tr>
     `).join('');
+}
+
+function renderizarTablaGastosDetalle(items) {
+    const tbody = document.getElementById('tabla-gastos-detalle');
+    if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-400">Sin gastos registrados este mes.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = items.map(it => {
+        const fecha = new Date(it.fecha);
+        const fechaTexto = fecha.toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' });
+        const color = COLORES_GASTO[it.categoria] || '#6b7280';
+        return `
+        <tr>
+            <td class="py-2 pr-2 pl-2 whitespace-nowrap text-slate-500">${fechaTexto}</td>
+            <td class="py-2 px-2 whitespace-nowrap">
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style="background:${color}1a;color:${color}">${it.categoria}</span>
+            </td>
+            <td class="py-2 px-2 text-slate-700">${it.descripcion || ''}</td>
+            <td class="py-2 pl-2 pr-2 text-right font-medium">${it.monto.toFixed(2)}</td>
+        </tr>
+    `;
+    }).join('');
 }
 
 function renderizarGraficos(data) {
@@ -175,6 +209,45 @@ function renderizarGraficos(data) {
             plugins: { legend: { position: 'bottom' } }
         }
     });
+
+    const topCategorias = data.ventasPorCategoria.slice(0, 10);
+    const ctxCat = document.getElementById('chart-ventas-categoria').getContext('2d');
+    if (chartVentasCategoria) chartVentasCategoria.destroy();
+    chartVentasCategoria = new Chart(ctxCat, {
+        type: 'bar',
+        data: {
+            labels: topCategorias.map(c => c.categoria),
+            datasets: [{
+                label: 'Ventas (Bs)',
+                data: topCategorias.map(c => c.total),
+                backgroundColor: '#B8923D',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
+        }
+    });
+
+    const ctxGastos = document.getElementById('chart-gastos-categoria').getContext('2d');
+    if (chartGastosCategoria) chartGastosCategoria.destroy();
+    chartGastosCategoria = new Chart(ctxGastos, {
+        type: 'doughnut',
+        data: {
+            labels: data.gastosPorCategoria.map(c => c.categoria),
+            datasets: [{
+                data: data.gastosPorCategoria.map(c => c.total),
+                backgroundColor: data.gastosPorCategoria.map(c => COLORES_GASTO[c.categoria] || '#6b7280'),
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
 }
 
 async function cargarInforme() {
@@ -192,6 +265,7 @@ async function cargarInforme() {
         renderizarKPIs(data);
         renderizarAnalisis(data.analisis);
         renderizarTablaTopProductos(data.topProductos);
+        renderizarTablaGastosDetalle(data.gastosDetalle);
         renderizarGraficos(data);
     } catch (e) {
         console.error('Error al cargar informe mensual:', e);
@@ -212,6 +286,8 @@ async function descargarPDF() {
             ingresosVsEgresos: chartIngresosEgresos ? chartIngresosEgresos.toBase64Image() : null,
             topProductos: chartTopProductos ? chartTopProductos.toBase64Image() : null,
             metodoPago: chartMetodoPago ? chartMetodoPago.toBase64Image() : null,
+            ventasCategoria: chartVentasCategoria ? chartVentasCategoria.toBase64Image() : null,
+            gastosCategoria: chartGastosCategoria ? chartGastosCategoria.toBase64Image() : null,
         };
 
         const mes = document.getElementById('select-mes').value;
