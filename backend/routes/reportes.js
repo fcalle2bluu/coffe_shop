@@ -24,23 +24,48 @@ async function totalesMes(mes, anio) {
     return { total: parseFloat(r.rows[0].total) || 0, cantidad: parseInt(r.rows[0].cantidad) || 0 };
 }
 
+// El módulo de Compras (tabla "compras") casi no se usa en la práctica: las
+// compras de insumos se registran mayormente como movimientos de Libro Diario
+// en "gastos_generales" con categoria = 'Costos de Producción/Insumos'. Se
+// suman ambas fuentes para no perder ninguna de las dos formas de registrar.
 async function gastosInsumosMes(mes, anio) {
-    const r = await pool.query(`
-        SELECT COALESCE(SUM(total), 0) AS total
-        FROM compras
-        WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
-          AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
-    `, [mes, anio]);
-    return parseFloat(r.rows[0].total) || 0;
+    const [compras, generales] = await Promise.all([
+        pool.query(`
+            SELECT COALESCE(SUM(total), 0) AS total
+            FROM compras
+            WHERE EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+        `, [mes, anio]),
+        pool.query(`
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
+            WHERE categoria = 'Costos de Producción/Insumos'
+              AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+        `, [mes, anio]),
+    ]);
+    return (parseFloat(compras.rows[0].total) || 0) + (parseFloat(generales.rows[0].total) || 0);
 }
 
+// Igual que con insumos: la tabla "pagos_salarios" casi no se usa; los pagos
+// de salario reales se anotan como gastos generales cuya descripción (glosa)
+// menciona "salario". Se suman ambas fuentes.
 async function salariosMes(mes, anio) {
-    const r = await pool.query(`
-        SELECT COALESCE(SUM(salario_neto), 0) AS total
-        FROM pagos_salarios
-        WHERE mes = $1 AND anio = $2
-    `, [mes, anio]);
-    return parseFloat(r.rows[0].total) || 0;
+    const [pagos, generales] = await Promise.all([
+        pool.query(`
+            SELECT COALESCE(SUM(salario_neto), 0) AS total
+            FROM pagos_salarios
+            WHERE mes = $1 AND anio = $2
+        `, [mes, anio]),
+        pool.query(`
+            SELECT COALESCE(SUM(monto), 0) AS total
+            FROM gastos_generales
+            WHERE descripcion ILIKE '%salario%'
+              AND EXTRACT(MONTH FROM fecha AT TIME ZONE 'America/La_Paz') = $1
+              AND EXTRACT(YEAR FROM fecha AT TIME ZONE 'America/La_Paz') = $2
+        `, [mes, anio]),
+    ]);
+    return (parseFloat(pagos.rows[0].total) || 0) + (parseFloat(generales.rows[0].total) || 0);
 }
 
 async function ventasPorDia(mes, anio) {
