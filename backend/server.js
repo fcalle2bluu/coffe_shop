@@ -16,7 +16,10 @@ const app = express();
 // 2. MIDDLEWARES (TRADUCTORES)
 // ==========================================
 app.use(cors());
-app.use(express.json());
+// Límite subido de 100kb (default) a 5mb: los informes en PDF envían gráficos
+// de Chart.js como imágenes PNG en base64 dentro del body JSON, que fácilmente
+// superan los 100kb con 2-3 gráficos.
+app.use(express.json({ limit: '5mb' }));
 
 // ==========================================
 // 2.1 SEGURIDAD: exigir sesión válida para toda la API
