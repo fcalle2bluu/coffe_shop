@@ -1,5 +1,7 @@
 // frontend/js/webhook.js
 
+let ultimaFirmaPedidos = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     cargarPedidosWhatsApp();
     
@@ -17,7 +19,16 @@ async function cargarPedidosWhatsApp() {
         const response = await fetch('/api/whatsapp/pedidos');
         if (!response.ok) throw new Error('Error de conexión');
         const pedidos = await response.json();
-        
+
+        // Evita reconstruir la tabla (y volver a pedir cada foto) cuando no cambió nada
+        // desde la última recarga automática — si no, cada 10s se re-descargaban todas
+        // las fotos de referencia de Supabase Storage aunque no hubiera pedidos nuevos.
+        const firma = JSON.stringify(pedidos.map(p => [p.id, p.estado, p.foto_referencia_url]));
+        if (firma === ultimaFirmaPedidos) {
+            return;
+        }
+        ultimaFirmaPedidos = firma;
+
         // Calcular estadísticas
         let pendientes = 0;
         let preparando = 0;

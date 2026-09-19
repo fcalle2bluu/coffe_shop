@@ -27,6 +27,7 @@ router.post('/', upload.single('imagen'), async (req, res) => {
             .from('insumos')
             .upload(nombreArchivo, req.file.buffer, {
                 contentType: req.file.mimetype,
+                cacheControl: '31536000',
             });
 
         if (error) throw error;

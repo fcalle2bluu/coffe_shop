@@ -85,7 +85,7 @@ router.post('/', upload.fields([{ name: 'foto_recibo', maxCount: 1 }, { name: 'f
             const file = req.files['foto_recibo'][0];
             try {
                 const nombreArchivo = `${Date.now()}_recibo_${file.originalname.replace(/\s+/g, '_')}`;
-                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype });
+                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
                 if (error) throw error;
                 const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
                 foto_recibo_url = publicData.publicUrl;
@@ -97,7 +97,7 @@ router.post('/', upload.fields([{ name: 'foto_recibo', maxCount: 1 }, { name: 'f
             const file = req.files['foto_producto'][0];
             try {
                 const nombreArchivo = `${Date.now()}_producto_${file.originalname.replace(/\s+/g, '_')}`;
-                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype });
+                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
                 if (error) throw error;
                 const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
                 foto_producto_url = publicData.publicUrl;

@@ -79,6 +79,7 @@ router.post('/', upload.single('imagen'), async (req, res) => {
                     .from('insumos') // Nombre del bucket fijo
                     .upload(nombreArchivo, req.file.buffer, {
                         contentType: req.file.mimetype,
+                        cacheControl: '31536000',
                         upsert: false
                     });
 

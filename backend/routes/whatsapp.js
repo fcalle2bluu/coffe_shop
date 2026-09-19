@@ -207,7 +207,7 @@ async function descargarYGuardarImagenWhatsApp(mediaId) {
 
         // 3. Subir a Supabase Storage (mismo bucket que las fotos de productos)
         const nombreArchivo = `whatsapp/${mediaId}_${Date.now()}.${extension}`;
-        const { error } = await supabaseWhatsapp.storage.from('insumos').upload(nombreArchivo, buffer, { contentType: mimeType });
+        const { error } = await supabaseWhatsapp.storage.from('insumos').upload(nombreArchivo, buffer, { contentType: mimeType, cacheControl: '31536000' });
         if (error) throw error;
 
         const { data: publicData } = supabaseWhatsapp.storage.from('insumos').getPublicUrl(nombreArchivo);
