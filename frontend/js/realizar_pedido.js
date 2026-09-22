@@ -8,6 +8,7 @@ let categoriaSeleccionada = 'Todas';
 let busquedaActual = '';
 
 const usuarioIdActual = () => localStorage.getItem('usuario_id') || '';
+const esAdminActivo = () => (localStorage.getItem('usuario_rol') || '').toUpperCase().startsWith('ADMIN');
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
@@ -531,41 +532,16 @@ async function crearComandaNueva(mesa, detalles, notaGeneral) {
 
 // Suma los productos del carrito a una comanda ya existente en la mesa elegida
 // (de cualquier mesero), en vez de crear una comanda duplicada para esa mesa.
+// Usa el endpoint de "solo agregar": no reenvía ni puede tocar los ítems que ya
+// estaban (eso quedó restringido a ADMIN), solo inserta los productos nuevos.
 async function sumarAComandaExistente(comandaExistente, detallesNuevos, notaGeneral) {
     try {
-        const itemsActuales = comandaExistente.items || [];
-        const detallesFinales = itemsActuales.map(it => ({
-            producto_id: it.producto_id,
-            cantidad: it.cantidad,
-            precio_unitario: it.precio_unitario,
-            subtotal: it.subtotal,
-            notas: it.notas
-        }));
-
-        detallesNuevos.forEach(nuevo => {
-            const indiceExistente = detallesFinales.findIndex(it => it.producto_id === nuevo.producto_id);
-            if (indiceExistente !== -1) {
-                const cantidadSumada = parseFloat(detallesFinales[indiceExistente].cantidad) + parseFloat(nuevo.cantidad);
-                const precio = parseFloat(detallesFinales[indiceExistente].precio_unitario) || 0;
-                detallesFinales[indiceExistente].cantidad = cantidadSumada;
-                detallesFinales[indiceExistente].subtotal = precio * cantidadSumada;
-                if (nuevo.notas) detallesFinales[indiceExistente].notas = nuevo.notas;
-            } else {
-                detallesFinales.push(nuevo);
-            }
-        });
-
-        const totalFinal = detallesFinales.reduce((acc, it) => acc + (parseFloat(it.subtotal) || 0), 0);
-        const notaPrevia = comandaExistente.notas || '';
-        const notasCombinadas = [notaPrevia, notaGeneral || ''].filter(n => n).join(' | ');
-
-        const res = await fetch(`/api/comandas/mesero/${comandaExistente.id}?usuario_id=${usuarioIdActual()}`, {
+        const res = await fetch(`/api/comandas/mesero/${comandaExistente.id}/agregar-items?usuario_id=${usuarioIdActual()}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                detalles: detallesFinales,
-                total: totalFinal,
-                notas: notasCombinadas || null
+                detalles_nuevos: detallesNuevos,
+                notas_extra: notaGeneral || null
             })
         });
         const data = await res.json();
@@ -631,10 +607,11 @@ async function cargarComandasActivas() {
                     <span class="text-[10px] md:text-xs font-bold text-slate-400">${c.estado}</span>
                 </div>
                 ${c.estado !== 'PAGADA' ? `
-                <div class="grid grid-cols-3 gap-1.5 mt-1">
+                <div class="grid ${esAdminActivo() ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 mt-1">
+                    ${esAdminActivo() ? `
                     <button onclick="abrirModalEditar(${c.id})" class="text-xs md:text-sm font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 rounded-xl py-2 md:py-2.5 transition-colors btn-bounce">
                         <i class="fa-solid fa-pen mr-1"></i> Editar
-                    </button>
+                    </button>` : ''}
                     <button onclick="solicitarImpresion(${c.id})" class="text-xs md:text-sm font-bold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-xl py-2 md:py-2.5 transition-colors btn-bounce">
                         <i class="fa-solid fa-print mr-1"></i> Imprimir
                     </button>

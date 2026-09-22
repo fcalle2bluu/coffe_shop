@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 26,
-    "versionName": "1.0.25",
+    "versionCode": 27,
+    "versionName": "1.0.26",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Ordenado el plano de Venta por Mesa: ahora es una grilla prolija con todas las mesas (Planta Baja y Primer Piso) en una sola pantalla, sin botón para cambiar de piso ni mesas superpuestas.",
+    "notas": "Ahora solo un administrador puede editar un pedido ya creado (cambiar cantidades o quitar productos). Mesero y cajero todavía pueden sumar productos nuevos a una mesa ocupada.",
     "obligatoria": true
   },
   "comandas": {

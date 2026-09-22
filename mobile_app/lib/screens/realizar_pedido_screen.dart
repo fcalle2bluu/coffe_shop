@@ -30,6 +30,7 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   String _categoriaSeleccionada = 'Todas';
 
   int _userId = 1;
+  bool _esAdmin = false;
 
   int _vista = 0; // 0 = Pedido, 1 = Control
   bool _loadingControl = false;
@@ -60,6 +61,8 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
   Future<void> _iniciar() async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getInt('usuario_id') ?? 1;
+    final rol = (prefs.getString('usuario_rol') ?? '').toUpperCase();
+    _esAdmin = rol.startsWith('ADMIN');
     await _cargarDatos();
   }
 
@@ -316,36 +319,13 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
 
   /// Suma los productos del carrito a una comanda ya existente en la mesa elegida
   /// (de cualquier mesero), en vez de crear una comanda duplicada para esa mesa.
+  /// Usa el endpoint de "solo agregar": no reenvía ni puede tocar los ítems que
+  /// ya estaban (eso quedó restringido a ADMIN), solo inserta los productos nuevos.
   Future<String?> _sumarAComandaExistente(dynamic comandaExistente, List<Map<String, dynamic>> detallesNuevos, String? notasGenerales) async {
     try {
-      final itemsActuales = (comandaExistente['items'] as List<dynamic>?) ?? [];
-      final detallesFinales = itemsActuales.map((it) => {
-        'producto_id': it['producto_id'],
-        'cantidad': it['cantidad'],
-        'precio_unitario': it['precio_unitario'],
-        'subtotal': it['subtotal'],
-        'notas': it['notas'],
-        'es_nuevo': false,
-      }).toList();
-
-      // Se agrega siempre como línea nueva y separada, aunque el producto ya
-      // estuviera en el pedido: así cocina ve, por ejemplo, "1 x Vino" ya
-      // entregado y "1 x Vino" nuevo en vez de fusionarlos en "2 x Vino" nuevo
-      // (que ocultaría que solo se agregó uno).
-      for (final nuevo in detallesNuevos) {
-        detallesFinales.add({...nuevo, 'es_nuevo': true});
-      }
-
-      final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));
-
-      final notaPrevia = (comandaExistente['notas'] as String?) ?? '';
-      final notaNueva = notasGenerales ?? '';
-      final notasCombinadas = [notaPrevia, notaNueva].where((n) => n.isNotEmpty).join(' | ');
-
-      final res = await ApiConfig.put('/comandas/mesero/${comandaExistente['id']}?usuario_id=$_userId', {
-        'detalles': detallesFinales,
-        'total': totalFinal,
-        'notas': notasCombinadas.isEmpty ? null : notasCombinadas,
+      final res = await ApiConfig.put('/comandas/mesero/${comandaExistente['id']}/agregar-items?usuario_id=$_userId', {
+        'detalles_nuevos': detallesNuevos,
+        'notas_extra': notasGenerales,
       });
 
       final data = jsonDecode(res.body);
@@ -955,15 +935,17 @@ class RealizarPedidoScreenState extends State<RealizarPedidoScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _abrirEdicionComanda(c),
-                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppTheme.accentColor),
-                          label: const Text('Editar', style: TextStyle(color: AppTheme.accentColor, fontSize: 12)),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accentColor), padding: const EdgeInsets.symmetric(horizontal: 4)),
+                      if (_esAdmin) ...[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _abrirEdicionComanda(c),
+                            icon: const Icon(Icons.edit_outlined, size: 16, color: AppTheme.accentColor),
+                            label: const Text('Editar', style: TextStyle(color: AppTheme.accentColor, fontSize: 12)),
+                            style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accentColor), padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
+                        const SizedBox(width: 6),
+                      ],
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _solicitarImpresion(c['id']),

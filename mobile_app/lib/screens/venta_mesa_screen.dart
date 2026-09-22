@@ -287,37 +287,23 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
         throw Exception('La mesa $_mesaDestinoExistente ya no tiene un pedido activo.');
       }
       final comandaActual = dataActual['comanda'];
-      final itemsActuales = (dataActual['items'] as List<dynamic>? ?? []);
 
-      final detallesFinales = itemsActuales.map((it) => {
-        'producto_id': it['producto_id'],
-        'cantidad': it['cantidad'],
-        'precio_unitario': it['precio_unitario'],
-        'subtotal': it['subtotal'],
-        'es_nuevo': false,
-      }).toList();
-
-      // Se agrega siempre como línea nueva y separada, aunque el producto ya
-      // estuviera en el pedido: así cocina ve, por ejemplo, "1 x Vino" ya
-      // entregado y "1 x Vino" nuevo en vez de fusionarlos en "2 x Vino" nuevo
-      // (que ocultaría que solo se agregó uno).
+      // Solo se envían los productos nuevos: el endpoint de "agregar-items" los
+      // inserta sin tocar lo que ya estaba pedido (eso quedó restringido a ADMIN).
+      final detallesNuevos = <Map<String, dynamic>>[];
       _cart.forEach((id, qty) {
         final p = _allProducts.firstWhere((prod) => prod.id == id);
-        detallesFinales.add({
+        detallesNuevos.add({
           'producto_id': id,
           'cantidad': qty,
           'precio_unitario': p.precioVenta,
           'subtotal': p.precioVenta * qty,
-          'es_nuevo': true,
         });
       });
 
-      final totalFinal = detallesFinales.fold<double>(0, (acc, it) => acc + (double.tryParse(it['subtotal'].toString()) ?? 0.0));
-
-      final res = await ApiConfig.put('/comandas/mesero/${comandaActual['id']}?usuario_id=$_userId', {
-        'detalles': detallesFinales,
-        'total': totalFinal,
-        'notas': comandaActual['notas'],
+      final res = await ApiConfig.put('/comandas/mesero/${comandaActual['id']}/agregar-items?usuario_id=$_userId', {
+        'detalles_nuevos': detallesNuevos,
+        'notas_extra': null,
       });
 
       if (res.statusCode == 200) {

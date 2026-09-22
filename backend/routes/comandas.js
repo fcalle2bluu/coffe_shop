@@ -192,13 +192,18 @@ router.get('/mesero/activas', checkMeseroOAdmin, async (req, res) => {
     }
 });
 
-// Editar una comanda propia desde "Control": permite cambiar cantidades, agregar/quitar productos y notas.
+// Editar una comanda activa: permite cambiar cantidades, agregar/quitar productos y notas.
 // Al guardar, se reemplaza el detalle completo y se marca estado_cocina = PENDIENTE para que cocina
 // vea el pedido actualizado en su próxima consulta (mismo mecanismo que una comanda nueva).
-// Cualquier mesero puede editar cualquier comanda activa (el salón es compartido), no solo la propia.
+// Solo ADMIN puede editar el contenido de un pedido ya creado (mesero y cajero ya no pueden,
+// para evitar que se altere un pedido después de que el cliente lo confirmó).
 router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     const { id } = req.params;
     const { detalles, total, notas } = req.body;
+
+    if (req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Acceso denegado: solo un administrador puede editar un pedido ya creado.' });
+    }
 
     if (!detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'La comanda debe tener al menos un producto.' });
@@ -250,6 +255,68 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
         await client.query('ROLLBACK');
         console.error('Error al editar comanda:', error);
         res.status(500).json({ error: 'Error interno al editar comanda: ' + error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Agregar productos nuevos a una comanda activa (ej. una mesa ocupada pide una
+// segunda ronda) SIN tocar los ítems que ya estaban. A diferencia de PUT /mesero/:id
+// (edición completa, solo ADMIN), esto solo inserta líneas nuevas y no permite
+// cambiar/quitar lo ya pedido — por eso mesero y cajero sí pueden usarlo.
+router.put('/mesero/:id/agregar-items', checkMeseroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { detalles_nuevos, notas_extra } = req.body;
+
+    if (!detalles_nuevos || detalles_nuevos.length === 0) {
+        return res.status(400).json({ error: 'No hay productos nuevos para agregar.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const comandaRes = await client.query('SELECT estado, notas FROM comandas WHERE id = $1 FOR UPDATE', [id]);
+        if (comandaRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Comanda no encontrada.' });
+        }
+
+        const comanda = comandaRes.rows[0];
+        if (comanda.estado === 'PAGADA') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No se puede agregar productos a una comanda ya cobrada.' });
+        }
+
+        for (const item of detalles_nuevos) {
+            await client.query(`
+                INSERT INTO detalle_comandas (comanda_id, producto_id, cantidad, precio_unitario, subtotal, notas, es_nuevo)
+                VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+            `, [id, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.notas || null]);
+        }
+
+        const totalRes = await client.query('SELECT COALESCE(SUM(subtotal), 0) AS total FROM detalle_comandas WHERE comanda_id = $1', [id]);
+        const notasCombinadas = [comanda.notas || '', notas_extra || ''].filter(n => n).join(' | ');
+
+        await client.query(`
+            UPDATE comandas
+            SET total = $1, notas = $2, estado_cocina = 'PENDIENTE', fecha_actualizacion = CURRENT_TIMESTAMP, fecha_pendiente_desde = CURRENT_TIMESTAMP, version = version + 1
+            WHERE id = $3
+        `, [totalRes.rows[0].total, notasCombinadas || null, id]);
+
+        await client.query('COMMIT');
+
+        registrarBitacora({
+            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            accion: 'AGREGAR_ITEMS_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
+            detalle: { cantidad_items_nuevos: detalles_nuevos.length }
+        });
+
+        res.json({ success: true, message: 'Productos agregados correctamente' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al agregar items a comanda:', error);
+        res.status(500).json({ error: 'Error interno al agregar productos: ' + error.message });
     } finally {
         client.release();
     }

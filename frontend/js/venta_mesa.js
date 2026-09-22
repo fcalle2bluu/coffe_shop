@@ -415,8 +415,8 @@ function renderizarDetalleComandaActiva() {
         </button>
     `;
 
-    // B. Botón de Modificar Pedido (Solo para mesero, cajero o admin, y estado CREADA)
-    if (estado === 'CREADA' && (usuarioRol === 'MESERO' || usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN')) {
+    // B. Botón de Modificar Pedido (Solo Admin: mesero y cajero ya no pueden editar un pedido creado)
+    if (estado === 'CREADA' && usuarioRol === 'ADMIN') {
         accionesCont.innerHTML += `
             <button onclick="modificarComandaActiva()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
                 <i class="fa-solid fa-pen-to-square"></i> Modificar Pedido
