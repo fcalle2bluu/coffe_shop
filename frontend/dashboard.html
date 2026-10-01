@@ -630,7 +630,7 @@
 
     <script>
         // === GUARDIA DE SEGURIDAD ===
-        if (!localStorage.getItem('usuario_id')) {
+        if (!sessionStorage.getItem('usuario_id')) {
             window.location.href = 'index.html'; 
         }
 
@@ -681,7 +681,7 @@
         })();
 
         function cerrarSesión() {
-            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = 'index.html';
         }
 
@@ -1172,8 +1172,8 @@
         });
 
         window.onload = function() {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const nombreActual = sessionStorage.getItem('usuario_nombre');
+            const rolActual = sessionStorage.getItem('usuario_rol');
 
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;

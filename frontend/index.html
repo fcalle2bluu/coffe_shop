@@ -217,16 +217,16 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('usuario_id', data.usuario.id);
-                    localStorage.setItem('usuario_nombre', data.usuario.nombre);
-                    localStorage.setItem('usuario_rol', data.usuario.rol);
-                    localStorage.setItem('perm_stock', data.usuario.perm_stock);
-                    localStorage.setItem('perm_compras', data.usuario.perm_compras);
-                    localStorage.setItem('perm_proveedores', data.usuario.perm_proveedores);
-                    localStorage.setItem('perm_auditoria', data.usuario.perm_auditoria);
-                    localStorage.setItem('perm_parametros', data.usuario.perm_parametros);
-                    localStorage.setItem('perm_informe', data.usuario.perm_informe);
+                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('usuario_id', data.usuario.id);
+                    sessionStorage.setItem('usuario_nombre', data.usuario.nombre);
+                    sessionStorage.setItem('usuario_rol', data.usuario.rol);
+                    sessionStorage.setItem('perm_stock', data.usuario.perm_stock);
+                    sessionStorage.setItem('perm_compras', data.usuario.perm_compras);
+                    sessionStorage.setItem('perm_proveedores', data.usuario.perm_proveedores);
+                    sessionStorage.setItem('perm_auditoria', data.usuario.perm_auditoria);
+                    sessionStorage.setItem('perm_parametros', data.usuario.perm_parametros);
+                    sessionStorage.setItem('perm_informe', data.usuario.perm_informe);
                     
                     const rol = (data.usuario.rol || '').toUpperCase();
                     if (rol === 'CAJERO') {

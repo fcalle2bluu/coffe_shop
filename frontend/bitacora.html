@@ -289,8 +289,8 @@
         }
 
         window.onload = function() {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const nombreActual = sessionStorage.getItem('usuario_nombre');
+            const rolActual = sessionStorage.getItem('usuario_rol');
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;
                 const avatar = document.getElementById('avatar-letra');

@@ -4,50 +4,13 @@ const router = express.Router();
 const pool = require('../config/conexion');
 const whatsappRoutes = require('./whatsapp');
 const { registrarBitacora } = require('../utils/bitacora');
+const { exigirRol, usuarioId } = require('../middleware/permisos');
 
 // Middleware para verificar rol administrador
-const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de admin en ventas:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
+const checkAdminPermission = exigirRol('CAJERO');
 
 // Middleware MESERO o Admin/Cajero: acceso de solo lectura al catálogo para armar pedidos
-const checkMeseroLecturaOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'MESERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de mesero en ventas:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
+const checkMeseroLecturaOAdmin = exigirRol('CAJERO', 'MESERO');
 
 // 1. Obtener catálogo de productos para el POS (también accesible para MESERO al armar un pedido)
 router.get('/productos', checkMeseroLecturaOAdmin, async (req, res) => {
@@ -114,7 +77,7 @@ router.post('/productos', async (req, res) => {
         }
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'CREAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: newId,
             detalle: { nombre, precio_venta, categoria_id }
         });
@@ -142,7 +105,7 @@ router.put('/productos/:id', async (req, res) => {
         }
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'EDITAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: Number(id),
             detalle: { nombre, precio_venta, categoria_id }
         });
@@ -167,7 +130,7 @@ router.delete('/productos/:id', async (req, res) => {
         }
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_PRODUCTO', entidad_tipo: 'producto', entidad_id: Number(id)
         });
 

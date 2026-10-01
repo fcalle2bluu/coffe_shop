@@ -2,8 +2,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Cargar datos de usuario y sidebar
-    const nombreActual = localStorage.getItem('usuario_nombre');
-    const rolActual = localStorage.getItem('usuario_rol');
+    const nombreActual = sessionStorage.getItem('usuario_nombre');
+    const rolActual = sessionStorage.getItem('usuario_rol');
     
     if (nombreActual) {
         document.getElementById('nombre-usuario').innerText = nombreActual;
@@ -74,7 +74,7 @@ async function inicializarQR() {
         labelFecha.innerText = `${horaBolivia.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
     }
 
-    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
     const isAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
 
     if (!isAdmin) {
@@ -88,7 +88,7 @@ async function inicializarQR() {
 
     // Si es admin, cargar token del backend seguro
     try {
-        const userId = localStorage.getItem('usuario_id');
+        const userId = sessionStorage.getItem('usuario_id');
         const res = await fetch(`/api/asistencia/qr-token?usuario_id=${userId}`);
         const data = await res.json();
         if (res.ok && data.success) {
@@ -134,7 +134,7 @@ async function onScanSuccess(decodedText, decodedResult) {
     document.getElementById('web-qr-reader').classList.add('hidden');
     
     // Registrar asistencia
-    const usuario_id = localStorage.getItem('usuario_id');
+    const usuario_id = sessionStorage.getItem('usuario_id');
     try {
         const res = await fetch('/api/asistencia/marcar', {
             method: 'POST',
@@ -407,7 +407,7 @@ async function guardarAsistenciaManual() {
     const fecha = document.getElementById('manual-fecha').value;
     const hora_entrada = document.getElementById('manual-entrada').value;
     const hora_salida = document.getElementById('manual-salida').value;
-    const editor_rol = localStorage.getItem('usuario_rol');
+    const editor_rol = sessionStorage.getItem('usuario_rol');
 
     if (!usuario_id) return alert('Por favor, selecciona un empleado.');
     if (!fecha) return alert('Por favor, selecciona una fecha.');
@@ -427,7 +427,7 @@ async function guardarAsistenciaManual() {
                 hora_entrada,
                 hora_salida: hora_salida || null,
                 editor_rol,
-                editor_id: localStorage.getItem('usuario_id')
+                editor_id: sessionStorage.getItem('usuario_id')
             })
         });
 
@@ -452,10 +452,7 @@ async function eliminarAsistencia(id) {
     
     try {
         const res = await fetch(`/api/asistencia/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'x-usuario-id': localStorage.getItem('usuario_id')
-            }
+            method: 'DELETE'
         });
         
         const data = await res.json();

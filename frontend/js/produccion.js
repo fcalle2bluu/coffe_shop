@@ -198,7 +198,7 @@ async function guardarOrdenProduccion() {
     }
 
     const obs = document.getElementById('txtObservacionesPlan').value.trim();
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
 
     try {
         const res = await fetch('/api/produccion/orden', {
@@ -284,7 +284,7 @@ async function cargarOrdenes() {
         if (typeof window.reapplySecurityGuardStyles === 'function') {
             window.reapplySecurityGuardStyles();
         } else {
-            const rol = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+            const rol = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
             const isAdmin = rol === 'ADMINISTRADOR' || rol === 'ADMIN';
             if (!isAdmin) {
                 document.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
@@ -419,7 +419,7 @@ async function guardarAuditoriaPasteleria() {
     }
 
     const obs = document.getElementById('txtObservacionesAuditoria').value.trim();
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
 
     const confirmacion = confirm(`¿Deseas guardar la auditoría física del Almacén Pastelería? Se reajustarán los stocks teóricos con el valor de la balanza.`);
     if (!confirmacion) return;

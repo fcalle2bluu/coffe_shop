@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const { registrarBitacora } = require('../utils/bitacora');
+const { usuarioId } = require('../middleware/permisos');
 
 // 1. Obtener el historial de todas las ventas (Comprobantes)
 router.get('/', async (req, res) => {
@@ -87,7 +88,7 @@ router.put('/:id/anular', async (req, res) => {
         // los insumos al inventario usando las "recetas" si la venta se anula.
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ANULAR_VENTA', entidad_tipo: 'venta', entidad_id: Number(id)
         });
 

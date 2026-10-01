@@ -7,8 +7,8 @@ let vistaProductos = localStorage.getItem('mesero_vista_productos') || 'lista'; 
 let categoriaSeleccionada = 'Todas';
 let busquedaActual = '';
 
-const usuarioIdActual = () => localStorage.getItem('usuario_id') || '';
-const esAdminActivo = () => (localStorage.getItem('usuario_rol') || '').toUpperCase().startsWith('ADMIN');
+const usuarioIdActual = () => sessionStorage.getItem('usuario_id') || '';
+const esAdminActivo = () => (sessionStorage.getItem('usuario_rol') || '').toUpperCase().startsWith('ADMIN');
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarDatos();

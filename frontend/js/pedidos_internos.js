@@ -1,7 +1,7 @@
 // frontend/js/pedidos_internos.js
 
-const usuarioId = localStorage.getItem('usuario_id');
-const usuarioRol = localStorage.getItem('usuario_rol');
+const usuarioId = sessionStorage.getItem('usuario_id');
+const usuarioRol = sessionStorage.getItem('usuario_rol');
 let listadoInsumosGlobal = [];
 let listadoAdminsGlobal = [];
 
@@ -295,7 +295,7 @@ async function guardarPedido() {
         const adminSelect = document.getElementById('inpNotificarAdmin');
         if (adminSelect && adminSelect.value) {
             const adminPhone = formatWhatsAppPhone(adminSelect.value);
-            const solicitante = localStorage.getItem('usuario_nombre') || 'Un cajero';
+            const solicitante = sessionStorage.getItem('usuario_nombre') || 'Un cajero';
             const unidad = document.getElementById('lblUnidadNuevo').innerText;
             const notesStr = notas ? `\n*Notas:* ${notas}` : '';
             

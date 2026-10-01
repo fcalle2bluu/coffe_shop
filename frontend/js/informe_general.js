@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // Validar Rol
-    if(localStorage.getItem('usuario_rol') !== 'ADMIN') {
+    if(sessionStorage.getItem('usuario_rol') !== 'ADMIN') {
         window.location.href = 'dashboard.html';
         return;
     }
@@ -171,14 +171,14 @@ function toggleSidebar() {
 }
 
 function cerrarSesión() {
-    localStorage.clear();
+    sessionStorage.clear();
     window.location.href = 'index.html';
 }
 
 // Cargar UI Header
 window.addEventListener('DOMContentLoaded', () => {
-    const nombreActual = localStorage.getItem('usuario_nombre');
-    const rolActual = localStorage.getItem('usuario_rol');
+    const nombreActual = sessionStorage.getItem('usuario_nombre');
+    const rolActual = sessionStorage.getItem('usuario_rol');
     if (nombreActual) {
         const headerName = document.getElementById('header-nombre-usuario');
         if(headerName) headerName.innerText = nombreActual;

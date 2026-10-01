@@ -198,7 +198,7 @@ function renderizarAsientos(asientos) {
         return;
     }
 
-    const esAdmin = ['ADMIN', 'ADMINISTRADOR'].includes((localStorage.getItem('usuario_rol') || '').toUpperCase());
+    const esAdmin = ['ADMIN', 'ADMINISTRADOR'].includes((sessionStorage.getItem('usuario_rol') || '').toUpperCase());
 
     let totalDebeGlobal = 0;
     let totalHaberGlobal = 0;

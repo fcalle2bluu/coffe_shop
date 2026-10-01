@@ -271,7 +271,7 @@
     <script src="js/pedidos_internos.js"></script>
     <script>
         // === SEGURIDAD Y UI ===
-        if (!localStorage.getItem('usuario_id')) { window.location.href = 'index.html'; }
+        if (!sessionStorage.getItem('usuario_id')) { window.location.href = 'index.html'; }
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
@@ -279,12 +279,12 @@
         }
 
         function cerrarSesión() {
-            localStorage.clear(); window.location.href = 'index.html';
+            sessionStorage.clear(); window.location.href = 'index.html';
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const nombreActual = sessionStorage.getItem('usuario_nombre');
+            const rolActual = sessionStorage.getItem('usuario_rol');
 
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;

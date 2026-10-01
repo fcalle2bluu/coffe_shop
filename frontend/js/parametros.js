@@ -257,7 +257,7 @@ async function descargarBackupExcel() {
     spinner.classList.remove('hidden');
     textEl.textContent = 'Generando Backup...';
     
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
     
     try {
         const response = await fetch(`/api/admin/backup/excel?usuario_id=${usuarioId}`, {

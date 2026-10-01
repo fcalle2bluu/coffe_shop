@@ -9,9 +9,9 @@ let mesaSeleccionada = null;  // Mesa actualmente elegida
 let modoEdicionActivo = false; // true si estamos editando/añadiendo items a comanda existente
 let seleccionMesaToken = 0;   // Evita que la respuesta de una mesa vieja pise los datos de la mesa que se seleccionó después
 
-const usuarioId = parseInt(localStorage.getItem('usuario_id')) || 1;
-const usuarioRol = localStorage.getItem('usuario_rol') || 'CAJERO';
-const usuarioNombre = localStorage.getItem('usuario_nombre') || 'Usuario';
+const usuarioId = parseInt(sessionStorage.getItem('usuario_id')) || 1;
+const usuarioRol = sessionStorage.getItem('usuario_rol') || 'CAJERO';
+const usuarioNombre = sessionStorage.getItem('usuario_nombre') || 'Usuario';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Rellenar cabecera de usuario

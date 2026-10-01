@@ -90,11 +90,12 @@ class _CajaScreenState extends State<CajaScreen> {
   Future<http.Response> _deleteWithBody(String endpoint, Map<String, dynamic> body) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('usuario_id');
+    final token = prefs.getString('token');
     final headers = {
       'Content-Type': 'application/json',
       'User-Agent': 'CafeLaPazApp/1.0',
-      if (userId != null) 'x-usuario-id': userId.toString(),
+      // Sin el token la petición no pasa el control de sesión del backend.
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
     final request = http.Request('DELETE', url)
       ..headers.addAll(headers)

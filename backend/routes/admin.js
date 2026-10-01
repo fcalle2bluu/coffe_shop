@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require('../config/conexion');
 const ExcelJS = require('exceljs');
 const QueryStream = require('pg-query-stream');
+const { exigirRol } = require('../middleware/permisos');
 
 // Helper to sanitize sheet names (truncate to 31 chars, replace invalid characters with underscore)
 function sanitizeSheetName(name) {
@@ -49,41 +50,9 @@ function formatValue(val) {
     return val;
 }
 
-// Middleware to authorize administrator access based on database query
-const checkAdminRole = async (req, res, next) => {
-    try {
-        const usuario_id = req.query.usuario_id || req.headers['x-usuario-id'];
-        if (!usuario_id) {
-            return res.status(401).json({ error: 'Acceso no autorizado: se requiere ID de usuario.' });
-        }
-        
-        const query = `
-            SELECT rol, activo 
-            FROM usuarios 
-            WHERE id = $1
-        `;
-        const { rows } = await pool.query(query, [usuario_id]);
-        
-        if (rows.length === 0) {
-            return res.status(401).json({ error: 'Usuario no encontrado.' });
-        }
-        
-        const user = rows[0];
-        if (!user.activo) {
-            return res.status(403).json({ error: 'Usuario inactivo.' });
-        }
-        
-        const roleUpper = (user.rol || '').toUpperCase();
-        if (roleUpper !== 'ADMIN' && roleUpper !== 'ADMINISTRADOR' && roleUpper !== 'GERENTE') {
-            return res.status(403).json({ error: 'Acceso denegado: se requieren privilegios de administrador.' });
-        }
-        
-        next();
-    } catch (error) {
-        console.error('Error en validación de rol admin:', error);
-        res.status(500).json({ error: 'Error interno en la validación de permisos.' });
-    }
-};
+// Autoriza por rol usando la identidad ya verificada del token de sesión
+// (el middleware global de sesión también comprueba que el usuario esté activo).
+const checkAdminRole = exigirRol('GERENTE');
 
 // Configuration array with the 29 table names to back up
 const TABLES = [

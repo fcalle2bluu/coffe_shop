@@ -293,8 +293,8 @@
             document.getElementById('filtro-fecha').value = today;
 
             // Cargar usuario logueado en la cabecera
-            const nombre = localStorage.getItem('nombre_usuario') || 'Usuario';
-            const rol = localStorage.getItem('rol_usuario') || 'Cajero';
+            const nombre = sessionStorage.getItem('nombre_usuario') || 'Usuario';
+            const rol = sessionStorage.getItem('rol_usuario') || 'Cajero';
             document.getElementById('header-user').innerText = `${nombre} (${rol})`;
 
             cargarControlDiario();

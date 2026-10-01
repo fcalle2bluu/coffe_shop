@@ -2,8 +2,8 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Cargar datos de usuario del localStorage
-    const nombreActual = localStorage.getItem('usuario_nombre');
-    const rolActual = localStorage.getItem('usuario_rol');
+    const nombreActual = sessionStorage.getItem('usuario_nombre');
+    const rolActual = sessionStorage.getItem('usuario_rol');
     
     if (nombreActual) {
         const elem = document.getElementById('nombre-usuario');
@@ -112,7 +112,7 @@ function agregarBurbujaUsuario(mensaje) {
             <p class="font-medium whitespace-pre-wrap">${escapeHTML(mensaje)}</p>
         </div>
         <div class="w-8 h-8 rounded-full bg-slate-800 text-orange-500 flex items-center justify-center shrink-0 shadow ring-2 ring-slate-700/30 font-bold text-xs">
-            ${(localStorage.getItem('usuario_nombre') || 'A').charAt(0).toUpperCase()}
+            ${(sessionStorage.getItem('usuario_nombre') || 'A').charAt(0).toUpperCase()}
         </div>
     `;
     

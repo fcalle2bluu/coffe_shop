@@ -322,7 +322,7 @@
     <script src="js/informes.js"></script>
     <script>
         // === 1. GUARDIA DE SEGURIDAD BÁSICA ===
-        if (!localStorage.getItem('usuario_id')) {
+        if (!sessionStorage.getItem('usuario_id')) {
             window.location.href = 'index.html';
         }
 
@@ -335,14 +335,14 @@
         }
 
         function cerrarSesión() {
-            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = 'index.html';
         }
 
         // === 3. CARGAR ROLES AL INICIAR ===
         window.addEventListener('DOMContentLoaded', () => {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const nombreActual = sessionStorage.getItem('usuario_nombre');
+            const rolActual = sessionStorage.getItem('usuario_rol');
 
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;

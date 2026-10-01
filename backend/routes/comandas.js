@@ -3,81 +3,26 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const { registrarBitacora } = require('../utils/bitacora');
+const { exigirRol, esAdmin, usuarioId } = require('../middleware/permisos');
 
-// Middleware para verificar rol administrador
-const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de admin en comandas:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
-
-// Middleware MESERO o Admin/Cajero: para que el mesero cree/liste/elimine sus propios pedidos
-const checkMeseroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'MESERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        req.rolActual = rol;
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de mesero en comandas:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
-
-// Middleware COCINERO o Admin/Cajero: para la pantalla de cocina (leer/actualizar pendientes)
-const checkCocineroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO' && rol !== 'COCINERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de cocinero en comandas:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
+// Admin/Cajero: operaciones de caja sobre comandas (cobrar, cambiar estado, etc.)
+const checkAdminPermission = exigirRol('CAJERO');
+// MESERO o Admin/Cajero: para que el mesero cree/liste/elimine sus propios pedidos
+const checkMeseroOAdmin = exigirRol('CAJERO', 'MESERO');
+// COCINERO o Admin/Cajero: para la pantalla de cocina (leer/actualizar pendientes)
+const checkCocineroOAdmin = exigirRol('CAJERO', 'COCINERO');
 
 // === Rutas de MESERO (deben ir antes del router.use admin-only) ===
 
 // Crear una nueva comanda (Mesero inicia pedido)
 router.post('/', checkMeseroOAdmin, async (req, res) => {
-    const { mesa, usuario_id, total, detalles, fecha_hora, notas } = req.body;
+    const { mesa, total, detalles, fecha_hora, notas } = req.body;
+    // El dueño de la comanda es siempre el usuario autenticado del token, no el
+    // que diga el navegador: si una pestaña pisó la sesión de otra en la misma PC,
+    // el pedido quedaba registrado a nombre del mesero equivocado.
+    const usuario_id = usuarioId(req);
 
-    if (!mesa || !usuario_id || !detalles || detalles.length === 0) {
+    if (!mesa || !detalles || detalles.length === 0) {
         return res.status(400).json({ error: 'Datos de comanda incompletos o carrito vacío.' });
     }
 
@@ -201,7 +146,7 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
     const { id } = req.params;
     const { detalles, total, notas } = req.body;
 
-    if (req.rolActual !== 'ADMIN' && req.rolActual !== 'ADMINISTRADOR') {
+    if (!esAdmin(req)) {
         return res.status(403).json({ error: 'Acceso denegado: solo un administrador puede editar un pedido ya creado.' });
     }
 
@@ -245,7 +190,7 @@ router.put('/mesero/:id', checkMeseroOAdmin, async (req, res) => {
         await client.query('COMMIT');
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'EDITAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
             detalle: { total, cantidad_items: detalles.length }
         });
@@ -307,7 +252,7 @@ router.put('/mesero/:id/agregar-items', checkMeseroOAdmin, async (req, res) => {
         await client.query('COMMIT');
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'AGREGAR_ITEMS_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
             detalle: { cantidad_items_nuevos: detalles_nuevos.length }
         });
@@ -328,7 +273,7 @@ router.put('/mesero/:id/agregar-items', checkMeseroOAdmin, async (req, res) => {
 router.put('/mesero/:id/mover-mesa', checkMeseroOAdmin, async (req, res) => {
     const { id } = req.params;
     const { nueva_mesa } = req.body;
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
+    const usuario_id = usuarioId(req);
 
     if (!nueva_mesa) {
         return res.status(400).json({ error: 'Falta indicar la mesa de destino.' });
@@ -440,7 +385,7 @@ router.delete('/:id', checkMeseroOAdmin, async (req, res) => {
         await client.query('COMMIT');
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
             detalle: { mesa: comanda.mesa, total: comanda.total, estado_previo: comanda.estado }
         });
@@ -529,7 +474,7 @@ router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
         }
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'CAMBIAR_ESTADO_COCINA', entidad_tipo: 'comanda', entidad_id: Number(id),
             detalle: { estado_cocina }
         });
@@ -735,7 +680,7 @@ router.put('/:id/estado', async (req, res) => {
         }
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'CAMBIAR_ESTADO_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
             detalle: { estado }
         });
@@ -750,7 +695,11 @@ router.put('/:id/estado', async (req, res) => {
 // 6. Procesar Pago y Finalizar Venta (Comanda -> Venta)
 router.post('/:id/pagar', async (req, res) => {
     const { id } = req.params;
-    const { metodo_pago, usuario_id, pagos } = req.body;
+    const { metodo_pago, pagos } = req.body;
+    // La venta se registra a nombre de quien está realmente autenticado cobrando,
+    // no del usuario_id que mande el navegador (que podía venir pisado por otra
+    // pestaña y dejaba la venta contabilizada al cajero equivocado).
+    const usuario_id = usuarioId(req);
     const pagosBody = Array.isArray(pagos) ? pagos : null;
 
     if (!pagosBody && !metodo_pago) {

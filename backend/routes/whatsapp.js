@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
+const { soloAdmin } = require('../middleware/permisos');
 const { createClient } = require('@supabase/supabase-js');
 
 // El bot de WhatsApp usa Groq (modelos open-source, cuota gratuita mucho más amplia que Gemini)
@@ -29,30 +30,13 @@ function encolarProcesamientoWhatsapp(telefono, tarea) {
     return actual;
 }
 
-// Middleware para verificar rol administrador
-const checkAdminPermission = async (req, res, next) => {
-    // Si es verificación o callback de webhook, saltar
+// Solo admin, salvo el webhook: ese lo llama Meta directamente, sin usuario
+// logueado (también está exceptuado en el middleware global de sesión).
+const checkAdminPermission = (req, res, next) => {
     if (req.path === '/webhook') {
         return next();
     }
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario en cabecera o query/body.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos de administrador.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de admin en whatsapp:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
+    return soloAdmin(req, res, next);
 };
 
 router.use(checkAdminPermission);

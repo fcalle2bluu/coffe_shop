@@ -238,8 +238,8 @@
     <script src="js/proveedores.js"></script>
     <script>
         // === GUARDIA DE SEGURIDAD ESTRICTA ===
-        const rolUsuarioAutenticado = localStorage.getItem('usuario_rol');
-        if (!localStorage.getItem('usuario_id')) {
+        const rolUsuarioAutenticado = sessionStorage.getItem('usuario_rol');
+        if (!sessionStorage.getItem('usuario_id')) {
             window.location.href = 'index.html'; 
         } else if (rolUsuarioAutenticado === 'CAJERO') {
             alert('⛔ Acceso denegado: Esta zona es exclusiva para Administradores.');
@@ -255,14 +255,14 @@
 
         function cerrarSesión() {
             if(confirm('¿Deseas cerrar tu sesión administrativa?')) {
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = 'index.html';
             }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const nombreActual = localStorage.getItem('usuario_nombre');
-            const rolActual = localStorage.getItem('usuario_rol');
+            const nombreActual = sessionStorage.getItem('usuario_nombre');
+            const rolActual = sessionStorage.getItem('usuario_rol');
 
             if (nombreActual) {
                 document.getElementById('nombre-usuario').innerText = nombreActual;

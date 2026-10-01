@@ -4,7 +4,7 @@ let efectivoEsperadoEnCaja = 0;
 
 function formatMontoCensurado(val, prefix = 'Bs. ') {
     if (val === null || val === undefined) return 'Oculto';
-    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
+    const censurar = sessionStorage.getItem('caja_censura_activa') === 'true';
     if (censurar) return `${prefix}***`;
     const num = parseFloat(val);
     return `${prefix}${isNaN(num) ? '0.00' : num.toFixed(2)}`;
@@ -16,7 +16,7 @@ function actualizarBotonCensuraUI() {
     const txt = document.getElementById('txt-btn-censurar');
     const icon = document.getElementById('icon-btn-censurar');
     
-    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
+    const censurar = sessionStorage.getItem('caja_censura_activa') === 'true';
     if (censurar) {
         if (txt) txt.textContent = 'Mostrar Montos';
         if (icon) {
@@ -35,13 +35,13 @@ function actualizarBotonCensuraUI() {
 }
 
 function toggleCensura() {
-    const censurar = localStorage.getItem('caja_censura_activa') === 'true';
-    localStorage.setItem('caja_censura_activa', censurar ? 'false' : 'true');
+    const censurar = sessionStorage.getItem('caja_censura_activa') === 'true';
+    sessionStorage.setItem('caja_censura_activa', censurar ? 'false' : 'true');
     actualizarBotonCensuraUI();
     
     cargarEstadoCaja();
     
-    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
     if (rolActual !== 'CAJERO') {
         cargarHistorial();
     }
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     actualizarBotonCensuraUI();
     cargarEstadoCaja();
 
-    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
     if (rolActual !== 'CAJERO') {
         cargarHistorial();
     }
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function cargarEstadoCaja() {
     try {
-        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const usuarioId = sessionStorage.getItem('usuario_id') || '';
         const res = await fetch(`/api/caja/estado?usuario_id=${usuarioId}`);
         const data = await res.json();
 
@@ -116,7 +116,7 @@ async function cargarEstadoCaja() {
             document.getElementById('res-gastos').innerText = formatMontoCensurado(data.total_gastos);
             const totalDigital = parseFloat(data.ventas.total_qr) + parseFloat(data.ventas.total_tarjeta) + parseFloat(data.ventas.total_consume_lo_nuestro || 0) + parseFloat(data.ventas.total_billetera || 0);
             
-            const censuraActiva = localStorage.getItem('caja_censura_activa') === 'true';
+            const censuraActiva = sessionStorage.getItem('caja_censura_activa') === 'true';
             if (censuraActiva) {
                 document.getElementById('res-digital').innerHTML = `Bs. ***<br><span class="text-[10px] font-bold text-purple-750 block mt-1">QR: *** | Tarj: *** | CLN: *** | Bill: ***</span>`;
             } else {
@@ -159,7 +159,7 @@ async function cargarEstadoCaja() {
 
 async function cargarHistorial() {
     try {
-        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const usuarioId = sessionStorage.getItem('usuario_id') || '';
         const res = await fetch(`/api/caja/historial?usuario_id=${usuarioId}`);
         const historial = await res.json();
         window.historialTurnosCache = historial;
@@ -197,12 +197,12 @@ async function cargarHistorial() {
                 signoDif = '';
             }
 
-            const censuraActiva = localStorage.getItem('caja_censura_activa') === 'true';
+            const censuraActiva = sessionStorage.getItem('caja_censura_activa') === 'true';
             const totalDigitalLabel = censuraActiva
                 ? 'Bs. ***<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: *** | Tarj: *** | CLN: ***</span>'
                 : `Bs. ${totalDigital.toFixed(2)}<br><span class="text-[8px] font-bold text-purple-750 block mt-1 leading-tight">QR: ${ventasQr.toFixed(2)} | Tarj: ${ventasTarjeta.toFixed(2)} | CLN: ${ventasCln.toFixed(2)}</span>`;
             
-            const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+            const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
             const esAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
             const btnEliminar = esAdmin ? `
                 <button onclick="confirmarEliminarTurno(${turno.id})" class="ml-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg border border-red-200 transition-all text-xs" title="Eliminar Turno y toda su información">
@@ -291,7 +291,7 @@ function abrirModalApertura() {
 }
 
 function abrirModalCierre() {
-    const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
     const desc = document.getElementById('cierre-caja-desc');
     
     if (rolActual === 'CAJERO') {
@@ -319,7 +319,7 @@ function cerrarModales() {
 // --- ACCIONES POST ---
 async function procesarApertura() {
     const saldo = document.getElementById('inputSaldoInicial').value;
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
     try {
         const res = await fetch('/api/caja/abrir', {
             method: 'POST',
@@ -346,7 +346,7 @@ async function procesarApertura() {
 
 async function procesarCierre() {
     const saldoReal = document.getElementById('inputSaldoFinal').value;
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
     try {
         const res = await fetch('/api/caja/cerrar', {
             method: 'POST',
@@ -390,7 +390,7 @@ function formatearDuracionAuditoria(ms) {
 
 async function cargarHistorialVentasAdmin() {
     try {
-        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const usuarioId = sessionStorage.getItem('usuario_id') || '';
         const res = await fetch(`/api/caja/historial-ventas-cajeros?usuario_id=${usuarioId}`);
         if (!res.ok) throw new Error('Error de red');
         const ventas = await res.json();
@@ -461,7 +461,7 @@ async function cargarHistorialVentasAdmin() {
                                 <tbody>
                 `;
 
-                const rolActual = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+                const rolActual = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
                 const esAdmin = rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN';
 
                 dataMes.lista.forEach(venta => {
@@ -563,7 +563,7 @@ async function cargarGastosDelTurno(cajaId) {
         tbody.innerHTML = '';
         let total = 0;
 
-        const rolActual = (localStorage.getItem('usuario_rol') || '').toUpperCase();
+        const rolActual = (sessionStorage.getItem('usuario_rol') || '').toUpperCase();
         const isAdmin = (rolActual === 'ADMINISTRADOR' || rolActual === 'ADMIN');
 
         // Mostrar u ocultar columna Acciones según el rol
@@ -618,7 +618,7 @@ async function procesarRegistroGasto() {
 
     const monto = document.getElementById('inputMontoGasto').value;
     const desc = document.getElementById('inputDescGasto').value.trim();
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
 
     if (!monto || parseFloat(monto) <= 0 || !desc) {
         alert("Por favor completa todos los campos correctamente.");
@@ -732,11 +732,11 @@ async function cargarVentasRealizadas() {
     tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400 font-semibold">
         <i class="fa-solid fa-spinner fa-spin text-xl mb-2 block text-emerald-500"></i>Cargando ventas...</td></tr>`;
 
-    const rolActual = (localStorage.getItem('usuario_rol') || '').toUpperCase();
+    const rolActual = (sessionStorage.getItem('usuario_rol') || '').toUpperCase();
     const esAdmin   = rolActual === 'ADMIN' || rolActual === 'ADMINISTRADOR';
 
     try {
-        const usuarioId = localStorage.getItem('usuario_id') || '';
+        const usuarioId = sessionStorage.getItem('usuario_id') || '';
         const res = await fetch(`/api/caja/historial-ventas-cajeros?usuario_id=${usuarioId}`);
         if (!res.ok) throw new Error('Error al cargar ventas');
         _todasLasVentas = await res.json();
@@ -768,7 +768,7 @@ async function cargarVentasRealizadas() {
             aplicarFiltrosVentas();
         } else {
             // Cajero: solo ventas del día propias
-            const loggedUserId = localStorage.getItem('usuario_id');
+            const loggedUserId = sessionStorage.getItem('usuario_id');
             const hoy = obtenerFechaBolivia();
 
             const filtradas = _todasLasVentas.filter(v => {
@@ -988,7 +988,7 @@ function imprimirAuditoria() {
 }
 
 async function actualizarMetodoPago(ventaId, nuevoMetodo) {
-    const editor_rol = localStorage.getItem('usuario_rol');
+    const editor_rol = sessionStorage.getItem('usuario_rol');
     try {
         const res = await fetch(`/api/caja/ventas/${ventaId}/metodo-pago`, {
             method: 'PUT',
@@ -1050,7 +1050,7 @@ async function cargarCajerosSelectorHistorico() {
         if (!res.ok) throw new Error('Error al cargar cajeros');
         const usuarios = await res.json();
 
-        const loggedUser = localStorage.getItem('usuario_id');
+        const loggedUser = sessionStorage.getItem('usuario_id');
         
         select.innerHTML = usuarios
             .filter(u => u.activo)
@@ -1183,7 +1183,7 @@ async function ejecutarEliminarTurno() {
     btnConfirmar.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Eliminando...';
 
     try {
-        const usuario_id = localStorage.getItem('usuario_id');
+        const usuario_id = sessionStorage.getItem('usuario_id');
         const res = await fetch(`/api/caja/eliminar/${turnoId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -1216,7 +1216,7 @@ async function eliminarGasto(id) {
     }
 
     try {
-        const usuario_id = localStorage.getItem('usuario_id');
+        const usuario_id = sessionStorage.getItem('usuario_id');
         const res = await fetch(`/api/caja/gastos/${id}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },

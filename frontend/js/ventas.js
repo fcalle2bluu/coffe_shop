@@ -145,7 +145,7 @@ function renderizarCatalogo(filtro = '') {
     });
     
     // Ocultar botones '.solo-admin' dentro del catálogo si el rol actual es CAJERO
-    const rolActual = localStorage.getItem('usuario_rol');
+    const rolActual = sessionStorage.getItem('usuario_rol');
     if (rolActual === 'CAJERO' || rolActual === 'ALMACEN' || rolActual === 'LOGISTICA') {
         contenedor.querySelectorAll('.solo-admin').forEach(el => el.style.display = 'none');
     }
@@ -214,7 +214,7 @@ function actualizarTicket() {
     const contenedor = document.getElementById('ticket-items');
     totalVenta = 0;
 
-    const cajaId = localStorage.getItem('caja_id');
+    const cajaId = sessionStorage.getItem('caja_id');
 
     // Actualizar contador de artículos del encabezado del ticket
     const elCount = document.getElementById('ticket-count');
@@ -293,8 +293,8 @@ async function procesarCobro() {
     btnCobrar.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
 
     const payload = {
-        usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1,
-        caja_id: localStorage.getItem('caja_id') ? parseInt(localStorage.getItem('caja_id')) : null,
+        usuario_id: parseInt(sessionStorage.getItem('usuario_id')) || 1,
+        caja_id: sessionStorage.getItem('caja_id') ? parseInt(sessionStorage.getItem('caja_id')) : null,
         total: totalVenta,
         metodo_pago: document.getElementById('metodo-pago').value,
         detalles: carritoVenta
@@ -559,15 +559,15 @@ function iniciarReloj() {
 // Verificar el estado de la caja al cargar la pantalla
 async function verificarEstadoCaja() {
     try {
-        const usuarioId = localStorage.getItem('usuario_id') || 1;
+        const usuarioId = sessionStorage.getItem('usuario_id') || 1;
         const res = await fetch(`/api/caja/estado?usuario_id=${usuarioId}`);
         const data = await res.json();
         
         if (data.abierta) {
-            localStorage.setItem('caja_id', data.caja.id);
+            sessionStorage.setItem('caja_id', data.caja.id);
             actualizarTicket();
         } else {
-            localStorage.removeItem('caja_id');
+            sessionStorage.removeItem('caja_id');
             actualizarTicket();
         }
     } catch (e) {
@@ -794,7 +794,7 @@ async function confirmarPagoMesa() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 metodo_pago: metodoPago,
-                usuario_id: parseInt(localStorage.getItem('usuario_id')) || 1
+                usuario_id: parseInt(sessionStorage.getItem('usuario_id')) || 1
             })
         });
         const data = await res.json();

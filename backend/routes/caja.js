@@ -3,66 +3,12 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const { registrarBitacora } = require('../utils/bitacora');
-
-// Middleware para verificar rol administrador
-const checkAdminPermission = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos de administrador.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos de admin en caja:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
-
-// Middleware CAJERO o Admin: para endpoints de consulta (estado de caja)
-const checkCajeroOAdmin = async (req, res, next) => {
-    const usuario_id = req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id;
-    if (!usuario_id) {
-        return res.status(403).json({ error: 'Acceso denegado: Se requiere ID de usuario.' });
-    }
-    try {
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(403).json({ error: 'Acceso denegado: Usuario no encontrado.' });
-        }
-        const rol = userRes.rows[0].rol.toUpperCase();
-        if (rol !== 'ADMIN' && rol !== 'ADMINISTRADOR' && rol !== 'CAJERO') {
-            return res.status(403).json({ error: 'Acceso denegado: No tienes permisos suficientes.' });
-        }
-        next();
-    } catch (err) {
-        console.error('Error al validar permisos en caja:', err);
-        return res.status(500).json({ error: 'Error del servidor al validar permisos.' });
-    }
-};
+const { soloAdmin, exigirRol, esAdmin, rolDe, usuarioId } = require('../middleware/permisos');
 
 // 1. Obtener el estado actual de la caja — accesible también para CAJERO
-router.get('/estado', checkCajeroOAdmin, async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
-    }
-
+router.get('/estado', exigirRol('CAJERO'), async (req, res) => {
     try {
-        // Validar rol de usuario
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-        const esCajero = userRol === 'CAJERO';
+        const esCajero = rolDe(req) === 'CAJERO';
 
         // Buscar si hay una caja abierta (fecha_cierre es null)
         const cajaRes = await pool.query(`
@@ -122,11 +68,12 @@ router.get('/estado', checkCajeroOAdmin, async (req, res) => {
 });
 
 // Aplicar check estricto (solo admin) a todas las rutas restantes
-router.use(checkAdminPermission);
+router.use(soloAdmin);
 
 // 2. Abrir un nuevo turno de caja
 router.post('/abrir', async (req, res) => {
-    const { saldo_inicial, usuario_id } = req.body;
+    const { saldo_inicial } = req.body;
+    const usuario_id = usuarioId(req);
     try {
         // Verificar que no haya otra caja abierta
         const validacion = await pool.query('SELECT id FROM cajas WHERE fecha_cierre IS NULL LIMIT 1');
@@ -153,20 +100,10 @@ router.post('/abrir', async (req, res) => {
 
 // 3. Cerrar el turno de caja
 router.post('/cerrar', async (req, res) => {
-    const { saldo_final, usuario_id } = req.body;
-
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido para cerrar caja.' });
-    }
+    const { saldo_final } = req.body;
+    const usuario_id = usuarioId(req);
 
     try {
-        // Obtener rol del usuario que intenta cerrar
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(400).json({ error: 'Usuario no válido.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-
         // La caja a cerrar SIEMPRE es la que está realmente abierta según el servidor,
         // nunca un caja_id que mande el navegador: si la pantalla llevaba rato abierta
         // y el turno ya había cambiado (alguien más cerró y abrió una caja nueva
@@ -182,7 +119,7 @@ router.post('/cerrar', async (req, res) => {
         const creadorId = cajaAbiertaRes.rows[0].usuario_id;
 
         // Validar permisos: solo el creador o un administrador
-        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN' && parseInt(usuario_id) !== parseInt(creadorId)) {
+        if (!esAdmin(req) && parseInt(usuario_id) !== parseInt(creadorId)) {
             return res.status(403).json({
                 error: 'No tienes permisos para cerrar este turno. Solo puede cerrarlo el cajero que lo abrió o un Administrador.'
             });
@@ -208,19 +145,8 @@ router.post('/cerrar', async (req, res) => {
 
 // 4. Obtener el historial de cajas pasadas
 router.get('/historial', async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
-    }
-
     try {
-        // Validar rol de usuario
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-        if (userRol === 'CAJERO') {
+        if (rolDe(req) === 'CAJERO') {
             return res.status(403).json({ error: 'Acceso denegado. No tienes permiso para ver el historial de caja.' });
         }
 
@@ -270,19 +196,8 @@ router.get('/historial', async (req, res) => {
 
 // 5. [NUEVO] Obtener historial exhaustivo de ventas por cajero
 router.get('/historial-ventas-cajeros', async (req, res) => {
-    const { usuario_id } = req.query;
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido.' });
-    }
-
     try {
-        // Validar rol de usuario
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-        const esCajero = userRol === 'CAJERO';
+        const esCajero = rolDe(req) === 'CAJERO';
 
         let query = `
             SELECT 
@@ -308,7 +223,7 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
         const queryParams = [];
         if (esCajero) {
             query += ` WHERE v.usuario_id = $1 `;
-            queryParams.push(parseInt(usuario_id));
+            queryParams.push(usuarioId(req));
         }
 
         query += ` ORDER BY v.fecha_venta DESC `;
@@ -323,8 +238,9 @@ router.get('/historial-ventas-cajeros', async (req, res) => {
 
 // 6. Registrar un gasto de caja
 router.post('/gastos', async (req, res) => {
-    const { usuario_id, monto, descripcion } = req.body;
-    if (!usuario_id || !monto || !descripcion) {
+    const { monto, descripcion } = req.body;
+    const usuario_id = usuarioId(req);
+    if (!monto || !descripcion) {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
     if (parseFloat(monto) <= 0) {
@@ -389,12 +305,7 @@ router.get('/gastos/:caja_id', async (req, res) => {
 // 8. Modificar método de pago de una venta (Solo Administradores)
 router.put('/ventas/:id/metodo-pago', async (req, res) => {
     const { id } = req.params;
-    const { metodo_pago, editor_rol } = req.body;
-
-    // Validar rol de administrador
-    if (editor_rol !== 'ADMINISTRADOR' && editor_rol !== 'ADMIN') {
-        return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden modificar los métodos de pago de ventas.' });
-    }
+    const { metodo_pago } = req.body;
 
     if (!metodo_pago) {
         return res.status(400).json({ error: 'Falta el método de pago.' });
@@ -414,7 +325,7 @@ router.put('/ventas/:id/metodo-pago', async (req, res) => {
         );
 
         registrarBitacora({
-            usuario_nombre: `Admin (rol ${editor_rol})`, accion: 'EDITAR_METODO_PAGO_VENTA', entidad_tipo: 'venta', entidad_id: Number(id),
+            usuario_id: usuarioId(req), accion: 'EDITAR_METODO_PAGO_VENTA', entidad_tipo: 'venta', entidad_id: Number(id),
             detalle: { metodo_pago_nuevo: metodoNormalizado }
         });
 
@@ -427,9 +338,10 @@ router.put('/ventas/:id/metodo-pago', async (req, res) => {
 
 // Endpoint para registrar una venta histórica
 router.post('/venta-historica', async (req, res) => {
-    const { usuario_id, total, metodo_pago, fecha_venta } = req.body;
+    const { total, metodo_pago, fecha_venta } = req.body;
+    const usuario_id = usuarioId(req);
 
-    if (!usuario_id || !total || parseFloat(total) <= 0 || !metodo_pago || !fecha_venta) {
+    if (!total || parseFloat(total) <= 0 || !metodo_pago || !fecha_venta) {
         return res.status(400).json({ error: 'Todos los campos son requeridos y el total debe ser mayor a 0.' });
     }
 
@@ -498,24 +410,10 @@ router.get('/ventas/:caja_id', async (req, res) => {
 // [NUEVO] Borrar un turno de caja y toda su información conectada (Solo Administradores)
 router.delete('/eliminar/:id', async (req, res) => {
     const { id } = req.params;
-    const { usuario_id } = req.body;
-
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido para eliminar un turno.' });
-    }
+    const usuario_id = usuarioId(req);
 
     const client = await pool.connect();
     try {
-        // Validar rol de administrador
-        const userRes = await client.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(400).json({ error: 'Usuario no válido.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN') {
-            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar turnos de caja.' });
-        }
-
         // Iniciar transacción
         await client.query('BEGIN');
 
@@ -567,23 +465,9 @@ router.delete('/eliminar/:id', async (req, res) => {
 // 10. Eliminar un gasto de caja (Solo Administradores)
 router.delete('/gastos/:id', async (req, res) => {
     const { id } = req.params;
-    const { usuario_id } = req.body;
-
-    if (!usuario_id) {
-        return res.status(400).json({ error: 'Identificador de usuario es requerido para eliminar un gasto.' });
-    }
+    const usuario_id = usuarioId(req);
 
     try {
-        // Validar rol de administrador
-        const userRes = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [usuario_id]);
-        if (userRes.rows.length === 0) {
-            return res.status(400).json({ error: 'Usuario no válido.' });
-        }
-        const userRol = userRes.rows[0].rol.toUpperCase();
-        if (userRol !== 'ADMINISTRADOR' && userRol !== 'ADMIN') {
-            return res.status(403).json({ error: 'Acceso denegado: Solo administradores pueden eliminar gastos de caja.' });
-        }
-
         // Eliminar el gasto
         const deleteRes = await pool.query('DELETE FROM gastos_caja WHERE id = $1 RETURNING id, caja_id, monto, descripcion', [id]);
         if (deleteRes.rows.length === 0) {

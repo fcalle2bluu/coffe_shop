@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const { registrarBitacora } = require('../utils/bitacora');
+const { usuarioId } = require('../middleware/permisos');
 
 const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 const mesesNombres = [
@@ -320,7 +321,7 @@ router.post('/gastos', async (req, res) => {
         const insertado = await pool.query(query + ' RETURNING id', params);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'REGISTRAR_GASTO_GENERAL', entidad_tipo: 'gasto_general', entidad_id: insertado.rows[0].id,
             detalle: { descripcion, monto, categoria, metodo_pago }
         });
@@ -398,7 +399,7 @@ router.delete('/gastos/:id', async (req, res) => {
         const eliminado = await pool.query('DELETE FROM gastos_generales WHERE id = $1 RETURNING descripcion, monto, categoria', [id]);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_GASTO_GENERAL', entidad_tipo: 'gasto_general', entidad_id: Number(id),
             detalle: eliminado.rows[0]
         });
@@ -422,7 +423,7 @@ router.patch('/gastos/:id/categoria', async (req, res) => {
         await pool.query('UPDATE gastos_generales SET categoria = $1 WHERE id = $2', [categoria, id]);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'EDITAR_CATEGORIA_GASTO_GENERAL', entidad_tipo: 'gasto_general', entidad_id: Number(id),
             detalle: { categoria }
         });
@@ -442,7 +443,7 @@ router.delete('/gasto-caja/:id', async (req, res) => {
         const eliminado = await pool.query('DELETE FROM gastos_caja WHERE id = $1 RETURNING caja_id, monto, descripcion', [id]);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_GASTO_CAJA', entidad_tipo: 'gasto_caja', entidad_id: Number(id),
             detalle: eliminado.rows[0]
         });
@@ -466,7 +467,7 @@ router.patch('/gasto-caja/:id/categoria', async (req, res) => {
         await pool.query('UPDATE gastos_caja SET categoria = $1 WHERE id = $2', [categoria, id]);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'EDITAR_CATEGORIA_GASTO_CAJA', entidad_tipo: 'gasto_caja', entidad_id: Number(id),
             detalle: { categoria }
         });
@@ -517,7 +518,7 @@ router.delete('/venta/:id', async (req, res) => {
         }
 
         await registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_VENTA_LIBRO_DIARIO', entidad_tipo: 'venta', entidad_id: Number(id),
             detalle: { comanda_id: comandaId || null },
             client
@@ -542,7 +543,7 @@ router.delete('/compra/:id', async (req, res) => {
         await pool.query('DELETE FROM compras WHERE id = $1', [id]);
 
         registrarBitacora({
-            usuario_id: req.headers['x-usuario-id'] || req.query.usuario_id || (req.body || {}).usuario_id,
+            usuario_id: usuarioId(req),
             accion: 'ELIMINAR_COMPRA', entidad_tipo: 'compra', entidad_id: Number(id)
         });
 

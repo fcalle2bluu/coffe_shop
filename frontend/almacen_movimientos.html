@@ -177,8 +177,8 @@
 
     <script src="js/almacen_movimientos.js"></script>
     <script>
-        const rolGuardia = localStorage.getItem('usuario_rol');
-        if (!localStorage.getItem('usuario_id')) {
+        const rolGuardia = sessionStorage.getItem('usuario_rol');
+        if (!sessionStorage.getItem('usuario_id')) {
             window.location.href = 'index.html'; 
         } else if (rolGuardia === 'CAJERO') {
             alert('⛔ Acceso denegado.');
@@ -189,11 +189,11 @@
             document.getElementById('sidebarOverlay').classList.toggle('hidden');
         }
         function cerrarSesión() {
-            localStorage.clear(); window.location.href = 'index.html';
+            sessionStorage.clear(); window.location.href = 'index.html';
         }
         window.addEventListener('DOMContentLoaded', () => {
-            const n = localStorage.getItem('usuario_nombre');
-            const r = localStorage.getItem('usuario_rol');
+            const n = sessionStorage.getItem('usuario_nombre');
+            const r = sessionStorage.getItem('usuario_rol');
             if (n) {
                 document.getElementById('nombre-usuario').innerText = n;
                 document.getElementById('header-nombre-usuario').innerText = n;

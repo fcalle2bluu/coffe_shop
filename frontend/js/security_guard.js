@@ -1,11 +1,38 @@
 // frontend/js/security_guard.js
 
 (function() {
-    // === MONKEY PATCH FETCH PARA INYECTAR USUARIO ID Y TOKEN DE SESIÓN ===
+    // === LA SESIÓN VIVE POR PESTAÑA, NO POR NAVEGADOR ===
+    // Antes la sesión se guardaba en localStorage, que es compartido por TODAS las
+    // pestañas del mismo navegador: si en una PC alguien abría otra pestaña y
+    // entraba con su usuario, pisaba la sesión de quien estaba trabajando y esa
+    // primera pestaña pasaba a operar (y a registrar ventas) a nombre equivocado.
+    // Ahora vive en sessionStorage, que es propio de cada pestaña.
+    //
+    // Migración de una sola vez: quien ya estaba trabajando cuando se desplegó
+    // este cambio sigue su turno sin tener que volver a entrar.
+    const CLAVES_SESION = [
+        'token', 'usuario_id', 'usuario_nombre', 'usuario_rol',
+        'perm_stock', 'perm_compras', 'perm_proveedores',
+        'perm_auditoria', 'perm_parametros', 'perm_informe',
+    ];
+    try {
+        if (!sessionStorage.getItem('token') && localStorage.getItem('token')) {
+            CLAVES_SESION.forEach(function(clave) {
+                const valor = localStorage.getItem(clave);
+                if (valor !== null) sessionStorage.setItem(clave, valor);
+            });
+        }
+        // La copia vieja se borra siempre: mientras siga ahí, cualquier login en
+        // otra pestaña la volvería a pisar y el problema seguiría vivo.
+        CLAVES_SESION.forEach(function(clave) { localStorage.removeItem(clave); });
+    } catch (e) {
+        // Si el navegador bloquea el almacenamiento, no romper la carga de la página.
+    }
+
+    // === MONKEY PATCH FETCH PARA INYECTAR EL TOKEN DE SESIÓN ===
     const originalFetch = window.fetch;
     window.fetch = function(input, init) {
-        const usuarioId = localStorage.getItem('usuario_id');
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         init = init || {};
         init.headers = init.headers || {};
         const setHeader = (name, value) => {
@@ -15,14 +42,15 @@
                 init.headers[name] = value;
             }
         };
-        if (usuarioId) setHeader('x-usuario-id', usuarioId);
+        // Ya no se manda x-usuario-id: el backend deriva la identidad del token,
+        // nunca de lo que diga el navegador.
         if (token) setHeader('Authorization', `Bearer ${token}`);
 
         return originalFetch(input, init).then(response => {
             // Sesión inválida/expirada en el backend: mandar de vuelta al login
             const urlStr = typeof input === 'string' ? input : (input && input.url) || '';
             if (response.status === 401 && urlStr.includes('/api/')) {
-                localStorage.clear();
+                sessionStorage.clear();
                 window.location.href = 'index.html';
             }
             return response;
@@ -308,12 +336,12 @@
     window.addEventListener('DOMContentLoaded', aplicarDefaultsChart);
 
     // 1. Verificar Autenticación Básica
-    if (!localStorage.getItem('usuario_id')) {
+    if (!sessionStorage.getItem('usuario_id')) {
         window.location.href = 'index.html'; 
         return;
     }
 
-    const rol = localStorage.getItem('usuario_rol') ? localStorage.getItem('usuario_rol').toUpperCase() : '';
+    const rol = sessionStorage.getItem('usuario_rol') ? sessionStorage.getItem('usuario_rol').toUpperCase() : '';
     
     const urlPath = window.location.pathname;
     const pageName = urlPath.substring(urlPath.lastIndexOf('/') + 1) || 'index.html';
@@ -381,19 +409,19 @@
         // Validar acceso por página
         let hasAccess = true;
         if (pageName.includes('almacen_stock.html') || pageName.includes('almacen_movimientos.html')) {
-            hasAccess = localStorage.getItem('perm_stock') === 'true';
+            hasAccess = sessionStorage.getItem('perm_stock') === 'true';
         } else if (pageName.includes('recetas.html')) {
-            hasAccess = localStorage.getItem('perm_stock') === 'true' || localStorage.getItem('perm_auditoria') === 'true';
+            hasAccess = sessionStorage.getItem('perm_stock') === 'true' || sessionStorage.getItem('perm_auditoria') === 'true';
         } else if (pageName.includes('compras.html') || pageName.includes('compras_reporte.html')) {
-            hasAccess = localStorage.getItem('perm_compras') === 'true';
+            hasAccess = sessionStorage.getItem('perm_compras') === 'true';
         } else if (pageName.includes('proveedores.html')) {
-            hasAccess = localStorage.getItem('perm_proveedores') === 'true';
+            hasAccess = sessionStorage.getItem('perm_proveedores') === 'true';
         } else if (pageName.includes('inventario.html')) {
-            hasAccess = localStorage.getItem('perm_auditoria') === 'true';
+            hasAccess = sessionStorage.getItem('perm_auditoria') === 'true';
         } else if (pageName.includes('parametros.html') || pageName.includes('usuarios.html') || pageName.includes('empleados.html')) {
-            hasAccess = localStorage.getItem('perm_parametros') === 'true';
+            hasAccess = sessionStorage.getItem('perm_parametros') === 'true';
         } else if (pageName.includes('informe_general.html') || pageName.includes('libro_diario.html') || pageName.includes('informes.html')) {
-            hasAccess = localStorage.getItem('perm_informe') === 'true';
+            hasAccess = sessionStorage.getItem('perm_informe') === 'true';
         } else if (pageName.includes('webhook.html')) {
             hasAccess = isAdmin || rol === 'CAJERO';
         } else if (pageName.includes('bitacora.html')) {
@@ -522,13 +550,13 @@
             }
 
             if (href.includes('recetas.html')) {
-                const hasPerm = localStorage.getItem('perm_stock') === 'true' || localStorage.getItem('perm_auditoria') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_stock') === 'true' || sessionStorage.getItem('perm_auditoria') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
 
             if (href.includes('almacen_stock.html')) {
-                const hasPerm = localStorage.getItem('perm_stock') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_stock') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
@@ -538,47 +566,47 @@
                 else el.style.display = 'flex';
             }
             if (href.includes('auditoria_pasteleria.html')) {
-                const hasPerm = localStorage.getItem('perm_auditoria') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_auditoria') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('compras.html')) {
-                const hasPerm = localStorage.getItem('perm_compras') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_compras') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('proveedores.html')) {
-                const hasPerm = localStorage.getItem('perm_proveedores') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_proveedores') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('inventario.html')) {
-                const hasPerm = localStorage.getItem('perm_auditoria') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_auditoria') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('parametros.html')) {
-                const hasPerm = localStorage.getItem('perm_parametros') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_parametros') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('usuarios.html') || href.includes('empleados.html')) {
-                const hasPerm = localStorage.getItem('perm_parametros') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_parametros') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('informe_general.html')) {
-                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_informe') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('libro_diario.html')) {
-                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_informe') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
             if (href.includes('informes.html')) {
-                const hasPerm = localStorage.getItem('perm_informe') === 'true';
+                const hasPerm = sessionStorage.getItem('perm_informe') === 'true';
                 if (!isAdmin && !hasPerm) el.style.display = 'none';
                 else if (hasPerm || isAdmin) el.style.display = 'flex';
             }
@@ -601,14 +629,14 @@
         // Ocultar u mostrar otros elementos marcados como solo-admin en la página si tiene el permiso correspondiente
         if (!isAdmin) {
             let keepSoloAdmin = false;
-            if (pageName.includes('almacen_stock') && localStorage.getItem('perm_stock') === 'true') keepSoloAdmin = true;
-            if (pageName.includes('compras') && localStorage.getItem('perm_compras') === 'true') keepSoloAdmin = true;
-            if (pageName.includes('proveedores') && localStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
-            if (pageName.includes('inventario') && localStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('almacen_stock') && sessionStorage.getItem('perm_stock') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('compras') && sessionStorage.getItem('perm_compras') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('proveedores') && sessionStorage.getItem('perm_proveedores') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('inventario') && sessionStorage.getItem('perm_auditoria') === 'true') keepSoloAdmin = true;
             if (pageName.includes('produccion') && isAdmin) keepSoloAdmin = true;
-            if (pageName.includes('auditoria_pasteleria') && (isAdmin || localStorage.getItem('perm_auditoria') === 'true')) keepSoloAdmin = true;
-            if ((pageName.includes('parametros') || pageName.includes('usuarios') || pageName.includes('empleados')) && localStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
-            if ((pageName.includes('informe_general') || pageName.includes('libro_diario') || pageName.includes('informes')) && localStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
+            if (pageName.includes('auditoria_pasteleria') && (isAdmin || sessionStorage.getItem('perm_auditoria') === 'true')) keepSoloAdmin = true;
+            if ((pageName.includes('parametros') || pageName.includes('usuarios') || pageName.includes('empleados')) && sessionStorage.getItem('perm_parametros') === 'true') keepSoloAdmin = true;
+            if ((pageName.includes('informe_general') || pageName.includes('libro_diario') || pageName.includes('informes')) && sessionStorage.getItem('perm_informe') === 'true') keepSoloAdmin = true;
 
             // Filtrar para no tocar la barra lateral (aside)
             const elementosNoSidebar = Array.from(document.querySelectorAll('.solo-admin')).filter(el => !el.closest('aside'));
@@ -629,7 +657,7 @@
     });
 
     // Revalidación en segundo plano (para actualizar permisos en tiempo real sin obligar a reloguear)
-    const usuarioId = localStorage.getItem('usuario_id');
+    const usuarioId = sessionStorage.getItem('usuario_id');
     if (usuarioId && !rol.includes('LOGISTICA') && !rol.includes('ALMACEN') && !isAdmin) {
         fetch(`/api/auth/check-permissions?usuario_id=${usuarioId}`)
             .then(res => res.json())
@@ -639,8 +667,9 @@
                     let changed = false;
                     keys.forEach(k => {
                         const dbVal = String(data.permisos[k]);
-                        if (localStorage.getItem(k) !== dbVal) {
-                            localStorage.setItem(k, dbVal);
+                        // Los permisos son parte de la sesión (por pestaña), no del equipo.
+                        if (sessionStorage.getItem(k) !== dbVal) {
+                            sessionStorage.setItem(k, dbVal);
                             changed = true;
                         }
                     });
