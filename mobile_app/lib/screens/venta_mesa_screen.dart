@@ -206,6 +206,11 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
 
   // Guardar Comanda (nueva, o sumada a una comanda ya activa en otra mesa)
   Future<void> _guardarComanda() async {
+    // Un doble-tap muy rápido puede disparar este botón dos veces antes de que
+    // el primer setState(_isLoading = true) llegue a reconstruir la pantalla
+    // (que es lo que normalmente oculta el botón) — este guard corta el segundo
+    // llamado de inmediato, sin esperar al rebuild.
+    if (_isLoading) return;
     if (_cart.isEmpty) return;
     if (_agregarAExistente) {
       await _agregarProductosAComandaExistente();

@@ -481,6 +481,35 @@ router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
     }
 });
 
+// Reclamo atómico de impresión: cuando hay más de una pantalla/tablet de cocina
+// abierta a la vez, cada una revisaba por su cuenta qué imprimir (sin coordinarse
+// entre sí), y el mismo pedido terminaba imprimiéndose una vez por cada dispositivo.
+// Antes de imprimir, cada dispositivo debe "reclamar" la versión de la comanda acá:
+// el UPDATE solo avanza version_impresa si nadie más ya reclamó esa versión o una
+// más nueva (WHERE version_impresa < $2), así que solo el primero que llega gana
+// (gracias al bloqueo de fila implícito del UPDATE) y los demás reciben puede_imprimir:false.
+// De paso, se limpia es_nuevo (nunca se borraba) para que un ítem agregado no vuelva
+// a aparecer como "nuevo" en una reimpresión posterior de una versión más vieja.
+router.post('/:id/reclamar-impresion', checkCocineroOAdmin, async (req, res) => {
+    const { id } = req.params;
+    const version = parseInt(req.body.version, 10) || 1;
+
+    try {
+        const result = await pool.query(
+            'UPDATE comandas SET version_impresa = $2 WHERE id = $1 AND version_impresa < $2 RETURNING id',
+            [id, version]
+        );
+        const puedeImprimir = result.rows.length > 0;
+        if (puedeImprimir) {
+            await pool.query('UPDATE detalle_comandas SET es_nuevo = FALSE WHERE comanda_id = $1', [id]);
+        }
+        res.json({ puede_imprimir: puedeImprimir });
+    } catch (error) {
+        console.error('Error al reclamar impresión de comanda:', error);
+        res.status(500).json({ error: 'Error al reclamar impresión de comanda' });
+    }
+});
+
 // Actualizar el estado de cocina de una comanda (RECHAZADA / COMPLETADA)
 router.put('/:id/estado-cocina', checkCocineroOAdmin, async (req, res) => {
     const { id } = req.params;

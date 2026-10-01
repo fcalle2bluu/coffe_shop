@@ -1,16 +1,16 @@
 {
   "mesero": {
-    "versionCode": 27,
-    "versionName": "1.0.26",
+    "versionCode": 28,
+    "versionName": "1.0.27",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Ahora solo un administrador puede editar un pedido ya creado (cambiar cantidades o quitar productos). Mesero y cajero todavía pueden sumar productos nuevos a una mesa ocupada.",
+    "notas": "Corregido: un doble toque muy rápido en \"Guardar\"/\"Confirmar\" ya no puede mandar el mismo pedido dos veces.",
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 9,
-    "versionName": "1.0.8",
+    "versionCode": 10,
+    "versionName": "1.0.9",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "La mesa 'Para Llevar' ahora se muestra como 'PARA LLEVAR' en pantalla y en el ticket impreso, sin el prefijo 'MESA' delante.",
+    "notas": "Corregido: si hay más de una pantalla de cocina abierta a la vez, un mismo pedido ya no se imprime una vez por cada pantalla.",
     "obligatoria": true
   }
 }

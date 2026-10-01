@@ -187,7 +187,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
     if (!forzar && (_versionesImpresas[id] ?? 0) >= version) return;
 
     _enCola.add(id);
-    _colaImpresion.add(comanda);
+    _colaImpresion.add(forzar ? {...comanda, '_forzar': true} : comanda);
     if (!forzar) AlertService.nuevaComanda();
     _procesarCola();
   }
@@ -213,10 +213,29 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
       _errorImpresion.remove(id);
     });
     try {
+      final version = (comanda['version'] as int?) ?? 1;
+      final esForzado = comanda['_forzar'] == true;
+
+      // Reclamo atómico contra el servidor: si hay más de una pantalla de cocina
+      // abierta, solo la primera que reclama esta versión recibe luz verde para
+      // imprimir — evita que cada dispositivo imprima su propia copia del mismo
+      // pedido sin coordinarse con los demás. Una reimpresión manual ("forzar")
+      // se salta el reclamo a propósito: el que la pide quiere SÍ o SÍ otra copia.
+      if (!esForzado) {
+        final resClaim = await ApiConfig.post('/comandas/$id/reclamar-impresion', {'version': version});
+        final dataClaim = resClaim.statusCode == 200 ? jsonDecode(resClaim.body) : null;
+        final puedeImprimir = dataClaim != null && dataClaim['puede_imprimir'] == true;
+        if (!puedeImprimir) {
+          // Ya la imprimió otro dispositivo: no es un error, solo no nos toca a nosotros.
+          _versionesImpresas[id] = version;
+          _guardarImpresasPersistidas();
+          return;
+        }
+      }
+
       final itemsRaw = comanda['items'] as List<dynamic>? ?? [];
       final items = itemsRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       final fechaRaw = comanda['fecha_hora_cliente'] ?? comanda['fecha_creacion'];
-      final version = (comanda['version'] as int?) ?? 1;
       // Si la comanda ya tiene más de una versión, es porque el mesero la editó
       // o pidió reimpresión: se marca explícitamente en el ticket como un cambio.
       final esEdicion = version > 1;

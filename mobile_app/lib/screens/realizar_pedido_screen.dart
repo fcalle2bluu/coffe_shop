@@ -1062,6 +1062,9 @@ class _CarritoSheetState extends State<_CarritoSheet> {
   }
 
   Future<void> _confirmar() async {
+    // Corta un doble-tap muy rápido antes de que el primer setState(_enviando)
+    // llegue a reconstruir la pantalla y deshabilitar el botón.
+    if (_enviando) return;
     if (_mesaSeleccionada == null) {
       setState(() => _error = 'Selecciona una mesa.');
       return;
@@ -1390,6 +1393,7 @@ class _EditarComandaSheetState extends State<_EditarComandaSheet> {
   }
 
   Future<void> _guardar() async {
+    if (_guardando) return;
     if (_items.isEmpty) {
       setState(() => _error = 'La comanda debe tener al menos un producto.');
       return;
