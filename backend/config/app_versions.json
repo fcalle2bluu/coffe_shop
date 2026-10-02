@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 28,
-    "versionName": "1.0.27",
+    "versionCode": 29,
+    "versionName": "1.0.28",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corregido: un doble toque muy rápido en \"Guardar\"/\"Confirmar\" ya no puede mandar el mismo pedido dos veces.",
+    "notas": "Corregido: eliminar un gasto desde la pantalla de Caja ya funciona (antes la app no mandaba la sesión y el servidor la rechazaba).",
     "obligatoria": true
   },
   "comandas": {
