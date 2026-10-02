@@ -233,6 +233,12 @@ function renderizarAsientos(asientos) {
             ? asiento.glosa.substring(0, 80) + '…'
             : (asiento.glosa || '');
 
+        // Las ventas se pueden volver a imprimir (ticket perdido, impresora que falló).
+        // No cambia nada en la base, así que no se limita a admin.
+        const accionReimprimir = asiento.tipo === 'venta'
+            ? `<button onclick="event.stopPropagation(); reimprimirTicketVenta(${asiento.ref_id})" title="Re-imprimir ticket" class="text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-print text-xs"></i></button>`
+            : '';
+
         const accionAdmin = esAdmin
             ? `<button onclick="eliminarAsiento('${asiento.tipo}', ${asiento.ref_id}, this)" title="Eliminar asiento" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
                ${(asiento.tipo === 'gasto_general' || asiento.tipo === 'gasto_caja') ? `<button onclick="abrirModalCambiarCategoria(${asiento.ref_id}, '${asiento.tipo}')" title="Cambiar categor\u00eda" class="text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded p-1 transition-all ml-1"><i class="fa-solid fa-pen-to-square text-xs"></i></button>` : ''}`
@@ -263,6 +269,7 @@ function renderizarAsientos(asientos) {
                     <button title="Ver detalle" class="btn-expand-asiento text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded p-1 transition-all">
                         <i class="fa-solid fa-chevron-down text-[10px]"></i>
                     </button>
+                    ${accionReimprimir}
                     ${accionAdmin}
                 </div>
             </td>

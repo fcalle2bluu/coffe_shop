@@ -273,7 +273,11 @@
     // 2. Envolver tablas en contenedores scrolleables (estáticas y las que crea el JS después)
     function envolverTablas(raiz) {
         (raiz.querySelectorAll ? raiz.querySelectorAll('table') : []).forEach(t => {
-            if (t.closest('#zona-impresion') || t.closest('.tabla-responsive')) return;
+            // Los tickets no se envuelven: el contenedor responsivo les mete
+            // min-width de 560px y nowrap, y al imprimir en papel de 58 mm esa
+            // regla de móvil sí se activa (la media query mide el ancho de la
+            // hoja), con lo que el ticket se sale del papel.
+            if (t.closest('.ticket-papel') || t.closest('#zona-impresion') || t.closest('.tabla-responsive')) return;
             const padre = t.parentElement;
             if (!padre) return;
             const overflowPadre = getComputedStyle(padre).overflowX;
