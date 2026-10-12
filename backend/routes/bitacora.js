@@ -48,7 +48,12 @@ router.get('/', async (req, res) => {
                    TO_CHAR(fecha AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD') as fecha_dia
             FROM bitacora
             ${whereSql}
-            ORDER BY fecha DESC, id DESC
+            -- bitacora.fecha, con el nombre de la tabla por delante, a propósito:
+            -- arriba se renombra TO_CHAR(fecha...) AS fecha, y un "ORDER BY fecha"
+            -- suelto se queda con ESE texto ('DD/MM/YYYY ...') en vez de la columna.
+            -- Ordenado como texto, el día 30 queda antes que el 12, y la lista
+            -- parecía congelada a fin de mes.
+            ORDER BY bitacora.fecha DESC, bitacora.id DESC
             LIMIT $${i} OFFSET $${i + 1}
         `, [...valores, limitNum, offset]);
 
