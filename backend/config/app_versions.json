@@ -7,10 +7,10 @@
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 10,
-    "versionName": "1.0.9",
+    "versionCode": 11,
+    "versionName": "1.0.10",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "Corregido: si hay más de una pantalla de cocina abierta a la vez, un mismo pedido ya no se imprime una vez por cada pantalla.",
+    "notas": "La comanda de cocina ahora sale con el precio de cada producto y el total, para no tener que imprimir un segundo ticket.",
     "obligatoria": true
   }
 }

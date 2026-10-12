@@ -249,6 +249,7 @@ class _CocinaScreenState extends State<CocinaScreen> with SingleTickerProviderSt
         esEdicion: esEdicion,
         comandaYaEntregada: comanda['estado'] == 'ENTREGADA',
         notasGenerales: comanda['notas']?.toString(),
+        total: double.tryParse(comanda['total']?.toString() ?? ''),
       );
       _versionesImpresas[id] = version;
       _errorImpresionMensaje.remove(id);

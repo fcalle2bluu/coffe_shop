@@ -408,7 +408,7 @@ router.get('/cocina/pendientes', checkCocineroOAdmin, async (req, res) => {
         const query = `
             SELECT c.id, c.mesa, c.total, c.fecha_creacion, c.fecha_hora_cliente, c.estado, c.estado_cocina, c.notas, c.version, c.numero_comanda, u.nombre as mesero_nombre,
                 (
-                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas, 'es_nuevo', dc.es_nuevo))
+                    SELECT json_agg(json_build_object('producto_id', dc.producto_id, 'nombre', p.nombre, 'cantidad', dc.cantidad, 'notas', dc.notas, 'es_nuevo', dc.es_nuevo, 'precio_unitario', dc.precio_unitario, 'subtotal', dc.subtotal))
                     FROM detalle_comandas dc
                     JOIN productos p ON dc.producto_id = p.id
                     WHERE dc.comanda_id = c.id

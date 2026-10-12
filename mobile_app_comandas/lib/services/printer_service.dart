@@ -47,12 +47,23 @@ class PrinterService {
     bool esEdicion = false,
     bool comandaYaEntregada = false,
     String? notasGenerales,
+    double? total,
   }) async {
-    await _imprimir(numeroComanda ?? comandaId, mesa, items, mesero, fechaHora, esEdicion, comandaYaEntregada, notasGenerales).timeout(
+    await _imprimir(numeroComanda ?? comandaId, mesa, items, mesero, fechaHora, esEdicion, comandaYaEntregada, notasGenerales, total).timeout(
       const Duration(seconds: 20),
       onTimeout: () => throw Exception('La impresora no respondió (tiempo de espera agotado)'),
     );
   }
+
+  /// Convierte a número lo que venga del servidor: los importes llegan como
+  /// texto ("36.00") porque Postgres manda los NUMERIC así.
+  static double _aNumero(dynamic valor) {
+    if (valor == null) return 0;
+    if (valor is num) return valor.toDouble();
+    return double.tryParse(valor.toString()) ?? 0;
+  }
+
+  static String _bs(double monto) => 'Bs. ${monto.toStringAsFixed(2)}';
 
   static Future<void> _imprimirItem(Map<String, dynamic> item) async {
     final cant = item['cantidad']?.toString() ?? '1';
@@ -66,6 +77,18 @@ class PrinterService {
       await _printer.printText(
         text: '  >> $notaItem',
         style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.LEFT),
+      );
+    }
+    // El importe va en su propia línea, alineado a la derecha: en una sola línea
+    // junto al nombre se cortaría, porque los nombres de producto son largos y el
+    // papel es de 58 mm.
+    final importe = _aNumero(item['subtotal']) != 0
+        ? _aNumero(item['subtotal'])
+        : _aNumero(item['precio_unitario']) * (int.tryParse(cant) ?? 1);
+    if (importe > 0) {
+      await _printer.printText(
+        text: _bs(importe),
+        style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.RIGHT),
       );
     }
   }
@@ -84,6 +107,7 @@ class PrinterService {
     bool esEdicion,
     bool comandaYaEntregada,
     String? notasGenerales,
+    double? total,
   ) async {
     await init();
 
@@ -183,6 +207,25 @@ class PrinterService {
 
     await _printer.lineWrap(times: 1);
     await _printer.line();
+
+    // Total del pedido. Con esto la comanda de cocina sirve también como ticket
+    // de cobro y no hay que imprimir un segundo papel.
+    // Se usa el total que manda el servidor; si no viniera, se suma lo impreso,
+    // así el papel nunca sale sin total.
+    final totalItems = items.fold<double>(
+      0,
+      (suma, it) => suma + (_aNumero(it['subtotal']) != 0
+          ? _aNumero(it['subtotal'])
+          : _aNumero(it['precio_unitario']) * (_aNumero(it['cantidad']) == 0 ? 1 : _aNumero(it['cantidad']))),
+    );
+    final totalAImprimir = (total != null && total > 0) ? total : totalItems;
+    if (totalAImprimir > 0) {
+      await _printer.printText(
+        text: '  TOTAL  ${_bs(totalAImprimir)}  ',
+        style: SunmiTextStyle(bold: true, fontSize: 40, align: SunmiPrintAlign.CENTER, reverse: true),
+      );
+      await _printer.lineWrap(times: 1);
+    }
 
     // Cierre del marco negro, como remate visual del pedido.
     await _printer.printText(
