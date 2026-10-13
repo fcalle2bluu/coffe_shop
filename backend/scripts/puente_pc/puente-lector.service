@@ -1,0 +1,35 @@
+# Servicio del puente del lector de asistencia (Arch Linux / systemd).
+# Lo instala instalar_arch.sh en /etc/systemd/system/puente-lector.service
+[Unit]
+Description=Puente del lector de huella (Dahua) hacia el sistema Cafe La Paz
+# El lector esta en la red local: sin red, no hay nada que preguntar.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=puente
+Group=puente
+ExecStart=/usr/bin/node /opt/puente-lector/puente.js
+WorkingDirectory=/opt/puente-lector
+
+# Las claves viven aca, fuera del repo y solo legibles por root.
+EnvironmentFile=/etc/puente-lector.env
+
+# /opt es de solo lectura para el servicio, asi que el archivo donde recuerda
+# "por que registro iba" va a /var/lib/puente-lector (systemd lo crea solo).
+StateDirectory=puente-lector
+Environment=LECTOR_ESTADO_ARCHIVO=/var/lib/puente-lector/estado.json
+
+# Si se cae (corte de red, lector apagado), vuelve a arrancar solo.
+Restart=always
+RestartSec=15
+
+# El puente solo necesita salir a la red y escribir su archivo de estado.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

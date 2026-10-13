@@ -4,23 +4,44 @@
 // Cada cierto tiempo le pregunta al lector si alguien marcó y manda lo nuevo al
 // sistema. No toca la base de datos: habla con el sistema, igual que el navegador.
 //
-// Configuración (en el .env de la raíz del proyecto):
+// Configuración: en un archivo .env al lado de este script, o en el .env de la
+// raíz del proyecto. En Linux, el servicio lo lee de /etc/puente-lector.env.
 //   LECTOR_HOST=192.168.0.31
 //   LECTOR_USUARIO=admin
 //   LECTOR_PASSWORD=...
 //   LECTOR_API_KEY=...            <- la misma que esté puesta en el servidor
 //   SISTEMA_URL=https://coffe-shop-4ffg.onrender.com   (opcional)
 //   LECTOR_INTERVALO_SEG=30                            (opcional)
+//   LECTOR_ESTADO_ARCHIVO=/var/lib/puente-lector/estado.json  (opcional)
 //
 // Para arrancarlo:   node backend/scripts/puente_lector_asistencia.js
 // Para probar sin mandar nada:   node backend/scripts/puente_lector_asistencia.js --simular
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 const fs = require('fs');
+
+// A propósito no usa dotenv ni ninguna librería de afuera: así este archivo se
+// puede copiar solo a la PC de la cafetería (con su .env al lado) y funciona
+// con Node recién instalado, sin "npm install" ni el resto del proyecto.
+// Busca el .env primero al lado de este archivo, y si no, en la raíz del repo.
+(function cargarEnv() {
+    const candidatos = [
+        path.join(__dirname, '.env'),
+        path.join(__dirname, '../../.env'),
+    ];
+    const archivo = candidatos.find((f) => fs.existsSync(f));
+    if (!archivo) return;
+    for (const linea of fs.readFileSync(archivo, 'utf8').split('\n')) {
+        const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(linea);
+        if (!m) continue;                       // comentarios y líneas vacías
+        let valor = m[2].trim();
+        if (/^(".*"|'.*')$/.test(valor)) valor = valor.slice(1, -1);
+        if (process.env[m[1]] === undefined) process.env[m[1]] = valor;
+    }
+})();
 
 const HOST = process.env.LECTOR_HOST;
 const USUARIO = process.env.LECTOR_USUARIO || 'admin';
@@ -31,8 +52,11 @@ const INTERVALO = (parseInt(process.env.LECTOR_INTERVALO_SEG, 10) || 30) * 1000;
 const SIMULAR = process.argv.includes('--simular');
 
 // Recuerda hasta qué registro del lector ya se mandó, para no repetir trabajo
-// después de un reinicio o un corte de luz.
-const ARCHIVO_ESTADO = path.join(__dirname, '.puente_lector_estado.json');
+// después de un reinicio o un corte de luz. Por defecto queda al lado de este
+// archivo; LECTOR_ESTADO_ARCHIVO lo mueve (lo usa el servicio de Linux, que
+// guarda en /var/lib y no puede escribir en /opt).
+const ARCHIVO_ESTADO = process.env.LECTOR_ESTADO_ARCHIVO
+    || path.join(__dirname, '.puente_lector_estado.json');
 
 function log(...args) {
     console.log(new Date().toLocaleString('es-BO', { hour12: false }), '·', ...args);

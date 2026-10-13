@@ -7,3 +7,5 @@ imagenes_de_errores/
 supabase/.temp
 # Estado local del puente del lector de asistencia (cada PC tiene el suyo)
 backend/scripts/.puente_lector_estado.json
+# Respaldo local de lo que tiene guardado el lector (datos de personal)
+backend/scripts/respaldo_lector_*.json
