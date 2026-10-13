@@ -3,6 +3,12 @@ const router = express.Router();
 const pool = require('../config/conexion');
 const { registrarBitacora } = require('../utils/bitacora');
 
+// Margen de gracia: si alguien vuelve a marcar dentro de estos minutos de su
+// entrada, se ignora en vez de cerrarle el turno. Pasaba al dejar el dedo
+// apoyado de más en el lector: el aparato generaba dos marcaciones seguidas y
+// el turno quedaba en 0.00 hrs. Vale para el lector y para el QR.
+const GRACIA_MINUTOS = parseInt(process.env.ASISTENCIA_GRACIA_MIN, 10) || 5;
+
 // Helper para generar el token esperado de hoy en Bolivia (GMT-4)
 const obtenerTokenHoy = () => {
     const ahora = new Date();
@@ -52,12 +58,32 @@ router.post('/marcar', async (req, res) => {
         // abandonado (se le olvidó marcar salida) y no debe cerrarse con la hora actual,
         // porque eso generaba turnos fantasma de 40, 90 e incluso 140 horas "trabajadas".
         const turnoAbierto = await pool.query(
-            `SELECT id, hora_entrada FROM asistencia
+            `SELECT id, hora_entrada,
+                    EXTRACT(EPOCH FROM (NOW() - hora_entrada))/60 AS minutos
+             FROM asistencia
              WHERE usuario_id = $1 AND hora_salida IS NULL
                AND fecha = TIMEZONE('America/La_Paz', NOW())::date
              LIMIT 1`,
             [usuario_id]
         );
+
+        // Margen de gracia: un segundo escaneo apenas después de la entrada no es
+        // una salida (doble toque, o la app que mandó dos veces). Mismo criterio
+        // que el lector de huella, para que los dos se comporten igual.
+        if (turnoAbierto.rows.length > 0 && Number(turnoAbierto.rows[0].minutos) < GRACIA_MINUTOS) {
+            const minutos = Number(turnoAbierto.rows[0].minutos);
+            // Va como 'ENTRADA' a propósito: la app arma el título con ese dato y
+            // así muestra "¡Entrada Registrada!", que es lo que de verdad pasó.
+            // Si mandáramos otra cosa diría "¡Salida Registrada!", que es peor.
+            return res.json({
+                success: true,
+                tipo: 'ENTRADA',
+                mensaje: 'Tu entrada ya estaba registrada.',
+                detalles: minutos < 1
+                    ? 'Acabás de marcar hace unos segundos. Para marcar la salida, volvé al terminar tu turno.'
+                    : `Marcaste tu entrada hace ${Math.round(minutos)} min. Para marcar la salida, volvé al terminar tu turno.`
+            });
+        }
 
         if (turnoAbierto.rows.length > 0) {
             // REGISTRAR SALIDA
@@ -460,7 +486,9 @@ router.post('/dispositivo', async (req, res) => {
             // se abre uno. La diferencia es que acá la hora es la del aparato, no
             // la del momento en que llegó el aviso.
             const abierto = await client.query(
-                `SELECT id, hora_entrada FROM asistencia
+                `SELECT id,
+                        EXTRACT(EPOCH FROM ($2::timestamptz - hora_entrada))/60 AS minutos
+                 FROM asistencia
                  WHERE usuario_id = $1 AND hora_salida IS NULL
                    AND fecha = TIMEZONE('America/La_Paz', $2::timestamptz)::date
                  LIMIT 1`,
@@ -469,17 +497,23 @@ router.post('/dispositivo', async (req, res) => {
 
             let resultado;
             if (abierto.rows.length > 0) {
-                const r = await client.query(
-                    `UPDATE asistencia
-                     SET hora_salida = $2,
-                         horas_trabajadas = ROUND(EXTRACT(EPOCH FROM ($2::timestamptz - hora_entrada))/3600::numeric, 2)
-                     WHERE id = $1 AND $2::timestamptz > hora_entrada
-                     RETURNING horas_trabajadas`,
-                    [abierto.rows[0].id, fechaHora]
-                );
-                resultado = r.rows.length > 0
-                    ? `salida (${r.rows[0].horas_trabajadas} hrs)`
-                    : 'ignorada: la salida sería anterior a la entrada';
+                const minutos = Number(abierto.rows[0].minutos);
+                if (minutos < 0) {
+                    resultado = 'ignorada: la salida sería anterior a la entrada';
+                } else if (minutos < GRACIA_MINUTOS) {
+                    // Dedo apoyado de más, o dos intentos seguidos: no es una salida.
+                    resultado = `ignorada: a ${Math.round(minutos * 60)} seg de la entrada (gracia de ${GRACIA_MINUTOS} min)`;
+                } else {
+                    const r = await client.query(
+                        `UPDATE asistencia
+                         SET hora_salida = $2,
+                             horas_trabajadas = ROUND(EXTRACT(EPOCH FROM ($2::timestamptz - hora_entrada))/3600::numeric, 2)
+                         WHERE id = $1
+                         RETURNING horas_trabajadas`,
+                        [abierto.rows[0].id, fechaHora]
+                    );
+                    resultado = `salida (${r.rows[0].horas_trabajadas} hrs)`;
+                }
             } else {
                 const yaCompleto = await client.query(
                     `SELECT id FROM asistencia

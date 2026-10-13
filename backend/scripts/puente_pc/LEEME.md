@@ -9,7 +9,7 @@
 En la cafetería hay un lector de huella/cara **Dahua DHI-ASI3204E-DW**. El
 lector guarda las marcaciones adentro suyo, pero no sabe hablar con el sistema
 (su único modo de aviso automático usa un protocolo propietario de Dahua, no
-HTTP). Entonces este puente, cada 30 segundos, le pregunta al lector *"¿marcó
+HTTP). Entonces este puente, cada 3 segundos, le pregunta al lector *"¿marcó
 alguien?"* y manda lo nuevo a la API del sistema en Render.
 
 ```
@@ -72,7 +72,7 @@ Con `--simular` mira el lector pero **no registra asistencia**. Tiene que decir:
 
 ```
 Puente iniciado. Lector 192.168.0.31 -> (simulación, no manda nada)
-Reviso cada 30 segundos. Último registro procesado: #0
+Reviso cada 3 segundos. Último registro procesado: #0
 Primera vez: arranco desde el registro #NNN (lo anterior queda como historial).
 ```
 
@@ -108,6 +108,11 @@ grabó. Después se puede confirmar en la pantalla de **Asistencia** del sistema
 
 - **Una entrada y una salida por persona por día.** El tercer toque del día se
   ignora a propósito; la tabla `asistencia` tiene `UNIQUE (usuario_id, fecha)`.
+- **Margen de gracia de 5 minutos.** Si alguien vuelve a marcar dentro de los 5
+  minutos de su entrada, se ignora en vez de cerrarle el turno. Pasaba al dejar
+  el dedo apoyado de más: el lector generaba dos marcaciones seguidas y el turno
+  quedaba en 0.00 hrs. Se cambia con `ASISTENCIA_GRACIA_MIN` **en Render**, no
+  acá: la regla vive en el servidor, para que valga igual para el QR.
 - **Las marcaciones no reconocidas se descartan.** Si alguien apoya el dedo y el
   lector no lo identifica, el puente no manda nada.
 - **Un turno abierto de ayer no se cierra con la hora de hoy** — eso generaba

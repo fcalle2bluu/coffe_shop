@@ -48,7 +48,10 @@ const USUARIO = process.env.LECTOR_USUARIO || 'admin';
 const PASSWORD = process.env.LECTOR_PASSWORD;
 const API_KEY = process.env.LECTOR_API_KEY;
 const SISTEMA = (process.env.SISTEMA_URL || 'https://coffe-shop-4ffg.onrender.com').replace(/\/+$/, '');
-const INTERVALO = (parseInt(process.env.LECTOR_INTERVALO_SEG, 10) || 30) * 1000;
+// 3 segundos: preguntarle al lector cuesta ~180 ms por vuelta en la red local,
+// así que revisar seguido no le pesa ni al aparato ni a la PC, y la marcación
+// aparece en el sistema casi al instante en vez de esperar medio minuto.
+const INTERVALO = Math.max(1, parseInt(process.env.LECTOR_INTERVALO_SEG, 10) || 3) * 1000;
 const SIMULAR = process.argv.includes('--simular');
 
 // Recuerda hasta qué registro del lector ya se mandó, para no repetir trabajo
@@ -141,13 +144,22 @@ function mandarAlSistema(marcaciones) {
     });
 }
 
+// Momento de la última vuelta que salió bien. No se guarda en disco a propósito:
+// después de un reinicio conviene que valga "no sé", para pedir la ventana ancha.
+let ultimaVueltaOk = 0;
+
 async function unaVuelta(estado) {
     const ahora = Math.floor(Date.now() / 1000);
-    // Se pide una ventana amplia y después se filtra por número de registro: así
-    // no se pierde nada si el reloj del lector y el de la PC no están iguales.
-    const desde = ahora - 2 * 86400;
+    // En marcha normal alcanza con mirar los últimos minutos (respuesta de ~3 KB
+    // en vez de ~11 KB, y el lector es un aparato chico). Si el puente estuvo
+    // caído un rato, se pide el doble de ese tiempo para no perderse nada, hasta
+    // un tope de 2 días. Igual después se filtra por número de registro, así que
+    // tampoco importa si el reloj del lector y el de la PC no están iguales.
+    const sinExito = ultimaVueltaOk ? ahora - ultimaVueltaOk : 2 * 86400;
+    const desde = ahora - Math.min(2 * 86400, Math.max(900, sinExito * 2));
     const texto = await pedirAlLector(
         `/cgi-bin/recordFinder.cgi?action=find&name=AccessControlCardRec&count=200&StartTime=${desde}&EndTime=${ahora}`);
+    ultimaVueltaOk = ahora;
 
     const nuevas = parsearRegistros(texto)
         .map((r) => ({

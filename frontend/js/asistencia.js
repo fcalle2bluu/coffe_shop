@@ -43,10 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
             })}`;
         }
 
-        // Auto-actualizar silenciosamente cada 5 segundos
+        // Auto-actualizar silenciosamente cada 3 segundos. Va igual que el puente
+        // del lector: si la pantalla refrescara más lento, una marcación recién
+        // registrada parecería tardar aunque ya esté guardada.
         setInterval(() => {
             cargarHistorialAsistencia(true);
-        }, 5000);
+        }, 3000);
     } else {
         // Ocultar tarjeta de historial de marcaciones
         const tarjetaHistorial = document.getElementById('tarjeta-historial-asistencia');
