@@ -504,9 +504,13 @@ router.post('/dispositivo', async (req, res) => {
                     // Dedo apoyado de más, o dos intentos seguidos: no es una salida.
                     resultado = `ignorada: a ${Math.round(minutos * 60)} seg de la entrada (gracia de ${GRACIA_MINUTOS} min)`;
                 } else {
+                    // El ::timestamptz va en los DOS usos de $2 a propósito. Sin el de
+                    // arriba, Postgres deduce "timestamp" por el tipo de la columna y
+                    // "timestamptz" por el cast de abajo, y rechaza la consulta entera
+                    // con "inconsistent types deduced for parameter $2".
                     const r = await client.query(
                         `UPDATE asistencia
-                         SET hora_salida = $2,
+                         SET hora_salida = $2::timestamptz,
                              horas_trabajadas = ROUND(EXTRACT(EPOCH FROM ($2::timestamptz - hora_entrada))/3600::numeric, 2)
                          WHERE id = $1
                          RETURNING horas_trabajadas`,

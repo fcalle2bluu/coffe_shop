@@ -144,6 +144,10 @@ function mandarAlSistema(marcaciones) {
     });
 }
 
+// Cuántas veces seguidas falló cada marcación, para no reintentar para siempre.
+const reintentos = {};
+const MAX_REINTENTOS = 20;
+
 // Momento de la última vuelta que salió bien. No se guarda en disco a propósito:
 // después de un reinicio conviene que valga "no sé", para pedir la ventana ancha.
 let ultimaVueltaOk = 0;
@@ -178,16 +182,36 @@ async function unaVuelta(estado) {
     const utiles = nuevas.filter((r) => r.reconocido);
     log(`${nuevas.length} marcación(es) nueva(s) en el lector, ${utiles.length} reconocida(s)`);
 
+    let tope = nuevas[nuevas.length - 1].rec_no;
+
     if (SIMULAR) {
         nuevas.forEach((r) => log(`   [simulación] #${r.rec_no} ${r.nombre || '(no reconocido)'} ${new Date(r.fecha_hora).toLocaleString('es-BO', { hour12: false })}`));
     } else if (utiles.length > 0) {
         const r = await mandarAlSistema(utiles);
         r.resultados.forEach((x) => log(`   #${x.rec_no} ${x.empleado || ''} -> ${x.resultado}`));
+
+        // Si el sistema falló con alguna marcación, no se la da por procesada: se
+        // frena la marca justo antes y la próxima vuelta la reintenta. Antes se
+        // avanzaba igual y esa marcación se perdía para siempre.
+        const fallada = r.resultados
+            .filter((x) => String(x.resultado).startsWith('error'))
+            .map((x) => x.rec_no)
+            .sort((a, b) => a - b)[0];
+        if (fallada !== undefined) {
+            reintentos[fallada] = (reintentos[fallada] || 0) + 1;
+            if (reintentos[fallada] <= MAX_REINTENTOS) {
+                log(`   ↻ reintento ${reintentos[fallada]}/${MAX_REINTENTOS} de la #${fallada} en la próxima vuelta`);
+                tope = fallada - 1;
+            } else {
+                // Si no sale después de tantos intentos, el problema no se arregla
+                // solo: se sigue de largo para no quedar trabado, pero bien visible.
+                log(`   ⚠ la #${fallada} falló ${MAX_REINTENTOS} veces seguidas. La salteo: hay que registrarla a mano.`);
+                delete reintentos[fallada];
+            }
+        }
     }
 
-    // Solo se avanza la marca si todo salió bien: si falló el envío, la próxima
-    // vuelta lo reintenta (y el servidor ignora lo que ya estaba registrado).
-    estado.ultimoRecNo = nuevas[nuevas.length - 1].rec_no;
+    estado.ultimoRecNo = tope;
     guardarEstado(estado);
     return estado;
 }
