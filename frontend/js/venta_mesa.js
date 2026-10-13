@@ -227,7 +227,8 @@ function renderizarMesas() {
                 const badgeColor = paleta.badge;
                 const dotPulse = (esOcupada && paleta.dot) ? `<span class="w-2 h-2 rounded-full ${paleta.dot} animate-pulse shrink-0"></span>` : '';
                 const totalComanda = esOcupada ? `<span class="text-xs md:text-sm font-black ${colorText} shrink-0">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
-                const estadoLabel = esOcupada ? m.comanda.estado : '';
+                const nroPedidoLlevar = (esOcupada && m.comanda.numero_comanda) ? `#${m.comanda.numero_comanda} · ` : '';
+                const estadoLabel = esOcupada ? `${nroPedidoLlevar}${m.comanda.estado}` : '';
                 const desdeContador = esOcupada ? desdeParaContador(m, colorMesa) : null;
                 const contadorEspera = desdeContador
                     ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono shrink-0" data-desde="${desdeContador}">${formatearTiempoEspera(Date.now() - new Date(desdeContador).getTime())}</span>`
@@ -272,7 +273,10 @@ function renderizarMesas() {
             const dotPulse = (esOcupada && paleta.dot) ? `<span class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${paleta.dot} animate-pulse"></span>` : '';
 
             const totalComanda = esOcupada ? `<span class="text-[10px] md:text-xs ${colorText} font-black leading-none">Bs. ${parseFloat(m.comanda.total).toFixed(2)}</span>` : '';
-            const estadoLabel = esOcupada ? m.comanda.estado : 'Libre';
+            // Nro de pedido del turno (reinicia en 1 cada turno): es el número con el
+            // que cocina y el mesero se refieren al pedido.
+            const nroPedido = (esOcupada && m.comanda.numero_comanda) ? `#${m.comanda.numero_comanda} · ` : '';
+            const estadoLabel = esOcupada ? `${nroPedido}${m.comanda.estado}` : 'Libre';
             const desdeContador = esOcupada ? desdeParaContador(m, colorMesa) : null;
             const contadorEspera = desdeContador
                 ? `<span class="contador-espera text-[10px] md:text-xs font-black ${colorText} font-mono leading-none" data-desde="${desdeContador}">${formatearTiempoEspera(Date.now() - new Date(desdeContador).getTime())}</span>`
@@ -366,7 +370,9 @@ function renderizarDetalleComandaActiva() {
     const estado = comandaActivaMesa.estado;
     const estElem = document.getElementById('ticket-estado');
     estElem.classList.remove('hidden');
-    estElem.innerText = estado;
+    // Nro de pedido del turno, el mismo que imprime cocina.
+    const nro = comandaActivaMesa.numero_comanda;
+    estElem.innerText = nro ? `PEDIDO #${String(nro).padStart(3, '0')} · ${estado}` : estado;
 
     // Colorear badge de estado
     if (estado === 'CREADA') {
@@ -796,6 +802,13 @@ async function cancelarComandaActiva() {
     }
 }
 
+// Nro de pedido del turno: el mismo número que ve cocina y que reinicia en 1
+// con cada turno. Se usa en todos los papeles para que todos hablen del mismo.
+function nroPedidoTurno(comanda) {
+    const n = comanda && comanda.numero_comanda;
+    return n ? String(n).padStart(3, '0') : null;
+}
+
 // 14. Ventana de impresión de la comanda (Cocina)
 function abrirModalImpresionComanda() {
     if (!comandaActivaMesa) return;
@@ -818,6 +831,7 @@ function abrirModalImpresionComanda() {
         <div class="text-center font-bold mb-4">
             <h2 class="text-sm">*** COMANDA DE COCINA ***</h2>
             <h1 class="text-xl my-1">MESA # ${comandaActivaMesa.mesa}</h1>
+            ${nroPedidoTurno(comandaActivaMesa) ? `<p class="text-sm font-black">PEDIDO #${nroPedidoTurno(comandaActivaMesa)}</p>` : ''}
             <p class="text-[10px]">Atendido por: ${comandaActivaMesa.mesero_nombre || 'Mesero'}</p>
             <p class="text-[10px]">F. Pedido: ${fechaFmt}</p>
         </div>
@@ -857,7 +871,7 @@ function imprimirPreCuentaComanda() {
             <h2 class="text-sm uppercase tracking-wide">Café La Paz</h2>
             <h1 class="text-lg font-black my-1.5">PRE-CUENTA (no es factura)</h1>
             <p class="text-[10px]">Mesa # ${comandaActivaMesa.mesa}</p>
-            <p class="text-[9px] text-gray-500 font-mono">Pedido #${comandaActivaMesa.id}</p>
+            <p class="text-[10px] font-bold">Pedido #${nroPedidoTurno(comandaActivaMesa) || comandaActivaMesa.id}</p>
         </div>
         <hr class="border-t border-dashed border-gray-400 my-2">
         <table class="w-full text-left font-mono text-[10px]">
@@ -1105,6 +1119,7 @@ async function imprimirVentaFinal() {
                 <p class="text-[9px] text-gray-500 font-medium">Calle La Paz, La Paz - Bolivia</p>
                 <h1 class="text-lg font-black my-1.5">FACTURA DE VENTA</h1>
                 <p class="text-[9px] font-mono">TKT-${data.ticket.id.toString().padStart(4, '0')}</p>
+                ${data.ticket.numero_comanda ? `<p class="text-[10px] font-bold">Pedido #${String(data.ticket.numero_comanda).padStart(3, '0')}</p>` : ''}
                 <p class="text-[8px] text-gray-500 font-mono">Fecha: ${data.ticket.fecha}</p>
             </div>
             <hr class="border-t border-dashed border-gray-400 my-2">

@@ -7,10 +7,10 @@
     "obligatoria": true
   },
   "comandas": {
-    "versionCode": 11,
-    "versionName": "1.0.10",
+    "versionCode": 12,
+    "versionName": "1.0.11",
     "apkUrl": "/apks/comandas.apk",
-    "notas": "La comanda de cocina ahora sale con el precio de cada producto y el total, para no tener que imprimir un segundo ticket.",
+    "notas": "Letra mas compacta en el ticket (ocupa menos papel) y el numero de pedido ahora es el del turno: arranca en 1 cada vez que se abre un turno nuevo.",
     "obligatoria": true
   }
 }

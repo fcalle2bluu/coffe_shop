@@ -60,6 +60,8 @@ void main() {
     expect(lineas, contains('Bs. 25.00'));
     expect(lineas.any((l) => l.contains('TOTAL') && l.contains('Bs. 125.00')), isTrue,
         reason: 'el papel debe cerrar con el total');
+    expect(lineas, contains('PEDIDO #022'),
+        reason: 'el nro de pedido del turno tiene que salir en el papel');
   });
 
   test('si el servidor no manda el total, se suma lo impreso', () async {

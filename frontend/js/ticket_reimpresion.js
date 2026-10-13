@@ -158,6 +158,7 @@
                         <p class="rt-chico">La Paz, Bolivia</p>
                         <p class="rt-chico" data-rt="fecha">--/--/---- --:--</p>
                         <p class="rt-nro">TICKET #<span data-rt="numero">0000</span></p>
+                        <p class="rt-chico" data-rt="pedido" hidden></p>
                     </div>
                     <div class="rt-anulada" data-rt="anulada" hidden>*** ANULADA ***</div>
                     <div class="rt-separador"></div>
@@ -309,6 +310,16 @@
             campo('fecha').textContent = t.fecha || '';
             campo('total').textContent = montoBs(t.total);
             campo('pago').textContent = t.metodo_pago || 'EFECTIVO';
+
+            // Nro de pedido del turno (el que ve cocina): solo lo tienen las ventas
+            // que vinieron de una mesa, no las del Punto de Venta directo.
+            const pedido = campo('pedido');
+            if (t.numero_comanda) {
+                pedido.textContent = `Pedido #${String(t.numero_comanda).padStart(3, '0')}`;
+                pedido.hidden = false;
+            } else {
+                pedido.hidden = true;
+            }
 
             // Una venta anulada sigue apareciendo en el libro diario: si se
             // reimprime, el papel tiene que decirlo o se confunde con una venta viva.

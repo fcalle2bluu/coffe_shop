@@ -26,10 +26,15 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         // Cabecera de la venta
+        // Se trae también el Nro de pedido del turno (el que ve cocina y el mesero),
+        // para que el ticket de venta hable del mismo número que el resto del sistema.
         const cabecera = await pool.query(`
-            SELECT id, total, metodo_pago, estado, comanda_id,
-                   TO_CHAR(fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha
-            FROM ventas WHERE id = $1
+            SELECT v.id, v.total, v.metodo_pago, v.estado, v.comanda_id,
+                   c.numero_comanda,
+                   TO_CHAR(v.fecha_venta AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY HH24:MI') as fecha
+            FROM ventas v
+            LEFT JOIN comandas c ON c.id = v.comanda_id
+            WHERE v.id = $1
         `, [id]);
 
         if (cabecera.rows.length === 0) return res.status(404).json({ error: 'Ticket no encontrado' });

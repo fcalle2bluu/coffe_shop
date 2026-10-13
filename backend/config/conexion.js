@@ -1393,6 +1393,33 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración numero_comanda:', numComandaErr.message);
     }
 
+    // Migración: turno en el que se CREÓ la comanda.
+    // comandas.caja_id no sirve para numerar: al cobrar se reasigna al turno que
+    // cobra, así que una comanda creada en el turno de mañana y cobrada en el de
+    // tarde se mudaba de turno y arrastraba su número. Eso hacía que un turno no
+    // empezara en 1 y que dos pedidos del mismo turno compartieran número.
+    // Esta columna se escribe al crear y nunca se toca después.
+    try {
+        await pool.query('ALTER TABLE comandas ADD COLUMN IF NOT EXISTS caja_id_creacion INT;');
+        // Relleno para las comandas que ya existen: el turno que estaba abierto en
+        // el momento en que se creó cada una. Sin esto, al desplegar a mitad de
+        // turno el contador volvería a 1 y repetiría números.
+        await pool.query(`
+            UPDATE comandas c
+            SET caja_id_creacion = (
+                SELECT k.id FROM cajas k
+                WHERE c.fecha_creacion >= k.fecha_apertura
+                  AND (k.fecha_cierre IS NULL OR c.fecha_creacion < k.fecha_cierre)
+                ORDER BY k.fecha_apertura DESC LIMIT 1
+            )
+            WHERE c.caja_id_creacion IS NULL
+        `);
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_comandas_caja_creacion ON comandas (caja_id_creacion, numero_comanda);');
+        console.log('✅ Columna caja_id_creacion en comandas verificada/creada.');
+    } catch (cajaCreErr) {
+        console.log('Info Migración caja_id_creacion:', cajaCreErr.message);
+    }
+
     // Migración: marca por producto de si fue agregado en la última edición
     // de la comanda (para que cocina distinga en pantalla/ticket lo recién
     // añadido de lo que ya estaba en el pedido). Por defecto false: no afecta

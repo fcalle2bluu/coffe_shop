@@ -52,18 +52,27 @@ router.post('/', checkMeseroOAdmin, async (req, res) => {
         `);
         const cajaId = cajaRes.rows.length > 0 ? cajaRes.rows[0].id : null;
 
-        // Número de comanda correlativo por turno (control interno): reinicia
-        // en 1 con cada caja/turno nuevo. Si no hay caja abierta, se acota por
-        // el día para que igual sirva de control aunque no se haya abierto turno.
+        // Número de pedido correlativo por turno: arranca en 1 con cada turno nuevo.
+        // Se cuenta contra caja_id_creacion (el turno en el que se CREA el pedido),
+        // no contra caja_id, porque ese último se reasigna al cobrar: un pedido
+        // tomado en el turno de mañana y cobrado en el de tarde se mudaba de turno
+        // llevándose su número, y el turno de tarde terminaba sin un #1 y con
+        // números repetidos.
+        // Si no hay turno abierto se acota por el día, para que igual haya control.
+        if (cajaId) {
+            // Bloquea la fila del turno mientras se calcula el número: si dos
+            // meseros guardan a la vez, el segundo espera y no se lleva el mismo.
+            await client.query('SELECT id FROM cajas WHERE id = $1 FOR UPDATE', [cajaId]);
+        }
         const numeroComandaRes = cajaId
-            ? await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id = $1`, [cajaId])
-            : await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id IS NULL AND fecha_creacion::date = CURRENT_DATE`);
+            ? await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id_creacion = $1`, [cajaId])
+            : await client.query(`SELECT COALESCE(MAX(numero_comanda), 0) + 1 AS siguiente FROM comandas WHERE caja_id_creacion IS NULL AND fecha_creacion::date = CURRENT_DATE`);
         const numeroComanda = numeroComandaRes.rows[0].siguiente;
 
         // 1. Insertar Cabecera de Comanda
         const insertComanda = `
-            INSERT INTO comandas (mesa, usuario_id, caja_id, estado, estado_cocina, total, fecha_hora_cliente, notas, numero_comanda, fecha_pendiente_desde)
-            VALUES ($1, $2, $3, 'CREADA', 'PENDIENTE', $4, $5, $6, $7, CURRENT_TIMESTAMP)
+            INSERT INTO comandas (mesa, usuario_id, caja_id, caja_id_creacion, estado, estado_cocina, total, fecha_hora_cliente, notas, numero_comanda, fecha_pendiente_desde)
+            VALUES ($1, $2, $3, $3, 'CREADA', 'PENDIENTE', $4, $5, $6, $7, CURRENT_TIMESTAMP)
             RETURNING id, numero_comanda
         `;
         const resultComanda = await client.query(insertComanda, [mesa, usuario_id, cajaId, total, fechaHoraCliente, notas || null, numeroComanda]);
