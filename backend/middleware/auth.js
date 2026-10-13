@@ -8,6 +8,10 @@ const pool = require('../config/conexion');
 const RUTAS_PUBLICAS = [
     '/api/auth/login',
     '/api/whatsapp/webhook',
+    // Lector de asistencia: lo llama el puente que corre en la PC de la cafetería,
+    // no una persona logueada. Tiene su propia clave (LECTOR_API_KEY), que la
+    // propia ruta verifica; sin ella responde 401 igual.
+    '/api/asistencia/dispositivo',
 ];
 const PREFIJOS_PUBLICOS = [
     '/api/version/',

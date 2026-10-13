@@ -382,4 +382,147 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+
+// ── Marcaciones que llegan del lector de huella/cara (Dahua) ──
+// No la llama una persona sino el puente que corre en la PC de la cafetería, así
+// que no hay sesión: se autentica con una clave propia (LECTOR_API_KEY).
+// La ruta está exceptuada del middleware de sesión en middleware/auth.js.
+//
+// Es idempotente: cada marcación trae el número de registro del aparato (rec_no)
+// y esa es la clave primaria de lector_marcaciones, así que si el puente reenvía
+// lo mismo (se reinició, se cortó la red) no se aplica dos veces.
+router.post('/dispositivo', async (req, res) => {
+    const clave = req.headers['x-lector-key'];
+    if (!process.env.LECTOR_API_KEY) {
+        return res.status(503).json({ error: 'El lector no está configurado en el servidor.' });
+    }
+    if (!clave || clave !== process.env.LECTOR_API_KEY) {
+        return res.status(401).json({ error: 'Clave del lector inválida.' });
+    }
+
+    const marcaciones = Array.isArray(req.body.marcaciones) ? req.body.marcaciones : [];
+    if (marcaciones.length === 0) return res.json({ procesadas: 0, resultados: [] });
+
+    const resultados = [];
+    for (const m of marcaciones) {
+        const recNo = parseInt(m.rec_no, 10);
+        const lectorUserId = parseInt(m.user_id, 10);
+        const fechaHora = m.fecha_hora ? new Date(m.fecha_hora) : null;
+
+        if (!Number.isInteger(recNo) || !fechaHora || isNaN(fechaHora.getTime())) {
+            resultados.push({ rec_no: m.rec_no, resultado: 'descartada: datos incompletos' });
+            continue;
+        }
+
+        // El aparato también registra los intentos que NO reconoció: esos no son
+        // asistencia de nadie.
+        if (m.reconocido === false) {
+            resultados.push({ rec_no: recNo, resultado: 'ignorada: no reconocido' });
+            continue;
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Si ya se procesó antes, el INSERT no devuelve fila y no se toca nada.
+            const nueva = await client.query(
+                `INSERT INTO lector_marcaciones (rec_no, lector_user_id, nombre_lector, fecha_hora, resultado)
+                 VALUES ($1, $2, $3, $4, 'procesando')
+                 ON CONFLICT (rec_no) DO NOTHING
+                 RETURNING rec_no`,
+                [recNo, Number.isInteger(lectorUserId) ? lectorUserId : null, m.nombre || null, fechaHora]
+            );
+            if (nueva.rows.length === 0) {
+                await client.query('ROLLBACK');
+                resultados.push({ rec_no: recNo, resultado: 'ya estaba registrada' });
+                continue;
+            }
+
+            // El número del lector se busca primero en lector_user_id; si nadie lo
+            // tiene asignado, se prueba contra el id del empleado (hoy coinciden).
+            const emp = await client.query(
+                `SELECT id, nombre FROM usuarios
+                 WHERE activo AND (lector_user_id = $1 OR (lector_user_id IS NULL AND id = $1))
+                 ORDER BY (lector_user_id = $1) DESC LIMIT 1`,
+                [lectorUserId]
+            );
+            if (emp.rows.length === 0) {
+                await client.query(`UPDATE lector_marcaciones SET resultado = $2 WHERE rec_no = $1`,
+                    [recNo, 'sin empleado asignado']);
+                await client.query('COMMIT');
+                resultados.push({ rec_no: recNo, resultado: 'sin empleado asignado a ese número del lector' });
+                continue;
+            }
+            const usuario = emp.rows[0];
+
+            // Mismo criterio que el QR: si hay turno abierto HOY se cierra, si no
+            // se abre uno. La diferencia es que acá la hora es la del aparato, no
+            // la del momento en que llegó el aviso.
+            const abierto = await client.query(
+                `SELECT id, hora_entrada FROM asistencia
+                 WHERE usuario_id = $1 AND hora_salida IS NULL
+                   AND fecha = TIMEZONE('America/La_Paz', $2::timestamptz)::date
+                 LIMIT 1`,
+                [usuario.id, fechaHora]
+            );
+
+            let resultado;
+            if (abierto.rows.length > 0) {
+                const r = await client.query(
+                    `UPDATE asistencia
+                     SET hora_salida = $2,
+                         horas_trabajadas = ROUND(EXTRACT(EPOCH FROM ($2::timestamptz - hora_entrada))/3600::numeric, 2)
+                     WHERE id = $1 AND $2::timestamptz > hora_entrada
+                     RETURNING horas_trabajadas`,
+                    [abierto.rows[0].id, fechaHora]
+                );
+                resultado = r.rows.length > 0
+                    ? `salida (${r.rows[0].horas_trabajadas} hrs)`
+                    : 'ignorada: la salida sería anterior a la entrada';
+            } else {
+                const yaCompleto = await client.query(
+                    `SELECT id FROM asistencia
+                     WHERE usuario_id = $1 AND fecha = TIMEZONE('America/La_Paz', $2::timestamptz)::date LIMIT 1`,
+                    [usuario.id, fechaHora]
+                );
+                if (yaCompleto.rows.length > 0) {
+                    resultado = 'ignorada: ya marcó entrada y salida ese día';
+                } else {
+                    await client.query(
+                        `INSERT INTO asistencia (usuario_id, fecha, hora_entrada)
+                         VALUES ($1, TIMEZONE('America/La_Paz', $2::timestamptz)::date, $2)`,
+                        [usuario.id, fechaHora]
+                    );
+                    resultado = 'entrada';
+                }
+            }
+
+            await client.query(
+                `UPDATE lector_marcaciones SET usuario_id = $2, resultado = $3 WHERE rec_no = $1`,
+                [recNo, usuario.id, resultado]
+            );
+            await client.query('COMMIT');
+
+            if (resultado === 'entrada' || resultado.startsWith('salida')) {
+                registrarBitacora({
+                    usuario_id: usuario.id, usuario_nombre: usuario.nombre,
+                    accion: resultado === 'entrada' ? 'MARCAR_ASISTENCIA_ENTRADA' : 'MARCAR_ASISTENCIA_SALIDA',
+                    entidad_tipo: 'asistencia',
+                    detalle: { origen: 'lector', rec_no: recNo, lector_user_id: lectorUserId }
+                });
+            }
+            resultados.push({ rec_no: recNo, empleado: usuario.nombre, resultado });
+        } catch (e) {
+            await client.query('ROLLBACK').catch(() => {});
+            console.error('Error al procesar marcación del lector:', e.message);
+            resultados.push({ rec_no: recNo, resultado: 'error: ' + e.message });
+        } finally {
+            client.release();
+        }
+    }
+
+    res.json({ procesadas: resultados.length, resultados });
+});
+
 module.exports = router;

@@ -1393,6 +1393,33 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración numero_comanda:', numComandaErr.message);
     }
 
+    // Migración: lector de asistencia Dahua.
+    // - usuarios.lector_user_id: el número con el que esa persona está cargada en
+    //   el lector. Hoy coincide con el id del sistema, pero se guarda explícito
+    //   para no depender de esa casualidad.
+    // - lector_marcaciones: cada marcación que llegó del lector, con su número de
+    //   registro del aparato como clave. Es lo que evita que una marcación se
+    //   aplique dos veces si el puente la reenvía (reinicio, corte de red).
+    try {
+        await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS lector_user_id INT;');
+        await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_lector ON usuarios (lector_user_id) WHERE lector_user_id IS NOT NULL;');
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS lector_marcaciones (
+                rec_no         INT PRIMARY KEY,
+                lector_user_id INT,
+                usuario_id     INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                nombre_lector  TEXT,
+                fecha_hora     TIMESTAMPTZ NOT NULL,
+                resultado      TEXT,
+                recibida_en    TIMESTAMPTZ DEFAULT NOW()
+            );
+        `);
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_lector_marcaciones_fecha ON lector_marcaciones (fecha_hora DESC);');
+        console.log('✅ Tablas del lector de asistencia verificadas/creadas.');
+    } catch (lectorErr) {
+        console.log('Info Migración lector de asistencia:', lectorErr.message);
+    }
+
     // Migración: turno en el que se CREÓ la comanda.
     // comandas.caja_id no sirve para numerar: al cobrar se reasigna al turno que
     // cobra, así que una comanda creada en el turno de mañana y cobrada en el de
