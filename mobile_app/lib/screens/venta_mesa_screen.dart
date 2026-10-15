@@ -10,6 +10,7 @@ import '../models/product.dart';
 import '../widgets/pulsing_coffee_loader.dart';
 import '../services/sunmi_printer_service.dart';
 import '../utils/mesa_utils.dart';
+import '../widgets/mesa_card.dart';
 
 enum VentaMesaViewState {
   tableSelection,
@@ -854,140 +855,45 @@ class _VentaMesaScreenState extends State<VentaMesaScreen> {
       color: AppTheme.accentColor,
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          // Leyenda de Estados
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 4),
-                const Text('Libre', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(width: 20),
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 4),
-                const Text('Ocupada', style: TextStyle(fontSize: 11, color: Colors.grey)),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-
-          // Grilla de mesas: todas juntas, prolijas y alineadas (sin plano
-          // libre ni coordenadas manuales pos_x/pos_y).
+          if (_mesas.isNotEmpty) ResumenMesas(mesas: _mesas),
           Expanded(
             child: _mesas.isEmpty
                 ? const Center(child: Text('No hay mesas disponibles.'))
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                     children: [
                       for (final piso in pisosConMesas) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 10),
-                          child: Text(
-                            (_nombresPiso[piso] ?? piso).toUpperCase(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                              letterSpacing: 0.6,
-                              color: AppTheme.textMuted,
-                            ),
-                          ),
+                        TituloPiso(
+                          nombre: _nombresPiso[piso] ?? piso,
+                          mesas: mesasPorPiso[piso]!,
                         ),
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 100,
-                            mainAxisSpacing: 14,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 80 / 95,
+                            maxCrossAxisExtent: 124,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.95,
                           ),
                           itemCount: mesasPorPiso[piso]!.length,
-                          itemBuilder: (context, index) => _buildMesaCard(mesasPorPiso[piso]![index]),
+                          itemBuilder: (context, index) {
+                            final m = mesasPorPiso[piso]![index];
+                            return MesaCard(
+                              mesa: m,
+                              onTap: () => _seleccionarMesa(
+                                m['mesa']?.toString() ?? '',
+                                m['estado'] ?? 'libre',
+                              ),
+                            );
+                          },
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 14),
                       ],
                     ],
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMesaCard(dynamic m) {
-    final numMesa = m['mesa']?.toString() ?? '';
-    final estado = m['estado'] ?? 'libre';
-    final comanda = m['comanda'];
-    final isLibre = estado == 'libre';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _seleccionarMesa(numMesa, estado),
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 55,
-              height: 55,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryDark,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isLibre ? Colors.greenAccent : Colors.redAccent,
-                  width: 3,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isLibre ? Colors.greenAccent : Colors.redAccent).withOpacity(0.2),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  isLibre ? Icons.chair_alt : Icons.restaurant,
-                  size: 20,
-                  color: isLibre ? Colors.greenAccent : Colors.redAccent,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              nombreMesa(numMesa),
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 11,
-                color: Colors.white,
-                fontFamily: 'Outfit',
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (!isLibre && comanda != null)
-              Text(
-                'Bs. ${double.parse(comanda['total'].toString()).toStringAsFixed(1)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 10,
-                  color: AppTheme.accentColor,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
       ),
     );
   }

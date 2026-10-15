@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 29,
-    "versionName": "1.0.28",
+    "versionCode": 30,
+    "versionName": "1.0.29",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Corregido: eliminar un gasto desde la pantalla de Caja ya funciona (antes la app no mandaba la sesión y el servidor la rechazaba).",
+    "notas": "Venta por Mesa renovada: contadores arriba (libres, en cocina, por cobrar y cuanto hay en mesas), y cada mesa muestra el monto, los items, hace cuanto esta abierta y su numero de pedido. Los colores ahora distinguen la mesa que espera comida de la que espera la cuenta.",
     "obligatoria": true
   },
   "comandas": {
