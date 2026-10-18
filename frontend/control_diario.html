@@ -126,391 +126,381 @@
 
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
-        <!-- Header / Top Bar -->
+
         <header class="h-16 bg-topbar border-b border-blue-500/30 flex items-center justify-between px-6 shrink-0 z-30">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-600 hover:text-slate-900"><i class="fa-solid fa-bars text-xl"></i></button>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-300 hover:text-white"><i class="fa-solid fa-bars text-xl"></i></button>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">Control Diario de Insumos</h1>
-                    <p class="text-xs text-slate-400">Inventario y control diario en Cocina</p>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Control Diario</h1>
+                    <p class="text-xs text-slate-400">Lo que queda al cerrar, por cocina y por barra</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-1.5 border border-slate-200/50">
-                    <span id="header-user" class="text-sm font-bold text-slate-700">Cargando...</span>
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                </div>
+            <div class="flex items-center gap-2 bg-sidebar rounded-xl px-3 py-1.5 border border-blue-500/30">
+                <span id="header-user" class="text-sm font-bold text-slate-200">Cargando...</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
         </header>
 
-        <!-- Main Body -->
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
-            
-            <!-- Controls / Filters -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-premium flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <div class="bg-accent/20 text-accent p-2.5 rounded-xl">
-                        <i class="fa-solid fa-calendar-day text-lg"></i>
-                    </div>
-                    <div class="flex-1 sm:flex-initial">
-                        <label class="block text-[10px] uppercase font-black tracking-widest text-slate-400">Fecha del Control</label>
-                        <input type="date" id="filtro-fecha" onchange="cargarControlDiario()" class="font-bold text-slate-700 bg-transparent outline-none cursor-pointer border-b border-slate-200 focus:border-accent pb-0.5 text-sm sm:text-base">
-                    </div>
-                </div>
 
-                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <button onclick="abrirModalAnadir()" class="w-full sm:w-auto px-5 py-3 bg-accent text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-orange-600 transition-all duration-200 shadow-lg shadow-orange-500/20">
-                        <i class="fa-solid fa-plus"></i> Añadir Insumo
+            <!-- PASO 1: elegir lista -->
+            <section id="paso-lista">
+                <h2 class="text-slate-300 font-semibold mb-3">¿Qué vas a registrar?</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
+                    <button onclick="abrirLista('COCINA')" class="text-left bg-topbar hover:bg-sidebarHover border border-blue-500/30 hover:border-orange-500/60 rounded-2xl p-5 transition-all">
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center"><i class="fa-solid fa-kitchen-set text-orange-400"></i></span>
+                            <span class="text-lg font-bold text-white">Cocina</span>
+                        </div>
+                        <p class="text-sm text-slate-400" id="resumen-cocina">Cargando…</p>
+                    </button>
+                    <button onclick="abrirLista('BARRA')" class="text-left bg-topbar hover:bg-sidebarHover border border-blue-500/30 hover:border-sky-400/60 rounded-2xl p-5 transition-all">
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center"><i class="fa-solid fa-mug-saucer text-sky-400"></i></span>
+                            <span class="text-lg font-bold text-white">Barra</span>
+                        </div>
+                        <p class="text-sm text-slate-400" id="resumen-barra">Cargando…</p>
                     </button>
                 </div>
-            </div>
 
-            <!-- Listado Principal con Gráfico de Barras -->
-            <div class="bg-white rounded-2xl border border-slate-200/60 shadow-premium overflow-hidden">
-                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <h2 class="font-bold text-slate-800 text-lg">Lista de Insumos Registrados</h2>
-                        <p class="text-xs text-slate-400">Los datos de días anteriores se heredan automáticamente</p>
+                <!-- Bandeja del admin -->
+                <div id="bandeja-admin" class="hidden mt-8">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-slate-300 font-semibold">Controles recibidos</h2>
+                        <div class="flex items-center gap-2 text-xs">
+                            <button onclick="cargarBandeja('ENVIADO')" id="f-ENVIADO" class="filtro-bandeja px-3 py-1.5 rounded-lg border border-blue-500/30">Sin comprobar</button>
+                            <button onclick="cargarBandeja('')" id="f-" class="filtro-bandeja px-3 py-1.5 rounded-lg border border-blue-500/30">Todos</button>
+                        </div>
                     </div>
-                    <span id="contador-insumos" class="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full font-bold text-xs">0 Insumos</span>
+                    <div id="lista-bandeja" class="space-y-2"></div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-xs font-black uppercase tracking-wider">
-                                <th class="px-6 py-3.5">Insumo</th>
-                                <th class="px-6 py-3.5">Cantidad Registrada</th>
-                                <th class="px-6 py-3.5 w-[40%]">Gráfico de Cantidad</th>
-                                <th class="px-6 py-3.5 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lista-control" class="divide-y divide-slate-100 text-sm">
-                            <!-- Inyectado dinámicamente -->
-                        </tbody>
-                    </table>
+                <!-- Mis envíos (para quien no es admin) -->
+                <div id="mis-envios" class="hidden mt-8">
+                    <h2 class="text-slate-300 font-semibold mb-3">Lo que enviaste</h2>
+                    <div id="lista-mis-envios" class="space-y-2"></div>
                 </div>
+            </section>
 
-                <!-- Empty State -->
-                <div id="empty-state" class="hidden flex flex-col items-center justify-center py-16 px-4">
-                    <div class="w-20 h-20 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center text-4xl mb-4">
-                        <i class="fa-solid fa-clipboard"></i>
+            <!-- PASO 2: cargar cantidades -->
+            <section id="paso-conteo" class="hidden">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <button onclick="volverAListas()" class="w-9 h-9 rounded-xl bg-topbar border border-blue-500/30 text-slate-300 hover:text-white"><i class="fa-solid fa-arrow-left"></i></button>
+                        <div>
+                            <h2 id="titulo-lista" class="text-lg font-bold text-white"></h2>
+                            <p class="text-xs text-slate-400">Poné la cantidad de lo que dejás. Lo que esté en cero no se manda.</p>
+                        </div>
                     </div>
-                    <h3 class="font-bold text-slate-600 text-lg">Sin registros para esta fecha</h3>
-                    <p class="text-slate-400 text-sm text-center max-w-sm mt-1">Haz clic en "Añadir Insumo" para empezar a registrar ingredientes en la cocina para este día.</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="abrirModalNuevo()" class="px-3 py-2 rounded-xl bg-topbar border border-blue-500/30 text-slate-200 text-sm hover:bg-sidebarHover">
+                            <i class="fa-solid fa-plus mr-1"></i> Producto nuevo
+                        </button>
+                        <button onclick="enviarControl()" id="btn-enviar" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Enviar
+                        </button>
+                    </div>
                 </div>
-            </div>
 
+                <div class="bg-topbar border border-blue-500/30 rounded-2xl overflow-hidden">
+                    <div id="filas-conteo" class="divide-y divide-blue-500/20"></div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-xs text-slate-400 mb-1">Nota para el administrador (opcional)</label>
+                    <textarea id="nota" rows="2" class="w-full bg-topbar border border-blue-500/30 rounded-xl p-3 text-slate-200 text-sm" placeholder="Ej: faltó entrega de pollo"></textarea>
+                </div>
+            </section>
+
+            <!-- Detalle de un control -->
+            <section id="paso-detalle" class="hidden"></section>
         </div>
     </main>
 
-    <!-- Modal Añadir Insumo -->
-    <div id="modalAnadir" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-accent"></i> Añadir Insumo al Control
-                </h3>
-                <button onclick="cerrarModalAnadir()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Modal: producto nuevo -->
+    <div id="modalNuevo" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-topbar border border-blue-500/30 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-white">Agregar producto a la lista</h3>
+                <button onclick="cerrarModalNuevo()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            
-            <form onsubmit="guardarNuevoInsumo(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Buscar Insumo del Catálogo</label>
-                    <select id="select-catalogo" onchange="seleccionarDeCatalogo()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium">
-                        <option value="">-- [ Escribir insumo libre ] --</option>
-                        <!-- Inyectado por backend -->
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nombre del Insumo</label>
-                    <input type="text" id="input-nombre" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Ej: Leche Condensada">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cantidad</label>
-                        <input type="number" id="input-cantidad" step="0.01" required min="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-bold" placeholder="Ej: 5.50">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Unidad Medida</label>
-                        <input type="text" id="input-unidad" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Ej: Kg, Litros, Unidades">
-                    </div>
-                </div>
-
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="cerrarModalAnadir()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition-all duration-200">Cancelar</button>
-                    <button type="submit" class="flex-1 py-3 bg-accent hover:bg-orange-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/10">Añadir</button>
-                </div>
-            </form>
+            <label class="block text-xs text-slate-400 mb-1">Nombre</label>
+            <input id="nuevo-nombre" type="text" class="w-full bg-sidebar border border-blue-500/30 rounded-xl p-3 text-slate-200 mb-4" placeholder="Ej: Jugo de naranja">
+            <label class="block text-xs text-slate-400 mb-1">Unidad</label>
+            <input id="nuevo-unidad" type="text" list="unidades-sugeridas" class="w-full bg-sidebar border border-blue-500/30 rounded-xl p-3 text-slate-200 mb-2" placeholder="Unidad">
+            <datalist id="unidades-sugeridas"></datalist>
+            <p class="text-xs text-slate-500 mb-5">Podés elegir una de la lista o escribir la tuya.</p>
+            <button onclick="guardarProductoNuevo()" class="w-full py-3 rounded-xl bg-accent hover:bg-blue-600 text-white font-bold">Agregar</button>
         </div>
     </div>
 
-    <!-- Modal Editar Cantidad -->
-    <div id="modalEditar" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-edit text-accent"></i> Modificar Cantidad Insumo
-                </h3>
-                <button onclick="cerrarModalEditar()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            
-            <form onsubmit="guardarEdicionInsumo(event)" class="space-y-4">
-                <input type="hidden" id="edit-id">
-                
-                <div>
-                    <h4 class="font-bold text-slate-800 text-base" id="edit-nombre-texto">---</h4>
-                    <p class="text-xs text-slate-400">Modificando control de esta fecha</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nueva Cantidad</label>
-                        <input type="number" id="edit-cantidad" step="0.01" required min="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-bold" placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Unidad Medida</label>
-                        <input type="text" id="edit-unidad" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-slate-700 font-medium" placeholder="Kg, Litros, etc">
-                    </div>
-                </div>
-
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="cerrarModalEditar()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition-all duration-200">Cancelar</button>
-                    <button type="submit" class="flex-1 py-3 bg-accent hover:bg-orange-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-orange-500/10">Guardar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Scripts del Sistema -->
     <script>
-        // Set date to today on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filtro-fecha').value = today;
+    // ------------------------------------------------------------------
+    // Control Diario: el encargado de cocina o barra registra lo que deja al
+    // cerrar y lo envía; el administrador lo recibe y lo marca comprobado.
+    // ------------------------------------------------------------------
+    const API = '/api/control-diario';
+    let listaActual = null;      // 'COCINA' | 'BARRA'
+    let itemsActuales = [];      // {nombre, unidad_sugerida}
+    let unidadesActuales = ['Unidad'];
+    let esAdminUI = false;
 
-            // Cargar usuario logueado en la cabecera
-            const nombre = sessionStorage.getItem('nombre_usuario') || 'Usuario';
-            const rol = sessionStorage.getItem('rol_usuario') || 'Cajero';
-            document.getElementById('header-user').innerText = `${nombre} (${rol})`;
-
-            cargarControlDiario();
-            cargarInsumosCatalogo();
+    const pedir = async (url, opciones = {}) => {
+        // El token de sesión lo agrega solo security_guard.js, que envuelve fetch.
+        const r = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            ...opciones,
         });
+        const cuerpo = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(cuerpo.error || `Error ${r.status}`);
+        return cuerpo;
+    };
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
+    const escapar = (t) => String(t ?? '').replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-        let insumosCatalogo = [];
+    const fechaCorta = (iso) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.toLocaleString('es-BO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    };
 
-        // Cargar catálogo de insumos
-        async function cargarInsumosCatalogo() {
+    // ------------------------------------------------------------- arranque
+    document.addEventListener('DOMContentLoaded', async () => {
+        // La sesión vive en sessionStorage, no en localStorage: security_guard.js
+        // limpia la copia vieja de localStorage justo para que dos pestañas no se
+        // pisen el usuario entre sí.
+        const nombre = sessionStorage.getItem('usuario_nombre') || 'Usuario';
+        const rol = (sessionStorage.getItem('usuario_rol') || '').toUpperCase();
+        esAdminUI = rol === 'ADMIN' || rol === 'ADMINISTRADOR';
+        document.getElementById('header-user').textContent = nombre;
+
+        // Cuántos productos tiene cada lista, para mostrarlo en las tarjetas.
+        for (const l of ['COCINA', 'BARRA']) {
             try {
-                const res = await fetch('/api/control-diario/insumos-catalogo');
-                insumosCatalogo = await res.json();
-                
-                const select = document.getElementById('select-catalogo');
-                select.innerHTML = '<option value="">-- [ Escribir insumo libre ] --</option>';
-                insumosCatalogo.forEach(ins => {
-                    select.innerHTML += `<option value="${ins.id}">${ins.nombre} (${ins.unidad_medida})</option>`;
-                });
-            } catch (err) {
-                console.error("Error al cargar catálogo:", err);
+                const d = await pedir(`${API}/plantilla?lista=${l}`);
+                document.getElementById(`resumen-${l.toLowerCase()}`).textContent =
+                    `${d.items.length} producto${d.items.length === 1 ? '' : 's'} en la lista`;
+            } catch (e) {
+                document.getElementById(`resumen-${l.toLowerCase()}`).textContent = 'No se pudo cargar';
             }
         }
 
-        function seleccionarDeCatalogo() {
-            const select = document.getElementById('select-catalogo');
-            const inputNombre = document.getElementById('input-nombre');
-            const inputUnidad = document.getElementById('input-unidad');
+        if (esAdminUI) {
+            document.getElementById('bandeja-admin').classList.remove('hidden');
+            cargarBandeja('ENVIADO');
+        } else {
+            document.getElementById('mis-envios').classList.remove('hidden');
+            cargarMisEnvios();
+        }
+    });
 
-            if (select.value === "") {
-                inputNombre.value = "";
-                inputUnidad.value = "";
-                inputNombre.readOnly = false;
-                inputUnidad.readOnly = false;
-            } else {
-                const selectedInsumo = insumosCatalogo.find(ins => ins.id == select.value);
-                if (selectedInsumo) {
-                    inputNombre.value = selectedInsumo.nombre;
-                    inputUnidad.value = selectedInsumo.unidad_medida;
-                    inputNombre.readOnly = true;
-                    inputUnidad.readOnly = true;
-                }
+    // ------------------------------------------------------- cargar y enviar
+    async function abrirLista(lista) {
+        listaActual = lista;
+        try {
+            const d = await pedir(`${API}/plantilla?lista=${lista}`);
+            itemsActuales = d.items;
+            unidadesActuales = d.unidades && d.unidades.length ? d.unidades : ['Unidad'];
+        } catch (e) {
+            alert('No se pudo cargar la lista: ' + e.message);
+            return;
+        }
+        document.getElementById('titulo-lista').textContent = lista === 'COCINA' ? 'Cocina' : 'Barra';
+        document.getElementById('nota').value = '';
+        document.getElementById('unidades-sugeridas').innerHTML =
+            unidadesActuales.map((u) => `<option value="${escapar(u)}">`).join('');
+        document.getElementById('nuevo-unidad').value = unidadesActuales[0];
+        dibujarFilas();
+        document.getElementById('paso-lista').classList.add('hidden');
+        document.getElementById('paso-conteo').classList.remove('hidden');
+    }
+
+    function dibujarFilas() {
+        // En cocina la unidad es siempre "Unidad" y no se muestra el selector:
+        // el dueño lo pidió así para que el conteo sea de a una cosa sola.
+        const soloUnidad = listaActual === 'COCINA';
+        document.getElementById('filas-conteo').innerHTML = itemsActuales.map((it, i) => `
+            <div class="flex items-center gap-3 px-4 py-3">
+                <span class="flex-1 text-slate-200 text-sm font-medium">${escapar(it.nombre)}</span>
+                <input type="number" inputmode="decimal" min="0" step="any" data-cantidad="${i}"
+                       class="w-24 bg-sidebar border border-blue-500/30 rounded-lg px-3 py-2 text-right text-slate-100"
+                       placeholder="0">
+                ${soloUnidad
+                    ? `<span class="w-28 text-xs text-slate-500 text-center">Unidad</span>`
+                    : `<select data-unidad="${i}" class="w-28 bg-sidebar border border-blue-500/30 rounded-lg px-2 py-2 text-slate-200 text-sm">
+                         ${unidadesActuales.map((u) => `<option ${u === it.unidad_sugerida ? 'selected' : ''}>${escapar(u)}</option>`).join('')}
+                       </select>`}
+            </div>`).join('');
+    }
+
+    function volverAListas() {
+        document.getElementById('paso-conteo').classList.add('hidden');
+        document.getElementById('paso-detalle').classList.add('hidden');
+        document.getElementById('paso-lista').classList.remove('hidden');
+    }
+
+    async function enviarControl() {
+        const items = itemsActuales.map((it, i) => {
+            const sel = document.querySelector(`[data-unidad="${i}"]`);
+            return {
+                nombre: it.nombre,
+                cantidad: document.querySelector(`[data-cantidad="${i}"]`).value,
+                unidad: sel ? sel.value : 'Unidad',
+            };
+        }).filter((x) => parseFloat(x.cantidad) > 0);
+
+        if (items.length === 0) {
+            alert('Poné la cantidad de al menos un producto antes de enviar.');
+            return;
+        }
+        const btn = document.getElementById('btn-enviar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando…';
+        try {
+            const r = await pedir(`${API}/reportes`, {
+                method: 'POST',
+                body: JSON.stringify({ lista: listaActual, nota: document.getElementById('nota').value, items }),
+            });
+            alert(`${r.mensaje}\n\n${r.productos} producto(s) enviados.`);
+            volverAListas();
+            esAdminUI ? cargarBandeja('ENVIADO') : cargarMisEnvios();
+        } catch (e) {
+            alert('No se pudo enviar: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> Enviar';
+        }
+    }
+
+    // --------------------------------------------------------- producto nuevo
+    function abrirModalNuevo() { document.getElementById('modalNuevo').classList.replace('hidden', 'flex'); }
+    function cerrarModalNuevo() { document.getElementById('modalNuevo').classList.replace('flex', 'hidden'); }
+
+    async function guardarProductoNuevo() {
+        const nombre = document.getElementById('nuevo-nombre').value.trim();
+        const unidad = document.getElementById('nuevo-unidad').value.trim() || 'Unidad';
+        if (!nombre) { alert('Escribí el nombre del producto.'); return; }
+        try {
+            await pedir(`${API}/plantilla`, {
+                method: 'POST',
+                body: JSON.stringify({ lista: listaActual, nombre, unidad_sugerida: unidad }),
+            });
+            // Si la unidad es nueva, se suma a las que ofrece el selector.
+            if (!unidadesActuales.includes(unidad)) unidadesActuales.push(unidad);
+            const d = await pedir(`${API}/plantilla?lista=${listaActual}`);
+            itemsActuales = d.items;
+            dibujarFilas();
+            cerrarModalNuevo();
+            document.getElementById('nuevo-nombre').value = '';
+        } catch (e) {
+            alert('No se pudo agregar: ' + e.message);
+        }
+    }
+
+    // ------------------------------------------------------------- bandejas
+    async function cargarBandeja(estado) {
+        document.querySelectorAll('.filtro-bandeja').forEach((b) => {
+            b.classList.toggle('bg-accent', b.id === `f-${estado}`);
+            b.classList.toggle('text-white', b.id === `f-${estado}`);
+            b.classList.toggle('text-slate-400', b.id !== `f-${estado}`);
+        });
+        const cont = document.getElementById('lista-bandeja');
+        cont.innerHTML = '<p class="text-slate-500 text-sm">Cargando…</p>';
+        try {
+            const datos = await pedir(`${API}/reportes${estado ? `?estado=${estado}` : ''}`);
+            if (datos.length === 0) {
+                cont.innerHTML = '<p class="text-slate-500 text-sm">No hay controles acá.</p>';
+                return;
             }
+            cont.innerHTML = datos.map(tarjetaReporte).join('');
+        } catch (e) {
+            cont.innerHTML = `<p class="text-rose-400 text-sm">${escapar(e.message)}</p>`;
         }
+    }
 
-        // Cargar control de la fecha
-        async function cargarControlDiario() {
-            const fecha = document.getElementById('filtro-fecha').value;
-            if (!fecha) return;
+    function tarjetaReporte(r) {
+        const comprobado = r.estado === 'COMPROBADO';
+        return `
+        <div class="bg-topbar border border-blue-500/30 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+            <span class="px-2 py-0.5 rounded-lg text-xs font-bold ${r.lista === 'COCINA' ? 'bg-orange-500/15 text-orange-400' : 'bg-sky-500/15 text-sky-400'}">
+                ${r.lista === 'COCINA' ? 'Cocina' : 'Barra'}
+            </span>
+            <span class="text-slate-200 text-sm font-semibold">${escapar(r.usuario_nombre || 'Sin nombre')}</span>
+            <span class="text-slate-500 text-xs">${fechaCorta(r.enviado_en)} · ${r.productos} producto(s)</span>
+            ${r.nota ? `<span class="text-amber-300/80 text-xs italic">“${escapar(r.nota)}”</span>` : ''}
+            <span class="ml-auto flex items-center gap-2">
+                ${comprobado
+                    ? `<span class="text-emerald-400 text-xs font-bold"><i class="fa-solid fa-check mr-1"></i>Comprobado por ${escapar(r.comprobado_nombre || '')}</span>`
+                    : `<button onclick="comprobar(${r.id})" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">
+                         <i class="fa-solid fa-check mr-1"></i> Comprobar
+                       </button>`}
+                <button onclick="verDetalle(${r.id})" class="px-3 py-1.5 rounded-lg border border-blue-500/30 text-slate-300 text-xs hover:bg-sidebarHover">Ver</button>
+            </span>
+        </div>`;
+    }
 
-            try {
-                const res = await fetch(`/api/control-diario?fecha=${fecha}`);
-                const data = await res.json();
-
-                const tbody = document.getElementById('lista-control');
-                const emptyState = document.getElementById('empty-state');
-                const countBadge = document.getElementById('contador-insumos');
-
-                tbody.innerHTML = '';
-                countBadge.innerText = `${data.length} Insumo${data.length === 1 ? '' : 's'}`;
-
-                if (data.length === 0) {
-                    emptyState.classList.remove('hidden');
-                    return;
-                }
-                emptyState.classList.add('hidden');
-
-                // Calcular el máximo de cantidad de este día para la escala de las barras
-                const maxCantidad = Math.max(...data.map(item => parseFloat(item.cantidad) || 0), 1);
-
-                data.forEach(item => {
-                    const cant = parseFloat(item.cantidad) || 0;
-                    // Porcentaje relativo al máximo
-                    const porcentaje = Math.min((cant / maxCantidad) * 100, 100);
-
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-slate-800">
-                                ${item.nombre_insumo}
-                            </td>
-                            <td class="px-6 py-4 font-mono font-bold text-slate-700">
-                                ${cant.toFixed(2)} <span class="text-xs text-slate-400 font-sans font-medium">${item.unidad_medida}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-orange-400 to-accent h-full rounded-full transition-all duration-500" style="width: ${porcentaje}%"></div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                <button onclick="abrirModalEditar(${item.id}, '${item.nombre_insumo}', ${cant}, '${item.unidad_medida}')" class="p-2 text-slate-400 hover:text-accent rounded-xl hover:bg-slate-100 transition-all duration-150" title="Editar Cantidad">
-                                    <i class="fa-solid fa-pencil text-sm"></i>
-                                </button>
-                                <button onclick="eliminarInsumo(${item.id})" class="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-slate-100 transition-all duration-150" title="Eliminar Insumo">
-                                    <i class="fa-solid fa-trash-can text-sm"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-            } catch (err) {
-                console.error("Error al cargar control diario:", err);
-            }
+    async function cargarMisEnvios() {
+        const cont = document.getElementById('lista-mis-envios');
+        try {
+            const datos = await pedir(`${API}/reportes/mios`);
+            cont.innerHTML = datos.length === 0
+                ? '<p class="text-slate-500 text-sm">Todavía no enviaste ninguno.</p>'
+                : datos.map((r) => `
+                    <div class="bg-topbar border border-blue-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded-lg text-xs font-bold ${r.lista === 'COCINA' ? 'bg-orange-500/15 text-orange-400' : 'bg-sky-500/15 text-sky-400'}">
+                            ${r.lista === 'COCINA' ? 'Cocina' : 'Barra'}
+                        </span>
+                        <span class="text-slate-400 text-xs">${fechaCorta(r.enviado_en)} · ${r.productos} producto(s)</span>
+                        <span class="ml-auto text-xs font-bold ${r.estado === 'COMPROBADO' ? 'text-emerald-400' : 'text-amber-400'}">
+                            ${r.estado === 'COMPROBADO' ? 'Comprobado' : 'Esperando al admin'}
+                        </span>
+                        <button onclick="verDetalle(${r.id})" class="px-3 py-1.5 rounded-lg border border-blue-500/30 text-slate-300 text-xs hover:bg-sidebarHover">Ver</button>
+                    </div>`).join('');
+        } catch (e) {
+            cont.innerHTML = `<p class="text-rose-400 text-sm">${escapar(e.message)}</p>`;
         }
+    }
 
-        // Modales
-        function abrirModalAnadir() {
-            document.getElementById('modalAnadir').classList.remove('hidden');
-            document.getElementById('select-catalogo').value = "";
-            seleccionarDeCatalogo();
+    async function comprobar(id) {
+        if (!confirm('¿Marcar este control como comprobado?')) return;
+        try {
+            await pedir(`${API}/reportes/${id}/comprobar`, { method: 'PUT' });
+            cargarBandeja(document.querySelector('.filtro-bandeja.bg-accent')?.id.replace('f-', '') || '');
+        } catch (e) {
+            alert('No se pudo comprobar: ' + e.message);
         }
+    }
 
-        function cerrarModalAnadir() {
-            document.getElementById('modalAnadir').classList.add('hidden');
+    async function verDetalle(id) {
+        try {
+            const d = await pedir(`${API}/reportes/${id}`);
+            document.getElementById('paso-lista').classList.add('hidden');
+            document.getElementById('paso-conteo').classList.add('hidden');
+            const cont = document.getElementById('paso-detalle');
+            cont.classList.remove('hidden');
+            cont.innerHTML = `
+                <div class="flex items-center gap-3 mb-4">
+                    <button onclick="volverAListas()" class="w-9 h-9 rounded-xl bg-topbar border border-blue-500/30 text-slate-300 hover:text-white"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">${d.lista === 'COCINA' ? 'Cocina' : 'Barra'} · ${escapar(d.usuario_nombre || '')}</h2>
+                        <p class="text-xs text-slate-400">Enviado ${fechaCorta(d.enviado_en)}
+                            ${d.estado === 'COMPROBADO' ? `· comprobado por ${escapar(d.comprobado_nombre || '')} el ${fechaCorta(d.comprobado_en)}` : '· sin comprobar'}</p>
+                    </div>
+                </div>
+                ${d.nota ? `<p class="mb-4 text-amber-300/80 text-sm italic">“${escapar(d.nota)}”</p>` : ''}
+                <div class="bg-topbar border border-blue-500/30 rounded-2xl overflow-hidden divide-y divide-blue-500/20">
+                    ${d.items.map((it) => `
+                        <div class="flex items-center px-4 py-3">
+                            <span class="flex-1 text-slate-200 text-sm">${escapar(it.nombre)}</span>
+                            <span class="font-mono text-white font-bold">${parseFloat(it.cantidad)}</span>
+                            <span class="w-24 text-right text-slate-500 text-xs">${escapar(it.unidad)}</span>
+                        </div>`).join('')}
+                </div>`;
+        } catch (e) {
+            alert('No se pudo abrir: ' + e.message);
         }
-
-        function abrirModalEditar(id, nombre, cantidad, unidad) {
-            document.getElementById('edit-id').value = id;
-            document.getElementById('edit-nombre-texto').innerText = nombre;
-            document.getElementById('edit-cantidad').value = cantidad;
-            document.getElementById('edit-unidad').value = unidad;
-            document.getElementById('modalEditar').classList.remove('hidden');
-        }
-
-        function cerrarModalEditar() {
-            document.getElementById('modalEditar').classList.add('hidden');
-        }
-
-        // CRUD Actions
-        async function guardarNuevoInsumo(e) {
-            e.preventDefault();
-            const fecha = document.getElementById('filtro-fecha').value;
-            const selectCatalogo = document.getElementById('select-catalogo');
-            const nombre = document.getElementById('input-nombre').value;
-            const cantidad = document.getElementById('input-cantidad').value;
-            const unidad = document.getElementById('input-unidad').value;
-
-            try {
-                const res = await fetch('/api/control-diario', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fecha,
-                        insumo_id: selectCatalogo.value || null,
-                        nombre_insumo: nombre,
-                        cantidad,
-                        unidad_medida: unidad
-                    })
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error || 'Error al guardar');
-                }
-
-                cerrarModalAnadir();
-                cargarControlDiario();
-            } catch (err) {
-                alert("Error al añadir insumo: " + err.message);
-            }
-        }
-
-        async function guardarEdicionInsumo(e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-id').value;
-            const cantidad = document.getElementById('edit-cantidad').value;
-            const unidad = document.getElementById('edit-unidad').value;
-
-            try {
-                const res = await fetch(`/api/control-diario/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        cantidad,
-                        unidad_medida: unidad
-                    })
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error || 'Error al guardar');
-                }
-
-                cerrarModalEditar();
-                cargarControlDiario();
-            } catch (err) {
-                alert("Error al editar insumo: " + err.message);
-            }
-        }
-
-        async function eliminarInsumo(id) {
-            const confirmacion = confirm("¿Estás seguro de eliminar este insumo de la lista de hoy?");
-            if (!confirmacion) return;
-
-            try {
-                const res = await fetch(`/api/control-diario/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.error || 'Error al eliminar');
-                }
-
-                cargarControlDiario();
-            } catch (err) {
-                alert("Error al eliminar: " + err.message);
-            }
-        }
+    }
     </script>
 </body>
 </html>

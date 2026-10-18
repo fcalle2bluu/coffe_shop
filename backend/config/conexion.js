@@ -1420,6 +1420,93 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración lector de asistencia:', lectorErr.message);
     }
 
+    // Migración: Control Diario rehecho. Antes era una lista suelta de insumos
+    // por fecha (control_diario_cocina); ahora el encargado de cocina o de barra
+    // manda un reporte de lo que deja al cerrar, y el admin lo comprueba.
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS control_diario_plantilla (
+                id SERIAL PRIMARY KEY,
+                lista VARCHAR(20) NOT NULL,
+                orden INT NOT NULL DEFAULT 0,
+                nombre VARCHAR(120) NOT NULL,
+                unidad_sugerida VARCHAR(40) NOT NULL DEFAULT 'Unidad',
+                activo BOOLEAN NOT NULL DEFAULT true,
+                UNIQUE (lista, nombre)
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS control_diario_reportes (
+                id SERIAL PRIMARY KEY,
+                lista VARCHAR(20) NOT NULL,
+                fecha DATE NOT NULL DEFAULT (TIMEZONE('America/La_Paz', NOW())::date),
+                usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                usuario_nombre VARCHAR(120),
+                nota TEXT,
+                estado VARCHAR(20) NOT NULL DEFAULT 'ENVIADO',
+                enviado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                comprobado_por INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                comprobado_nombre VARCHAR(120),
+                comprobado_en TIMESTAMPTZ
+            );
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS control_diario_detalle (
+                id SERIAL PRIMARY KEY,
+                reporte_id INT NOT NULL REFERENCES control_diario_reportes(id) ON DELETE CASCADE,
+                orden INT NOT NULL DEFAULT 0,
+                nombre VARCHAR(120) NOT NULL,
+                cantidad NUMERIC(10, 2) NOT NULL DEFAULT 0,
+                unidad VARCHAR(40) NOT NULL DEFAULT 'Unidad'
+            );
+        `);
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_cd_reportes_fecha ON control_diario_reportes (fecha DESC, id DESC);');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_cd_detalle_reporte ON control_diario_detalle (reporte_id);');
+
+        // Las dos listas que dictó el dueño. ON CONFLICT DO NOTHING para que el
+        // deploy no pise los productos que hayan agregado desde la pantalla.
+        await pool.query(`
+            INSERT INTO control_diario_plantilla (lista, orden, nombre, unidad_sugerida) VALUES
+                ('COCINA', 1, $$Pavita$$, 'Unidad'),
+                ('COCINA', 2, $$Nuggets$$, 'Unidad'),
+                ('COCINA', 3, $$Lomito$$, 'Unidad'),
+                ('COCINA', 4, $$Filete Pollo$$, 'Unidad'),
+                ('COCINA', 5, $$Hamburguesa$$, 'Unidad'),
+                ('COCINA', 6, $$E. Queso$$, 'Unidad'),
+                ('COCINA', 7, $$E. Pollo$$, 'Unidad'),
+                ('COCINA', 8, $$E. Carne$$, 'Unidad'),
+                ('COCINA', 9, $$Alas (3 unid)$$, 'Unidad'),
+                ('COCINA', 10, $$Alas (6 unid)$$, 'Unidad'),
+                ('COCINA', 11, $$Huevo$$, 'Unidad'),
+                ('BARRA', 1, $$Leche entera$$, 'Unidad'),
+                ('BARRA', 2, $$Leche deslactosada$$, 'Unidad'),
+                ('BARRA', 3, $$Yogurt$$, 'Unidad'),
+                ('BARRA', 4, $$Porción mango$$, 'Unidad'),
+                ('BARRA', 5, $$Frutilla$$, 'Unidad'),
+                ('BARRA', 6, $$Piña$$, 'Unidad'),
+                ('BARRA', 7, $$Papaya$$, 'Unidad'),
+                ('BARRA', 8, $$Tumbo$$, 'Unidad'),
+                ('BARRA', 9, $$Mora$$, 'Unidad'),
+                ('BARRA', 10, $$Limón$$, 'Unidad'),
+                ('BARRA', 11, $$Crema pastelera$$, 'Unidad'),
+                ('BARRA', 12, $$Submarino$$, 'Unidad'),
+                ('BARRA', 13, $$Esencia menta$$, 'Unidad'),
+                ('BARRA', 14, $$Colorante menta$$, 'Unidad'),
+                ('BARRA', 15, $$Cocoa$$, 'Unidad'),
+                ('BARRA', 16, $$Personales de vidrio$$, 'Unidad'),
+                ('BARRA', 17, $$Coca Cola 500ml$$, 'Unidad'),
+                ('BARRA', 18, $$Fanta 500ml$$, 'Unidad'),
+                ('BARRA', 19, $$Cerveza Huari$$, 'Unidad'),
+                ('BARRA', 20, $$Agua con gas 500ml$$, 'Unidad'),
+                ('BARRA', 21, $$Agua sin gas 500ml$$, 'Unidad'),
+                ('BARRA', 22, $$Coca Cola 2 litros$$, 'Unidad')
+            ON CONFLICT (lista, nombre) DO NOTHING;
+        `);
+        console.log('✅ Tablas del Control Diario verificadas/creadas.');
+    } catch (cdErr) {
+        console.log('Info Migración Control Diario:', cdErr.message);
+    }
+
     // Migración: turno en el que se CREÓ la comanda.
     // comandas.caja_id no sirve para numerar: al cobrar se reasigna al turno que
     // cobra, así que una comanda creada en el turno de mañana y cobrada en el de

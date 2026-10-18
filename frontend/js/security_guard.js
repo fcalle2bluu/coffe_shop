@@ -453,7 +453,9 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         // Inyectar dinámicamente el enlace de "Control Diario" en el sidebar,
-        // como primer ítem del grupo colapsable "Más".
+        // justo debajo de "Dashboard" (antes estaba escondido dentro del grupo
+        // colapsable "Más"; el dueño lo pidió arriba porque se usa todos los días
+        // al cerrar).
         const nav = document.querySelector('aside nav');
         const masGroup = nav ? nav.querySelector('.mas-menu-group') : null;
         const pageName = window.location.pathname.split("/").pop();
@@ -465,18 +467,13 @@
                 </a>
             `;
             if (!nav.querySelector('a[href="control_diario.html"]')) {
-                if (masGroup) {
+                const dashLink = nav.querySelector('a[href="dashboard.html"]');
+                if (dashLink) {
+                    dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
+                } else if (masGroup) {
                     masGroup.insertAdjacentHTML('afterbegin', controlDiarioHTML);
                 } else {
-                    const empleadosLink = nav.querySelector('a[href="empleados.html"]');
-                    const dashLink = nav.querySelector('a[href="dashboard.html"]');
-                    if (empleadosLink) {
-                        empleadosLink.insertAdjacentHTML('afterend', controlDiarioHTML);
-                    } else if (dashLink) {
-                        dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
-                    } else {
-                        nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
-                    }
+                    nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
                 }
             }
         }
@@ -495,7 +492,9 @@
                 </a>
             `;
             if (!nav.querySelector('a[href="facturas.html"]')) {
-                const controlDiarioLink = nav.querySelector('a[href="control_diario.html"]');
+                // Primero el grupo "Más": antes se colgaba de "Control Diario",
+                // y al subir ese link al primer nivel Facturas se venía con él.
+                const controlDiarioLink = masGroup ? null : nav.querySelector('a[href="control_diario.html"]');
                 if (controlDiarioLink) {
                     controlDiarioLink.insertAdjacentHTML('afterend', facturasHTML);
                 } else if (masGroup) {
