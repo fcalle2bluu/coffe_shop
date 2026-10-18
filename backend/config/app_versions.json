@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 31,
-    "versionName": "1.0.30",
+    "versionCode": 32,
+    "versionName": "1.0.31",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Nueva pantalla Control Diario: al cerrar se registra cuanto queda de cocina y de barra, y el administrador lo recibe y lo marca comprobado. La lista muestra el avance, marca lo que ya cargaste y avisa cuantos productos vas a enviar.",
+    "notas": "En Control Diario, al pie de la pantalla, el administrador ahora ve lo que se vendio hoy de los productos vinculados a la lista, separado en cocina y barra, para leerlo al lado del conteo que manda el personal.",
     "obligatoria": true
   },
   "comandas": {

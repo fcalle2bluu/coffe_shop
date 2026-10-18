@@ -35,6 +35,10 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
   List<dynamic> _bandeja = [];
   String _filtroBandeja = 'ENVIADO';
 
+  // Lo vendido hoy de los productos vinculados a la lista. Solo para el admin
+  // y solo para mirar: no descuenta stock ni toca el inventario.
+  Map<String, dynamic>? _vendidoHoy;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +60,7 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
     final rol = (prefs.getString('usuario_rol') ?? '').toUpperCase();
     _esAdmin = rol.startsWith('ADMIN');
     await _cargarBandeja();
+    if (_esAdmin) await _cargarVendidoHoy();
     if (mounted) setState(() => _cargando = false);
   }
 
@@ -114,6 +119,17 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
       }
     } catch (_) {
       // La bandeja es secundaria: si falla, la pantalla igual sirve para enviar.
+    }
+  }
+
+  Future<void> _cargarVendidoHoy() async {
+    try {
+      final res = await ApiConfig.get('/control-diario/vendido-hoy');
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _vendidoHoy = jsonDecode(res.body) as Map<String, dynamic>);
+      }
+    } catch (_) {
+      // Es un panel de referencia: si no carga, el resto de la pantalla anda igual.
     }
   }
 
@@ -278,7 +294,10 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
 
   Widget _vistaInicio() {
     return RefreshIndicator(
-      onRefresh: _cargarBandeja,
+      onRefresh: () async {
+        await _cargarBandeja();
+        if (_esAdmin) await _cargarVendidoHoy();
+      },
       color: AppTheme.accentColor,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -319,9 +338,18 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
             )
           else
             ..._bandeja.map(_filaBandeja),
+          if (_esAdmin) ..._panelVendidoHoy(),
         ],
       ),
     );
+  }
+
+  // ------------------------------------------------- vendido hoy (solo admin)
+  // El panel vive en su propio widget, acá abajo: así se puede probar solo,
+  // sin levantar la pantalla entera ni el servidor.
+  List<Widget> _panelVendidoHoy() {
+    if (_vendidoHoy == null) return [];
+    return [PanelVendidoHoy(datos: _vendidoHoy!)];
   }
 
   Widget _tarjetaLista(String clave, String titulo, IconData icono, Color color) {
@@ -640,4 +668,156 @@ class _ControlDiarioScreenState extends State<ControlDiarioScreen> {
       ),
     );
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// VENDIDO HOY
+//
+// Va al pie de la pantalla, debajo de los controles recibidos: la idea es
+// leerlo al lado del conteo que mandó el personal. Solo lo ve el administrador
+// y es solo de lectura: no descuenta stock ni toca el inventario.
+class PanelVendidoHoy extends StatelessWidget {
+  const PanelVendidoHoy({super.key, required this.datos});
+
+  final Map<String, dynamic> datos;
+
+  @override
+  Widget build(BuildContext context) {
+    final cocina = (datos['cocina'] as List?) ?? [];
+    final barra = (datos['barra'] as List?) ?? [];
+    final fecha = (datos['fecha'] ?? '').toString();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SizedBox(height: 28),
+      const Divider(color: AppTheme.borderDark, height: 1),
+      const SizedBox(height: 20),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Text('Vendido hoy',
+              style: GoogleFonts.outfit(
+                  color: AppTheme.textLight, fontWeight: FontWeight.w700, fontSize: 16)),
+        ),
+        if (fecha.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppTheme.secondaryDark,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderDark),
+            ),
+            child: Text(fecha,
+                style: const TextStyle(
+                    color: AppTheme.textMuted, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+      ]),
+      const SizedBox(height: 4),
+      const Text(
+        'Solo los productos de la lista que están vinculados a una venta. '
+        'Es para comparar con el conteo: no descuenta stock.',
+        style: TextStyle(color: AppTheme.textMuted, fontSize: 11, height: 1.4),
+      ),
+      const SizedBox(height: 14),
+      _tarjeta('Cocina', Icons.soup_kitchen_rounded, _naranjaCocina, cocina),
+      const SizedBox(height: 12),
+      _tarjeta('Barra', Icons.local_cafe_rounded, _celesteBarra, barra),
+      const SizedBox(height: 8),
+    ]);
+  }
+
+  Widget _tarjeta(String titulo, IconData icono, Color color, List<dynamic> filas) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderDark),
+      ),
+      child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icono, color: color, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(titulo,
+                    style: GoogleFonts.outfit(
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                Text(
+                  filas.isEmpty
+                      ? 'Todavía nada'
+                      : '${filas.length} producto${filas.length == 1 ? '' : 's'} vendido${filas.length == 1 ? '' : 's'}',
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+        if (filas.isEmpty)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 0, 14, 16),
+            child: Text('No se vendió nada de la lista hoy',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+          )
+        else
+          ...filas.map((f) => Column(children: [
+                const Divider(color: AppTheme.borderDark, height: 1),
+                _renglon(f as Map<String, dynamic>, color),
+              ])),
+      ]),
+    );
+  }
+
+  Widget _renglon(Map<String, dynamic> f, Color color) {
+    final origen = (f['origen'] as List?) ?? [];
+    // El detalle solo aporta cuando el renglón sale de más de una venta o de un
+    // producto que se llama distinto (ej. "Lomito" <- "Medio Lomo").
+    final unico = origen.length == 1 &&
+        '${origen.first['producto']}'.toLowerCase() == '${f['nombre']}'.toLowerCase();
+    final detalle = unico
+        ? ''
+        : origen.map((o) => '${o['producto']} ×${numeroCorto(o['vendidos'])}').join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${f['nombre']}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
+            if (detalle.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(detalle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+              ),
+          ]),
+        ),
+        const SizedBox(width: 10),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(numeroCorto(f['cantidad']),
+              style: TextStyle(color: color, fontSize: 19, fontWeight: FontWeight.w800)),
+          Text('${f['unidad'] ?? 'Unidad'}',
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+        ]),
+      ]),
+    );
+  }
+}
+
+// Las cantidades llegan como número; se muestran sin el ".0" de más.
+String numeroCorto(dynamic v) {
+  final n = v is num ? v.toDouble() : (double.tryParse('$v') ?? 0);
+  return n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
 }
