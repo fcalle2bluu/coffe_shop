@@ -22,6 +22,7 @@ import 'ia_assistant_screen.dart';
 import 'asistencia_screen.dart';
 import 'dashboard_screen.dart';
 import 'venta_mesa_screen.dart';
+import 'control_diario_screen.dart';
 import 'recetas_screen.dart';
 import 'realizar_pedido_screen.dart';
 import '../widgets/version_badge.dart';
@@ -408,6 +409,14 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
         _screens.add(const PosScreen());
       }
 
+      // 1.5 Control Diario: el conteo de cierre de cocina y de barra. Lo usan
+      // justamente los roles limitados, que son los que cierran el local.
+      _menuItems.add({
+        'title': 'Control Diario',
+        'icon': FontAwesomeIcons.clipboardCheck,
+      });
+      _screens.add(const ControlDiarioScreen());
+
       // 2. Asistencia
       _menuItems.add({
         'title': 'Asistencia',
@@ -430,6 +439,13 @@ class _MainNavigationState extends State<MainNavigation> with WidgetsBindingObse
       'icon': FontAwesomeIcons.chartLine,
     });
     _screens.add(const DashboardScreen());
+
+    // 0.2 Control Diario, debajo del Dashboard igual que en la web.
+    _menuItems.add({
+      'title': 'Control Diario',
+      'icon': FontAwesomeIcons.clipboardCheck,
+    });
+    _screens.add(const ControlDiarioScreen());
 
     // 0.4 Realizar Pedido (flujo rápido para que el cajero también mande comandas a cocina)
     if (userRolUpper == 'CAJERO') {

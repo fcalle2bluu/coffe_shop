@@ -1,9 +1,9 @@
 {
   "mesero": {
-    "versionCode": 30,
-    "versionName": "1.0.29",
+    "versionCode": 31,
+    "versionName": "1.0.30",
     "apkUrl": "/apks/mesero.apk",
-    "notas": "Venta por Mesa renovada: contadores arriba (libres, en cocina, por cobrar y cuanto hay en mesas), y cada mesa muestra el monto, los items, hace cuanto esta abierta y su numero de pedido. Los colores ahora distinguen la mesa que espera comida de la que espera la cuenta.",
+    "notas": "Nueva pantalla Control Diario: al cerrar se registra cuanto queda de cocina y de barra, y el administrador lo recibe y lo marca comprobado. La lista muestra el avance, marca lo que ya cargaste y avisa cuantos productos vas a enviar.",
     "obligatoria": true
   },
   "comandas": {
