@@ -350,6 +350,29 @@
     const urlPath = window.location.pathname;
     const pageName = urlPath.substring(urlPath.lastIndexOf('/') + 1) || 'index.html';
 
+    // El enlace de "Control Diario" se inyecta desde acá en vez de copiarlo en
+    // las 25+ páginas. Va como función porque hace falta en dos caminos: el de
+    // los roles limitados (que corta con un return más abajo) y el del resto.
+    window.inyectarControlDiario = function () {
+        const nav = document.querySelector('aside nav');
+        if (!nav || nav.querySelector('a[href="control_diario.html"]')) return;
+        const activo = window.location.pathname.split('/').pop().includes('control_diario.html');
+        const html = `
+                <a href="control_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activo ? 'bg-orange-500/10 text-orange-500 font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
+                    <i class="fa-solid fa-calendar-day w-5 text-center text-orange-500/60"></i> <span>Control Diario</span>
+                </a>
+            `;
+        const dashLink = nav.querySelector('a[href="dashboard.html"]');
+        const masGroup = nav.querySelector('.mas-menu-group');
+        if (dashLink) {
+            dashLink.insertAdjacentHTML('afterend', html);
+        } else if (masGroup) {
+            masGroup.insertAdjacentHTML('afterbegin', html);
+        } else {
+            nav.insertAdjacentHTML('afterbegin', html);
+        }
+    };
+
     // REGLAS PARA ENCARGADO DE LOGÍSTICA O ALMACEN
     if (rol.includes('LOGISTICA') || rol.includes('ALMACEN')) {
         const paginasPermitidas = ['pedidos_internos.html', 'produccion.html', 'index.html', ''];
@@ -378,9 +401,12 @@
     const esRolLimitado = ['PASTELERA', 'PASTELERO', 'MESERO', 'COCINERO', 'BARISTA'].some(r => rol.includes(r));
     if (esRolLimitado) {
         const esMesero = rol.includes('MESERO');
+        // control_diario.html va en los dos: el conteo de cierre lo cargan
+        // justamente estos roles (cocina y barra), y sin esto el guardia los
+        // mandaba de vuelta a asistencia.html apenas abrían la pantalla.
         const paginasPermitidas = esMesero
-            ? ['asistencia.html', 'pedidos_internos.html', 'realizar_pedido.html', 'index.html', '']
-            : ['asistencia.html', 'pedidos_internos.html', 'index.html', ''];
+            ? ['asistencia.html', 'pedidos_internos.html', 'realizar_pedido.html', 'control_diario.html', 'index.html', '']
+            : ['asistencia.html', 'pedidos_internos.html', 'control_diario.html', 'index.html', ''];
 
         if (!paginasPermitidas.includes(pageName)) {
             window.location.href = esMesero ? 'realizar_pedido.html' : 'asistencia.html';
@@ -398,6 +424,9 @@
             document.querySelectorAll('.solo-admin').forEach(el => {
                 el.style.display = 'none';
             });
+            // Va después de ocultar: el bucle de arriba recorre los enlaces que
+            // ya estaban, y este se agrega recién ahora para que quede visible.
+            window.inyectarControlDiario();
         });
         return;
     }
@@ -452,31 +481,9 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
-        // Inyectar dinámicamente el enlace de "Control Diario" en el sidebar,
-        // justo debajo de "Dashboard" (antes estaba escondido dentro del grupo
-        // colapsable "Más"; el dueño lo pidió arriba porque se usa todos los días
-        // al cerrar).
+        window.inyectarControlDiario();
         const nav = document.querySelector('aside nav');
         const masGroup = nav ? nav.querySelector('.mas-menu-group') : null;
-        const pageName = window.location.pathname.split("/").pop();
-        const isControlDiarioActive = pageName.includes('control_diario.html');
-        if (nav) {
-            const controlDiarioHTML = `
-                <a href="control_diario.html" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isControlDiarioActive ? 'bg-orange-500/10 text-orange-500 font-bold' : 'hover:bg-slate-900 hover:text-slate-200 font-medium'}">
-                    <i class="fa-solid fa-calendar-day w-5 text-center text-orange-500/60"></i> <span>Control Diario</span>
-                </a>
-            `;
-            if (!nav.querySelector('a[href="control_diario.html"]')) {
-                const dashLink = nav.querySelector('a[href="dashboard.html"]');
-                if (dashLink) {
-                    dashLink.insertAdjacentHTML('afterend', controlDiarioHTML);
-                } else if (masGroup) {
-                    masGroup.insertAdjacentHTML('afterbegin', controlDiarioHTML);
-                } else {
-                    nav.insertAdjacentHTML('afterbegin', controlDiarioHTML);
-                }
-            }
-        }
 
         // Inyectar dinámicamente el enlace de "Facturas" dentro del grupo colapsable
         // "Más" (no como ítem de primer nivel — se agregó por error así en un commit
