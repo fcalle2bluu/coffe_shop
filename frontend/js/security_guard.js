@@ -537,7 +537,11 @@
         if (masGroup) {
             const toggleBtn = nav.querySelector('.mas-menu-toggle');
             const chevron = toggleBtn ? toggleBtn.querySelector('.mas-menu-chevron') : null;
-            const tieneActivaAdentro = isControlDiarioActive || !!masGroup.querySelector('a.bg-accent\\/20, a.text-accent');
+            // Antes esto miraba también si la página activa era Control Diario,
+            // porque ese link vivía dentro del grupo "Más". Al subirlo arriba,
+            // junto a Dashboard, quedó sobrando: alcanza con buscar un link
+            // marcado como activo adentro del propio grupo.
+            const tieneActivaAdentro = !!masGroup.querySelector('a.bg-accent\\/20, a.text-accent');
             let abierto = tieneActivaAdentro;
             if (!abierto) {
                 try { abierto = localStorage.getItem('sidebarMasAbierto') === 'true'; } catch (e) { abierto = false; }

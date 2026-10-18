@@ -266,4 +266,138 @@ router.put('/reportes/:id/comprobar', soloAdmin, async (req, res) => {
     }
 });
 
+// ------------------------------------------------------- VENDIDO HOY (admin)
+//
+// Panel de referencia al pie de la pantalla. Muestra cuánto se vendió hoy de
+// los productos que están vinculados a la lista de conteo, separado en cocina
+// y barra. Es SOLO para mirar: no descuenta stock ni toca el inventario.
+//
+// De dónde sale cada vínculo:
+//
+// - COCINA: el vínculo ya existe en la base, en las recetas. El insumo que se
+//   llama igual que el renglón de la lista (ej. "Lomito") está cargado como
+//   ingrediente de los productos que lo usan, con su cantidad por unidad. Por
+//   eso acá no hay nada escrito a mano: si mañana se corrige una receta desde
+//   la pantalla de Recetas, este panel la sigue solo. El renglón que no esté
+//   en ninguna receta simplemente no aparece.
+//
+// - BARRA: las botellas no tienen receta, se venden tal cual. Ese vínculo no
+//   está en ninguna parte de la base, así que va acá, por id de producto. El
+//   nombre se resuelve en la consulta: renombrar el producto no rompe nada y
+//   borrarlo solo lo saca del panel.
+//
+// Quedan afuera a propósito:
+// - Las frutas: no son un producto, se venden dentro de "Jugo a Elección" y la
+//   fruta va escrita a mano en la nota del mesero.
+// - Leche entera y deslactosada: alimentan decenas de bebidas sin receta
+//   cargada. Vincularlas a los productos "Leche" y "Leche Deslactosada"
+//   contaría solo los extras cobrados aparte, que es un número engañoso.
+// - Yogurt, crema pastelera, esencias, colorante y cocoa: no se venden por
+//   separado ni tienen receta. Para esos, el conteo diario es el único control.
+const VINCULOS_BARRA = {
+    'Coca Cola 500ml': [44],
+    'Fanta 500ml': [197],
+    'Cerveza Huari': [194],
+    'Agua sin gas 500ml': [71],
+    'Agua con gas 500ml': [156],
+    'Coca Cola 2 litros': [76],
+    'Submarino': [87],
+    'Personales de vidrio': [267],
+};
+
+// Lo vendido hoy, en hora de Bolivia (la base guarda en UTC).
+const VENDIDO_HOY = `
+    SELECT dv.producto_id, SUM(dv.cantidad)::numeric AS vendidos
+    FROM detalle_ventas dv
+    JOIN ventas v ON v.id = dv.venta_id
+    WHERE DATE(v.fecha_venta AT TIME ZONE 'America/La_Paz')
+          = (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date
+    GROUP BY dv.producto_id`;
+
+router.get('/vendido-hoy', soloAdmin, async (req, res) => {
+    try {
+        const cocina = await pool.query(`
+            WITH hoy AS (${VENDIDO_HOY}),
+            -- Un renglón por (producto de la lista, producto vendido). El MAX es
+            -- por si un producto tuviera cargada más de una receta: sin él, el
+            -- mismo insumo se contaría dos veces.
+            por_producto AS (
+                SELECT pl.id AS plantilla_id, pl.nombre, pl.orden,
+                       p.nombre AS producto, h.vendidos,
+                       MAX(ir.cantidad) AS por_unidad,
+                       MAX(ir.unidad_medida) AS unidad
+                FROM control_diario_plantilla pl
+                JOIN insumos i ON LOWER(TRIM(i.nombre)) = LOWER(TRIM(pl.nombre)) AND i.activo
+                JOIN ingrediente_recetas ir ON ir.insumo_id = i.id
+                JOIN recetas r ON r.id = ir.receta_id
+                JOIN productos p ON p.id = r.producto_id
+                JOIN hoy h ON h.producto_id = p.id
+                WHERE pl.lista = 'COCINA' AND pl.activo
+                GROUP BY pl.id, pl.nombre, pl.orden, p.id, p.nombre, h.vendidos
+            )
+            SELECT nombre,
+                   MAX(unidad) AS unidad,
+                   SUM(por_unidad * vendidos)::numeric AS cantidad,
+                   json_agg(json_build_object(
+                       'producto', producto,
+                       'vendidos', vendidos,
+                       'por_unidad', por_unidad
+                   ) ORDER BY vendidos DESC, producto) AS origen
+            FROM por_producto
+            GROUP BY plantilla_id, nombre, orden
+            ORDER BY SUM(por_unidad * vendidos) DESC, nombre`);
+
+        const nombres = [];
+        const ids = [];
+        for (const [nombre, productos] of Object.entries(VINCULOS_BARRA)) {
+            for (const id of productos) { nombres.push(nombre); ids.push(id); }
+        }
+        const barra = await pool.query(`
+            WITH hoy AS (${VENDIDO_HOY})
+            SELECT pl.nombre,
+                   pl.unidad_sugerida AS unidad,
+                   SUM(h.vendidos)::numeric AS cantidad,
+                   json_agg(json_build_object(
+                       'producto', p.nombre,
+                       'vendidos', h.vendidos,
+                       'por_unidad', 1
+                   ) ORDER BY h.vendidos DESC, p.nombre) AS origen
+            FROM control_diario_plantilla pl
+            JOIN unnest($1::text[], $2::int[]) AS v(nombre, producto_id)
+                 ON LOWER(TRIM(v.nombre)) = LOWER(TRIM(pl.nombre))
+            JOIN productos p ON p.id = v.producto_id
+            JOIN hoy h ON h.producto_id = p.id
+            WHERE pl.lista = 'BARRA' AND pl.activo
+            GROUP BY pl.id, pl.nombre, pl.unidad_sugerida
+            ORDER BY SUM(h.vendidos) DESC, pl.nombre`,
+            [nombres, ids]
+        );
+
+        const aNumero = (filas) => filas.map((f) => ({
+            ...f,
+            cantidad: Number(f.cantidad),
+            origen: (f.origen || []).map((o) => ({
+                producto: o.producto,
+                vendidos: Number(o.vendidos),
+                por_unidad: Number(o.por_unidad),
+            })),
+        }));
+
+        // La fecha la manda el servidor para que el título del panel diga el día
+        // de Bolivia, y no el del reloj de la computadora que lo esté mirando.
+        const dia = await pool.query(
+            `SELECT TO_CHAR(CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz', 'DD/MM/YYYY') AS fecha`
+        );
+
+        res.json({
+            fecha: dia.rows[0].fecha,
+            cocina: aNumero(cocina.rows),
+            barra: aNumero(barra.rows),
+        });
+    } catch (e) {
+        console.error('Error al calcular lo vendido hoy:', e.message);
+        res.status(500).json({ error: 'No se pudo calcular lo vendido hoy.' });
+    }
+});
+
 module.exports = router;

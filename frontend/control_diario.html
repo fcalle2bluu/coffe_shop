@@ -180,6 +180,49 @@
                     <h2 class="text-slate-300 font-semibold mb-3">Lo que enviaste</h2>
                     <div id="lista-mis-envios" class="space-y-2"></div>
                 </div>
+
+                <!-- VENDIDO HOY (solo admin): va al pie de todo, como referencia
+                     para leer junto al conteo que manda el personal. -->
+                <div id="vendido-hoy" class="hidden mt-10 pt-8 border-t border-blue-500/20">
+                    <div class="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                            <h2 class="text-slate-300 font-semibold">Vendido hoy</h2>
+                            <p class="text-xs text-slate-500 mt-0.5 max-w-xl">
+                                Solo los productos de la lista que están vinculados a una venta.
+                                Es para comparar con el conteo: no descuenta stock ni toca el inventario.
+                            </p>
+                        </div>
+                        <span id="vendido-hoy-fecha" class="shrink-0 text-xs font-bold text-slate-400 bg-topbar border border-blue-500/30 rounded-lg px-2.5 py-1"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-start">
+                        <div class="rounded-2xl border border-blue-500/30 bg-topbar overflow-hidden">
+                            <div class="px-4 py-3 flex items-center gap-3 border-b border-blue-500/20">
+                                <span class="w-9 h-9 shrink-0 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                                    <i class="fa-solid fa-kitchen-set text-orange-400"></i>
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-bold text-white leading-tight">Cocina</h3>
+                                    <p id="vh-cocina-sub" class="text-xs text-slate-400">Cargando…</p>
+                                </div>
+                            </div>
+                            <div id="vh-cocina" class="divide-y divide-blue-500/20"></div>
+                        </div>
+
+                        <div class="rounded-2xl border border-blue-500/30 bg-topbar overflow-hidden">
+                            <div class="px-4 py-3 flex items-center gap-3 border-b border-blue-500/20">
+                                <span class="w-9 h-9 shrink-0 rounded-xl bg-sky-500/15 flex items-center justify-center">
+                                    <i class="fa-solid fa-mug-saucer text-sky-400"></i>
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-bold text-white leading-tight">Barra</h3>
+                                    <p id="vh-barra-sub" class="text-xs text-slate-400">Cargando…</p>
+                                </div>
+                            </div>
+                            <div id="vh-barra" class="divide-y divide-blue-500/20"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- PASO 2: cargar cantidades -->
@@ -300,6 +343,7 @@
         if (esAdminUI) {
             document.getElementById('bandeja-admin').classList.remove('hidden');
             cargarBandeja('ENVIADO');
+            cargarVendidoHoy();
         } else {
             document.getElementById('mis-envios').classList.remove('hidden');
             cargarMisEnvios();
@@ -608,6 +652,61 @@
             alert('No se pudo abrir: ' + e.message);
         }
     }
+    // --------------------------------------------------- vendido hoy (admin)
+    // Referencia al pie de la pantalla: lo que se vendió hoy de los productos
+    // que están vinculados a la lista. Solo se mira; no mueve stock.
+    async function cargarVendidoHoy() {
+        const caja = document.getElementById('vendido-hoy');
+        caja.classList.remove('hidden');
+        try {
+            const d = await pedir(`${API}/vendido-hoy`);
+            document.getElementById('vendido-hoy-fecha').textContent = d.fecha || '';
+            pintarVendido('cocina', d.cocina, 'text-orange-300');
+            pintarVendido('barra', d.barra, 'text-sky-300');
+        } catch (e) {
+            for (const l of ['cocina', 'barra']) {
+                document.getElementById(`vh-${l}-sub`).textContent = 'No se pudo cargar';
+                document.getElementById(`vh-${l}`).innerHTML = '';
+            }
+        }
+    }
+
+    function pintarVendido(lista, filas, color) {
+        const sub = document.getElementById(`vh-${lista}-sub`);
+        const caja = document.getElementById(`vh-${lista}`);
+        filas = filas || [];
+
+        if (filas.length === 0) {
+            sub.textContent = 'Todavía nada';
+            caja.innerHTML = `<p class="px-4 py-6 text-center text-sm text-slate-500">
+                <i class="fa-regular fa-circle-check mr-1"></i> No se vendió nada de la lista hoy
+            </p>`;
+            return;
+        }
+
+        sub.textContent = `${filas.length} producto${filas.length === 1 ? '' : 's'} vendido${filas.length === 1 ? '' : 's'}`;
+        caja.innerHTML = filas.map((f) => {
+            // El detalle solo aporta cuando el renglón sale de más de una venta o
+            // de un producto que se llama distinto (ej. "Lomito" <- "Medio Lomo").
+            const unico = f.origen.length === 1 &&
+                f.origen[0].producto.toLowerCase() === f.nombre.toLowerCase();
+            const detalle = unico ? '' : f.origen
+                .map((o) => `${escapar(o.producto)} ×${o.vendidos}`)
+                .join(' · ');
+            return `
+                <div class="px-4 py-3 flex items-center gap-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-slate-100 truncate">${escapar(f.nombre)}</p>
+                        ${detalle ? `<p class="text-xs text-slate-500 mt-0.5 truncate" title="${detalle}">${detalle}</p>` : ''}
+                    </div>
+                    <div class="shrink-0 text-right leading-none">
+                        <span class="text-xl font-bold ${color} tabular-nums">${f.cantidad}</span>
+                        <span class="block text-[11px] text-slate-500 mt-1">${escapar(f.unidad || 'Unidad')}</span>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
     </script>
 </body>
 </html>
