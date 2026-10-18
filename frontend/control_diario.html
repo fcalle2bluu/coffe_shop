@@ -328,10 +328,37 @@
                        placeholder="0">
                 ${soloUnidad
                     ? `<span class="w-28 text-xs text-slate-500 text-center">Unidad</span>`
-                    : `<select data-unidad="${i}" class="w-28 bg-sidebar border border-blue-500/30 rounded-lg px-2 py-2 text-slate-200 text-sm">
+                    : `<select data-unidad="${i}" data-ultima-unidad="${escapar(it.unidad_sugerida || 'Unidad')}" onchange="alElegirUnidad(this)" class="w-28 bg-sidebar border border-blue-500/30 rounded-lg px-2 py-2 text-slate-200 text-sm">
                          ${unidadesActuales.map((u) => `<option ${u === it.unidad_sugerida ? 'selected' : ''}>${escapar(u)}</option>`).join('')}
+                         <option value="__otra__">Otra…</option>
                        </select>`}
             </div>`).join('');
+    }
+
+    // "Otra…" en el desplegable de cada renglón: a veces el producto se cuenta en
+    // algo que no está entre las cinco sugeridas (una jarra, un balde). La unidad
+    // que escriban se agrega a TODOS los desplegables, no solo al de ese renglón,
+    // porque normalmente hay varios productos que se cuentan igual.
+    function alElegirUnidad(select) {
+        if (select.value !== '__otra__') {
+            select.dataset.ultimaUnidad = select.value;
+            return;
+        }
+        const anterior = select.dataset.ultimaUnidad || unidadesActuales[0];
+        const propia = (prompt('¿En qué unidad lo contás?', '') || '').trim();
+        if (!propia) { select.value = anterior; return; }
+
+        if (!unidadesActuales.includes(propia)) {
+            unidadesActuales.push(propia);
+            document.querySelectorAll('[data-unidad]').forEach((otro) => {
+                const elegida = otro.value;
+                otro.querySelector('option[value="__otra__"]').insertAdjacentHTML(
+                    'beforebegin', `<option>${escapar(propia)}</option>`);
+                otro.value = elegida === '__otra__' ? propia : elegida;
+            });
+        }
+        select.value = propia;
+        select.dataset.ultimaUnidad = propia;
     }
 
     function volverAListas() {
