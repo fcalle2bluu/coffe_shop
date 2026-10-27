@@ -283,7 +283,7 @@ function renderizarMesas() {
                 : '';
 
             return `
-            <div onclick="seleccionarMesa('${m.mesa}')" class="relative aspect-square w-full rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 shadow-md cursor-pointer transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}">
+            <div onclick="seleccionarMesa('${m.mesa}')" class="relative aspect-[5/4] sm:aspect-square w-full rounded-xl border-2 flex flex-col items-center justify-center gap-0.5 shadow-md cursor-pointer transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorBg} ${ringPulse}">
                 ${dotPulse}
                 <span class="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-[10px] md:text-xs font-black leading-none ${badgeColor}">
                     ${m.mesa}
@@ -320,6 +320,7 @@ async function seleccionarMesa(numero) {
     // Marcar mesa activa en UI
     document.getElementById('ticket-titulo').innerText = numero === 'Para Llevar' ? 'Para Llevar' : `Mesa #${numero}`;
     document.getElementById('btn-cerrar-panel-mesa').classList.remove('hidden');
+    ajustarPanelTicket();
 
     // Consultar estado de la mesa en el backend
     try {
@@ -618,6 +619,14 @@ function eliminarItemCarrito(idx) {
     actualizarTicketEdicion();
 }
 
+// Avisa al panel del ticket si hay una mesa elegida. En el celular, sin mesa,
+// el panel se achica a su cabecera (la regla vive en el <style> de la página) y
+// le deja la pantalla al mapa de mesas.
+function ajustarPanelTicket() {
+    const panel = document.getElementById('panel-ticket');
+    if (panel) panel.classList.toggle('sin-mesa', !mesaSeleccionada);
+}
+
 function limpiarPedidoActual() {
     carritoComanda = [];
     actualizarTicketEdicion();
@@ -637,6 +646,7 @@ function cerrarPanelMesa() {
     document.getElementById('ticket-estado').classList.add('hidden');
     document.getElementById('btn-limpiar-pedido').classList.add('hidden');
     document.getElementById('btn-cerrar-panel-mesa').classList.add('hidden');
+    ajustarPanelTicket();
 
     document.getElementById('ticket-items').innerHTML = `
         <div class="text-center text-gray-400 mt-10 text-sm md:text-base">

@@ -9,6 +9,16 @@
            sin importar el tema oscuro general de la app (security_guard.js fuerza
            th/td/tr:hover a azul en toda la app; acá lo pisamos con más especificidad). */
         #zona-impresion, #zona-impresion * { color: #292524 !important; background-color: #ffffff !important; }
+
+        /* En el celular, mientras no hay ninguna mesa elegida el panel del ticket
+           se achica a su cabecera. Antes ocupaba 40vh para mostrar un cartel y dos
+           totales en cero, y el mapa de mesas se quedaba sin pantalla.
+           De md para arriba el panel es una columna al costado y no cambia nada. */
+        @media (max-width: 767px) {
+            #panel-ticket.sin-mesa { height: auto !important; }
+            #panel-ticket.sin-mesa #ticket-items,
+            #panel-ticket.sin-mesa #ticket-acciones-container { display: none; }
+        }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Café La Paz - Venta por Mesa</title>
@@ -228,7 +238,8 @@
             <button onclick="toggleSidebar()" class="focus:outline-none hover:bg-logoBg p-2 rounded transition-colors md:hidden"><i class="fa-solid fa-bars text-xl"></i></button>
             <h1 class="text-base sm:text-lg md:text-xl font-bold tracking-wide truncate ml-2 md:ml-0 flex-1 flex items-center gap-2">
                 <i class="fa-solid fa-utensils text-orange-500"></i>
-                <span>Venta por Mesa / Comandas</span>
+                <span class="hidden sm:inline">Venta por Mesa / Comandas</span>
+                <span class="sm:hidden">Venta por Mesa</span>
             </h1>
             <button onclick="abrirModalCajaChica()" class="hidden sm:flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors btn-bounce mr-3 shrink-0">
                 <i class="fa-solid fa-coins"></i> Gasto Caja Chica
@@ -242,45 +253,47 @@
         <div class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
             <!-- CONTENIDO IZQUIERDO: SELECCIÓN DE MESAS O SELECCIÓN DE PRODUCTOS -->
-            <div class="w-full md:w-2/3 p-4 flex flex-col bg-mainBg overflow-hidden flex-1 min-h-0 h-1/2 md:h-auto" id="seccion-principal-izquierda">
+            <div class="w-full md:w-2/3 p-2.5 sm:p-4 flex flex-col bg-mainBg overflow-y-auto md:overflow-hidden flex-1 min-h-0 md:h-auto" id="seccion-principal-izquierda">
                 
                 <!-- VISTA 1: MESAS EN PANTALLA PARTIDA (AMBOS PISOS A LA VEZ) -->
-                <div id="vista-mesas" class="flex-1 flex flex-col overflow-hidden min-h-0">
-                    <div class="mb-3 bg-white p-3 rounded-2xl border border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-                        <div>
+                <div id="vista-mesas" class="flex-1 flex flex-col md:overflow-hidden md:min-h-0">
+                    <div class="mb-2 sm:mb-3 bg-white px-3 py-2 sm:p-3 rounded-2xl border border-gray-150 flex items-center justify-between gap-3 shrink-0">
+                        <div class="min-w-0">
                             <h2 class="font-bold text-gray-800 text-sm md:text-base">Mapa de Mesas</h2>
-                            <p class="text-[11px] md:text-xs text-gray-500 font-medium font-semibold text-orange-600">Toca una mesa para crear o ver su comanda · Se actualiza en tiempo real.</p>
+                            <!-- El texto de ayuda se esconde en el celular: ocupaba tres
+                                 renglones y dejaba a las mesas sin lugar en la pantalla. -->
+                            <p class="hidden sm:block text-[11px] md:text-xs text-gray-500 font-medium font-semibold text-orange-600">Toca una mesa para crear o ver su comanda · Se actualiza en tiempo real.</p>
                         </div>
 
-                        <button onclick="cargarMesas()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-xl text-gray-700 transition-colors btn-bounce self-end sm:self-auto">
+                        <button onclick="cargarMesas()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-xl text-gray-700 transition-colors btn-bounce shrink-0">
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
                     </div>
 
                     <!-- Estado de cocina de las mesas activas: barra horizontal Pendiente / Completado -->
-                    <div class="mb-3 bg-white p-3 rounded-2xl border border-gray-150 shrink-0" id="tarjeta-estado-cocina">
-                        <div class="flex items-center justify-between mb-2 gap-2">
+                    <div class="mb-2 sm:mb-3 bg-white px-3 py-2 sm:p-3 rounded-2xl border border-gray-150 shrink-0" id="tarjeta-estado-cocina">
+                        <div class="flex items-center justify-between mb-1.5 sm:mb-2 gap-2">
                             <h3 class="font-bold text-gray-800 text-[11px] md:text-xs flex items-center gap-2">
                                 <i class="fa-solid fa-kitchen-set text-orange-500"></i> Estado en Cocina · Mesas Activas
                             </h3>
                             <span id="estado-cocina-resumen-texto" class="text-[10px] md:text-xs font-bold text-gray-400 shrink-0">Cargando...</span>
                         </div>
-                        <div id="estado-cocina-barra" class="w-full h-3.5 rounded-full bg-gray-100 overflow-hidden flex">
+                        <div id="estado-cocina-barra" class="w-full h-2.5 sm:h-3.5 rounded-full bg-gray-100 overflow-hidden flex">
                             <!-- Segmentos rellenados por JS -->
                         </div>
                     </div>
 
                     <!-- Pantalla partida: Planta Baja | Primer Piso -->
-                    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div class="md:flex-1 md:min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
                         <!-- PLANTA BAJA -->
-                        <div class="flex flex-col min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
+                        <div class="flex flex-col md:min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
                             <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 shrink-0">
                                 <h3 class="font-black text-xs md:text-sm text-white uppercase tracking-wide flex items-center gap-2">
                                     <i class="fa-solid fa-building text-accent"></i> Planta Baja
                                 </h3>
                                 <span id="resumen-planta-baja" class="text-[10px] md:text-xs font-bold text-slate-400">Cargando...</span>
                             </div>
-                            <div class="flex-1 min-h-0 overflow-y-auto p-3">
+                            <div class="md:flex-1 md:min-h-0 md:overflow-y-auto p-2.5 sm:p-3">
                                 <div id="lienzo-planta-baja-llevar" class="space-y-2 mb-3"></div>
                                 <div id="lienzo-planta-baja" class="grid grid-cols-3 xl:grid-cols-4 gap-2.5 select-none">
                                     <!-- Rellenado con js -->
@@ -288,14 +301,14 @@
                             </div>
                         </div>
                         <!-- PRIMER PISO -->
-                        <div class="flex flex-col min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
+                        <div class="flex flex-col md:min-h-0 bg-slate-950 border rounded-2xl overflow-hidden shadow-inner-soft">
                             <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 shrink-0">
                                 <h3 class="font-black text-xs md:text-sm text-white uppercase tracking-wide flex items-center gap-2">
                                     <i class="fa-solid fa-building text-accent"></i> Primer Piso
                                 </h3>
                                 <span id="resumen-primer-piso" class="text-[10px] md:text-xs font-bold text-slate-400">Cargando...</span>
                             </div>
-                            <div class="flex-1 min-h-0 overflow-y-auto p-3">
+                            <div class="md:flex-1 md:min-h-0 md:overflow-y-auto p-2.5 sm:p-3">
                                 <div id="lienzo-primer-piso-llevar" class="space-y-2 mb-3"></div>
                                 <div id="lienzo-primer-piso" class="grid grid-cols-3 xl:grid-cols-4 gap-2.5 select-none">
                                     <!-- Rellenado con js -->
@@ -331,7 +344,7 @@
             </div>
 
             <!-- PANEL DERECHO: DETALLE DE LA MESA Y TICKET / ACCIONES -->
-            <div class="w-full md:w-1/3 bg-white shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] md:shadow-xl md:border-l border-t-2 md:border-t-0 flex flex-col z-10 h-[50vh] md:h-auto min-h-0 shrink-0" id="panel-ticket">
+            <div class="w-full md:w-1/3 bg-white shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] md:shadow-xl md:border-l border-t-2 md:border-t-0 flex flex-col z-10 h-[40vh] md:h-auto min-h-0 shrink-0 transition-[height] duration-200 sin-mesa" id="panel-ticket">
                 
                 <!-- CABECERA TICKET -->
                 <div class="p-3 sm:p-4 bg-slate-50 border-b border-gray-200 shrink-0 flex items-center justify-between">
