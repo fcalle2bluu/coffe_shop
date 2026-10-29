@@ -253,6 +253,11 @@
                     <i class="fa-solid fa-cash-register text-base"></i>
                     <span>Turno Actual</span>
                 </button>
+                <button id="tab-facturas" onclick="cambiarPestana('facturas')" class="flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200 solo-admin">
+                    <i class="fa-solid fa-file-invoice-dollar text-base"></i>
+                    <span>Facturas</span>
+                    <span id="globo-facturas" class="hidden bg-rose-500 text-white text-[10px] font-black rounded-full px-1.5 py-0.5 leading-none">0</span>
+                </button>
                 <button id="tab-historial-turnos" onclick="cambiarPestana('historial-turnos')" class="flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all duration-200 solo-admin">
                     <i class="fa-solid fa-clock-rotate-left text-base"></i>
                     <span>Historial de Turnos</span>
@@ -340,6 +345,46 @@
                 </div>
             </div> <!-- Cierre de #seccion-gastos-turno -->
         </div> <!-- Cierre de seccion-turno-actual-container -->
+
+            <!-- Contenedor Sección: Facturas por emitir -->
+            <!-- La factura se emite en el otro sistema. Acá solo se anota a nombre
+                 de quién va y se tilda la que ya se emitió. Las tildadas se quedan
+                 en la lista del día; las que no, se arrastran hasta que se tilden. -->
+            <div class="bg-white rounded shadow border-t-4 border-sky-500 hidden" id="seccion-facturas">
+                <div class="p-3 sm:p-4 border-b bg-white flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <h2 class="font-bold text-stone-900 text-base sm:text-lg">
+                            <i class="fa-solid fa-file-invoice-dollar mr-2 text-sky-600"></i>Facturas por Emitir
+                        </h2>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                            Emitilas en el otro sistema y tildá acá las que ya hiciste. Las del día quedan a la vista; las que no tildes se mantienen.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span id="facturas-resumen" class="text-xs font-bold text-slate-500">Cargando…</span>
+                        <button onclick="cargarFacturas()" class="bg-white hover:bg-slate-100 border border-slate-200 p-2 rounded-xl text-slate-600 transition-colors btn-bounce" title="Actualizar">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-2 sm:p-4 bg-slate-50 overflow-x-auto">
+                    <table class="w-full text-xs sm:text-sm">
+                        <thead>
+                            <tr class="text-left text-slate-500 uppercase text-[10px] sm:text-[11px] tracking-wide">
+                                <th class="py-2 px-2 w-10"></th>
+                                <th class="py-2 px-2">Fecha / Hora</th>
+                                <th class="py-2 px-2">Mesa</th>
+                                <th class="py-2 px-2">Razón Social</th>
+                                <th class="py-2 px-2">NIT</th>
+                                <th class="py-2 px-2 text-right">Monto</th>
+                                <th class="py-2 px-2">Pago</th>
+                                <th class="py-2 px-2">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-facturas-body"></tbody>
+                    </table>
+                </div>
+            </div>
 
             <!-- Contenedor Sección: Historial de Turnos -->
             <div id="seccion-historial-turnos" class="bg-white rounded shadow border-t-4 border-stone-800 hidden">

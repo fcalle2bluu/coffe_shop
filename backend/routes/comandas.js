@@ -704,7 +704,13 @@ router.put('/:id/estado', async (req, res) => {
 // 6. Procesar Pago y Finalizar Venta (Comanda -> Venta)
 router.post('/:id/pagar', async (req, res) => {
     const { id } = req.params;
-    const { metodo_pago, pagos } = req.body;
+    const { metodo_pago, pagos, factura } = req.body;
+    // Cobro con factura: el cajero carga razón social y NIT. La factura no se
+    // emite acá, solo queda anotada para que el administrador la emita en el
+    // otro sistema y después la tilde en la pantalla de Caja.
+    const conFactura = factura && typeof factura === 'object';
+    const razonSocial = conFactura ? (factura.razon_social || '').toString().trim() : '';
+    const nitFactura = conFactura ? (factura.nit || '').toString().trim() : '';
     // La venta se registra a nombre de quien está realmente autenticado cobrando,
     // no del usuario_id que mande el navegador (que podía venir pisado por otra
     // pestaña y dejaba la venta contabilizada al cajero equivocado).
@@ -713,6 +719,9 @@ router.post('/:id/pagar', async (req, res) => {
 
     if (!pagosBody && !metodo_pago) {
         return res.status(400).json({ error: 'El método de pago es requerido.' });
+    }
+    if (conFactura && (!razonSocial || !nitFactura)) {
+        return res.status(400).json({ error: 'Para cobrar con factura hacen falta la razón social y el NIT.' });
     }
 
     const client = await pool.connect();
@@ -814,6 +823,27 @@ router.post('/:id/pagar', async (req, res) => {
             }
         }
 
+        // 3.5 Dejar anotada la factura por emitir, si el cobro fue con factura.
+        // Va contra la venta principal: el monto es el total de la comanda, no el
+        // de un pago suelto, porque la factura se emite por el consumo completo
+        // aunque se haya pagado en dos métodos.
+        if (conFactura && ventaPrincipalId) {
+            await client.query(`
+                INSERT INTO ventas_factura
+                    (venta_id, comanda_id, mesa, razon_social, nit, monto, metodo_pago, fecha)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date)
+                ON CONFLICT (venta_id) DO NOTHING
+            `, [
+                ventaPrincipalId,
+                Number(id),
+                comanda.mesa,
+                razonSocial,
+                nitFactura,
+                totalComanda,
+                listaPagos.map(p => p.metodo_pago).join(' + '),
+            ]);
+        }
+
         // 4. Actualizar estado de comanda a PAGADA
         await client.query(`
             UPDATE comandas
@@ -823,12 +853,16 @@ router.post('/:id/pagar', async (req, res) => {
 
         await registrarBitacora({
             usuario_id: usuario_id || comanda.usuario_id, accion: 'COBRAR_COMANDA', entidad_tipo: 'comanda', entidad_id: Number(id),
-            detalle: { mesa: comanda.mesa, total: totalComanda, pagos: listaPagos, venta_id_principal: ventaPrincipalId },
+            detalle: {
+                mesa: comanda.mesa, total: totalComanda, pagos: listaPagos,
+                venta_id_principal: ventaPrincipalId,
+                ...(conFactura ? { factura: { razon_social: razonSocial, nit: nitFactura } } : {}),
+            },
             client
         });
 
         await client.query('COMMIT');
-        res.status(201).json({ success: true, venta_id: ventaPrincipalId });
+        res.status(201).json({ success: true, venta_id: ventaPrincipalId, con_factura: !!conFactura });
 
     } catch (error) {
         await client.query('ROLLBACK');

@@ -408,12 +408,16 @@ function renderizarDetalleComandaActiva() {
     const accionesCont = document.getElementById('seccion-acciones-mesa');
     accionesCont.innerHTML = '';
 
-    // A. Botón de Imprimir Comanda (Siempre visible para ver o llevar a cocina)
-    accionesCont.innerHTML += `
-        <button onclick="abrirModalImpresionComanda()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl border transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
-            <i class="fa-solid fa-print"></i> Imprimir Comanda (Cocina)
-        </button>
-    `;
+    // A. Cobrar con factura. Pide método de pago, razón social y NIT, cobra la
+    // mesa igual que "Cobrar Total" y deja la factura anotada para que el
+    // administrador la emita en el otro sistema.
+    if (usuarioRol === 'CAJERO' || usuarioRol === 'ADMIN') {
+        accionesCont.innerHTML += `
+            <button onclick="abrirModalCobroFactura()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-xl transition-colors btn-bounce flex items-center justify-center gap-2 text-xs md:text-sm">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Cobrar con Factura
+            </button>
+        `;
+    }
 
     // A.2 Botón de Pre-cuenta (con precios, para el cliente antes de cobrar)
     accionesCont.innerHTML += `
@@ -820,6 +824,10 @@ function nroPedidoTurno(comanda) {
 }
 
 // 14. Ventana de impresión de la comanda (Cocina)
+// OJO: hoy no la llama nadie. El botón "Imprimir Comanda (Cocina)" del panel de
+// la mesa se reemplazó por "Cobrar con Factura" a pedido del dueño. Se deja
+// escrita por si se quiere volver a poner ese botón; la comanda a cocina la
+// imprime la app de la Sunmi.
 function abrirModalImpresionComanda() {
     if (!comandaActivaMesa) return;
 
@@ -1058,6 +1066,66 @@ async function confirmarCobroDividido() {
         seleccionarMesa(mesaSeleccionada);
     } catch (e) {
         alert('❌ Error al procesar cobro dividido: ' + e.message);
+    }
+}
+
+// ------------------------------------------------------- cobro con factura
+// Mismo cobro que "Cobrar Total", pero además pide a nombre de quién va la
+// factura. Acá no se emite nada: queda anotada y el administrador la emite en
+// el otro sistema, y después la tilda en la pantalla de Caja.
+async function abrirModalCobroFactura() {
+    if (!comandaActivaMesa) return;
+    // Igual que en el cobro normal, el total se vuelve a pedir al servidor para
+    // no cobrar con un número viejo que quedó en memoria.
+    await refrescarComandaActiva();
+    if (!comandaActivaMesa) return;
+    document.getElementById('lbl-monto-factura').innerText = `Bs. ${parseFloat(comandaActivaMesa.total).toFixed(2)}`;
+    document.getElementById('factura-razon').value = '';
+    document.getElementById('factura-nit').value = '';
+    document.getElementById('sel-metodo-pago-factura').value = 'EFECTIVO';
+    document.getElementById('modalCobroFactura').classList.remove('hidden');
+    setTimeout(() => document.getElementById('factura-razon').focus(), 100);
+}
+
+function cerrarModalCobroFactura() {
+    document.getElementById('modalCobroFactura').classList.add('hidden');
+}
+
+async function confirmarCobroFactura() {
+    if (!comandaActivaMesa) return;
+    const razon = document.getElementById('factura-razon').value.trim();
+    const nit = document.getElementById('factura-nit').value.trim();
+    const metodoPago = document.getElementById('sel-metodo-pago-factura').value;
+
+    if (!razon) { alert('Falta la razón social de la factura.'); return; }
+    if (!nit) { alert('Falta el NIT.'); return; }
+
+    const btn = document.getElementById('btn-confirmar-factura');
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/api/comandas/${comandaActivaMesa.id}/pagar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                metodo_pago: metodoPago,
+                factura: { razon_social: razon, nit: nit },
+            }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        ultimaVentaRegistradaId = data.venta_id;
+        cerrarModalCobroFactura();
+        document.getElementById('lbl-ticket-exito').innerText =
+            `Ticket # ${ultimaVentaRegistradaId.toString().padStart(4, '0')} · Factura anotada`;
+        document.getElementById('modalExitoCobro').classList.remove('hidden');
+
+        cargarMesas();
+        seleccionarMesa(mesaSeleccionada);
+    } catch (e) {
+        alert('❌ Error al cobrar con factura: ' + e.message);
+    } finally {
+        btn.disabled = false;
     }
 }
 

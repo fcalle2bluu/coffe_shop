@@ -1507,6 +1507,42 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('Info Migración Control Diario:', cdErr.message);
     }
 
+    // Migración: ventas cobradas CON FACTURA.
+    //
+    // La factura no se emite en este sistema: el administrador la emite en el
+    // otro y después viene acá a tildar la que ya emitió. Por eso lo único que
+    // se guarda son los datos que hacen falta para emitirla (razón social y NIT)
+    // y si ya está emitida o no.
+    //
+    // La lista de la pantalla de Caja muestra las del día; las que quedaron sin
+    // tildar se arrastran al día siguiente hasta que alguien las tilde.
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ventas_factura (
+                id SERIAL PRIMARY KEY,
+                venta_id INT REFERENCES ventas(id) ON DELETE CASCADE,
+                comanda_id INT,
+                mesa VARCHAR(60),
+                razon_social VARCHAR(200) NOT NULL,
+                nit VARCHAR(40) NOT NULL,
+                monto NUMERIC(12,2) NOT NULL DEFAULT 0,
+                metodo_pago VARCHAR(40),
+                estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+                fecha DATE NOT NULL,
+                creada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                emitida_por INT REFERENCES usuarios(id) ON DELETE SET NULL,
+                emitida_nombre VARCHAR(120),
+                emitida_en TIMESTAMPTZ
+            );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_ventas_factura_fecha ON ventas_factura (fecha DESC);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_ventas_factura_estado ON ventas_factura (estado);`);
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_ventas_factura_venta ON ventas_factura (venta_id);`);
+        console.log('✅ Tabla de ventas con factura verificada/creada.');
+    } catch (vfErr) {
+        console.log('Info Migración ventas con factura:', vfErr.message);
+    }
+
     // Migración: turno en el que se CREÓ la comanda.
     // comandas.caja_id no sirve para numerar: al cobrar se reasigna al turno que
     // cobra, así que una comanda creada en el turno de mañana y cobrada en el de

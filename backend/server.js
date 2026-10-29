@@ -59,6 +59,7 @@ const rutasVersion = require('./routes/version');
 const rutasCajaChica = require('./routes/caja_chica');
 const rutasBitacora = require('./routes/bitacora');
 const rutasFacturas = require('./routes/facturas');
+const rutasFacturasPendientes = require('./routes/facturas_pendientes');
 const rutasReportes = require('./routes/reportes');
 
 // ==========================================
@@ -92,6 +93,7 @@ app.use('/api/version', rutasVersion);
 app.use('/api/bitacora', rutasBitacora);
 app.use('/api/caja-chica', rutasCajaChica);
 app.use('/api/facturas', rutasFacturas);
+app.use('/api/facturas-pendientes', rutasFacturasPendientes);
 app.use('/api/reportes', rutasReportes);
 
 // ==========================================

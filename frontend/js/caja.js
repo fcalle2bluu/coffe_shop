@@ -673,11 +673,13 @@ function cambiarPestana(tabId) {
     const secHistorial = document.getElementById('seccion-historial-turnos');
     const secAuditoria = document.getElementById('seccion-auditoria-cajeros');
     const secVentasRealizadas = document.getElementById('seccion-ventas-realizadas');
+    const secFacturas = document.getElementById('seccion-facturas');
 
     const btnTurno = document.getElementById('tab-turno-actual');
     const btnHistorial = document.getElementById('tab-historial-turnos');
     const btnAuditoria = document.getElementById('tab-auditoria');
     const btnVentasRealizadas = document.getElementById('tab-ventas-realizadas');
+    const btnFacturas = document.getElementById('tab-facturas');
 
     const activeClasses = ['bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10'];
     const inactiveClasses = ['text-slate-600', 'hover:bg-slate-50'];
@@ -686,8 +688,9 @@ function cambiarPestana(tabId) {
     if (secHistorial) { secHistorial.classList.add('hidden'); secHistorial.style.display = 'none'; }
     if (secAuditoria) { secAuditoria.classList.add('hidden'); secAuditoria.style.display = 'none'; }
     if (secVentasRealizadas) { secVentasRealizadas.classList.add('hidden'); secVentasRealizadas.style.display = 'none'; }
+    if (secFacturas) { secFacturas.classList.add('hidden'); secFacturas.style.display = 'none'; }
 
-    [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas].forEach(btn => {
+    [btnTurno, btnHistorial, btnAuditoria, btnVentasRealizadas, btnFacturas].forEach(btn => {
         if (btn) {
             activeClasses.forEach(cls => btn.classList.remove(cls));
             inactiveClasses.forEach(cls => btn.classList.add(cls));
@@ -719,6 +722,100 @@ function cambiarPestana(tabId) {
             activeClasses.forEach(cls => btnVentasRealizadas.classList.add(cls));
         }
         cargarVentasRealizadas();
+    } else if (tabId === 'facturas') {
+        if (secFacturas) { secFacturas.classList.remove('hidden'); secFacturas.style.display = ''; }
+        if (btnFacturas) {
+            inactiveClasses.forEach(cls => btnFacturas.classList.remove(cls));
+            activeClasses.forEach(cls => btnFacturas.classList.add(cls));
+        }
+        cargarFacturas();
+    }
+}
+
+// === FACTURAS POR EMITIR ===
+//
+// La factura se emite en el otro sistema. Acá solo se ve a nombre de quién hay
+// que emitirla y se tilda la que ya se emitió: la fila se queda en la lista,
+// marcada, para poder repasar de un vistazo lo que ya está hecho.
+async function cargarFacturas() {
+    const tbody = document.getElementById('tabla-facturas-body');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-400">Cargando…</td></tr>`;
+    try {
+        const res = await fetch('/api/facturas-pendientes');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al cargar');
+        pintarFacturas(data);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-rose-500 font-bold">${e.message}</td></tr>`;
+    }
+}
+
+function pintarFacturas(data) {
+    const tbody = document.getElementById('tabla-facturas-body');
+    const resumen = document.getElementById('facturas-resumen');
+    const globo = document.getElementById('globo-facturas');
+    const items = data.items || [];
+
+    if (resumen) {
+        resumen.textContent = items.length === 0
+            ? 'Sin facturas'
+            : `${data.pendientes} por emitir · ${data.emitidas} listas`;
+    }
+    if (globo) {
+        globo.textContent = data.pendientes;
+        globo.classList.toggle('hidden', !data.pendientes);
+    }
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">
+            <i class="fa-regular fa-circle-check mr-1"></i> No hay facturas pendientes hoy.
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map(f => {
+        const lista = f.estado === 'EMITIDA';
+        // Una factura de un día anterior que sigue sin emitir se marca: es la que
+        // se está arrastrando y la que hay que hacer primero.
+        const atrasada = !lista && f.atrasada;
+        return `
+        <tr class="border-t border-slate-200 ${lista ? 'bg-emerald-50' : atrasada ? 'bg-amber-50' : 'bg-white'}">
+            <td class="py-2.5 px-2">
+                <input type="checkbox" ${lista ? 'checked' : ''} onchange="marcarFactura(${f.id}, this.checked)"
+                       class="w-5 h-5 accent-emerald-600 cursor-pointer" title="Tildar cuando ya la emitiste">
+            </td>
+            <td class="py-2.5 px-2 font-mono text-slate-500 whitespace-nowrap">${f.hora || ''}</td>
+            <td class="py-2.5 px-2 font-bold text-slate-700">${f.mesa || '-'}</td>
+            <td class="py-2.5 px-2 font-bold text-slate-800">${f.razon_social}</td>
+            <td class="py-2.5 px-2 font-mono text-slate-600">${f.nit}</td>
+            <td class="py-2.5 px-2 text-right font-black text-slate-800 whitespace-nowrap">Bs. ${f.monto.toFixed(2)}</td>
+            <td class="py-2.5 px-2 text-slate-500 whitespace-nowrap">${f.metodo_pago || '-'}</td>
+            <td class="py-2.5 px-2 whitespace-nowrap">
+                ${lista
+                    ? `<span class="text-emerald-400 font-black text-[11px] uppercase"><i class="fa-solid fa-check mr-1"></i>Completado</span>
+                       <span class="block text-[10px] text-slate-400">${f.emitida_nombre || ''} ${f.hora_emitida || ''}</span>`
+                    : atrasada
+                        ? `<span class="text-amber-400 font-black text-[11px] uppercase"><i class="fa-solid fa-clock mr-1"></i>Atrasada</span>`
+                        : `<span class="text-slate-500 font-black text-[11px] uppercase">Por emitir</span>`}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function marcarFactura(id, emitida) {
+    try {
+        const res = await fetch(`/api/facturas-pendientes/${id}/emitida`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emitida }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No se pudo marcar');
+        cargarFacturas();
+    } catch (e) {
+        alert('❌ ' + e.message);
+        cargarFacturas();
     }
 }
 

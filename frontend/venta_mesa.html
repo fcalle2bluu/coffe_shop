@@ -454,6 +454,62 @@
         </div>
     </div>
 
+    <!-- MODAL COBRO CON FACTURA: cobra la mesa y además deja anotada la factura
+         (razón social y NIT) para que el administrador la emita en el otro sistema. -->
+    <div id="modalCobroFactura" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border-t-4 border-sky-500 flex flex-col animate-scale-in max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-sky-500"></i>
+                    <span>Cobrar con Factura</span>
+                </h3>
+                <button onclick="cerrarModalCobroFactura()" class="text-gray-400 hover:text-red-500 transition-colors btn-bounce"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl text-center">
+                    <p class="text-xs text-blue-800 uppercase font-black tracking-widest mb-1">Monto a Cobrar</p>
+                    <p class="text-3xl font-black text-blue-700" id="lbl-monto-factura">Bs. 0.00</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Método de Pago</label>
+                    <select id="sel-metodo-pago-factura" class="w-full border border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-colors font-bold text-gray-700 text-sm">
+                        <option value="EFECTIVO">💵 Efectivo</option>
+                        <option value="QR">📱 QR Transferencia</option>
+                        <option value="TARJETA">💳 Tarjeta POS</option>
+                        <option value="BILLETERA MOVIL">🇧🇴 Billetera Móvil</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Razón Social</label>
+                    <input id="factura-razon" type="text" autocomplete="off" placeholder="A nombre de quién va la factura"
+                           class="w-full border border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-colors font-bold text-gray-700 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">NIT / CI</label>
+                    <input id="factura-nit" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej: 1234567018"
+                           class="w-full border border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-colors font-bold text-gray-700 text-sm">
+                </div>
+
+                <p class="text-[11px] text-slate-500 leading-snug bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                    <i class="fa-solid fa-circle-info text-sky-500 mr-1"></i>
+                    La factura no se emite acá. Queda anotada en <strong>Control de Caja → Facturas</strong>
+                    para emitirla en el otro sistema y tildarla cuando esté lista.
+                </p>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="cerrarModalCobroFactura()" class="w-1/2 px-4 py-2.5 bg-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-200 transition-colors text-sm btn-bounce">Cancelar</button>
+                <button onclick="confirmarCobroFactura()" id="btn-confirmar-factura" class="w-1/2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-colors text-sm btn-bounce flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Cobrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL COBRO DIVIDIDO (Solo Cajeros): mismo total repartido entre varios métodos de pago -->
     <div id="modalCobroDividido" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-t-4 border-indigo-500 flex flex-col animate-scale-in max-h-[90vh] overflow-y-auto">
