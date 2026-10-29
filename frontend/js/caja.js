@@ -787,7 +787,10 @@ function pintarFacturas(data) {
             </td>
             <td class="py-2.5 px-2 font-mono text-slate-500 whitespace-nowrap">${f.hora || ''}</td>
             <td class="py-2.5 px-2 font-bold text-slate-700">${f.mesa || '-'}</td>
-            <td class="py-2.5 px-2 font-bold text-slate-800">${f.razon_social}</td>
+            <td class="py-2.5 px-2">
+                <span class="font-bold text-slate-800">${f.razon_social}</span>
+                ${f.telefono ? `<span class="block text-[11px] text-slate-500 font-mono"><i class="fa-solid fa-phone text-[9px] mr-1"></i>${f.telefono}</span>` : ''}
+            </td>
             <td class="py-2.5 px-2 font-mono text-slate-600">${f.nit}</td>
             <td class="py-2.5 px-2 text-right font-black text-slate-800 whitespace-nowrap">Bs. ${f.monto.toFixed(2)}</td>
             <td class="py-2.5 px-2 text-slate-500 whitespace-nowrap">${f.metodo_pago || '-'}</td>

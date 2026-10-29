@@ -1538,6 +1538,9 @@ pool.query('SELECT NOW()', async (err, res) => {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_ventas_factura_fecha ON ventas_factura (fecha DESC);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_ventas_factura_estado ON ventas_factura (estado);`);
         await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_ventas_factura_venta ON ventas_factura (venta_id);`);
+        // El teléfono del cliente se agregó después, por eso va aparte: la tabla
+        // ya existía en producción cuando se pidió.
+        await pool.query(`ALTER TABLE ventas_factura ADD COLUMN IF NOT EXISTS telefono VARCHAR(30);`);
         console.log('✅ Tabla de ventas con factura verificada/creada.');
     } catch (vfErr) {
         console.log('Info Migración ventas con factura:', vfErr.message);

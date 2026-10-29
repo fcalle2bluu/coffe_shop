@@ -716,6 +716,9 @@ router.post('/:id/pagar', async (req, res) => {
     const recortar = (v, largo) => (v || '').toString().trim().slice(0, largo);
     const razonSocial = conFactura ? recortar(factura.razon_social, 200) : '';
     const nitFactura = conFactura ? recortar(factura.nit, 40) : '';
+    // El teléfono es opcional: sirve para avisarle al cliente cuando la factura
+    // esté lista, pero no se le va a negar la factura a quien no lo quiera dar.
+    const telefonoFactura = conFactura ? recortar(factura.telefono, 30) : '';
     // La venta se registra a nombre de quien está realmente autenticado cobrando,
     // no del usuario_id que mande el navegador (que podía venir pisado por otra
     // pestaña y dejaba la venta contabilizada al cajero equivocado).
@@ -835,8 +838,8 @@ router.post('/:id/pagar', async (req, res) => {
         if (conFactura && ventaPrincipalId) {
             await client.query(`
                 INSERT INTO ventas_factura
-                    (venta_id, comanda_id, mesa, razon_social, nit, monto, metodo_pago, fecha)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date)
+                    (venta_id, comanda_id, mesa, razon_social, nit, telefono, monto, metodo_pago, fecha)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, (CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date)
                 ON CONFLICT (venta_id) DO NOTHING
             `, [
                 ventaPrincipalId,
@@ -844,6 +847,7 @@ router.post('/:id/pagar', async (req, res) => {
                 recortar(comanda.mesa, 60),
                 razonSocial,
                 nitFactura,
+                telefonoFactura || null,
                 totalComanda,
                 recortar(listaPagos.map(p => p.metodo_pago).join(' + '), 40),
             ]);
@@ -861,7 +865,7 @@ router.post('/:id/pagar', async (req, res) => {
             detalle: {
                 mesa: comanda.mesa, total: totalComanda, pagos: listaPagos,
                 venta_id_principal: ventaPrincipalId,
-                ...(conFactura ? { factura: { razon_social: razonSocial, nit: nitFactura } } : {}),
+                ...(conFactura ? { factura: { razon_social: razonSocial, nit: nitFactura, telefono: telefonoFactura } } : {}),
             },
             client
         });

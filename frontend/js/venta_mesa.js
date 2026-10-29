@@ -1082,6 +1082,7 @@ async function abrirModalCobroFactura() {
     document.getElementById('lbl-monto-factura').innerText = `Bs. ${parseFloat(comandaActivaMesa.total).toFixed(2)}`;
     document.getElementById('factura-razon').value = '';
     document.getElementById('factura-nit').value = '';
+    document.getElementById('factura-telefono').value = '';
     document.getElementById('sel-metodo-pago-factura').value = 'EFECTIVO';
     document.getElementById('modalCobroFactura').classList.remove('hidden');
     setTimeout(() => document.getElementById('factura-razon').focus(), 100);
@@ -1095,6 +1096,8 @@ async function confirmarCobroFactura() {
     if (!comandaActivaMesa) return;
     const razon = document.getElementById('factura-razon').value.trim();
     const nit = document.getElementById('factura-nit').value.trim();
+    // El teléfono es opcional: si no lo dan, la factura se cobra igual.
+    const telefono = document.getElementById('factura-telefono').value.trim();
     const metodoPago = document.getElementById('sel-metodo-pago-factura').value;
 
     if (!razon) { alert('Falta la razón social de la factura.'); return; }
@@ -1108,7 +1111,7 @@ async function confirmarCobroFactura() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 metodo_pago: metodoPago,
-                factura: { razon_social: razon, nit: nit },
+                factura: { razon_social: razon, nit: nit, telefono: telefono },
             }),
         });
         const data = await res.json();

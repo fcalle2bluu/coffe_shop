@@ -19,7 +19,7 @@ const HOY_BOLIVIA = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::date`;
 router.get('/', async (req, res) => {
     try {
         const r = await pool.query(`
-            SELECT f.id, f.venta_id, f.comanda_id, f.mesa, f.razon_social, f.nit,
+            SELECT f.id, f.venta_id, f.comanda_id, f.mesa, f.razon_social, f.nit, f.telefono,
                    f.monto, f.metodo_pago, f.estado, f.fecha,
                    f.emitida_nombre, f.emitida_en,
                    TO_CHAR(f.creada_en AT TIME ZONE 'America/La_Paz', 'DD/MM HH24:MI') AS hora,
