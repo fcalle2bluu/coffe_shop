@@ -709,8 +709,13 @@ router.post('/:id/pagar', async (req, res) => {
     // emite acá, solo queda anotada para que el administrador la emita en el
     // otro sistema y después la tilde en la pantalla de Caja.
     const conFactura = factura && typeof factura === 'object';
-    const razonSocial = conFactura ? (factura.razon_social || '').toString().trim() : '';
-    const nitFactura = conFactura ? (factura.nit || '').toString().trim() : '';
+    // Se recortan al largo de la columna a propósito. El anotado de la factura va
+    // dentro de la misma transacción que el cobro, así que cualquier error ahí
+    // tiraría abajo la venta entera: una razón social larguísima no puede ser el
+    // motivo de que un cobro no quede registrado.
+    const recortar = (v, largo) => (v || '').toString().trim().slice(0, largo);
+    const razonSocial = conFactura ? recortar(factura.razon_social, 200) : '';
+    const nitFactura = conFactura ? recortar(factura.nit, 40) : '';
     // La venta se registra a nombre de quien está realmente autenticado cobrando,
     // no del usuario_id que mande el navegador (que podía venir pisado por otra
     // pestaña y dejaba la venta contabilizada al cajero equivocado).
@@ -836,11 +841,11 @@ router.post('/:id/pagar', async (req, res) => {
             `, [
                 ventaPrincipalId,
                 Number(id),
-                comanda.mesa,
+                recortar(comanda.mesa, 60),
                 razonSocial,
                 nitFactura,
                 totalComanda,
-                listaPagos.map(p => p.metodo_pago).join(' + '),
+                recortar(listaPagos.map(p => p.metodo_pago).join(' + '), 40),
             ]);
         }
 
