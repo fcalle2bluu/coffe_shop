@@ -923,6 +923,38 @@
             }
         };
 
+        // Plugin: el monto escrito arriba de cada barra. El gráfico es chico y el
+        // eje de la derecha solo da una referencia redondeada; con el número
+        // encima no hace falta pasar el mouse barra por barra.
+        const pluginValorBarra = {
+            id: 'valorBarra',
+            afterDatasetsDraw(chart) {
+                const { ctx, chartArea } = chart;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta || !meta.data) return;
+                ctx.save();
+                ctx.textAlign = 'center';
+                meta.data.forEach((barra, i) => {
+                    const valor = chart.data.datasets[0].data[i];
+                    if (!valor || valor <= 0) return; // los días sin ventas quedan limpios
+                    const seleccionada = i === chart.$indexSelected;
+                    ctx.font = `bold ${seleccionada ? 11 : 10}px Outfit, sans-serif`;
+                    // Si el texto no entra en el ancho de la barra se saca el "Bs.",
+                    // antes que dejarlo pisando la barra de al lado.
+                    let texto = fmtBsCorto(valor);
+                    if (ctx.measureText(texto).width > barra.width + 12) {
+                        texto = texto.replace('Bs. ', '');
+                    }
+                    // Va justo encima de la barra; si no entra arriba, adentro.
+                    const encima = barra.y - 6;
+                    const y = encima < chartArea.top + 9 ? barra.y + 15 : encima;
+                    ctx.fillStyle = seleccionada ? '#fdba74' : '#94a3b8';
+                    ctx.fillText(texto, barra.x, y);
+                });
+                ctx.restore();
+            }
+        };
+
         function renderChartActividadSemanal(indexSelected) {
             const canvas = document.getElementById('chartActividadSemanal');
             if (!canvas) return;
@@ -936,26 +968,12 @@
             const diasConVenta = dataValues.filter(v => v > 0).length;
             const promedioSemana = diasConVenta > 0 ? dataValues.reduce((a, b) => a + b, 0) / diasConVenta : 0;
 
-            // Barras con degradado: encendida la seleccionada, tenues las demás
-            const colorBarra = (context) => {
-                const { ctx, chartArea } = context.chart;
-                const seleccionada = context.dataIndex === context.chart.$indexSelected;
-                if (!chartArea) return seleccionada ? '#f97316' : 'rgba(249, 115, 22, 0.22)';
-                const g = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                if (seleccionada) {
-                    g.addColorStop(0, '#c2410c');
-                    g.addColorStop(0.55, '#f97316');
-                    g.addColorStop(1, '#fbbf24');
-                } else {
-                    g.addColorStop(0, 'rgba(249, 115, 22, 0.08)');
-                    g.addColorStop(1, 'rgba(249, 115, 22, 0.40)');
-                }
-                return g;
-            };
-            const colorBarraHover = (context) => {
-                const seleccionada = context.dataIndex === context.chart.$indexSelected;
-                return seleccionada ? '#fb923c' : 'rgba(249, 115, 22, 0.6)';
-            };
+            // Color plano, sin degradado: el día elegido en naranja fuerte y el
+            // resto en un naranja apagado, que igual se lee sobre el fondo oscuro.
+            const colorBarra = (context) =>
+                context.dataIndex === context.chart.$indexSelected ? '#f97316' : '#9a3412';
+            const colorBarraHover = (context) =>
+                context.dataIndex === context.chart.$indexSelected ? '#fb923c' : '#c2410c';
 
             if (chartActividadSemanalInst) {
                 chartActividadSemanalInst.$indexSelected = indexSelected;
@@ -978,12 +996,12 @@
                             maxBarThickness: 42
                         }]
                     },
-                    plugins: [pluginLineaPromedio],
+                    plugins: [pluginLineaPromedio, pluginValorBarra],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: { duration: 600, easing: 'easeOutQuart' },
-                        animations: { colors: false }, // los degradados no se pueden interpolar
+                        animations: { colors: false }, // el cambio de día se nota mejor sin transición
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -1048,6 +1066,7 @@
                             },
                             y: {
                                 position: 'right',
+                                grace: '15%', // lugar para el monto que va encima de la barra más alta
                                 border: { display: false },
                                 grid: {
                                     color: 'rgba(255, 255, 255, 0.06)',
