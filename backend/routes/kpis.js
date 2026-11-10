@@ -376,6 +376,64 @@ router.get('/ventas-dia-productos', async (req, res) => {
     }
 });
 
+// Cuánto vendió cada mesa en un período: cantidad de ventas y dinero.
+//
+// Se cuenta por comanda, no por fila de ventas: un cobro dividido entre dos
+// métodos de pago deja dos filas en ventas para una sola atención de la mesa,
+// y contarlas sueltas inflaría el número de ventas al doble.
+//
+// Vienen todas las mesas activas, también las que no vendieron nada, para que
+// el gráfico mantenga siempre el mismo orden y se pueda comparar un mes contra
+// otro mirando el mismo lugar.
+router.get('/ventas-por-mesa', async (req, res) => {
+    try {
+        const { desde, hasta } = req.query; // YYYY-MM-DD
+        if (!desde || !hasta) {
+            return res.status(400).json({ error: 'Se necesitan las fechas desde y hasta.' });
+        }
+
+        const query = `
+            SELECT
+                m.numero AS mesa,
+                m.piso,
+                COALESCE(v.ventas, 0)::int AS ventas,
+                COALESCE(v.total, 0) AS total
+            FROM mesas m
+            LEFT JOIN (
+                SELECT c.mesa,
+                       COUNT(DISTINCT c.id) AS ventas,
+                       SUM(ve.total) AS total
+                FROM ventas ve
+                JOIN comandas c ON c.id = ve.comanda_id
+                WHERE ve.es_historica = FALSE
+                  AND (ve.fecha_venta AT TIME ZONE 'America/La_Paz')::date BETWEEN $1::date AND $2::date
+                GROUP BY c.mesa
+            ) v ON v.mesa = m.numero
+            WHERE m.activo
+            ORDER BY CASE WHEN lower(m.numero) LIKE '%llevar%' THEN 1 ELSE 0 END, -- no es una mesa: va al final
+                     m.piso DESC,                                                  -- planta baja primero
+                     CASE WHEN m.numero ~ '^[0-9]+$' THEN 0 ELSE 1 END,
+                     CASE WHEN m.numero ~ '^[0-9]+$' THEN m.numero::int ELSE 0 END,
+                     m.numero
+        `;
+
+        const r = await pool.query(query, [desde, hasta]);
+        const items = r.rows.map((x) => ({ ...x, total: Number(x.total) }));
+
+        res.json({
+            desde,
+            hasta,
+            total: items.reduce((a, x) => a + x.total, 0),
+            ventas: items.reduce((a, x) => a + x.ventas, 0),
+            items,
+        });
+
+    } catch (error) {
+        console.error('Error al obtener las ventas por mesa:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de ventas por mesa' });
+    }
+});
+
 // [NUEVO] Estadísticas avanzadas para gráficos
 router.get('/stats-avanzadas', async (req, res) => {
     try {

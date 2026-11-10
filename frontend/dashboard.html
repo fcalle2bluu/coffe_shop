@@ -614,21 +614,71 @@
             </div> <!-- Fin seccion-kpis-admin -->
 
 
-            <!-- DISPONIBILIDAD DE MESAS (Visible para todos) -->
-            <div class="bg-white rounded-2xl shadow-premium p-6 border border-slate-100 mb-6">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
-                    <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-utensils text-orange-500"></i>
-                        <span>Mesas Disponibles</span>
-                    </h2>
-                    <span class="text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600">Total: 10 Mesas</span>
-                </div>
-                
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-4" id="contenedor-mesas-dashboard">
-                    <!-- Cargando... -->
-                    <div class="col-span-full py-8 text-center text-slate-400">
-                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando mesas...
+            <!-- VENTAS POR MESA -->
+            <!-- Antes acá estaba el mapa de mesas libres/ocupadas, que ya se ve en
+                 la pantalla de Venta por Mesa. Ahora muestra cuánto vendió cada
+                 mesa: mismo formato que el gráfico de actividad, pero en vez de
+                 los días de la semana van las mesas. -->
+            <div id="seccion-ventas-mesa" class="bg-slate-950 text-white rounded-3xl p-6 border border-slate-900 shadow-2xl overflow-hidden mb-6">
+                <div class="flex justify-between items-start gap-3 flex-wrap mb-5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="bg-orange-500/10 text-orange-400 font-bold px-3 py-1.5 rounded-full text-xs flex items-center gap-2 border border-orange-500/20 select-none">
+                            <i class="fa-solid fa-utensils text-[11px]"></i>
+                            <span>Ventas por mesa</span>
+                        </div>
+                        <!-- Mes o un día suelto. El resto de la tarjeta se arma igual
+                             en los dos casos; lo único que cambia es el rango. -->
+                        <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-full p-1 select-none">
+                            <button id="btn-mesa-mes" onclick="cambiarModoMesa('MES')" class="px-3 py-1 rounded-full text-xs font-bold transition-all bg-orange-500 text-white">Mes</button>
+                            <button id="btn-mesa-dia" onclick="cambiarModoMesa('DIA')" class="px-3 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white">Día</button>
+                        </div>
                     </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex items-end gap-3 flex-wrap">
+                        <h3 id="mesa-monto-total" class="text-4xl font-extrabold tracking-tight text-white">Bs. 0.00</h3>
+                        <span id="mesa-cant-ventas" class="text-[11px] font-bold px-2 py-1 rounded-full mb-1 bg-orange-500/10 text-orange-300 border border-orange-500/20">0 ventas</span>
+                    </div>
+                    <p id="mesa-lbl-periodo" class="text-sm text-slate-400 font-semibold mt-1">Cargando...</p>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 select-none">
+                        <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Mejor mesa</p>
+                            <p id="mesa-mejor" class="text-sm font-extrabold text-amber-400 mt-0.5">—</p>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Promedio / mesa</p>
+                            <p id="mesa-promedio" class="text-sm font-extrabold text-white mt-0.5">—</p>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Ticket promedio</p>
+                            <p id="mesa-ticket" class="text-sm font-extrabold text-white mt-0.5">—</p>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">Mesas con venta</p>
+                            <p id="mesa-usadas" class="text-sm font-extrabold text-slate-300 mt-0.5">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- En el celular las 18 mesas no entran: el gráfico se desliza de
+                     costado en vez de encimar los nombres unos sobre otros. En
+                     pantalla ancha ocupa todo el espacio, sin barra de scroll. -->
+                <div class="relative mt-4 overflow-x-auto">
+                    <div class="h-64 min-w-[680px] lg:min-w-0">
+                        <canvas id="chartVentasMesa"></canvas>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-center gap-6 mt-6 select-none">
+                    <button id="btn-mesa-prev" onclick="navegarPeriodoMesa(-1)" title="Período anterior" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
+                        <i class="fa-solid fa-chevron-left text-sm"></i>
+                    </button>
+                    <span id="mesa-periodo-selector" class="text-sm font-bold text-slate-300 min-w-[140px] text-center">-</span>
+                    <button id="btn-mesa-next" onclick="navegarPeriodoMesa(1)" title="Período siguiente" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-slate-400">
+                        <i class="fa-solid fa-chevron-right text-sm"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -837,7 +887,7 @@
             }
         }
 
-        const fmtBs = (v) => `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(v)}`;
+        const fmtBs = (v) => `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)}`;
         const fmtBsCorto = (v) => v >= 1000 ? `Bs. ${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `Bs. ${Math.round(v)}`;
 
         function actualizarStatsSemana(indexSelected, totalDia) {
@@ -1291,8 +1341,10 @@
                 cargarGraficoGastosCat();
             }
 
-            cargarMesasDashboard();
-            setInterval(cargarMesasDashboard, 15000); // Refrescar mesas cada 15 segundos
+            // Ventas por mesa. Ya no hace falta refrescar cada 15 segundos: antes
+            // mostraba mesas libres/ocupadas en vivo, ahora es un resumen del mes.
+            pintarBotonesModoMesa();
+            cargarVentasPorMesa();
             
             // Sincronizar colores de los gráficos con el tema actual tras cargarlos
             setTimeout(sincronizarGraficosConTema, 600);
@@ -2185,90 +2237,234 @@
             }
         }
 
-        async function cargarMesasDashboard() {
-            const contenedor = document.getElementById('contenedor-mesas-dashboard');
-            if (!contenedor) return;
-            try {
-                const res = await fetch('/api/comandas/mesas-estado');
-                if (!res.ok) throw new Error('Error al cargar estado de mesas');
-                const mesas = await res.json();
-                
-                contenedor.innerHTML = '';
-                
-                // Agrupar mesas por piso
-                const mesasPorPiso = {
-                    'PLANTA_BAJA': [],
-                    'PLANTA_ALTA': []
-                };
-                
-                mesas.forEach(m => {
-                    const pisoKey = m.piso || 'PLANTA_BAJA';
-                    if (!mesasPorPiso[pisoKey]) mesasPorPiso[pisoKey] = [];
-                    mesasPorPiso[pisoKey].push(m);
-                });
+        // ═══════════════════════════════════════════════════════════════════
+        // 🍽️ GRÁFICO: VENTAS POR MESA
+        // Mismo formato que el de actividad semanal, pero las barras son mesas.
+        // Se mira un mes entero o un día suelto; las flechas mueven el período.
+        // ═══════════════════════════════════════════════════════════════════
+        let chartVentasMesaInst = null;
+        let mesaModo = 'MES';          // 'MES' | 'DIA'
+        let mesaPeriodo = new Date();  // cualquier día dentro del período mirado
 
-                const labelsPisos = {
-                    'PLANTA_BAJA': 'Planta Baja',
-                    'PLANTA_ALTA': 'Primer Piso (Arriba)'
-                };
+        const MESES_LARGO = ['enero','febrero','marzo','abril','mayo','junio',
+                             'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-                // Modificar clase de contenedor a vertical flex
-                contenedor.className = "col-span-full space-y-6";
-
-                for (const pisoKey in mesasPorPiso) {
-                    const listaMesas = mesasPorPiso[pisoKey];
-                    if (listaMesas.length === 0) continue;
-
-                    const tituloPiso = labelsPisos[pisoKey] || pisoKey;
-                    
-                    let mesasHtml = '';
-                    listaMesas.forEach(m => {
-                        const esOcupada = m.estado === 'ocupada';
-                        const colorBg = esOcupada ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200';
-                        const colorText = esOcupada ? 'text-rose-800 animate-pulse' : 'text-emerald-800';
-                        const badgeColor = esOcupada ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white';
-                        const icon = esOcupada ? 'fa-circle-dot animate-pulse' : 'fa-circle-check';
-                        
-                        const totalPed = esOcupada ? `<p class="text-[11px] text-rose-600 font-black mt-1.5">Bs. ${m.comanda.total}</p>` : '';
-                        const mesero = (esOcupada && m.comanda.mesero_nombre) ? `<p class="text-[9px] text-slate-400 font-bold truncate mt-0.5">${m.comanda.mesero_nombre}</p>` : '';
-
-                        mesasHtml += `
-                            <div class="border rounded-2xl p-4 flex flex-col items-center justify-between text-center shadow-sm select-none transition-all hover:shadow-md ${colorBg}">
-                                <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black mb-2 ${badgeColor}">
-                                    ${m.mesa}
-                                </span>
-                                <div class="flex-grow flex flex-col justify-center overflow-hidden w-full">
-                                    <span class="text-xs font-black uppercase tracking-wider ${colorText}">
-                                        ${m.mesa === 'Para Llevar' ? 'Para Llevar' : `Mesa ${m.mesa}`}
-                                    </span>
-                                    <span class="text-[9px] text-slate-500 font-bold mt-1 flex items-center justify-center gap-1">
-                                        <i class="fa-solid ${icon} text-[8px]"></i>
-                                        ${esOcupada ? 'Ocupada' : 'Libre'}
-                                    </span>
-                                    ${totalPed}
-                                    ${mesero}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    contenedor.innerHTML += `
-                        <div>
-                            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <i class="fa-solid fa-layer-group text-orange-500"></i>
-                                ${tituloPiso}
-                                <span class="text-[10px] text-slate-400 font-bold font-mono">(${listaMesas.length})</span>
-                            </h3>
-                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                                ${mesasHtml}
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                console.error("Error cargando mesas:", e);
-                contenedor.innerHTML = `<div class="col-span-full py-4 text-center text-red-500 font-bold">Error al cargar disponibilidad de mesas.</div>`;
+        function rangoPeriodoMesa() {
+            const d = new Date(mesaPeriodo);
+            if (mesaModo === 'DIA') {
+                const iso = formatDateISO(d);
+                return { desde: iso, hasta: iso, etiqueta: obtenerEtiquetaDia(d), selector: formatFechaSeleccionada(d) };
             }
+            const primero = new Date(d.getFullYear(), d.getMonth(), 1);
+            const ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            const nombre = `${MESES_LARGO[d.getMonth()]} de ${d.getFullYear()}`;
+            return {
+                desde: formatDateISO(primero),
+                hasta: formatDateISO(ultimo),
+                etiqueta: nombre.charAt(0).toUpperCase() + nombre.slice(1),
+                selector: `${MESES_LARGO[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
+            };
+        }
+
+        function cambiarModoMesa(modo) {
+            if (mesaModo === modo) return;
+            mesaModo = modo;
+            // Al pasar a día se arranca por hoy: el día en el que uno estaba
+            // parado podía ser cualquiera del mes que estaba mirando.
+            mesaPeriodo = new Date();
+            mesaPeriodo.setHours(0, 0, 0, 0);
+            pintarBotonesModoMesa();
+            cargarVentasPorMesa();
+        }
+
+        function pintarBotonesModoMesa() {
+            const activo = 'px-3 py-1 rounded-full text-xs font-bold transition-all bg-orange-500 text-white';
+            const inactivo = 'px-3 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white';
+            const bMes = document.getElementById('btn-mesa-mes');
+            const bDia = document.getElementById('btn-mesa-dia');
+            if (bMes) bMes.className = mesaModo === 'MES' ? activo : inactivo;
+            if (bDia) bDia.className = mesaModo === 'DIA' ? activo : inactivo;
+        }
+
+        function navegarPeriodoMesa(offset) {
+            const d = new Date(mesaPeriodo);
+            if (mesaModo === 'DIA') {
+                d.setDate(d.getDate() + offset);
+            } else {
+                // Día 1 antes de mover el mes: parado un 31, sumar un mes a un
+                // mes de 30 días se iba al mes siguiente.
+                d.setDate(1);
+                d.setMonth(d.getMonth() + offset);
+            }
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            if (offset > 0) {
+                const finPeriodo = mesaModo === 'DIA' ? d : new Date(d.getFullYear(), d.getMonth(), 1);
+                const limite = mesaModo === 'DIA' ? hoy : new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                if (finPeriodo > limite) return; // no se puede mirar el futuro
+            }
+            mesaPeriodo = d;
+            cargarVentasPorMesa();
+        }
+
+        async function cargarVentasPorMesa() {
+            const canvas = document.getElementById('chartVentasMesa');
+            if (!canvas) return;
+            const rango = rangoPeriodoMesa();
+
+            try {
+                const res = await fetch(`/api/kpis/ventas-por-mesa?desde=${rango.desde}&hasta=${rango.hasta}`);
+                if (!res.ok) throw new Error('Error al cargar las ventas por mesa');
+                const data = await res.json();
+                const items = data.items || [];
+
+                document.getElementById('mesa-monto-total').innerText = fmtBs(data.total || 0);
+                document.getElementById('mesa-cant-ventas').innerText =
+                    `${data.ventas || 0} venta${data.ventas === 1 ? '' : 's'}`;
+                document.getElementById('mesa-lbl-periodo').innerText = rango.etiqueta;
+                document.getElementById('mesa-periodo-selector').innerText = rango.selector;
+
+                const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+                const btnNext = document.getElementById('btn-mesa-next');
+                if (btnNext) {
+                    btnNext.disabled = mesaModo === 'DIA'
+                        ? mesaPeriodo >= hoy
+                        : (mesaPeriodo.getFullYear() === hoy.getFullYear() && mesaPeriodo.getMonth() === hoy.getMonth());
+                }
+
+                // Los promedios se calculan sobre las mesas que vendieron: contar
+                // también las vacías tiraría el promedio para abajo sin motivo.
+                const conVenta = items.filter(m => m.total > 0);
+                document.getElementById('mesa-usadas').innerText = `${conVenta.length} de ${items.length}`;
+                document.getElementById('mesa-promedio').innerText =
+                    conVenta.length ? fmtBs(data.total / conVenta.length) : '—';
+                document.getElementById('mesa-ticket').innerText =
+                    data.ventas ? fmtBs(data.total / data.ventas) : '—';
+
+                const mejor = conVenta.reduce((a, b) => (b.total > (a ? a.total : -1) ? b : a), null);
+                document.getElementById('mesa-mejor').innerText =
+                    mejor ? `${nombreMesaLargo(mejor.mesa)} · ${fmtBsCorto(mejor.total)}` : '—';
+
+                renderChartVentasMesa(items, mejor);
+
+            } catch (e) {
+                console.error('Error en ventas por mesa:', e);
+                document.getElementById('mesa-lbl-periodo').innerText = 'No se pudo cargar';
+            }
+        }
+
+        // "Para Llevar" no entra en el eje: se abrevia para que no empuje al resto.
+        const nombreMesaCorto = (m) => String(m).toLowerCase().includes('llevar') ? 'Llevar' : String(m);
+        // Para los textos fuera del gráfico, donde sí hay lugar.
+        const nombreMesaLargo = (m) => /^\d+$/.test(String(m)) ? `Mesa ${m}` : String(m);
+
+        function renderChartVentasMesa(items, mejor) {
+            const canvas = document.getElementById('chartVentasMesa');
+            if (!canvas) return;
+
+            const labels = items.map(m => nombreMesaCorto(m.mesa));
+            const valores = items.map(m => m.total);
+            const indexMejor = mejor ? items.findIndex(m => m.mesa === mejor.mesa) : -1;
+
+            const colorBarra = (ctx) => ctx.dataIndex === ctx.chart.$indexSelected ? '#f97316' : '#9a3412';
+            const colorHover = (ctx) => ctx.dataIndex === ctx.chart.$indexSelected ? '#fb923c' : '#c2410c';
+
+            if (chartVentasMesaInst) {
+                chartVentasMesaInst.$indexSelected = indexMejor;
+                chartVentasMesaInst.$datosMesas = items;
+                chartVentasMesaInst.data.labels = labels;
+                chartVentasMesaInst.data.datasets[0].data = valores;
+                chartVentasMesaInst.update();
+                return;
+            }
+
+            chartVentasMesaInst = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: colorBarra,
+                        hoverBackgroundColor: colorHover,
+                        borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 2, bottomRight: 2 },
+                        borderSkipped: false,
+                        barPercentage: 0.72,
+                        categoryPercentage: 0.86,
+                        maxBarThickness: 46
+                    }]
+                },
+                plugins: [pluginValorBarra],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 600, easing: 'easeOutQuart' },
+                    animations: { colors: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(148, 163, 184, 0.25)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            titleFont: { family: 'Outfit', size: 12, weight: 'bold' },
+                            bodyFont: { family: 'Outfit', size: 11 },
+                            callbacks: {
+                                title: (items) => {
+                                    const m = (chartVentasMesaInst.$datosMesas || [])[items[0].dataIndex];
+                                    return m ? (String(m.mesa).match(/^\d+$/) ? `Mesa ${m.mesa}` : m.mesa) : '';
+                                },
+                                label: (ctx) => {
+                                    const m = (chartVentasMesaInst.$datosMesas || [])[ctx.dataIndex] || {};
+                                    const n = m.ventas || 0;
+                                    return ` ${fmtBs(ctx.raw)} · ${n} venta${n === 1 ? '' : 's'}`;
+                                },
+                                afterLabel: (ctx) => {
+                                    const m = (chartVentasMesaInst.$datosMesas || [])[ctx.dataIndex] || {};
+                                    if (!m.ventas) return '';
+                                    return `Ticket promedio ${fmtBs(ctx.raw / m.ventas)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                color: '#94a3b8',
+                                autoSkip: false,
+                                maxRotation: 0,
+                                font: { family: 'Outfit', size: 10, weight: 'bold' },
+                                // Debajo del nombre, cuántas ventas tuvo la mesa:
+                                // el alto de la barra es plata, este número es gente.
+                                callback: function(value, i) {
+                                    const m = (chartVentasMesaInst && chartVentasMesaInst.$datosMesas || [])[i];
+                                    const etiqueta = this.getLabelForValue(value);
+                                    return m && m.ventas ? [etiqueta, `${m.ventas} v`] : [etiqueta, ''];
+                                }
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grace: '15%',
+                            border: { display: false },
+                            grid: { color: 'rgba(255, 255, 255, 0.06)', drawTicks: false },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'Outfit', size: 10 },
+                                maxTicksLimit: 5,
+                                callback: (v) => fmtBsCorto(v)
+                            }
+                        }
+                    }
+                }
+            });
+            chartVentasMesaInst.$indexSelected = indexMejor;
+            chartVentasMesaInst.$datosMesas = items;
+            chartVentasMesaInst.update();
         }
 
         // ═══════════════════════════════════════════════════════════════════
