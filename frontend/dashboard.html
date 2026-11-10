@@ -257,13 +257,13 @@
                             <canvas id="chartActividadSemanal"></canvas>
                         </div>
                         <div class="flex items-center justify-center gap-6 mt-6 select-none">
-                            <button id="btn-actividad-prev" onclick="navegarDiaActividad(-1)" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
+                            <button id="btn-actividad-prev" onclick="navegarSemanaActividad(-1)" title="Semana anterior" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
                                 <i class="fa-solid fa-chevron-left text-sm"></i>
                             </button>
                             <span id="actividad-fecha-selector" class="text-sm font-bold text-slate-300 min-w-[120px] text-center">
                                 -
                             </span>
-                            <button id="btn-actividad-next" onclick="navegarDiaActividad(1)" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-slate-400">
+                            <button id="btn-actividad-next" onclick="navegarSemanaActividad(1)" title="Semana siguiente" class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-slate-900 disabled:hover:text-slate-400">
                                 <i class="fa-solid fa-chevron-right text-sm"></i>
                             </button>
                         </div>
@@ -1163,16 +1163,29 @@
         const escaparTexto = (t) => String(t ?? '').replace(/[&<>"']/g, (c) =>
             ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-        function navegarDiaActividad(offset) {
-            const targetDate = new Date(actividadDiaSeleccionado);
-            targetDate.setDate(actividadDiaSeleccionado.getDate() + offset);
+        // Las flechas saltan de semana en semana, cayendo en el mismo día de la
+        // semana: sirve para comparar este lunes contra el lunes pasado. Para
+        // moverse entre los días de una misma semana se toca la barra.
+        function navegarSemanaActividad(offset) {
+            const objetivo = new Date(actividadDiaSeleccionado);
+            objetivo.setDate(actividadDiaSeleccionado.getDate() + offset * 7);
 
             const hoy = new Date();
             hoy.setHours(0,0,0,0);
-            if (targetDate <= hoy) {
-                actividadDiaSeleccionado = targetDate;
-                cargarActividadSemanal();
+
+            if (objetivo <= hoy) {
+                actividadDiaSeleccionado = objetivo;
+            } else if (offset > 0) {
+                // Volver a la semana en curso cuando el día en el que uno está
+                // parado todavía no llegó: estando un sábado y siendo hoy martes,
+                // el sábado de esta semana es futuro. En vez de no hacer nada,
+                // cae en hoy, que es lo más adelante que se puede ver.
+                if (actividadDiaSeleccionado >= hoy) return;
+                actividadDiaSeleccionado = hoy;
+            } else {
+                return;
             }
+            cargarActividadSemanal();
         }
 
         // === LOGICA DASHBOARD ===
