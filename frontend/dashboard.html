@@ -270,10 +270,10 @@
                     </div>
                     <!-- Columna Derecha: Desglose por Categoría -->
                     <div class="lg:col-span-5 flex flex-col border-t lg:border-t-0 lg:border-l border-slate-800/60 pt-6 lg:pt-0 lg:pl-8">
-                        <h4 class="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-4">Ventas por Categoría</h4>
+                        <h4 class="text-xs font-black uppercase text-slate-500 tracking-[0.2em] mb-4">Ventas por Producto</h4>
                         <div id="actividad-desglose-lista" class="space-y-4 flex-1 overflow-y-auto max-h-[300px] pr-2">
                             <div class="text-center text-slate-500 py-12 text-sm font-medium">
-                                <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando desglose...
+                                <i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando productos...
                             </div>
                         </div>
                     </div>
@@ -1088,19 +1088,22 @@
             }
         }
 
+        // Lo vendido en el día, producto por producto, ordenado de mayor a menor.
+        // Antes esto agrupaba por categoría; la app de celular sigue usando esa
+        // versión (endpoint /ventas-dia-detalle), que quedó sin tocar.
         async function cargarDesgloseDia(fechaStr) {
             const listContainer = document.getElementById('actividad-desglose-lista');
             if (!listContainer) return;
 
             try {
-                const res = await fetch(`/api/kpis/ventas-dia-detalle?fecha=${fechaStr}`);
-                if (!res.ok) throw new Error('Error al cargar desglose de día');
+                // Si el gráfico está cortado por hora, el panel cuenta hasta la
+                // misma hora: si no, el detalle no cuadraría con el total de arriba.
+                const corte = actividadModoHora && actividadHoraCorte ? `&hasta=${actividadHoraCorte}` : '';
+                const res = await fetch(`/api/kpis/ventas-dia-productos?fecha=${fechaStr}${corte}`);
+                if (!res.ok) throw new Error('Error al cargar los productos del día');
                 const data = await res.json();
 
-                let totalDia = 0;
-                data.forEach(item => { totalDia += parseFloat(item.total) || 0; });
-
-                listContainer.innerHTML = '';
+                const totalDia = data.reduce((acc, it) => acc + (parseFloat(it.total) || 0), 0);
 
                 if (data.length === 0 || totalDia === 0) {
                     listContainer.innerHTML = `
@@ -1111,50 +1114,54 @@
                     return;
                 }
 
-                // Estilos de categorías: icono de FontAwesome, color para el icono y para la barra de progreso
-                const CATEGORIA_ESTILOS = {
-                    'cafeteria': { icon: 'fa-mug-hot', bgIcon: 'bg-amber-500/10 text-amber-400', bgBar: 'bg-amber-500' },
-                    'café': { icon: 'fa-mug-hot', bgIcon: 'bg-amber-500/10 text-amber-400', bgBar: 'bg-amber-500' },
-                    'reposteria': { icon: 'fa-cake-candles', bgIcon: 'bg-pink-500/10 text-pink-400', bgBar: 'bg-pink-500' },
-                    'repostería': { icon: 'fa-cake-candles', bgIcon: 'bg-pink-500/10 text-pink-400', bgBar: 'bg-pink-500' },
-                    'bebidas': { icon: 'fa-glass-water', bgIcon: 'bg-blue-500/10 text-blue-400', bgBar: 'bg-blue-500' },
-                    'comida': { icon: 'fa-utensils', bgIcon: 'bg-emerald-500/10 text-emerald-400', bgBar: 'bg-emerald-500' },
-                    'salados': { icon: 'fa-pizza-slice', bgIcon: 'bg-orange-500/10 text-orange-400', bgBar: 'bg-orange-500' }
-                };
+                // El más vendido marca el largo de las barras: comparar contra el
+                // total del día dejaba a todas las barras casi vacías.
+                const mayor = parseFloat(data[0].total) || 0;
 
-                data.forEach(cat => {
-                    const totalCat = parseFloat(cat.total) || 0;
-                    const porc = totalDia > 0 ? Math.round((totalCat / totalDia) * 100) : 0;
-                    
-                    const normalizedCat = (cat.categoria || '').toLowerCase().trim();
-                    const estilo = CATEGORIA_ESTILOS[normalizedCat] || { icon: 'fa-tag', bgIcon: 'bg-indigo-500/10 text-indigo-400', bgBar: 'bg-indigo-500' };
+                listContainer.innerHTML = data.map((it, i) => {
+                    const monto = parseFloat(it.total) || 0;
+                    const cantidad = parseFloat(it.cantidad) || 0;
+                    const porcDia = totalDia > 0 ? (monto / totalDia) * 100 : 0;
+                    const ancho = mayor > 0 ? Math.max(2, (monto / mayor) * 100) : 0;
+                    // Los tres primeros resaltados: son los que mueven el día.
+                    const podio = i < 3;
+                    const puesto = podio
+                        ? 'bg-orange-500/15 text-orange-300 border-orange-500/25'
+                        : 'bg-slate-800/80 text-slate-400 border-slate-700/60';
+                    const barra = podio ? 'bg-orange-500' : 'bg-slate-600';
 
-                    listContainer.innerHTML += `
+                    return `
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${estilo.bgIcon}">
-                                <i class="fa-solid ${estilo.icon} text-lg"></i>
+                            <div class="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 text-xs font-black ${puesto}">
+                                ${i + 1}
                             </div>
                             <div class="flex-grow min-w-0">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-sm font-semibold text-slate-200 truncate">${cat.categoria}</span>
-                                    <span class="text-sm font-bold text-white">Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(totalCat)}</span>
+                                <div class="flex justify-between items-center gap-2 mb-1">
+                                    <span class="text-sm font-semibold text-slate-200 truncate" title="${escaparTexto(it.producto)}">${escaparTexto(it.producto)}</span>
+                                    <span class="text-sm font-bold text-white whitespace-nowrap">${fmtBs(monto)}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <div class="flex-grow bg-slate-800 rounded-full h-2 overflow-hidden">
-                                        <div class="${estilo.bgBar} h-full rounded-full transition-all duration-500" style="width: ${porc}%"></div>
+                                        <div class="${barra} h-full rounded-full transition-all duration-500" style="width: ${ancho}%"></div>
                                     </div>
-                                    <span class="text-[10px] text-slate-400 font-bold font-mono w-8 text-right">${porc}%</span>
+                                    <span class="text-[10px] text-slate-500 font-bold font-mono whitespace-nowrap">${cantidad % 1 === 0 ? cantidad : cantidad.toFixed(1)} u</span>
+                                    <span class="text-[10px] text-slate-400 font-bold font-mono w-8 text-right">${Math.round(porcDia)}%</span>
                                 </div>
                             </div>
                         </div>
                     `;
-                });
+                }).join('');
 
             } catch (error) {
-                console.error('Error al cargar desglose:', error);
-                listContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-sm font-medium">Error al cargar desglose de categorías</div>`;
+                console.error('Error al cargar los productos del día:', error);
+                listContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-sm font-medium">Error al cargar los productos del día</div>`;
             }
         }
+
+        // Los nombres de producto los carga el usuario: se escapan antes de
+        // meterlos en el HTML.
+        const escaparTexto = (t) => String(t ?? '').replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         function navegarDiaActividad(offset) {
             const targetDate = new Date(actividadDiaSeleccionado);

@@ -333,6 +333,49 @@ router.get('/ventas-dia-detalle', async (req, res) => {
     }
 });
 
+// Lo vendido en un día, producto por producto.
+//
+// Es el hermano de /ventas-dia-detalle, que agrupa por categoría. Se deja el
+// otro intacto porque la app de celular lo sigue usando; este es para el panel
+// del dashboard web, que ahora muestra productos.
+router.get('/ventas-dia-productos', async (req, res) => {
+    try {
+        const { fecha, hasta } = req.query; // fecha = YYYY-MM-DD
+        if (!fecha) {
+            return res.status(400).json({ error: 'La fecha es requerida.' });
+        }
+
+        // Corte opcional por hora, para cuando el gráfico está en modo "por hora"
+        // y el panel de al lado tiene que contar lo mismo.
+        const hora = /^\d{2}:\d{2}(:\d{2})?$/.test(hasta || '') ? hasta : null;
+        const filtroHora = hora
+            ? ` AND (v.fecha_venta AT TIME ZONE 'America/La_Paz')::time <= $2::time `
+            : '';
+
+        const query = `
+            SELECT
+                p.nombre as producto,
+                SUM(dv.cantidad)::numeric as cantidad,
+                COALESCE(SUM(dv.subtotal), 0) as total
+            FROM detalle_ventas dv
+            JOIN productos p ON dv.producto_id = p.id
+            JOIN ventas v ON dv.venta_id = v.id
+            WHERE (v.fecha_venta AT TIME ZONE 'America/La_Paz')::date = $1::date
+              AND v.es_historica = FALSE
+              ${filtroHora}
+            GROUP BY p.id, p.nombre
+            ORDER BY total DESC, cantidad DESC
+        `;
+
+        const result = await pool.query(query, hora ? [fecha, hora] : [fecha]);
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error al obtener los productos vendidos del día:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de productos del día' });
+    }
+});
+
 // [NUEVO] Estadísticas avanzadas para gráficos
 router.get('/stats-avanzadas', async (req, res) => {
     try {
