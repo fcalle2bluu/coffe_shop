@@ -250,6 +250,58 @@ router.get('/ventas-semanal', async (req, res) => {
     }
 });
 
+// Lo vendido en cada día de la semana PERO cortando a la misma hora.
+//
+// Sirve para comparar el día de hoy, que todavía no terminó, contra los otros
+// días: a media tarde el total del día va a ser siempre más bajo que el de un
+// día completo, y el gráfico normal lo hacía parecer un mal día. Acá todos los
+// días se cortan a la misma hora, así la comparación es pareja.
+router.get('/ventas-semanal-hora', async (req, res) => {
+    try {
+        const { fecha_inicio, hasta } = req.query; // fecha_inicio = domingo (YYYY-MM-DD)
+        if (!fecha_inicio) {
+            return res.status(400).json({ error: 'La fecha de inicio de la semana (domingo) es requerida.' });
+        }
+
+        // La hora de corte la pone el servidor en hora de Bolivia, no el navegador:
+        // el servidor corre en UTC y una computadora con la hora cambiada haría
+        // comparar contra una hora que no es.
+        const hora = /^\d{2}:\d{2}(:\d{2})?$/.test(hasta || '') ? hasta : null;
+        const corteSql = hora ? '$2::time' : `(CURRENT_TIMESTAMP AT TIME ZONE 'America/La_Paz')::time`;
+
+        const query = `
+            SELECT
+                d.dia::date as fecha,
+                EXTRACT(DOW FROM d.dia) as dia_semana,
+                COALESCE(v.total, 0) as total,
+                COALESCE(v.ventas, 0)::int as ventas,
+                TO_CHAR(${corteSql}, 'HH24:MI') as hora_corte
+            FROM (
+                SELECT ($1::date + i.n)::date as dia
+                FROM generate_series(0, 6) i(n)
+            ) d
+            LEFT JOIN (
+                SELECT
+                    (fecha_venta AT TIME ZONE 'America/La_Paz')::date as fecha,
+                    SUM(total) as total,
+                    COUNT(*) as ventas
+                FROM ventas
+                WHERE es_historica = FALSE
+                  AND (fecha_venta AT TIME ZONE 'America/La_Paz')::time <= ${corteSql}
+                GROUP BY fecha
+            ) v ON d.dia = v.fecha
+            ORDER BY d.dia ASC
+        `;
+
+        const result = await pool.query(query, hora ? [fecha_inicio, hora] : [fecha_inicio]);
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error al obtener ventas semanales por hora:', error);
+        res.status(500).json({ error: 'Error al procesar consulta de ventas por hora' });
+    }
+});
+
 // [NUEVO] Desglose de Ventas por Categoría para un día específico
 router.get('/ventas-dia-detalle', async (req, res) => {
     try {

@@ -212,11 +212,19 @@
                     <div class="lg:col-span-7 flex flex-col justify-between">
                         <div>
                             <div class="flex justify-between items-center mb-6">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <div class="bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1.5 rounded-full text-xs flex items-center gap-2 border border-emerald-500/20 select-none">
                                         <span>Actividad de ventas</span>
                                         <i class="fa-solid fa-chevron-down text-[10px]"></i>
                                     </div>
+                                    <!-- Corta todos los días a la misma hora que la de ahora, para poder
+                                         comparar el día en curso contra los demás sin que pierda por no
+                                         haber terminado todavía. -->
+                                    <button id="btn-modo-hora" onclick="alternarModoHora()" title="Comparar todos los días hasta la hora de ahora"
+                                            class="font-bold px-3 py-1.5 rounded-full text-xs flex items-center gap-2 border transition-all bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700">
+                                        <i class="fa-regular fa-clock text-[11px]"></i>
+                                        <span id="btn-modo-hora-texto">Por hora</span>
+                                    </button>
                                 </div>
                             </div>
                             <div class="mb-4">
@@ -691,6 +699,11 @@
         let chartActividadSemanalInst = null;
         let actividadDatosSemana = [];
         let actividadDatosSemanaPrev = [];
+        // Modo "por hora": en vez del total de cada día entero, cuánto llevaba
+        // vendido cada día a esta misma hora. La hora de corte la manda el
+        // servidor (en hora de Bolivia), no el reloj de esta computadora.
+        let actividadModoHora = false;
+        let actividadHoraCorte = null;
 
         function inicializarActividadSemanal() {
             actividadDiaSeleccionado = new Date();
@@ -751,13 +764,20 @@
                     actividadDomingoSemana = nuevoDomingo;
                     const domingoAnterior = new Date(nuevoDomingo);
                     domingoAnterior.setDate(domingoAnterior.getDate() - 7);
+                    const ruta = actividadModoHora ? 'ventas-semanal-hora' : 'ventas-semanal';
                     const [res, resPrev] = await Promise.all([
-                        fetch(`/api/kpis/ventas-semanal?fecha_inicio=${domingoISO}`),
-                        fetch(`/api/kpis/ventas-semanal?fecha_inicio=${formatDateISO(domingoAnterior)}`)
+                        fetch(`/api/kpis/${ruta}?fecha_inicio=${domingoISO}`),
+                        fetch(`/api/kpis/${ruta}?fecha_inicio=${formatDateISO(domingoAnterior)}`)
                     ]);
                     if (!res.ok) throw new Error('Error al cargar ventas semanales');
                     actividadDatosSemana = await res.json();
                     actividadDatosSemanaPrev = resPrev.ok ? await resPrev.json() : [];
+                    // La semana anterior tiene que venir cortada a la misma hora,
+                    // si no el "vs semana anterior" compararía peras con manzanas.
+                    actividadHoraCorte = actividadModoHora
+                        ? (actividadDatosSemana.find(d => d.hora_corte) || {}).hora_corte || null
+                        : null;
+                    pintarBotonModoHora();
                 }
 
                 // El index seleccionado en la semana es el día del selected date (0 a 6)
@@ -768,7 +788,9 @@
                 const totalDia = parseFloat(datoDia.total) || 0;
                 
                 document.getElementById('actividad-monto-dia').innerText = `Bs. ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(totalDia)}`;
-                document.getElementById('actividad-lbl-dia').innerText = obtenerEtiquetaDia(actividadDiaSeleccionado);
+                document.getElementById('actividad-lbl-dia').innerText = actividadModoHora && actividadHoraCorte
+                    ? `${obtenerEtiquetaDia(actividadDiaSeleccionado)} · hasta las ${actividadHoraCorte}`
+                    : obtenerEtiquetaDia(actividadDiaSeleccionado);
                 document.getElementById('actividad-fecha-selector').innerText = formatFechaSeleccionada(actividadDiaSeleccionado);
                 
                 // Deshabilitar botón "siguiente" si es >= hoy
@@ -790,6 +812,28 @@
 
             } catch (error) {
                 console.error('Error en actividad semanal:', error);
+            }
+        }
+
+        function alternarModoHora() {
+            actividadModoHora = !actividadModoHora;
+            pintarBotonModoHora();
+            // Se fuerza a recargar la semana: los datos que hay en memoria son
+            // del otro modo y no sirven.
+            cargarActividadSemanal(true);
+        }
+
+        function pintarBotonModoHora() {
+            const btn = document.getElementById('btn-modo-hora');
+            const txt = document.getElementById('btn-modo-hora-texto');
+            if (!btn || !txt) return;
+            const base = 'font-bold px-3 py-1.5 rounded-full text-xs flex items-center gap-2 border transition-all ';
+            if (actividadModoHora) {
+                btn.className = base + 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+                txt.innerText = actividadHoraCorte ? `Hasta las ${actividadHoraCorte}` : 'Por hora';
+            } else {
+                btn.className = base + 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700';
+                txt.innerText = 'Por hora';
             }
         }
 
@@ -960,7 +1004,10 @@
                                         return formatFechaCompleta(d);
                                     },
                                     label: function(context) {
-                                        return ` ${fmtBs(context.raw)}`;
+                                        if (!actividadModoHora) return ` ${fmtBs(context.raw)}`;
+                                        const d = actividadDatosSemana[context.dataIndex] || {};
+                                        const n = parseInt(d.ventas, 10) || 0;
+                                        return ` ${fmtBs(context.raw)} · ${n} venta${n === 1 ? '' : 's'} hasta las ${actividadHoraCorte || '--:--'}`;
                                     },
                                     afterLabel: function(context) {
                                         const prom = context.chart.$promedioSemana;
