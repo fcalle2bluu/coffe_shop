@@ -67,32 +67,15 @@ router.post('/', upload.single('imagen'), async (req, res) => {
     try {
         let mensajeAdvertencia = null;
         
-        // [Fase A] - Subida de Imagen a Supabase Storage
-        if (req.file) {
-            if (!supabaseUrl || !supabaseKey) {
-                console.warn('⚠️ No hay keys de Supabase configuradas para subir la imagen.');
-                mensajeAdvertencia = 'El insumo se guardó, pero la foto no porque faltan las claves de Supabase en tu servidor (.env).';
-            } else {
-                const nombreArchivo = `${Date.now()}_${req.file.originalname.replace(/\s+/g, '_')}`;
-                
-                const { data, error } = await supabase.storage
-                    .from('insumos') // Nombre del bucket fijo
-                    .upload(nombreArchivo, req.file.buffer, {
-                        contentType: req.file.mimetype,
-                        cacheControl: '31536000',
-                        upsert: false
-                    });
+        const { guardarArchivoLocal } = require('../utils/uploader');
 
-                if (error) {
-                    console.error('Error subiendo a Supabase:', error);
-                    mensajeAdvertencia = 'Error subiendo la foto a Supabase (revisa los permisos del Bucket "insumos"): ' + error.message;
-                } else {
-                    const { data: publicUrlData } = supabase.storage
-                        .from('insumos')
-                        .getPublicUrl(nombreArchivo);
-                    
-                    imagen_url = publicUrlData.publicUrl;
-                }
+// [Fase A] - Subida de Imagen local
+        if (req.file) {
+            try {
+                imagen_url = guardarArchivoLocal(req.file.buffer, req.file.originalname);
+            } catch (err) {
+                console.error('Error guardando imagen local:', err);
+                mensajeAdvertencia = 'No se pudo guardar la imagen localmente.';
             }
         }
 

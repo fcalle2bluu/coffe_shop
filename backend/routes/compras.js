@@ -78,30 +78,24 @@ router.post('/', upload.fields([{ name: 'foto_recibo', maxCount: 1 }, { name: 'f
         return res.status(400).json({ error: 'El carrito de compras está vacío.' });
     }
     
-    // --- Subidas a Supabase ---
+const { guardarArchivoLocal } = require('../utils/uploader');
+
+    // --- Subidas Locales de Fotos (sin Supabase Storage) ---
     if (req.files) {
         // 1. Procesar Foto del Recibo
         if (req.files['foto_recibo']) {
             const file = req.files['foto_recibo'][0];
             try {
-                const nombreArchivo = `${Date.now()}_recibo_${file.originalname.replace(/\s+/g, '_')}`;
-                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
-                if (error) throw error;
-                const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
-                foto_recibo_url = publicData.publicUrl;
-            } catch (e) { console.error("Error subiendo foto_recibo:", e); }
+                foto_recibo_url = guardarArchivoLocal(file.buffer, `recibo_${file.originalname}`);
+            } catch (e) { console.error("Error guardando foto_recibo:", e); }
         }
 
         // 2. Procesar Foto del Producto
         if (req.files['foto_producto']) {
             const file = req.files['foto_producto'][0];
             try {
-                const nombreArchivo = `${Date.now()}_producto_${file.originalname.replace(/\s+/g, '_')}`;
-                const { data, error } = await supabase.storage.from('insumos').upload(nombreArchivo, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
-                if (error) throw error;
-                const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
-                foto_producto_url = publicData.publicUrl;
-            } catch (e) { console.error("Error subiendo foto_producto:", e); }
+                foto_producto_url = guardarArchivoLocal(file.buffer, `producto_${file.originalname}`);
+            } catch (e) { console.error("Error guardando foto_producto:", e); }
         }
     }
 

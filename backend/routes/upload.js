@@ -2,42 +2,33 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
+const path = require('path');
+const fs = require('fs');
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-let supabase = null;
-if (supabaseUrl && supabaseKey) {
-    supabase = createClient(supabaseUrl, supabaseKey);
+const uploadsDir = path.join(__dirname, '../public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB MAX
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+        cb(null, `${Date.now()}_${cleanBase}${ext}`);
+    }
+});
 
-router.post('/', upload.single('imagen'), async (req, res) => {
+const upload = multer({ storage: storage, limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB MAX
+
+// Subida de imagen local (100% libre de cuota de Supabase)
+router.post('/', upload.single('imagen'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No se subió ninguna imagen' });
     }
-    if (!supabase) {
-        return res.status(500).json({ error: 'Servidor no configurado para almacenamiento de Supabase' });
-    }
-
-    try {
-        const nombreArchivo = `${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        const { data, error } = await supabase.storage
-            .from('insumos')
-            .upload(nombreArchivo, req.file.buffer, {
-                contentType: req.file.mimetype,
-                cacheControl: '31536000',
-            });
-
-        if (error) throw error;
-
-        const { data: publicData } = supabase.storage.from('insumos').getPublicUrl(nombreArchivo);
-        res.json({ success: true, url: publicData.publicUrl });
-    } catch (error) {
-        console.error('Error al subir a Supabase:', error);
-        res.status(500).json({ error: 'Error al subir la imagen a la nube' });
-    }
+    const publicUrl = `/uploads/${req.file.filename}`;
+    console.log(`📸 Imagen subida localmente con éxito: ${publicUrl}`);
+    res.json({ success: true, url: publicUrl });
 });
 
 module.exports = router;

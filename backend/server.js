@@ -187,6 +187,10 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // (se reemplazan/versionan vía backend/config/app_versions.json)
 app.use('/apks', express.static(path.join(__dirname, 'public/apks')));
 
+// Servir fotos y archivos localmente (sin depender de Supabase Storage para no gastar cuota)
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/storage/v1/object/public/insumos', express.static(path.join(__dirname, 'public/uploads')));
+
 // ==========================================
 // 6. INICIAR SERVIDOR
 // ==========================================
