@@ -55,9 +55,10 @@ function renderContactosChat(silent = false) {
     const query = document.getElementById('buscar-contacto-chat')?.value.trim().toLowerCase() || '';
     const filtered = chatContactos.filter(c => {
         const tel = String(c.telefono || '').toLowerCase();
+        const nom = String(c.nombre || '').toLowerCase();
         const msg = String(c.mensaje || '').toLowerCase();
         const doc = String(c.archivo_nombre || '').toLowerCase();
-        return tel.includes(query) || msg.includes(query) || doc.includes(query);
+        return tel.includes(query) || nom.includes(query) || msg.includes(query) || doc.includes(query);
     });
 
     if (badgeCount) {
@@ -105,6 +106,10 @@ function renderContactosChat(silent = false) {
             remitentePrefijo = '<span class="text-slate-600 font-bold mr-1">Postulante:</span>';
         }
 
+        const nombreHtml = c.nombre 
+            ? `<span class="text-xs font-bold text-slate-800 truncate select-all">${escapeHTML(c.nombre)}</span><span class="text-[10px] text-slate-400 font-normal truncate shrink-0 ml-1">+${c.telefono}</span>`
+            : `<span class="text-xs font-bold text-slate-800 truncate select-all">+${c.telefono}</span>`;
+
         const item = document.createElement('div');
         item.className = `p-3.5 flex items-center gap-3 cursor-pointer transition-all chat-contact-item ${activeClass}`;
         item.onclick = () => seleccionarContactoChat(c.telefono);
@@ -114,7 +119,9 @@ function renderContactosChat(silent = false) {
             </div>
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-1">
-                    <span class="text-xs font-bold text-slate-800 truncate select-all">+${c.telefono}</span>
+                    <div class="flex items-baseline truncate pr-2">
+                        ${nombreHtml}
+                    </div>
                     <span class="text-[9px] text-slate-400 font-semibold shrink-0">${fechaStr}</span>
                 </div>
                 <div class="text-[10px] text-slate-500 truncate font-medium flex items-center gap-1">
@@ -186,6 +193,8 @@ function formatFechaCorta(fechaRaw) {
 window.seleccionarContactoChat = function(telefono) {
     contactoActivo = telefono;
 
+    const c = chatContactos.find(item => String(item.telefono) === String(telefono));
+
     // Actualizar cabecera
     const headerPhone = document.getElementById('chat-active-phone');
     const headerStatus = document.getElementById('chat-active-status');
@@ -194,7 +203,9 @@ window.seleccionarContactoChat = function(telefono) {
     const btnRefresh = document.getElementById('btn-refresh-chat');
     const inputContainer = document.getElementById('chat-input-container');
 
-    if (headerPhone) headerPhone.textContent = `+${telefono}`;
+    if (headerPhone) {
+        headerPhone.textContent = c?.nombre ? `${c.nombre} (+${telefono})` : `+${telefono}`;
+    }
     if (headerStatus) headerStatus.textContent = 'Postulante · Conectado con WhatsApp Oficial';
     if (headerAvatar) {
         headerAvatar.className = "w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-100";

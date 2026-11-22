@@ -148,90 +148,100 @@ router.post('/webhook', async (req, res) => {
 
     try {
         const body = req.body;
-        if (body.object !== 'whatsapp_business_account') return;
+        if (body.object !== 'whatsapp_business_account' || !body.entry) return;
 
-        if (body.entry &&
-            body.entry[0] &&
-            body.entry[0].changes &&
-            body.entry[0].changes[0] &&
-            body.entry[0].changes[0].value &&
-            body.entry[0].changes[0].value.messages &&
-            body.entry[0].changes[0].value.messages[0]) {
+        for (const entry of body.entry) {
+            for (const change of (entry.changes || [])) {
+                const value = change.value;
+                if (!value || !value.messages || !Array.isArray(value.messages)) continue;
 
-            const message = body.entry[0].changes[0].value.messages[0];
-            const from = message.from; // Teléfono del postulante
-            const msgType = message.type;
+                // Extraer mapa de nombres de perfil de WhatsApp si Meta los incluye en contacts
+                const contactsMap = {};
+                if (value.contacts && Array.isArray(value.contacts)) {
+                    for (const c of value.contacts) {
+                        if (c.wa_id && c.profile && c.profile.name) {
+                            contactsMap[c.wa_id] = c.profile.name;
+                        }
+                    }
+                }
 
-            let textBody = '';
-            let tipo = 'text';
-            let mediaIdSaved = null;
-            let archivoNombre = null;
+                for (const message of value.messages) {
+                    const from = message.from; // Teléfono del postulante
+                    const msgType = message.type;
+                    const senderName = contactsMap[from] || null;
 
-            if (msgType === 'text' && message.text) {
-                textBody = (message.text.body || '').trim();
-                tipo = 'text';
-            } else if (msgType === 'image' && message.image) {
-                tipo = 'image';
-                const caption = (message.image.caption || '').trim();
-                textBody = caption || '📷 Imagen / Foto enviada';
-                const mediaRes = await descargarYGuardarMedia(message.image.id, null);
-                if (mediaRes) {
-                    mediaIdSaved = mediaRes.id;
-                    archivoNombre = mediaRes.nombre;
+                    let textBody = '';
+                    let tipo = 'text';
+                    let mediaIdSaved = null;
+                    let archivoNombre = null;
+
+                    if (msgType === 'text' && message.text) {
+                        textBody = (message.text.body || '').trim();
+                        tipo = 'text';
+                    } else if (msgType === 'image' && message.image) {
+                        tipo = 'image';
+                        const caption = (message.image.caption || '').trim();
+                        textBody = caption || '📷 Imagen / Foto enviada';
+                        const mediaRes = await descargarYGuardarMedia(message.image.id, null);
+                        if (mediaRes) {
+                            mediaIdSaved = mediaRes.id;
+                            archivoNombre = mediaRes.nombre;
+                        }
+                    } else if (msgType === 'document' && message.document) {
+                        tipo = 'document';
+                        archivoNombre = message.document.filename || 'Curriculum_Vitae.pdf';
+                        const caption = (message.document.caption || '').trim();
+                        textBody = caption ? `${caption} (${archivoNombre})` : `📄 Documento: ${archivoNombre}`;
+                        const mediaRes = await descargarYGuardarMedia(message.document.id, archivoNombre);
+                        if (mediaRes) {
+                            mediaIdSaved = mediaRes.id;
+                        }
+                    } else if ((msgType === 'audio' || msgType === 'voice') && (message.audio || message.voice)) {
+                        tipo = 'audio';
+                        textBody = '🎤 Mensaje de voz / audio';
+                        const audioObj = message.audio || message.voice;
+                        const mediaRes = await descargarYGuardarMedia(audioObj.id, 'audio.ogg');
+                        if (mediaRes) {
+                            mediaIdSaved = mediaRes.id;
+                            archivoNombre = mediaRes.nombre;
+                        }
+                    } else if (msgType === 'video' && message.video) {
+                        tipo = 'video';
+                        const caption = (message.video.caption || '').trim();
+                        textBody = caption || '🎥 Video enviado';
+                        const mediaRes = await descargarYGuardarMedia(message.video.id, 'video.mp4');
+                        if (mediaRes) {
+                            mediaIdSaved = mediaRes.id;
+                            archivoNombre = mediaRes.nombre;
+                        }
+                    } else if (msgType === 'interactive' && message.interactive) {
+                        const ir = message.interactive;
+                        textBody = (ir.button_reply && ir.button_reply.title) || (ir.list_reply && ir.list_reply.title) || '[Interactivo]';
+                        tipo = 'text';
+                    } else if (msgType === 'button' && message.button) {
+                        textBody = message.button.text || '[Botón]';
+                        tipo = 'text';
+                    } else {
+                        textBody = `[Mensaje tipo: ${msgType}]`;
+                        tipo = msgType || 'text';
+                    }
+
+                    // Guardar en la base de datos de manera 100% segura
+                    try {
+                        await pool.query(
+                            `INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente, tipo, media_id, archivo_nombre, nombre)
+                             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                            [from, textBody, 'CLIENTE', tipo, mediaIdSaved, archivoNombre, senderName]
+                        );
+                        console.log(`📥 [WhatsApp Postulante ${senderName ? senderName + ' ' : ''}+${from}] Recibido ${tipo}: "${textBody}" (media_id: ${mediaIdSaved})`);
+                    } catch (dbErr) {
+                        console.error('❌ Error al guardar mensaje en BD:', dbErr.message);
+                    }
+
+                    // NO SE RESPONDE POR IA NI MENSAJES AUTOMÁTICOS PREGRABADOS.
+                    // El mensaje queda guardado en la bandeja del panel para ser atendido manualmente.
                 }
-            } else if (msgType === 'document' && message.document) {
-                tipo = 'document';
-                archivoNombre = message.document.filename || 'Curriculum_Vitae.pdf';
-                const caption = (message.document.caption || '').trim();
-                textBody = caption ? `${caption} (${archivoNombre})` : `📄 Documento: ${archivoNombre}`;
-                const mediaRes = await descargarYGuardarMedia(message.document.id, archivoNombre);
-                if (mediaRes) {
-                    mediaIdSaved = mediaRes.id;
-                }
-            } else if ((msgType === 'audio' || msgType === 'voice') && (message.audio || message.voice)) {
-                tipo = 'audio';
-                textBody = '🎤 Mensaje de voz / audio';
-                const audioObj = message.audio || message.voice;
-                const mediaRes = await descargarYGuardarMedia(audioObj.id, 'audio.ogg');
-                if (mediaRes) {
-                    mediaIdSaved = mediaRes.id;
-                    archivoNombre = mediaRes.nombre;
-                }
-            } else if (msgType === 'video' && message.video) {
-                tipo = 'video';
-                const caption = (message.video.caption || '').trim();
-                textBody = caption || '🎥 Video enviado';
-                const mediaRes = await descargarYGuardarMedia(message.video.id, 'video.mp4');
-                if (mediaRes) {
-                    mediaIdSaved = mediaRes.id;
-                    archivoNombre = mediaRes.nombre;
-                }
-            } else if (msgType === 'interactive' && message.interactive) {
-                const ir = message.interactive;
-                textBody = (ir.button_reply && ir.button_reply.title) || (ir.list_reply && ir.list_reply.title) || '[Interactivo]';
-                tipo = 'text';
-            } else if (msgType === 'button' && message.button) {
-                textBody = message.button.text || '[Botón]';
-                tipo = 'text';
-            } else {
-                textBody = `[Mensaje tipo: ${msgType}]`;
-                tipo = msgType || 'text';
             }
-
-            // Guardar en la base de datos de manera 100% segura
-            try {
-                await pool.query(
-                    `INSERT INTO whatsapp_mensajes (telefono, mensaje, remitente, tipo, media_id, archivo_nombre)
-                     VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [from, textBody, 'CLIENTE', tipo, mediaIdSaved, archivoNombre]
-                );
-                console.log(`📥 [WhatsApp Postulante +${from}] Recibido ${tipo}: "${textBody}" (media_id: ${mediaIdSaved})`);
-            } catch (dbErr) {
-                console.error('❌ Error al guardar mensaje en BD:', dbErr.message);
-            }
-
-            // NO SE RESPONDE POR IA NI MENSAJES AUTOMÁTICOS PREGRABADOS.
-            // El mensaje queda guardado en la bandeja del panel para ser atendido manualmente.
         }
     } catch (error) {
         console.error('❌ Error en procesamiento del Webhook de WhatsApp:', error.message);
@@ -268,10 +278,11 @@ router.get('/chat/contactos', async (req, res) => {
         const query = `
             WITH ultimos_mensajes AS (
                 SELECT telefono, mensaje, fecha, remitente, tipo, media_id, archivo_nombre,
+                       COALESCE(nombre, (SELECT m2.nombre FROM whatsapp_mensajes m2 WHERE m2.telefono = whatsapp_mensajes.telefono AND m2.nombre IS NOT NULL ORDER BY m2.fecha DESC LIMIT 1)) as nombre,
                        ROW_NUMBER() OVER (PARTITION BY telefono ORDER BY fecha DESC) as rn
                 FROM whatsapp_mensajes
             )
-            SELECT telefono, mensaje, fecha, remitente, tipo, media_id, archivo_nombre
+            SELECT telefono, mensaje, fecha, remitente, tipo, media_id, archivo_nombre, nombre
             FROM ultimos_mensajes
             WHERE rn = 1
             ORDER BY fecha DESC
@@ -293,7 +304,7 @@ router.get('/chat/historial', async (req, res) => {
 
     try {
         const query = `
-            SELECT id, telefono, mensaje, remitente, tipo, media_id, archivo_nombre,
+            SELECT id, telefono, mensaje, remitente, tipo, media_id, archivo_nombre, nombre,
                    TO_CHAR(fecha, 'HH24:MI DD/MM') as fecha_formateada,
                    fecha
             FROM whatsapp_mensajes
