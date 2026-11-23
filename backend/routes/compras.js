@@ -3,15 +3,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/conexion');
 const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
-
-// Configuración de Supabase
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-let supabase = null;
-if (supabaseUrl && supabaseKey) {
-    supabase = createClient(supabaseUrl, supabaseKey);
-}
+const { guardarArchivoLocal } = require('../utils/uploader');
 
 // Configuración de Multer (Memoria)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB MAX
