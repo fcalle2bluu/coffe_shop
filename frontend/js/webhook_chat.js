@@ -106,25 +106,40 @@ function renderContactosChat(silent = false) {
             remitentePrefijo = '<span class="text-slate-600 font-bold mr-1">Postulante:</span>';
         }
 
-        const nombreHtml = c.nombre 
-            ? `<span class="text-xs font-bold text-slate-800 truncate select-all">${escapeHTML(c.nombre)}</span><span class="text-[10px] text-slate-400 font-normal truncate shrink-0 ml-1">+${c.telefono}</span>`
-            : `<span class="text-xs font-bold text-slate-800 truncate select-all">+${c.telefono}</span>`;
+        const inicial = (c.nombre && c.nombre.trim()) ? c.nombre.trim().charAt(0).toUpperCase() : '';
+        const avatarIcon = (inicial && /[A-ZÁÉÍÓÚÑ]/.test(inicial)) 
+            ? `<span class="text-sm font-extrabold ${isSelected ? 'text-white' : 'text-orange-600'}">${inicial}</span>` 
+            : `<i class="fa-brands fa-whatsapp text-lg"></i>`;
+
+        let nombreHtml = '';
+        if (c.nombre) {
+            nombreHtml = `
+                <div class="min-w-0 pr-1">
+                    <span class="text-xs font-bold text-slate-800 truncate block select-all">${escapeHTML(c.nombre)}</span>
+                    <span class="text-[10px] text-slate-400 font-medium truncate block">+${c.telefono}</span>
+                </div>
+            `;
+        } else {
+            nombreHtml = `
+                <div class="min-w-0 pr-1">
+                    <span class="text-xs font-bold text-slate-800 truncate block select-all">+${c.telefono}</span>
+                </div>
+            `;
+        }
 
         const item = document.createElement('div');
-        item.className = `p-3.5 flex items-center gap-3 cursor-pointer transition-all chat-contact-item ${activeClass}`;
+        item.className = `p-3 flex items-center gap-3 cursor-pointer transition-all chat-contact-item ${activeClass}`;
         item.onclick = () => seleccionarContactoChat(c.telefono);
         item.innerHTML = `
-            <div class="w-10 h-10 rounded-full ${isSelected ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'} flex items-center justify-center font-bold text-sm shrink-0">
-                <i class="fa-brands fa-whatsapp text-lg"></i>
+            <div class="w-10 h-10 rounded-full ${isSelected ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-600 border border-orange-100'} flex items-center justify-center font-bold text-sm shrink-0">
+                ${avatarIcon}
             </div>
             <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-baseline mb-1">
-                    <div class="flex items-baseline truncate pr-2">
-                        ${nombreHtml}
-                    </div>
-                    <span class="text-[9px] text-slate-400 font-semibold shrink-0">${fechaStr}</span>
+                <div class="flex justify-between items-baseline mb-0.5">
+                    ${nombreHtml}
+                    <span class="text-[9px] text-slate-400 font-semibold shrink-0 ml-1">${fechaStr}</span>
                 </div>
-                <div class="text-[10px] text-slate-500 truncate font-medium flex items-center gap-1">
+                <div class="text-[10px] text-slate-500 truncate font-medium flex items-center gap-1 mt-0.5">
                     ${remitentePrefijo} ${previewHtml || escapeHTML(msgText)}
                 </div>
             </div>
@@ -194,6 +209,7 @@ window.seleccionarContactoChat = function(telefono) {
     contactoActivo = telefono;
 
     const c = chatContactos.find(item => String(item.telefono) === String(telefono));
+    const nombre = c?.nombre;
 
     // Actualizar cabecera
     const headerPhone = document.getElementById('chat-active-phone');
@@ -204,12 +220,24 @@ window.seleccionarContactoChat = function(telefono) {
     const inputContainer = document.getElementById('chat-input-container');
 
     if (headerPhone) {
-        headerPhone.textContent = c?.nombre ? `${c.nombre} (+${telefono})` : `+${telefono}`;
+        headerPhone.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="truncate font-bold text-slate-800 text-sm sm:text-base">${escapeHTML(nombre || `+${telefono}`)}</span>
+                <button onclick="editarNombrePostulante('${telefono}')" title="Editar o asignar nombre del postulante" class="text-slate-400 hover:text-orange-500 p-1 text-xs transition rounded hover:bg-slate-100">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+            </div>
+        `;
     }
-    if (headerStatus) headerStatus.textContent = 'Postulante · Conectado con WhatsApp Oficial';
+    if (headerStatus) {
+        headerStatus.textContent = nombre ? `+${telefono} · Postulante · WhatsApp Oficial` : 'Postulante · Conectado con WhatsApp Oficial';
+    }
     if (headerAvatar) {
-        headerAvatar.className = "w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-100";
-        headerAvatar.innerHTML = `<i class="fa-brands fa-whatsapp text-xl"></i>`;
+        const inicial = nombre ? nombre.trim().charAt(0).toUpperCase() : '';
+        headerAvatar.className = "w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0 border border-orange-200 shadow-sm";
+        headerAvatar.innerHTML = inicial && /[A-ZÁÉÍÓÚÑ]/.test(inicial)
+            ? `<span class="text-base font-extrabold text-orange-600">${inicial}</span>`
+            : `<i class="fa-brands fa-whatsapp text-xl text-emerald-600"></i>`;
     }
     if (waLink) {
         waLink.href = `https://wa.me/${telefono}`;
@@ -220,6 +248,30 @@ window.seleccionarContactoChat = function(telefono) {
 
     renderContactosChat(true);
     cargarConversacionActiva(false);
+};
+
+// Editar nombre de postulante
+window.editarNombrePostulante = async function(telefono) {
+    const c = chatContactos.find(item => String(item.telefono) === String(telefono));
+    const actual = c?.nombre || '';
+    const nuevo = prompt("Nombre del postulante (ej: Juan Pérez):", actual);
+    if (nuevo === null) return;
+    const nombreLimpio = nuevo.trim();
+    if (!nombreLimpio) return;
+
+    try {
+        const res = await fetch('/api/whatsapp/chat/actualizar-nombre', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telefono, nombre: nombreLimpio })
+        });
+        if (!res.ok) throw new Error('Error al actualizar nombre en el servidor');
+        if (c) c.nombre = nombreLimpio;
+        seleccionarContactoChat(telefono);
+        cargarConversacionActiva(true);
+    } catch (err) {
+        alert("Error al actualizar el nombre: " + err.message);
+    }
 };
 
 // Cargar conversación activa
@@ -350,7 +402,26 @@ function renderMensajes(mensajes, silent = false) {
 
         const horaColor = isClient ? 'text-slate-400' : 'text-orange-100';
 
+        let remitenteHeaderHtml = '';
+        if (isClient) {
+            const remitenteNombre = m.nombre ? escapeHTML(m.nombre) : 'Postulante';
+            remitenteHeaderHtml = `
+                <div class="text-[11px] font-bold text-orange-600 mb-1 flex items-center gap-1.5 select-none">
+                    <i class="fa-solid fa-circle-user text-xs"></i>
+                    <span>${remitenteNombre}</span>
+                    <span class="text-[9px] font-normal text-slate-400 select-all">(+${m.telefono})</span>
+                </div>
+            `;
+        } else {
+            remitenteHeaderHtml = `
+                <div class="text-[10px] font-bold text-orange-100 mb-1 flex items-center justify-end gap-1 select-none">
+                    <i class="fa-solid fa-store text-[10px]"></i> Café La Paz (Tú)
+                </div>
+            `;
+        }
+
         bubble.innerHTML = `
+            ${remitenteHeaderHtml}
             ${mediaHtml}
             ${textHtml}
             <div class="flex items-center justify-end gap-1 mt-1 text-[9px] ${horaColor} font-semibold">

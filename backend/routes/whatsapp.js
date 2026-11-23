@@ -157,10 +157,15 @@ router.post('/webhook', async (req, res) => {
 
                 // Extraer mapa de nombres de perfil de WhatsApp si Meta los incluye en contacts
                 const contactsMap = {};
+                let firstProfileName = null;
                 if (value.contacts && Array.isArray(value.contacts)) {
                     for (const c of value.contacts) {
-                        if (c.wa_id && c.profile && c.profile.name) {
-                            contactsMap[c.wa_id] = c.profile.name;
+                        if (c.profile && c.profile.name) {
+                            if (!firstProfileName) firstProfileName = c.profile.name;
+                            if (c.wa_id) {
+                                contactsMap[c.wa_id] = c.profile.name;
+                                contactsMap[String(c.wa_id).replace(/\D/g, '')] = c.profile.name;
+                            }
                         }
                     }
                 }
@@ -168,7 +173,8 @@ router.post('/webhook', async (req, res) => {
                 for (const message of value.messages) {
                     const from = message.from; // Teléfono del postulante
                     const msgType = message.type;
-                    const senderName = contactsMap[from] || null;
+                    const cleanFrom = String(from || '').replace(/\D/g, '');
+                    const senderName = contactsMap[from] || contactsMap[cleanFrom] || firstProfileName || null;
 
                     let textBody = '';
                     let tipo = 'text';
@@ -304,7 +310,8 @@ router.get('/chat/historial', async (req, res) => {
 
     try {
         const query = `
-            SELECT id, telefono, mensaje, remitente, tipo, media_id, archivo_nombre, nombre,
+            SELECT id, telefono, mensaje, remitente, tipo, media_id, archivo_nombre,
+                   COALESCE(nombre, (SELECT m2.nombre FROM whatsapp_mensajes m2 WHERE m2.telefono = whatsapp_mensajes.telefono AND m2.nombre IS NOT NULL ORDER BY m2.fecha DESC LIMIT 1)) as nombre,
                    TO_CHAR(fecha, 'HH24:MI DD/MM') as fecha_formateada,
                    fecha
             FROM whatsapp_mensajes
@@ -316,6 +323,25 @@ router.get('/chat/historial', async (req, res) => {
     } catch (err) {
         console.error('Error al cargar historial de chat:', err.message);
         res.status(500).json({ error: 'Error al obtener historial de conversación.' });
+    }
+});
+
+// 2.1 Actualizar o asignar nombre manual al postulante
+router.post('/chat/actualizar-nombre', async (req, res) => {
+    const { telefono, nombre } = req.body;
+    if (!telefono || !nombre) {
+        return res.status(400).json({ error: 'Faltan parámetros teléfono y nombre.' });
+    }
+
+    try {
+        await pool.query(
+            'UPDATE whatsapp_mensajes SET nombre = $1 WHERE telefono = $2',
+            [nombre.trim(), telefono]
+        );
+        res.json({ success: true, telefono, nombre: nombre.trim() });
+    } catch (err) {
+        console.error('Error al actualizar nombre del postulante:', err.message);
+        res.status(500).json({ error: 'Error al actualizar nombre.' });
     }
 });
 
