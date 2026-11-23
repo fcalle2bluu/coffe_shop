@@ -1,6 +1,8 @@
 // backend/routes/whatsapp.js
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const pool = require('../config/conexion');
 const { soloAdmin } = require('../middleware/permisos');
 
@@ -105,6 +107,17 @@ async function descargarYGuardarMedia(mediaId, originalFilename = null) {
              VALUES ($1, $2, $3, $4) RETURNING id`,
             [mimeType, nombre, buffer.length, buffer]
         );
+
+        // 3.1 Guardar también en disco local backend/public/uploads para respaldo y acceso estático ultrarrápido
+        try {
+            const uploadsDir = path.join(__dirname, '../public/uploads');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+            fs.writeFileSync(path.join(uploadsDir, nombre), buffer);
+        } catch (diskErr) {
+            console.warn('⚠️ No se pudo guardar archivo en disco local:', diskErr.message);
+        }
 
         return {
             id: ins.rows[0].id,
@@ -264,10 +277,23 @@ router.get('/media/:id', async (req, res) => {
             return res.status(404).send('Archivo no encontrado');
         }
         const file = rows[0];
+
+        // 1. Si existe en disco local, servirlo desde disco para máxima velocidad
+        const localPath = path.join(__dirname, '../public/uploads', file.nombre);
+        if (fs.existsSync(localPath)) {
+            return res.sendFile(localPath);
+        }
+
+        // 2. Servir directamente desde la BD (BYTEA)
         res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
         res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.nombre)}"`);
         res.setHeader('Cache-Control', 'public, max-age=86400');
-        res.send(file.datos);
+        if (file.datos) {
+            res.setHeader('Content-Length', file.datos.length);
+            res.end(file.datos);
+        } else {
+            res.status(404).send('Contenido de archivo vacío');
+        }
     } catch (err) {
         console.error('Error al servir media de WhatsApp:', err.message);
         res.status(500).send('Error al obtener archivo');

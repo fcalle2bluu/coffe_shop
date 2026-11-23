@@ -15,6 +15,7 @@ const RUTAS_PUBLICAS = [
 ];
 const PREFIJOS_PUBLICOS = [
     '/api/version/',
+    '/api/whatsapp/media/',
 ];
 
 async function verificarSesion(req, res, next) {

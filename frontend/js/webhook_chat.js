@@ -345,17 +345,21 @@ function renderMensajes(mensajes, silent = false) {
         // Si tiene archivo multimedia adjunto
         if (m.media_id) {
             const mediaUrl = `/api/whatsapp/media/${m.media_id}`;
+            const directUrl = m.archivo_nombre ? `/uploads/${encodeURIComponent(m.archivo_nombre)}` : mediaUrl;
             const tipo = m.tipo || 'text';
 
             if (tipo === 'image') {
                 mediaHtml = `
                     <div class="mb-2 rounded-xl overflow-hidden border border-slate-200/70 bg-slate-50">
                         <a href="${mediaUrl}" target="_blank" title="Clic para ver en pantalla completa">
-                            <img src="${mediaUrl}" alt="Foto enviada" class="max-h-72 w-full object-contain hover:opacity-95 transition cursor-pointer" loading="lazy" />
+                            <img src="${mediaUrl}" alt="Foto enviada" onerror="if(this.src!=='${directUrl}')this.src='${directUrl}';" class="max-h-72 w-full object-contain hover:opacity-95 transition cursor-pointer" loading="lazy" />
                         </a>
                         <div class="px-2 py-1 bg-slate-100 text-[10px] text-slate-500 font-semibold flex items-center justify-between">
                             <span><i class="fa-solid fa-image text-blue-500"></i> Imagen recibida</span>
-                            <a href="${mediaUrl}" target="_blank" class="text-blue-600 hover:underline">Ver tamaño completo ↗</a>
+                            <div class="flex items-center gap-2">
+                                <a href="${mediaUrl}" download="${m.archivo_nombre || 'foto.jpg'}" class="text-emerald-600 hover:underline"><i class="fa-solid fa-download"></i> Guardar</a>
+                                <a href="${mediaUrl}" target="_blank" class="text-blue-600 hover:underline">Ver tamaño completo ↗</a>
+                            </div>
                         </div>
                     </div>
                 `;
